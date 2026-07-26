@@ -1,0 +1,199 @@
+{
+  "cliente_id": "cliente_001",
+  "resumen_enfoque": "Split 'torso pierna' para nivel intermedio, 4 días/semana, orientado a hipertrofia. Ejercicios seleccionados según el material disponible del cliente.",
+  "nivel_asumido": "intermedio",
+  "split": "torso_pierna",
+  "dias_por_semana": 4,
+  "duracion_sesion_min": 60,
+  "advertencias_revision_humana": [],
+  "sesiones": [
+    {
+      "dia": "Día 1 — Torso A",
+      "grupos_musculares": [
+        "biceps",
+        "espalda",
+        "hombro",
+        "pecho",
+        "triceps"
+      ],
+      "calentamiento": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
+      "ejercicios": [
+        {
+          "nombre": "Press banca con barra",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Remo en polea alta (agarre cerrado)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Press militar en máquina",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Extensión de tríceps en polea (barra)",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Curl con mancuernas",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Día 2 — Pierna A",
+      "grupos_musculares": [
+        "core",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
+      "ejercicios": [
+        {
+          "nombre": "Sentadilla con barra",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Peso muerto rumano con barra",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Extensión de cuádriceps en máquina (carga moderada)",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Curl femoral sentado en máquina",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Plancha frontal",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Día 3 — Torso B",
+      "grupos_musculares": [
+        "biceps",
+        "espalda",
+        "hombro",
+        "pecho",
+        "triceps"
+      ],
+      "calentamiento": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
+      "ejercicios": [
+        {
+          "nombre": "Jalón al pecho",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Press inclinado con mancuernas",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Elevaciones laterales con mancuernas",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Curl en polea",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Press francés con mancuernas",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Día 4 — Pierna B",
+      "grupos_musculares": [
+        "core",
+        "gemelos",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
+      "ejercicios": [
+        {
+          "nombre": "Hip thrust con barra",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Sentadilla goblet con mancuerna",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Elevación de gemelos de pie en máquina",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Crunch en polea",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": "Cardio Zona 2 (ritmo cómodo, puedes hablar sin ahogarte), 30-40 min."
+    }
+  ],
+  "progresion": "Sobrecarga progresiva: en cada sesión, intenta sumar una repetición más manteniendo la técnica. Cuando completes el tope del rango en todas las series de un ejercicio, sube el peso ligeramente y vuelve al rango bajo. Nada de cambiar la rutina cada semana — la constancia con el mismo esquema es lo que produce el progreso.",
+  "mensaje_para_el_cliente": "Hola Marta, aquí tienes tu primer borrador de rutina. Vamos poco a poco: primero técnica, luego peso — tu cuerpo aprende antes de forzar. No hace falta que salga perfecto la primera semana, lo importante es que puedas repetirlo. Cualquier duda o si algo duele (no solo molesta), dímelo y lo ajustamos."
+}

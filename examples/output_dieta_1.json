@@ -1,0 +1,50 @@
+{
+  "cliente_id": "cliente_001",
+  "resumen_enfoque": "Estimación de 2125 kcal/día para hipertrofia, con 136 g de proteína como prioridad. Es un punto de partida que se ajusta con el peso y la energía reales de las primeras semanas.",
+  "calorias_objetivo_kcal": 2125,
+  "macros": {
+    "proteina_g": 136,
+    "grasa_g": 64,
+    "carbohidratos_g": 252
+  },
+  "comidas_al_dia": 4,
+  "distribucion_comidas": "Reparte estas calorías en 4 comidas a lo largo del día, con proteína presente en todas ellas. No hace falta que sean exactamente iguales — que encajen con tu rutina real.",
+  "fuentes_proteina_sugeridas": [
+    "Pechuga de pollo",
+    "Pavo",
+    "Ternera magra",
+    "Pescado blanco (merluza, lenguado)",
+    "Salmón / pescado azul",
+    "Huevos",
+    "Yogur griego / queso fresco batido",
+    "Lentejas",
+    "Garbanzos",
+    "Tofu",
+    "Tempeh",
+    "Edamame",
+    "Seitán",
+    "Proteína de guisante (en polvo)"
+  ],
+  "fuentes_carbohidrato_sugeridas": [
+    "Arroz",
+    "Avena",
+    "Patata / boniato",
+    "Pan integral",
+    "Pasta integral",
+    "Quinoa",
+    "Legumbres (también aportan carbohidrato)",
+    "Fruta variada"
+  ],
+  "fuentes_grasa_sugeridas": [
+    "Aceite de oliva virgen extra",
+    "Aguacate",
+    "Frutos secos (nueces, almendras)",
+    "Semillas (chía, lino)",
+    "Pescado azul (EPA/DHA)"
+  ],
+  "consejos_sinergias": [
+    "Vitamina D, E, K y omega-3 se absorben mejor si los tomas con la comida que más grasa saludable tenga del día (nunca en ayunas)."
+  ],
+  "advertencias_revision_humana": [],
+  "mensaje_para_el_cliente": "Hola Marta, este es tu borrador de dieta. No hay alimentos prohibidos aquí: hay cantidades y contexto. La idea es que puedas mantener esto dentro de tres meses, no solo esta semana. Si algo no encaja con tu día a día, dímelo y lo cambiamos por algo equivalente."
+}

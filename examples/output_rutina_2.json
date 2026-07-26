@@ -1,0 +1,186 @@
+{
+  "cliente_id": "cliente_002",
+  "resumen_enfoque": "Split 'full body' para nivel principiante, 3 días/semana, orientado a recomposicion corporal. Ejercicios seleccionados según el material disponible del cliente y adaptados por lesión declarada en: rodilla.",
+  "nivel_asumido": "principiante",
+  "split": "full_body",
+  "dias_por_semana": 3,
+  "duracion_sesion_min": 45,
+  "advertencias_revision_humana": [
+    "Lesión declarada (rodilla_izquierda): Rotura de ligamento cruzado anterior hace 6 años jugando al fútbol. Operado y rehabilitado en su momento, con alta médica. Actualmente nota molestias leves con sentadilla profunda y zancadas largas. — ejercicios de riesgo excluidos o adaptados; requiere el visto bueno del entrenador antes de enviar."
+  ],
+  "sesiones": [
+    {
+      "dia": "Día 1 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "ejercicios": [
+        {
+          "nombre": "Prensa de piernas (rango controlado)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Press en máquina",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Remo en polea alta (agarre cerrado)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Curl femoral sentado en máquina",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Elevaciones laterales con mancuernas",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Plancha frontal",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Día 2 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "ejercicios": [
+        {
+          "nombre": "Prensa de piernas (rango controlado)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Fondos en paralelas",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Jalón al pecho",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Curl femoral tumbado en máquina",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Pájaros (deltoide posterior) en máquina",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Crunch en polea",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Día 3 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "ejercicios": [
+        {
+          "nombre": "Prensa de piernas (rango controlado)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Flexiones (variante estándar)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Dominadas (asistidas si hace falta)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Puente de glúteo a una pierna",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+        },
+        {
+          "nombre": "Elevaciones frontales con mancuernas",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Elevación de piernas colgado / tumbado",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": "Cardio Zona 2 (ritmo cómodo, puedes hablar sin ahogarte), 30-40 min."
+    }
+  ],
+  "progresion": "Sobrecarga progresiva: en cada sesión, intenta sumar una repetición más manteniendo la técnica. Cuando completes el tope del rango en todas las series de un ejercicio, sube el peso ligeramente y vuelve al rango bajo. Nada de cambiar la rutina cada semana — la constancia con el mismo esquema es lo que produce el progreso.",
+  "mensaje_para_el_cliente": "Hola Javier, aquí tienes tu primer borrador de rutina. Vamos poco a poco: primero técnica, luego peso — tu cuerpo aprende antes de forzar. No hace falta que salga perfecto la primera semana, lo importante es que puedas repetirlo. Cualquier duda o si algo duele (no solo molesta), dímelo y lo ajustamos."
+}
