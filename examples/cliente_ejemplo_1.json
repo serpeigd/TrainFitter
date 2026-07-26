@@ -1,0 +1,57 @@
+{
+  "id_cliente": "cliente_001",
+  "fecha_admision": "2026-02-03",
+  "datos_basicos": {
+    "nombre": "Marta Gómez",
+    "edad": 29,
+    "sexo": "mujer",
+    "peso_kg": 68,
+    "altura_cm": 165
+  },
+  "objetivo": {
+    "principal": "hipertrofia",
+    "en_sus_palabras": "Quiero ganar tono muscular y sentirme más fuerte. No busco competir en nada ni ser una culturista, solo verme y sentirme mejor conmigo misma."
+  },
+  "experiencia": {
+    "nivel": "intermedio",
+    "anios_entrenando": 2,
+    "detalle": "He entrenado en un gimnasio siguiendo rutinas genéricas de aplicaciones del móvil. Sé hacer los ejercicios básicos con una técnica razonable, pero nunca he tenido un seguimiento personalizado ni un plan que se adapte a mí."
+  },
+  "disponibilidad": {
+    "dias_por_semana": 4,
+    "minutos_por_sesion": 60,
+    "lugar_entreno": "gimnasio_completo",
+    "material_disponible": ["maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos"]
+  },
+  "salud": {
+    "lesiones": [],
+    "enfermedades_o_condiciones": [],
+    "embarazo_o_lactancia": {
+      "aplica": false,
+      "detalle": ""
+    },
+    "medicacion_habitual": [],
+    "alergias_alimentarias": [],
+    "intolerancias_alimentarias": [],
+    "analitica_adjunta": {
+      "tiene": false,
+      "archivo": null,
+      "fecha": null,
+      "notas": ""
+    }
+  },
+  "nutricion": {
+    "tipo_dieta": "omnivora",
+    "restricciones": [],
+    "alimentos_que_no_le_gustan": ["pescado azul"],
+    "comidas_al_dia_preferidas": 4,
+    "contexto": "Cocina ella misma entre semana, come fuera los fines de semana con amigos. Presupuesto medio, sin problema para comprar variedad de alimentos."
+  },
+  "estilo_de_vida": {
+    "horas_sueno_promedio": 7,
+    "nivel_estres_percibido": "medio",
+    "tipo_trabajo": "oficina_sedentario",
+    "pasos_diarios_aprox": 6000
+  },
+  "notas_libres": "Ha probado dietas restrictivas antes (bajas en carbohidratos) y las abandonó a las pocas semanas porque le costaba mucho socialmente. Prefiere algo flexible que pueda mantener a largo plazo."
+}

@@ -1,0 +1,64 @@
+{
+  "id_cliente": "cliente_002",
+  "fecha_admision": "2026-02-10",
+  "datos_basicos": {
+    "nombre": "Javier Ruiz",
+    "edad": 41,
+    "sexo": "hombre",
+    "peso_kg": 84,
+    "altura_cm": 178
+  },
+  "objetivo": {
+    "principal": "recomposicion_corporal",
+    "en_sus_palabras": "Quiero perder algo de grasa y ganar músculo, sobre todo recuperar la forma que tenía hace unos años. Lo que más me preocupa es no volver a lesionarme la rodilla."
+  },
+  "experiencia": {
+    "nivel": "principiante",
+    "anios_entrenando": 0.5,
+    "detalle": "Jugué al fútbol de forma habitual hasta los 35 años, luego lo dejé casi por completo. En el último medio año he ido al gimnasio de forma irregular, sin mucha estructura."
+  },
+  "disponibilidad": {
+    "dias_por_semana": 3,
+    "minutos_por_sesion": 45,
+    "lugar_entreno": "gimnasio_completo",
+    "material_disponible": ["maquinas_guiadas", "poleas", "mancuernas", "bicicleta_estatica"]
+  },
+  "salud": {
+    "lesiones": [
+      {
+        "zona": "rodilla_izquierda",
+        "descripcion": "Rotura de ligamento cruzado anterior hace 6 años jugando al fútbol. Operado y rehabilitado en su momento, con alta médica. Actualmente nota molestias leves con sentadilla profunda y zancadas largas.",
+        "estado": "antigua_controlada",
+        "activa_actualmente": false
+      }
+    ],
+    "enfermedades_o_condiciones": [],
+    "embarazo_o_lactancia": {
+      "aplica": false,
+      "detalle": ""
+    },
+    "medicacion_habitual": [],
+    "alergias_alimentarias": [],
+    "intolerancias_alimentarias": ["lactosa (leve, tolera pequeñas cantidades)"],
+    "analitica_adjunta": {
+      "tiene": false,
+      "archivo": null,
+      "fecha": null,
+      "notas": "El cliente comenta cansancio frecuente últimamente. No aporta analítica todavía; pendiente de pedírsela en el seguimiento."
+    }
+  },
+  "nutricion": {
+    "tipo_dieta": "vegetariana_ovolacto",
+    "restricciones": ["sin_carne", "sin_pescado"],
+    "alimentos_que_no_le_gustan": ["tofu"],
+    "comidas_al_dia_preferidas": 3,
+    "contexto": "Vegetariano desde hace 10 años por convicción personal, no está dispuesto a cambiarlo. Cocina poco entre semana por falta de tiempo, recurre a comida ya preparada con frecuencia."
+  },
+  "estilo_de_vida": {
+    "horas_sueno_promedio": 6,
+    "nivel_estres_percibido": "alto",
+    "tipo_trabajo": "oficina_muy_sedentario_muchas_horas",
+    "pasos_diarios_aprox": 4000
+  },
+  "notas_libres": "Está preocupado por volver a lesionarse la rodilla y pide explícitamente que se evite la sentadilla libre profunda si es posible. Nivel de estrés y sueño bajo — a tener en cuenta para la adherencia del plan."
+}

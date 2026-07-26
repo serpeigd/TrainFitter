@@ -121,3 +121,37 @@ local, sin dependencias externas). Notion entra recién en la **Fase 5** como fu
 del método (en vez de leer `docs/metodo_entrenador.md` como archivo local) y como base
 de datos de estado de clientes/pipelines — pero **no sustituye a git**: el código, los
 agentes y el historial de decisiones siguen viviendo y versionándose aquí.
+
+---
+
+## Fase 1 — Ficha de admisión + clientes de ejemplo
+
+- **`admission/ficha_cliente_template.md`** redactado como formulario 100% orientado al
+  cliente final: lenguaje llano, sin jerga, con la explicación de por qué se pide cada
+  dato de salud (para personalizar y cuidar, nunca para "cerrar puertas"). Incluye las
+  preguntas clínicas definidas en la Fase 0b/0c (lesiones, enfermedades, embarazo/
+  lactancia, medicación, analítica opcional) integradas de forma natural, no como un
+  cuestionario médico frío.
+- **Esquema JSON de cliente** (usado por ambos ejemplos y que consumirán los agentes):
+  `datos_basicos`, `objetivo`, `experiencia`, `disponibilidad`, `salud` (con
+  `lesiones`, `enfermedades_o_condiciones`, `embarazo_o_lactancia`,
+  `medicacion_habitual`, alergias/intolerancias, `analitica_adjunta` como placeholder
+  para la Fase 3+), `nutricion` y `estilo_de_vida`. Se añade `en_sus_palabras` /
+  `detalle` / `contexto` como campos de texto libre en varias secciones: el método
+  prioriza entender a la persona, no solo rellenar casillas.
+- **`cliente_ejemplo_1.json` (caso normal):** experiencia intermedia, 4 días/semana,
+  gimnasio completo, sin lesiones ni condiciones, dieta omnívora sin restricciones
+  complejas. Sirve de caso base para validar que el pipeline produce un buen borrador
+  sin activar ninguna alerta.
+- **`cliente_ejemplo_2.json` (caso complejo, para probar el validador):** combina
+  **lesión antigua de rodilla** (LCA, controlada pero con molestias en sentadilla
+  profunda — debe activar `revisión_reforzada` y excluir/adaptar ese patrón de
+  movimiento) con **vegetarianismo** (relevante para el agente de dieta y las sinergias
+  de absorción de proteína/hierro) e intolerancia leve a la lactosa. Se añadió también
+  una nota de "cansancio frecuente" sin analítica adjunta, a propósito, como gancho
+  narrativo para cuando se implemente el modulador de analítica (Fase 3+): hoy el
+  sistema no tiene con qué interpretarlo, así que debe quedar como texto libre sin
+  inventar un diagnóstico.
+- **`analitica_adjunta`** se deja modelado en el esquema pero **sin uso real todavía**
+  (`tiene: false` en ambos ejemplos): implementar el parser real es tarea de Fase 3+,
+  no de Fase 1.
