@@ -1,0 +1,43 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Entornos virtuales ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Variables de entorno / secretos ---
+.env
+.env.*
+!.env.example
+
+# --- Herramientas / caché ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+
+# --- Claude Code (settings locales de la máquina) ---
+.claude/settings.local.json
+
+# --- SO ---
+.DS_Store
+Thumbs.db
+
+# --- Salidas generadas por los agentes (opcional, se versionan las de ejemplo a mano) ---
+# examples/output_*.md
+# examples/output_*.json
