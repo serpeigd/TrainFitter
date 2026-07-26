@@ -193,3 +193,103 @@ agentes y el historial de decisiones siguen viviendo y versionándose aquí.
   de sintaxis. Pendiente: que el entrenador ejecute `python agents/run_routine_demo.py`
   con su propia clave y confirme que el borrador generado tiene sentido antes de dar por
   buena la Fase 2.
+
+---
+
+## Pivote — Motor de reglas gratuito por defecto (antes de seguir a Fase 3)
+
+El entrenador pidió explícitamente aparcar el requisito de API key y tener una
+**versión gratuita totalmente funcional**. Esto cambia el diseño de fondo del
+pipeline, no solo la Fase 2:
+
+- **Cada agente generador (`routine_agent`, `diet_agent`) expone un parámetro
+  `motor`: `"reglas"` (por defecto) o `"llm"` (opcional).** Ambos devuelven exactamente
+  el mismo esquema de salida, así que el validador y el orquestador son agnósticos a
+  cuál se usó — no hubo que tocarlos al añadir el motor de reglas.
+  - **Por qué no se descarta el motor LLM:** el objetivo del proyecto sigue siendo
+    aprender a montar agentes con el SDK de Anthropic. El código de tool use de la
+    Fase 2 se conserva íntegro (renombrado a función privada `_generar_borrador_*_llm`)
+    y queda listo para activarse el día que haya API key, sin rediseñar nada.
+  - **Import perezoso de `anthropic`:** se mueve `import anthropic` de nivel de módulo
+    a dentro de la función `_llm`, así que quien solo usa `motor="reglas"` ni siquiera
+    necesita tener el paquete instalado. El pipeline por defecto es **100% Python
+    estándar, cero dependencias de terceros**.
+- **Motor de reglas de rutina (`agents/exercise_bank.py` + `agents/rutina_reglas.py`):**
+  banco de ~40 ejercicios reales (inspirados en la rutina propia del entrenador de la
+  Fase 0b) etiquetados por grupo muscular, material necesario y contraindicaciones
+  (rodilla/hombro/lumbar). El motor elige split según días/semana (full body ≤3,
+  torso-pierna =4, push/pull/legs ≥5), selecciona ejercicios que el cliente puede hacer
+  con su material, aplica los rangos del método (básico 5-8, aislamiento 10-15) y
+  **excluye/sustituye ejercicios contraindicados por lesiones declaradas**, dejando el
+  motivo en `advertencias_revision_humana`.
+- **Detección de lesiones por texto libre (`agents/perfil_utils.py`):** función
+  `tags_lesiones()` que busca palabras clave (rodilla/hombro/lumbar) en `zona` +
+  `descripcion` de la ficha. Es una simplificación deliberada (matching de substring,
+  no NLP real) documentada como limitación conocida — suficiente para el MVP y para
+  que el validador pueda re-derivarla de forma independiente.
+- **Verificado con ejecución real** (ya no hace falta esperar a que el entrenador
+  configure una clave): `python agents/run_routine_demo.py` sobre ambos clientes de
+  ejemplo confirma que la lesión de rodilla de `cliente_002` excluye "Sentadilla con
+  barra" y la sustituye por "Prensa de piernas" / "Curl femoral" / "Puente de glúteo",
+  con nota explicativa en cada ejercicio adaptado.
+
+---
+
+## Fase 3 — Agente de dieta + agente validador
+
+- **Motor de reglas de dieta (`agents/food_bank.py` + `agents/dieta_reglas.py`):**
+  calorías vía Mifflin-St Jeor (BMR) × factor de actividad derivado de
+  días de entreno/semana y pasos diarios, con ajuste por objetivo (hipertrofia +10%,
+  recomposición -5%, pérdida de grasa -18%, salud general 0%) — todo tomado de
+  `docs/base_conocimiento/nutricion.md`. Proteína por objetivo usando el punto medio
+  del rango del método (p.ej. hipertrofia → 2.0 g/kg). Banco de alimentos filtrado por
+  tipo de dieta (omnívora/vegetariana/vegana) y por alergias/intolerancias declaradas
+  (excluye lácteos, gluten, frutos secos, huevo, soja, pescado según corresponda).
+  Añade consejos de `sinergias_nutrientes.md` cuando el perfil los justifica (hierro +
+  vitamina C y separar café/té del hierro en dietas vegetarianas/veganas).
+- **`agents/diet_agent.py`** sigue el mismo patrón dual-motor que `routine_agent.py`.
+  El system prompt del motor LLM deja explícito que **no debe ajustar nada por
+  patologías/embarazo/medicación por su cuenta**: eso se marca en
+  `advertencias_revision_humana`, nunca se resuelve solo (método §7-§8).
+- **`agents/validator_agent.py` es intencionadamente SIEMPRE reglas**, nunca LLM — a
+  diferencia de rutina/dieta, no es una elección temporal por falta de API key. Un
+  gate de seguridad debe ser determinista y auditable: la misma entrada debe dar
+  siempre el mismo veredicto y cualquiera debe poder leer el código y saber qué se
+  comprueba exactamente.
+- **Defensa en profundidad, no solo agregación.** El validador no confía en que
+  rutina/dieta ya se auto-marcaron bien: vuelve a leer el perfil crudo de forma
+  independiente, Y ADEMÁS cruza cada ejercicio concreto del borrador contra
+  `exercise_bank` (¿algún ejercicio contraindicado se coló?) y cada alimento sugerido
+  contra `food_bank` (¿alguna sugerencia choca con una alergia declarada?). Esto
+  importa sobre todo de cara al futuro motor LLM: si algún día se equivoca al
+  autoevaluarse, el validador lo pilla igualmente.
+- **Alergias añadidas a los disparadores de `revisión_reforzada`.** El método §8
+  original no las listaba explícitamente (solo lesiones/patologías/embarazo/
+  medicación); se añaden porque una alergia mal gestionada puede ser grave — extensión
+  razonable, documentada aquí para que quede claro que es una decisión nueva.
+- **Probado con ejecución real** sobre ambos clientes
+  (`python agents/run_manual_pipeline_demo.py`): `cliente_001` →
+  `aprobado_automatico`; `cliente_002` → `revision_reforzada` con 3 motivos concretos
+  (lesión de rodilla, advertencia de rutina asociada, y una nota sobre "cansancio
+  frecuente" sin analítica adjunta que queda marcada para pedir en el seguimiento en
+  vez de inventar una interpretación clínica).
+
+---
+
+## Fase 4 — Orquestador
+
+- **Estado explícito vía `PipelineState` (dataclass), no variables sueltas.** El
+  estado del pipeline es un dato de primera clase — se puede loguear, inspeccionar o
+  (en la Fase 5+) persistir en Notion sin cambiar la lógica del orquestador. La lista
+  `ESTADOS` en `agents/orchestrator.py` es, literalmente, el diagrama de flujo.
+- **Transiciones:** `ficha_recibida → rutina_generada → dieta_generada → validado →
+  (pendiente_aprobacion_humana | pendiente_revision_reforzada)`, con una rama `error`
+  si algún agente lanza excepción. Cada transición se loguea con marca de tiempo.
+- **Ambas ramas de éxito exigen aprobación humana** — `aprobado_automatico` solo
+  significa "sin motivos de revisión reforzada", nunca "envíalo sin mirar". Esto es
+  deliberado: el principio de humano-en-el-bucle no depende del veredicto del
+  validador, es una propiedad del propio orquestador.
+- **Probado con ejecución real de punta a punta**
+  (`python agents/run_pipeline_demo.py`) sobre ambos clientes: se ve el recorrido de
+  estados completo en terminal y el resultado final coincide con lo verificado en la
+  Fase 3.

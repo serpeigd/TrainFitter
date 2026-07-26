@@ -1,117 +1,125 @@
 # Arquitectura de TrainFitter
 
-> **Estado: esqueleto (Fase 0).** Este documento se irá rellenando fase a fase.
-> El diagrama de estados "real" se añadirá en la Fase 4 (orquestador) y la versión
-> final orientada a lector técnico en la Fase 7.
+> **Estado: pipeline completo funcionando (Fases 0-4).** Falta la integración con
+> Notion/Gmail (Fase 5+) y el disparador automático (Fase 6). La versión final
+> orientada a lector técnico llega en la Fase 7.
 
 ---
 
 ## Visión general
 
-TrainFitter es un pipeline de **agentes de IA** que transforma la ficha de un cliente
-en borradores de rutina y dieta, con una **revisión humana obligatoria** antes de
+TrainFitter es un pipeline de agentes que transforma la ficha de un cliente en
+borradores de rutina y dieta, con una **revisión humana obligatoria** antes de
 cualquier envío. Cada agente tiene una responsabilidad única y acotada.
 
-## Flujo previsto
+## Decisión clave: dos motores intercambiables por agente
+
+`routine_agent` y `diet_agent` no llaman a un único backend fijo: exponen un parámetro
+`motor` con dos implementaciones que devuelven **el mismo esquema de salida**, así que
+el resto del pipeline es agnóstico a cuál se usó.
+
+| Motor | Coste | Cómo funciona | Cuándo se usa |
+|---|---|---|---|
+| `"reglas"` (por defecto) | **Gratis**, sin API key, sin red | Código Python determinista que aplica los valores del método directamente (splits, rangos de reps, cálculo de calorías/macros, banco de ejercicios/alimentos filtrado por material/alergias/lesiones) | Desarrollo, demos, todo el pipeline hoy |
+| `"llm"` (opcional) | Requiere `ANTHROPIC_API_KEY` | Llama al modelo de Anthropic con salida forzada por *tool use* (`entregar_borrador_rutina` / `entregar_borrador_dieta`) | Cuando se quiera redacción más rica/matizada; queda ya diseñado para activarse sin tocar el resto del sistema |
+
+El **agente validador**, en cambio, es **siempre reglas** por diseño: un gate de
+seguridad debe ser determinista y auditable, no una "opinión" de un modelo — ver
+`agents/validator_agent.py` para el razonamiento completo.
+
+## Flujo de datos
 
 ```
-   ┌──────────────────┐        ┌───────────────────────────┐
-   │  Ficha cliente   │        │  Analítica (PDF) opcional │
-   │  (admission/)    │        │  → extracción de marcadores│
-   └────────┬─────────┘        └────────────┬──────────────┘
-            │                               │
-            └──────────────┬────────────────┘
-                           ▼
-              ┌────────────────────────┐
-              │  Perfil clínico unificado│  (objetivo + salud + marcadores)
-              └────────────┬───────────┘
-                           │   ┌───────────────────────────────┐
-                           │   │  Base de conocimiento          │
-                           │◄──┤  docs/base_conocimiento/*      │
-                           │   │  (entrenamiento, nutrición,    │
-                           │   │   suplementación, sinergias…)  │
-                           ▼   └───────────────────────────────┘
-   ┌──────────────────┐
-   │  Agente Rutina   │   Redacta borrador de rutina según el método (docs/metodo_*)
-   │ routine_agent.py │
-   └────────┬─────────┘
-            │
-            ▼
-   ┌──────────────────┐
-   │  Agente Dieta    │   Redacta borrador de dieta flexible según el método
-   │  diet_agent.py   │
-   └────────┬─────────┘
-            │
-            ▼
-   ┌──────────────────┐
-   │ Agente Validador │   Comprueba coherencia con el método + señales de riesgo
-   │ validator_agent  │   (lesiones, restricciones). Emite veredicto.
-   └────────┬─────────┘
-            │
-            ▼
-   ┌──────────────────┐
-   │   Orquestador    │   Coordina el pipeline con estado explícito y logging
-   │  orchestrator.py │
-   └────────┬─────────┘
-            │
-            ▼
-   ┌──────────────────────────────┐
-   │      Revisión humana         │   El entrenador revisa y APRUEBA el borrador
-   │  (siempre, sin excepción)    │
-   └────────┬─────────────────────┘
-            │
-            ▼
-   ┌──────────────────┐
-   │  Envío al cliente│   Solo tras aprobación (borrador en Gmail — Fase 5)
-   └──────────────────┘
+   Ficha cliente (admission/) ──► Perfil JSON (esquema en examples/cliente_ejemplo_*.json)
+                                          │
+                     ┌────────────────────┼────────────────────┐
+                     ▼                    ▼                    ▼
+              routine_agent          diet_agent          (ambos leen)
+              (motor reglas/llm)     (motor reglas/llm)  docs/metodo_entrenador.md
+                     │                    │              docs/base_conocimiento/*
+                     ▼                    ▼
+              borrador_rutina        borrador_dieta
+                     │                    │
+                     └─────────┬──────────┘
+                                ▼
+                       validator_agent (siempre reglas)
+                     - relee el perfil crudo (no confía ciegamente
+                       en las advertencias de rutina/dieta)
+                     - cruza ejercicios vs. lesiones (exercise_bank)
+                     - cruza alimentos vs. alergias (food_bank)
+                                ▼
+                    veredicto: aprobado_automatico | revision_reforzada
+                                ▼
+                        Revisión humana (SIEMPRE, sin excepción)
+                                ▼
+                  Envío al cliente (borrador en Gmail — Fase 5+)
 ```
 
-## Componentes (se detallan en fases posteriores)
+## Diagrama de estados del orquestador (real, `agents/orchestrator.py`)
 
-| Componente          | Archivo                     | Fase | Estado   |
-|---------------------|-----------------------------|------|----------|
-| Ficha de admisión   | `admission/`                | 1    | Pendiente |
-| Base de conocimiento| `docs/base_conocimiento/`   | 0    | **Hecho** |
-| Parser de analítica | `agents/analytics_parser.py`| 3+   | Pendiente |
-| Agente de rutina    | `agents/routine_agent.py`   | 2    | **Hecho** |
-| Agente de dieta     | `agents/diet_agent.py`      | 3    | Pendiente |
-| Agente validador    | `agents/validator_agent.py` | 3    | Pendiente |
-| Orquestador         | `agents/orchestrator.py`    | 4    | Pendiente |
-| Conector Notion     | `mcp/notion_client.py`      | 5    | Pendiente |
-| Conector Gmail      | `mcp/gmail_client.py`       | 5    | Pendiente |
-| Disparo automático  | `main.py` + `inbox/`        | 6    | Pendiente |
+```
+ ficha_recibida
+       │  routine_agent.generar_borrador_rutina()
+       ▼
+ rutina_generada
+       │  diet_agent.generar_borrador_dieta()
+       ▼
+ dieta_generada
+       │  validator_agent.validar_borradores()
+       ▼
+ validado
+       │
+       ├── veredicto == "revision_reforzada" ──► pendiente_revision_reforzada
+       │
+       └── veredicto == "aprobado_automatico" ──► pendiente_aprobacion_humana
+
+ (en cualquier punto, si un agente lanza RoutineAgentError/DietAgentError) ──► error
+```
+
+Ambas ramas de éxito terminan en un estado "pendiente_*": **incluso
+`aprobado_automatico` significa "sin motivos de revisión reforzada", nunca "enviar
+sin que nadie lo mire"**. El entrenador siempre aprueba antes de que algo llegue al
+cliente — ver `PipelineState` en `agents/orchestrator.py`.
+
+## Componentes
+
+| Componente | Archivo | Fase | Estado |
+|---|---|---|---|
+| Ficha de admisión | `admission/ficha_cliente_template.md` | 1 | **Hecho** |
+| Base de conocimiento | `docs/base_conocimiento/` | 0 | **Hecho** |
+| Helper de lectura de conocimiento | `agents/knowledge.py` | 2 | **Hecho** |
+| Banco de ejercicios | `agents/exercise_bank.py` | 2 | **Hecho** |
+| Motor de reglas — rutina | `agents/rutina_reglas.py` | 2 | **Hecho** |
+| Agente de rutina (dual motor) | `agents/routine_agent.py` | 2 | **Hecho** |
+| Banco de alimentos | `agents/food_bank.py` | 3 | **Hecho** |
+| Motor de reglas — dieta | `agents/dieta_reglas.py` | 3 | **Hecho** |
+| Agente de dieta (dual motor) | `agents/diet_agent.py` | 3 | **Hecho** |
+| Agente validador | `agents/validator_agent.py` | 3 | **Hecho** |
+| Orquestador (estado explícito) | `agents/orchestrator.py` | 4 | **Hecho** |
+| Parser de analítica | `agents/analytics_parser.py` | 5+ | Pendiente |
+| Conector Notion | `mcp/notion_client.py` | 5 | Pendiente |
+| Conector Gmail | `mcp/gmail_client.py` | 5 | Pendiente |
+| Disparo automático | `main.py` + `inbox/` | 6 | Pendiente |
 
 ## Capa de personalización clínica (modulación activa)
 
 La admisión captura datos de salud (alergias, enfermedades, embarazo/lactancia,
-medicación, peso) y admite una **analítica en PDF**. Un futuro `analytics_parser`
-extraerá marcadores (glucosa/HbA1c, lípidos, ferritina, vitamina D, TSH, función
-hepática/renal) que **modulan activamente** rutina, dieta y suplementación — el
-objetivo es que todo el plan salga cuadrado con el perfil completo de la persona,
-maximizando sinergias y potenciando beneficios, no solo evitando riesgos.
+medicación, peso) y admite una **analítica en PDF**. Hoy el motor de reglas ya
+modula activamente la dieta a partir de lo que sabe del perfil (tipo de dieta,
+alergias/intolerancias, objetivo → calorías/macros) y aplica sinergias de absorción
+cuando el tipo de dieta lo justifica (p.ej. hierro + vitamina C en dietas
+vegetarianas/veganas). Un futuro `analytics_parser` extraerá marcadores de la
+analítica (glucosa/HbA1c, lípidos, ferritina, vitamina D, TSH...) para modular
+también sobre esos datos.
 
 Modular activamente no relaja la regla dura: el sistema **no diagnostica ni
-prescribe**; cualquier marcador fuera de rango, patología, embarazo, medicación o
-lesión **fuerza `revisión_reforzada`** — el borrador ya modulado espera aprobación del
-entrenador (y derivación médica cuando proceda) antes de cualquier envío.
-Ver `docs/metodo_entrenador.md` §7.
-
-## Agente de rutina (Fase 2)
-
-`agents/routine_agent.py` recibe el perfil del cliente y llama al modelo con **salida
-forzada por tool use** (no texto libre parseado): el modelo debe rellenar el esquema
-`entregar_borrador_rutina`, lo que da un JSON estructurado fiable en vez de tener que
-parsear Markdown. El system prompt inyecta el método completo
-(`docs/metodo_entrenador.md`) más las notas técnicas de `entrenamiento.md` y
-`estilo_vida_longevidad.md`. Si el perfil trae lesiones u otras señales de salud, el
-propio agente ya adapta ejercicios y rellena `advertencias_revision_humana` — esta es
-una primera capa de seguridad; la comprobación exhaustiva y el veredicto formal llegan
-con el **agente validador** (Fase 3). Modelo usado: `claude-sonnet-5` (ver
-`docs/decisiones.md`, Fase 2, para la justificación).
+prescribe**; cualquier marcador fuera de rango, patología, embarazo, medicación,
+lesión o alergia **fuerza `revisión_reforzada`** — ver `docs/metodo_entrenador.md` §7
+y `agents/validator_agent.py`.
 
 ## Principio transversal: humano en el bucle
 
 Ningún plan llega al cliente sin aprobación humana. El sistema está diseñado para
-**asistir** al entrenador, no para reemplazarlo. La generación por IA siempre produce
-un **borrador**, y cualquier señal de riesgo (lesión, patología, marcador clínico)
-fuerza una **revisión reforzada**.
+**asistir** al entrenador, no para reemplazarlo. La generación siempre produce un
+**borrador**, y cualquier señal de riesgo (lesión, patología, alergia, marcador
+clínico) fuerza una **revisión reforzada**.

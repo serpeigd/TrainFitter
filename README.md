@@ -45,17 +45,24 @@ revises tú personalmente.
 
 ---
 
-## Qué NO incluye esta fase (Fase 0)
+## Qué incluye ahora mismo
 
-Este repositorio está en construcción, fase a fase, como proyecto de aprendizaje.
-Ahora mismo contiene únicamente:
+Este repositorio se construye fase a fase, como proyecto de aprendizaje. Ahora mismo:
 
-- La **documentación del método** del entrenador (base de conocimiento).
-- La **arquitectura prevista** del sistema.
-- El **registro de decisiones** técnicas.
+- El **pipeline completo funciona de verdad**: ficha del cliente → rutina → dieta →
+  validación de seguridad → estado listo para tu aprobación. **Gratis, sin ninguna
+  clave ni cuenta que configurar** — el motor por defecto es determinista, no depende
+  de ningún servicio externo.
+- Probado con dos casos de ejemplo: uno sin complicaciones y otro con una lesión y
+  una dieta vegetariana, para comprobar que el aviso de revisión reforzada salta
+  cuando debe.
 
-Todavía **no** hay agentes funcionando, ni conexión con email/Notion, ni generación
-real de planes. Eso llega en las siguientes fases.
+## Qué NO incluye todavía
+
+- Conexión con email/Notion para enviar borradores reales (llega en fases posteriores).
+- Generación por IA generativa de texto más rico y matizado — hoy el borrador sale de
+  reglas deterministas basadas en el método; una capa opcional con IA generativa
+  (motor="llm") ya está diseñada para cuando tenga sentido activarla.
 
 ## Estructura del repositorio
 
@@ -67,29 +74,36 @@ TrainFitter/
 │   ├── arquitectura.md              Diseño y flujo del sistema
 │   └── decisiones.md                Log de decisiones técnicas por fase
 ├── admission/
-│   └── ficha_cliente_template.md    Formulario de admisión (se completa en Fase 1)
-├── agents/                          Agentes de IA (Fase 2+)
+│   └── ficha_cliente_template.md    Formulario de admisión
+├── agents/                          Rutina, dieta, validador y orquestador
 ├── mcp/                             Conectores MCP: Notion, Gmail (Fase 5)
 ├── templates/                       Plantillas de email/planes (Fase 5)
-├── examples/                        Clientes y salidas de ejemplo (Fase 1+)
+├── examples/                        Clientes y salidas de ejemplo
 ├── requirements.txt                 Dependencias de Python
 └── .gitignore
 ```
 
 ## Cómo probarlo (modo desarrollo)
 
-1. Crea un entorno virtual e instala dependencias:
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. Copia `.env.example` a `.env` y añade tu clave de la API de Anthropic:
-   ```
-   ANTHROPIC_API_KEY=tu-clave-aqui
-   ```
-3. Ejecuta la demo del agente de rutina sobre un cliente de ejemplo:
-   ```bash
-   python agents/run_routine_demo.py
-   ```
-   El borrador se guarda en `examples/output_rutina_1.json`.
+No hace falta instalar nada ni configurar ninguna clave: el pipeline por defecto es
+Python estándar. Desde la raíz del repo:
+
+```bash
+python agents/run_pipeline_demo.py
+```
+
+Esto ejecuta el pipeline completo (rutina → dieta → validador) sobre los dos clientes
+de ejemplo y muestra en la terminal el recorrido de estados y el resultado final.
+
+También puedes ejecutar cada pieza por separado:
+```bash
+python agents/run_routine_demo.py         # solo el agente de rutina
+python agents/run_manual_pipeline_demo.py # rutina + dieta + validador, sin orquestador
+```
+
+**Opcional — capa con IA generativa real:** los agentes también aceptan
+`motor="llm"` para usar la API de Anthropic en vez de las reglas. Si quieres probarlo:
+```bash
+pip install -r requirements.txt
+```
+y copia `.env.example` a `.env` con tu `ANTHROPIC_API_KEY`.
