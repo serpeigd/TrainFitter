@@ -8,6 +8,22 @@
 
 ---
 
+## 0. Estado del criterio: punto de partida, no ley fija
+
+Los valores de este documento (rangos de reps, g/kg de proteína, dosis de creatina...)
+son el **punto de partida** del entrenador, no una regla rígida. Cada cliente es un
+mundo: el entrenador los ajusta caso a caso según objetivo, condición, genética y
+respuesta individual. Los agentes deben tratarlos como **valores por defecto
+razonables**, no como límites estrictos.
+
+A medida que el entrenador revise y edite borradores generados por el sistema, esas
+correcciones quedarán registradas (ver `docs/decisiones.md`, Fase 0c) como **datos de
+entrenamiento reales**. El objetivo a medio plazo es acumular suficiente histórico de
+"borrador de la IA → ajuste del entrenador" para que el sistema aprenda su criterio
+específico y pueda tomar decisiones cada vez más automáticas y afinadas, no genéricas.
+
+---
+
 ## 1. Filosofía general
 
 Trabajo basado en **evidencia científica**, no en modas. El objetivo no es el plan
@@ -84,11 +100,13 @@ explicación, sin ridiculizar**. Lo que manda es el balance calórico total y la
 
 ---
 
-## 7. Personalización clínica (intake + analítica)
+## 7. Personalización clínica (intake + analítica) — modulación activa
 
-El método persigue **máxima personalización**. Para eso, la admisión captura no solo
-objetivo y disponibilidad, sino también **datos de salud**, y admite adjuntar una
-**analítica** que *module* el plan.
+El método persigue **la máxima personalización posible**: el objetivo final es que
+rutina, dieta, suplementación y hábitos salgan **cuadrados entre sí** a partir del
+perfil completo de la persona — objetivo, analítica, enfermedades, alergias, genética
+y contexto — maximizando sinergias (ver `base_conocimiento/sinergias_nutrientes.md`)
+y potenciando beneficios en vez de limitarse a evitar riesgos.
 
 **7.1. Preguntas de admisión con impacto clínico** (se detallan en `admission/` — Fase 1):
 - **Alergias e intolerancias** alimentarias (condicionan la dieta desde el inicio).
@@ -99,16 +117,25 @@ objetivo y disponibilidad, sino también **datos de salud**, y admite adjuntar u
 - **Peso, altura, edad, sexo** y composición si se conoce.
 - **Lesiones** actuales o antiguas.
 
-**7.2. Analítica (PDF) como modulador.** El cliente puede subir una analítica de sangre.
-El sistema **extrae marcadores** relevantes (p. ej. glucosa/HbA1c, perfil lipídico,
-ferritina/hierro, vitamina D, TSH, función hepática/renal) y los usa como **señales**
-para afinar recomendaciones dietéticas *dentro de lo no clínico* (p. ej. reforzar hierro
-+ vitamina C si la ferritina es baja).
+**7.2. Analítica (PDF) como modulador activo.** El cliente puede subir una analítica de
+sangre. El sistema **extrae marcadores** relevantes (p. ej. glucosa/HbA1c, perfil
+lipídico, ferritina/hierro, vitamina D, TSH, función hepática/renal) y los usa
+**activamente** para ajustar rutina, dieta y suplementación — no solo para señalar
+riesgos. Ejemplos: ferritina baja → reforzar hierro + vitamina C en el mismo plato;
+vitamina D baja → priorizar tomarla con la comida más grasa del día; perfil lipídico
+alto → priorizar fuentes de grasa y fibra que lo mejoren, dentro de lo no clínico.
 
-**7.3. Límite infranqueable.** El sistema **no diagnostica ni prescribe tratamiento
-clínico**. Cualquier marcador fuera de rango, patología, embarazo, medicación o lesión
-**dispara `revisión_reforzada`**: el borrador se marca y **espera aprobación del
-entrenador (y derivación médica cuando corresponda)** antes de cualquier envío.
+**7.3. Límite infranqueable (no cambia con la modulación activa).** Modular
+activamente **no** significa diagnosticar ni prescribir tratamiento clínico. Cualquier
+marcador fuera de rango, patología, embarazo, medicación o lesión **dispara
+`revisión_reforzada`**: el borrador —ya modulado— se marca y **espera aprobación del
+entrenador (y derivación médica cuando corresponda)** antes de cualquier envío. La IA
+propone el ajuste; el entrenador lo valida.
+
+**7.4. Ciencia siempre actualizada.** La base de conocimiento no fija citas ni
+"congela" el estado del arte: en las fases de agentes (routine/diet), estos podrán
+apoyarse en búsqueda web para contrastar con evidencia reciente en vez de depender solo
+de notas estáticas.
 
 ---
 

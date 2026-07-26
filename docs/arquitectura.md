@@ -81,15 +81,20 @@ cualquier envío. Cada agente tiene una responsabilidad única y acotada.
 | Conector Gmail      | `mcp/gmail_client.py`       | 5    | Pendiente |
 | Disparo automático  | `main.py` + `inbox/`        | 6    | Pendiente |
 
-## Capa de personalización clínica
+## Capa de personalización clínica (modulación activa)
 
 La admisión captura datos de salud (alergias, enfermedades, embarazo/lactancia,
 medicación, peso) y admite una **analítica en PDF**. Un futuro `analytics_parser`
 extraerá marcadores (glucosa/HbA1c, lípidos, ferritina, vitamina D, TSH, función
-hepática/renal) que **modulan** las recomendaciones no clínicas. Regla dura: el sistema
-**no diagnostica ni prescribe**; cualquier marcador fuera de rango, patología, embarazo,
-medicación o lesión **fuerza `revisión_reforzada`** y derivación médica cuando proceda.
-Ver `docs/metodo_entrenador.md` §7 y §8.
+hepática/renal) que **modulan activamente** rutina, dieta y suplementación — el
+objetivo es que todo el plan salga cuadrado con el perfil completo de la persona,
+maximizando sinergias y potenciando beneficios, no solo evitando riesgos.
+
+Modular activamente no relaja la regla dura: el sistema **no diagnostica ni
+prescribe**; cualquier marcador fuera de rango, patología, embarazo, medicación o
+lesión **fuerza `revisión_reforzada`** — el borrador ya modulado espera aprobación del
+entrenador (y derivación médica cuando proceda) antes de cualquier envío.
+Ver `docs/metodo_entrenador.md` §7.
 
 ## Principio transversal: humano en el bucle
 

@@ -72,3 +72,52 @@ longevidad, hábitos de vida). Decisiones tomadas:
   (Fase 3, junto al agente de dieta y el validador).
 - Destilar el resto de PDFs pendientes (alimentos clave, micronutrientes, hormonas, etc.)
   si aportan al criterio.
+
+---
+
+## Fase 0c — Aclaraciones del entrenador: criterio evolutivo, ciencia dinámica, modulación activa
+
+Tres respuestas del entrenador a las preguntas abiertas de la Fase 0b, con impacto en
+diseño:
+
+- **El método es un punto de partida, no ley fija.** Los valores numéricos (reps,
+  g/kg, dosis) son defaults razonables que el entrenador ajusta caso a caso. Se añade
+  `docs/metodo_entrenador.md` §0 dejándolo explícito para los agentes.
+  - **Por qué:** cada cliente es distinto (genética, respuesta individual) y el
+    entrenador no quiere que el sistema trate sus cifras como reglas rígidas.
+  - **Implicación a futuro (fuera de alcance ahora):** cuando el entrenador revise y
+    edite borradores generados por la IA, esas ediciones son **datos de entrenamiento
+    reales** ("borrador IA → corrección del entrenador"). Con suficiente volumen, se
+    podrá afinar el criterio del sistema hacia el suyo específico. No se implementa
+    aún; queda anotado como dirección futura (posible Fase 8+: registro de ediciones +
+    aprendizaje de preferencias).
+- **No se fijan citas científicas estáticas en la KB.** El entrenador prefiere que el
+  sistema esté siempre actualizado a la evidencia más reciente en vez de "congelar"
+  referencias en `docs/base_conocimiento/`.
+  - **Por qué:** una nota estática con citas envejece; la ciencia nutricional/deportiva
+    se actualiza.
+  - **Cómo aplicar:** en fases de agentes (2+), evaluar dar a `routine_agent`/`diet_agent`
+    acceso a búsqueda web para contrastar con evidencia reciente en tiempo de generación,
+    en vez de depender solo de la KB estática. La KB sigue siendo la base del *criterio y
+    estilo* del entrenador, no la fuente de verdad científica.
+- **La modulación clínica debe ser ACTIVA, no solo de detección de riesgo.** El
+  objetivo final: rutina + dieta + suplementación + hábitos salen cuadrados entre sí a
+  partir del perfil completo (analítica, enfermedades, alergias, genética, contexto),
+  maximizando sinergias nutricionales y potenciando beneficios — no limitarse a marcar
+  lo peligroso.
+  - **Por qué:** es el objetivo de producto declarado por el entrenador; "máxima
+    personalización" es el valor central de TrainFitter frente a una plantilla genérica.
+  - **Cómo aplicar:** `docs/metodo_entrenador.md` §7 actualizado con ejemplos de
+    modulación activa (ferritina baja → hierro+vitamina C; vit. D baja → timing con
+    grasa; lípidos altos → ajuste de perfil graso/fibra). **La regla de seguridad no
+    cambia**: modular activamente no es diagnosticar ni prescribir — el borrador
+    modulado sigue disparando `revisión_reforzada` ante cualquier señal clínica, y
+    sigue esperando aprobación humana antes de enviarse. El diseño técnico del
+    `analytics_parser` y el mapeo marcador→ajuste se abordan en la Fase 3.
+
+**Cómo se trabaja el repo (aclarado a petición del entrenador).** Git es el backbone de
+código y versionado durante todo el proyecto, incluidas las Fases 0-4 (desarrollo 100%
+local, sin dependencias externas). Notion entra recién en la **Fase 5** como fuente viva
+del método (en vez de leer `docs/metodo_entrenador.md` como archivo local) y como base
+de datos de estado de clientes/pipelines — pero **no sustituye a git**: el código, los
+agentes y el historial de decisiones siguen viviendo y versionándose aquí.
