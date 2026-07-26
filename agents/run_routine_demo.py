@@ -2,15 +2,17 @@
 Demo del agente de rutina: genera el borrador para examples/cliente_ejemplo_1.json
 y lo guarda en examples/output_rutina_1.json.
 
-Cómo ejecutarlo (desde la raíz del repo, con tu .env ya configurado):
+Usa el motor "reglas" por defecto: NO necesita ANTHROPIC_API_KEY ni conexión a
+internet, es gratis y determinista. El .env solo hace falta si más adelante
+se llama a generar_borrador_rutina(..., motor="llm").
+
+Cómo ejecutarlo (desde la raíz del repo):
     python agents/run_routine_demo.py
 """
 
 import json
 import sys
 from pathlib import Path
-
-from dotenv import load_dotenv
 
 from routine_agent import RoutineAgentError, generar_borrador_rutina
 
@@ -20,7 +22,11 @@ OUTPUT_PATH = REPO_ROOT / "examples" / "output_rutina_1.json"
 
 
 def main() -> None:
-    load_dotenv(REPO_ROOT / ".env")
+    try:  # dotenv es opcional: solo hace falta si más adelante usas motor="llm"
+        from dotenv import load_dotenv
+        load_dotenv(REPO_ROOT / ".env")
+    except ImportError:
+        pass
 
     perfil_cliente = json.loads(CLIENTE_PATH.read_text(encoding="utf-8"))
     print(f"Generando borrador de rutina para {perfil_cliente['datos_basicos']['nombre']}...")

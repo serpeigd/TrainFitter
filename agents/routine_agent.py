@@ -2,6 +2,18 @@
 Agente de rutina: redacta un borrador de rutina de entrenamiento para un
 cliente concreto, siguiendo el método del entrenador.
 
+DISEÑO — dos motores intercambiables:
+- "reglas" (por defecto, GRATIS): motor determinista en rutina_reglas.py que
+  aplica los valores del método directamente en código. No necesita API key,
+  no tiene coste, y es 100% reproducible — ideal para desarrollar y probar
+  todo el pipeline sin depender de una cuenta de pago.
+- "llm": llama al modelo de Anthropic con salida forzada por tool use. Se
+  mantiene disponible para cuando haya presupuesto/API key configurada; en
+  ese momento aporta redacción más rica y matices que las reglas no capturan.
+Ambos motores devuelven el MISMO esquema (ver ENTREGAR_BORRADOR_RUTINA_TOOL),
+así que el resto del pipeline (validador, orquestador) es agnóstico a cuál
+se usó.
+
 DISEÑO — por qué salida estructurada (JSON) y no Markdown libre:
 Este borrador no es el destino final, es un paso intermedio del pipeline.
 El agente validador (Fase 3) necesita poder recorrer los ejercicios en
@@ -9,10 +21,8 @@ código para cruzarlos contra las lesiones del cliente, y el orquestador
 (Fase 4) necesita un estado programático, no un bloque de texto que haya
 que volver a interpretar. Convertir JSON -> Markdown/HTML bonito para el
 email (Fase 5/6) es un paso trivial; hacerlo al revés (parsear prosa) no lo es.
-Por eso se fuerza la salida vía "tool use": el modelo debe rellenar un
-esquema fijo en vez de simplemente escribir texto con forma de JSON.
 
-DISEÑO — qué parte de la base de conocimiento se le pasa:
+DISEÑO — qué parte de la base de conocimiento recibe el motor LLM:
 Además del método (docs/metodo_entrenador.md), se le pasa la nota técnica
 de entrenamiento y la de estilo de vida (recuperación/hábitos), que son las
 relevantes para diseñar una rutina. Las notas de nutrición/suplementación
@@ -23,9 +33,8 @@ import json
 import os
 from dataclasses import dataclass
 
-import anthropic
-
 from knowledge import load_knowledge_files, load_metodo_entrenador
+from rutina_reglas import generar_borrador_rutina_reglas
 
 MODEL = "claude-sonnet-5"
 # Sonnet 5 en vez de Opus: la tarea (redactar una rutina siguiendo un método ya
@@ -165,6 +174,7 @@ PARTIDA, no una prescripción final.
 
 def generar_borrador_rutina(
     perfil_cliente: dict,
+    motor: str = "reglas",
     api_key: str | None = None,
     model: str = MODEL,
     timeout: float = 60.0,
@@ -174,19 +184,40 @@ def generar_borrador_rutina(
 
     Args:
         perfil_cliente: dict con el mismo esquema que examples/cliente_ejemplo_*.json.
-        api_key: si no se pasa, se lee de la variable de entorno ANTHROPIC_API_KEY.
-        model: string de modelo de Anthropic a usar.
-        timeout: timeout en segundos para la llamada a la API.
+        motor: "reglas" (por defecto, gratis, determinista) o "llm" (API de
+            Anthropic, requiere ANTHROPIC_API_KEY).
+        api_key: solo para motor="llm". Si no se pasa, se lee de ANTHROPIC_API_KEY.
+        model: solo para motor="llm". String de modelo de Anthropic a usar.
+        timeout: solo para motor="llm". Timeout en segundos para la llamada.
 
     Raises:
-        RoutineAgentError: si falta la API key, la llamada falla/expira, o la
-            respuesta del modelo no trae el borrador estructurado esperado.
+        RoutineAgentError: si el motor es "llm" y falta la API key, la llamada
+            falla/expira, o la respuesta del modelo no trae el borrador esperado.
+        ValueError: si `motor` no es "reglas" ni "llm".
     """
+    if motor == "reglas":
+        contenido = generar_borrador_rutina_reglas(perfil_cliente)
+        return RoutineDraft(cliente_id=perfil_cliente.get("id_cliente", "desconocido"), contenido=contenido)
+    if motor != "llm":
+        raise ValueError(f"motor debe ser 'reglas' o 'llm', no {motor!r}")
+
+    return _generar_borrador_rutina_llm(perfil_cliente, api_key=api_key, model=model, timeout=timeout)
+
+
+def _generar_borrador_rutina_llm(
+    perfil_cliente: dict,
+    api_key: str | None = None,
+    model: str = MODEL,
+    timeout: float = 60.0,
+) -> RoutineDraft:
+    """Motor LLM (opcional): llama a la API de Anthropic con salida forzada por tool use."""
+    import anthropic  # import perezoso: quien solo use el motor "reglas" no necesita este paquete
+
     api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RoutineAgentError(
             "No se ha encontrado ANTHROPIC_API_KEY. Configúrala en tu archivo .env "
-            "(copia .env.example a .env y rellena tu clave) antes de ejecutar el agente."
+            "(copia .env.example a .env y rellena tu clave) antes de usar motor='llm'."
         )
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
