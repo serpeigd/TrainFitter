@@ -73,7 +73,7 @@ cualquier envío. Cada agente tiene una responsabilidad única y acotada.
 | Ficha de admisión   | `admission/`                | 1    | Pendiente |
 | Base de conocimiento| `docs/base_conocimiento/`   | 0    | **Hecho** |
 | Parser de analítica | `agents/analytics_parser.py`| 3+   | Pendiente |
-| Agente de rutina    | `agents/routine_agent.py`   | 2    | Pendiente |
+| Agente de rutina    | `agents/routine_agent.py`   | 2    | **Hecho** |
 | Agente de dieta     | `agents/diet_agent.py`      | 3    | Pendiente |
 | Agente validador    | `agents/validator_agent.py` | 3    | Pendiente |
 | Orquestador         | `agents/orchestrator.py`    | 4    | Pendiente |
@@ -95,6 +95,19 @@ prescribe**; cualquier marcador fuera de rango, patología, embarazo, medicació
 lesión **fuerza `revisión_reforzada`** — el borrador ya modulado espera aprobación del
 entrenador (y derivación médica cuando proceda) antes de cualquier envío.
 Ver `docs/metodo_entrenador.md` §7.
+
+## Agente de rutina (Fase 2)
+
+`agents/routine_agent.py` recibe el perfil del cliente y llama al modelo con **salida
+forzada por tool use** (no texto libre parseado): el modelo debe rellenar el esquema
+`entregar_borrador_rutina`, lo que da un JSON estructurado fiable en vez de tener que
+parsear Markdown. El system prompt inyecta el método completo
+(`docs/metodo_entrenador.md`) más las notas técnicas de `entrenamiento.md` y
+`estilo_vida_longevidad.md`. Si el perfil trae lesiones u otras señales de salud, el
+propio agente ya adapta ejercicios y rellena `advertencias_revision_humana` — esta es
+una primera capa de seguridad; la comprobación exhaustiva y el veredicto formal llegan
+con el **agente validador** (Fase 3). Modelo usado: `claude-sonnet-5` (ver
+`docs/decisiones.md`, Fase 2, para la justificación).
 
 ## Principio transversal: humano en el bucle
 

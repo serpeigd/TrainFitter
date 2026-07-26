@@ -75,3 +75,21 @@ TrainFitter/
 ├── requirements.txt                 Dependencias de Python
 └── .gitignore
 ```
+
+## Cómo probarlo (modo desarrollo)
+
+1. Crea un entorno virtual e instala dependencias:
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+2. Copia `.env.example` a `.env` y añade tu clave de la API de Anthropic:
+   ```
+   ANTHROPIC_API_KEY=tu-clave-aqui
+   ```
+3. Ejecuta la demo del agente de rutina sobre un cliente de ejemplo:
+   ```bash
+   python agents/run_routine_demo.py
+   ```
+   El borrador se guarda en `examples/output_rutina_1.json`.

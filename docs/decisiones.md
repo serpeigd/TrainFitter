@@ -155,3 +155,41 @@ agentes y el historial de decisiones siguen viviendo y versionándose aquí.
 - **`analitica_adjunta`** se deja modelado en el esquema pero **sin uso real todavía**
   (`tiene: false` en ambos ejemplos): implementar el parser real es tarea de Fase 3+,
   no de Fase 1.
+
+---
+
+## Fase 2 — Agente de rutina
+
+- **Modelo: `claude-sonnet-5`.** Descartado Opus (razonamiento más caro/profundo del
+  que necesita "redactar una rutina siguiendo un método ya documentado") y Haiku (se
+  prioriza calidad de personalización — el resultado lo revisa un profesional, pero
+  debe llegarle ya bien pensado, no genérico). Sonnet 5 es el punto medio correcto para
+  este agente; se reevaluará por agente si algún caso concreto lo justifica.
+- **Salida estructurada por *tool use*, no Markdown libre.** Se fuerza al modelo a
+  responder rellenando un esquema fijo (`entregar_borrador_rutina`) en vez de pedirle
+  JSON en texto y parsearlo. Motivo: el validador (Fase 3) necesita recorrer los
+  ejercicios en código para cruzarlos con las lesiones del cliente, y el orquestador
+  (Fase 4) necesita estado programático. Convertir JSON → Markdown/HTML bonito para el
+  email (Fase 5/6) es un paso trivial; parsear prosa hacia atrás no lo es. Se guarda
+  como `.json`, no `.md`.
+- **Qué parte de la base de conocimiento recibe el agente.** Además del método
+  completo, se le pasan las notas de `entrenamiento.md` y `estilo_vida_longevidad.md`
+  (relevantes para diseñar una rutina). Las notas de nutrición/suplementación quedan
+  para el agente de dieta (Fase 3) — cada agente recibe solo lo que necesita, no toda
+  la KB de golpe.
+- **Seguridad en dos capas.** El propio `routine_agent` ya adapta ejercicios ante
+  lesiones/condiciones mencionadas en el perfil y rellena `advertencias_revision_humana`
+  — pero esto es una primera pasada, no el control formal. La comprobación exhaustiva y
+  el veredicto (`aprobado_automático` / `revisión_reforzada`) es responsabilidad del
+  **agente validador** (Fase 3), que no se ha implementado todavía.
+- **Manejo de errores:** clase `RoutineAgentError` propia; se distingue explícitamente
+  API key ausente (mensaje que apunta a `.env.example`), timeout, error de conexión,
+  error de la API, y respuesta sin bloque `tool_use` (respuesta malformada).
+- **`agents/knowledge.py`** nuevo: helper compartido para leer `docs/metodo_entrenador.md`
+  y notas de `docs/base_conocimiento/` por nombre. Lo reutilizarán `diet_agent` y
+  `validator_agent` en la Fase 3 para no duplicar lógica de lectura de archivos.
+- **No se ejecutó el demo en esta sesión** (no hay `ANTHROPIC_API_KEY` configurada en
+  este entorno). Se verificó únicamente que el código compila (`py_compile`) sin errores
+  de sintaxis. Pendiente: que el entrenador ejecute `python agents/run_routine_demo.py`
+  con su propia clave y confirme que el borrador generado tiene sentido antes de dar por
+  buena la Fase 2.

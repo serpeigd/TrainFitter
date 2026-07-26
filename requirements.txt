@@ -1,8 +1,4 @@
 # Dependencias de TrainFitter
-#
-# Fase 0: aún no se necesitan librerías (solo documentación).
-# Las dependencias reales (anthropic, python-dotenv) se añaden en la Fase 2,
-# cuando entra el primer agente. Se dejan aquí comentadas como referencia.
-#
-# anthropic>=0.40.0
-# python-dotenv>=1.0.0
+
+anthropic>=0.40.0
+python-dotenv>=1.0.0
