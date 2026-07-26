@@ -26,6 +26,11 @@ los mitos que rechazas. Tú te limitas a **revisar, ajustar y aprobar**.
 - Un **aviso automático** cuando un caso necesita tu revisión reforzada (por ejemplo,
   una lesión o una condición clínica), para que nada delicado se te escape.
 
+La personalización va más allá del objetivo: la ficha recoge **datos de salud**
+(alergias, enfermedades, embarazo, medicación, peso) e incluso permite adjuntar una
+**analítica** para afinar la dieta. Todo lo clínico se marca para que lo revises **tú**;
+el sistema nunca diagnostica ni prescribe.
+
 ## Cómo funciona (en una frase)
 
 Ficha del cliente → borrador de rutina → borrador de dieta → revisión de seguridad

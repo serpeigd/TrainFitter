@@ -41,3 +41,6 @@ Thumbs.db
 # --- Salidas generadas por los agentes (opcional, se versionan las de ejemplo a mano) ---
 # examples/output_*.md
 # examples/output_*.json
+
+# --- Material fuente personal del entrenador (no se versiona; se destila en docs/base_conocimiento/) ---
+AA_files_Training/
