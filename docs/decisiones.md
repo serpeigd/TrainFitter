@@ -350,3 +350,70 @@ science-based tipo Jeff Nippard) y creando skills para que este proceso sea repe
   - `nuevo-cliente-prueba`: permite generar y probar un cliente de ejemplo ad-hoc a
     partir de una descripción en lenguaje natural, sin que el entrenador tenga que
     escribir JSON a mano — útil para explorar casos límite del validador.
+
+---
+
+## Fase 5-lite — Panel del entrenador (UI con Streamlit)
+
+Ante la elección explícita del entrenador entre seguir con Notion/Gmail reales, seguir
+ampliando la KB, o construir una interfaz, se optó por la **UI**: el pipeline ya
+funciona de punta a punta pero solo es usable por alguien cómodo con una terminal.
+
+- **Streamlit sobre alternativas.** Python puro (coherente con el resto del proyecto,
+  sin añadir un stack de frontend separado), suficiente para un panel interno, y
+  permite iterar rápido. Se descartó FastAPI+HTML a propósito por ahora: más control,
+  pero más superficie para un paso que es "hacerlo demostrable", no "producto final".
+- **Refactor de `agents/orchestrator.py`: `on_transition` como callback en vez de
+  `print()` dentro de `transicionar()`.** El logging por consola era una decisión de
+  la Fase 4 que acoplaba el orquestador a la terminal. Se extrae a un callback
+  opcional (por defecto sigue logueando a consola, así que `run_pipeline_demo.py` no
+  cambia de comportamiento) para que la UI pueda pintar el mismo recorrido de estados
+  en pantalla. Es el tipo de cambio que conviene hacer *cuando aparece el segundo
+  consumidor* del dato, no antes — hacerlo en la Fase 4 hubiera sido especular sobre
+  una UI que todavía no existía.
+- **`ui/app.py`:** dos formas de generar un plan — elegir un cliente de `examples/`,
+  o rellenar un formulario nuevo que espeja la ficha de admisión y produce el mismo
+  JSON que consumen los agentes. Resultado: veredicto, rutina por sesión (tabla de
+  ejercicios), dieta (macros + fuentes + sinergias), descargas en JSON, y un botón de
+  aprobación **explícitamente marcado como simulado** (el envío real es Fase 5+ con
+  Gmail) — coherente con que el sistema nunca envía nada por su cuenta.
+- **Bug real encontrado y corregido durante las pruebas: `st.form` bloqueaba los
+  campos condicionales.** El diseño inicial metía el checkbox "¿tiene lesión?" y los
+  campos de zona/descripción dentro de un único `st.form`. Al probarlo en el
+  navegador (ver más abajo), marcar el checkbox nunca revelaba los campos siguientes:
+  Streamlit no reejecuta el script dentro de un formulario hasta el envío, así que la
+  UI no podía reaccionar a mitad de rellenar el formulario. Se solucionó quitando
+  `st.form` y usando widgets sueltos con `key` explícita + un botón normal al final.
+  Es exactamente el tipo de bug que solo aparece probando de verdad, no leyendo el
+  código — motivo por el que se dedicó tiempo a verificarlo en un navegador real en
+  vez de darlo por bueno tras compilar.
+- **Verificación real, con límites honestos.** Se lanzó `streamlit run ui/app.py` vía
+  `preview_start` (con `.claude/launch.json` nuevo) y se confirmó en el navegador: el
+  camino "feliz" completo (cliente de ejemplo → plan generado → rutina con tablas de
+  ejercicios → dieta con métricas → veredicto de aprobación → descargas) renderiza
+  correctamente de principio a fin. El entorno de pruebas de este chat no tiene el
+  panel de navegador visible (`screenshot`/`read_page` fallan intermitentemente sin
+  compositing activo), lo que dificultó automatizar el desplegable de selección de
+  cliente y la escritura sintética en el formulario para probar específicamente el
+  caso con lesión (`revisión_reforzada`) de principio a fin en la UI. Esa rama de
+  código (`st.warning` + lista de motivos) es estructuralmente idéntica a la rama de
+  éxito ya verificada, y la lógica que decide el veredicto (`validator_agent.py`) está
+  probada exhaustivamente por CLI — pero queda anotado aquí como verificación
+  pendiente de confirmar visualmente por el entrenador, no como algo dado por sentado
+  sin más.
+- **Dependencias nuevas:** `streamlit>=1.38.0` en `requirements.txt`, marcado como
+  opcional (el pipeline en modo "reglas" sigue sin necesitar nada). `.streamlit/config.toml`
+  con tema propio (verde azulado, `#0F766E`). `.streamlit/secrets.toml` añadido al
+  `.gitignore` por si en el futuro se necesitan credenciales ahí.
+- **Instalación de Streamlit en este entorno tuvo fricción** (errores intermitentes de
+  `pip` al escribir los `.exe` de consola en `C:\Python312\Scripts`, aparentemente por
+  bloqueo de archivo transitorio). Se resolvió reintentando la instalación; el módulo
+  quedó importable y funcional. Si el entrenador ve el mismo error al instalar, no es
+  un problema del proyecto — reintentar `pip install streamlit` suele bastar.
+
+**Pendiente para cuando el entrenador lo pruebe él mismo:**
+- Confirmar visualmente el caso de revisión reforzada en la UI (`streamlit run ui/app.py`,
+  pestaña "Cliente de ejemplo" → Javier Ruiz, o pestaña "Nueva ficha" marcando una lesión).
+- Decidir si la UI necesita algo más antes de considerarla "lista para enseñar a un
+  cliente potencial" (¿logo?, ¿nombre de dominio si se despliega?, etc. — fuera de
+  alcance de esta fase).

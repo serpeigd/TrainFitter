@@ -1,8 +1,8 @@
 # Arquitectura de TrainFitter
 
-> **Estado: pipeline completo funcionando (Fases 0-4).** Falta la integración con
-> Notion/Gmail (Fase 5+) y el disparador automático (Fase 6). La versión final
-> orientada a lector técnico llega en la Fase 7.
+> **Estado: pipeline completo (Fases 0-4) + panel del entrenador (Fase 5-lite).**
+> Falta la integración con Notion/Gmail reales y el disparador automático desde
+> `inbox/`. La versión final orientada a lector técnico llega en la Fase 7.
 
 ---
 
@@ -81,6 +81,41 @@ Ambas ramas de éxito terminan en un estado "pendiente_*": **incluso
 sin que nadie lo mire"**. El entrenador siempre aprueba antes de que algo llegue al
 cliente — ver `PipelineState` en `agents/orchestrator.py`.
 
+`ejecutar_pipeline()` acepta un callback `on_transition` opcional (por defecto,
+loguea a consola). Esto es lo que permite que la UI (ver más abajo) pinte el mismo
+recorrido de estados en pantalla en vez de en una terminal que el usuario nunca ve,
+sin que el orquestador sepa nada de Streamlit.
+
+## Panel del entrenador (`ui/app.py`) — interfaz Streamlit
+
+El pipeline por CLI es la capa de desarrollo; `ui/app.py` es la capa que un
+entrenador sin conocimientos técnicos podría usar de verdad. Convierte
+`ejecutar_pipeline()` en una experiencia de clic:
+
+- **Pestaña "Cliente de ejemplo":** elige uno de los JSON en `examples/`, previsualiza
+  la ficha completa, genera el plan.
+- **Pestaña "Nueva ficha":** formulario completo que espeja
+  `admission/ficha_cliente_template.md` (datos básicos, objetivo, experiencia,
+  disponibilidad, salud, nutrición, estilo de vida) y construye el mismo JSON que
+  consumen los agentes — un entrenador podría dar de alta un cliente real sin tocar
+  código ni JSON a mano.
+- **Ejecución en vivo:** `st.status(...)` + el callback `on_transition` muestran cada
+  transición del orquestador según ocurre.
+- **Resultado:** veredicto (con motivos si aplica revisión reforzada), rutina por
+  sesión con tabla de ejercicios, dieta con macros y fuentes sugeridas, y botones de
+  descarga en JSON.
+- **Aprobación simulada:** un botón "Aprobar y marcar como listo para enviar" dentro
+  de la UI dice explícitamente que es una simulación — el envío real llega con Gmail
+  (Fase 5+). La UI nunca envía nada por su cuenta, coherente con el resto del sistema.
+
+**Nota de diseño encontrada durante las pruebas:** los widgets de la ficha nueva NO
+están dentro de un `st.form`. Se probó así primero, pero Streamlit no vuelve a
+ejecutar el script dentro de un formulario hasta que se pulsa "enviar" — así que un
+checkbox como "¿tiene lesión?" nunca llegaba a revelar el campo de "zona de la
+lesión" a tiempo. Con widgets sueltos (cada uno con `key` propia), cada interacción
+reejecuta el script y la UI puede reaccionar de inmediato. El coste es una rerenderización
+algo más frecuente, irrelevante para un pipeline tan rápido como el de reglas.
+
 ## Componentes
 
 | Componente | Archivo | Fase | Estado |
@@ -96,6 +131,7 @@ cliente — ver `PipelineState` en `agents/orchestrator.py`.
 | Agente de dieta (dual motor) | `agents/diet_agent.py` | 3 | **Hecho** |
 | Agente validador | `agents/validator_agent.py` | 3 | **Hecho** |
 | Orquestador (estado explícito) | `agents/orchestrator.py` | 4 | **Hecho** |
+| Panel del entrenador (UI) | `ui/app.py` | 5-lite | **Hecho** |
 | Parser de analítica | `agents/analytics_parser.py` | 5+ | Pendiente |
 | Conector Notion | `mcp/notion_client.py` | 5 | Pendiente |
 | Conector Gmail | `mcp/gmail_client.py` | 5 | Pendiente |

@@ -3,8 +3,10 @@
 # El pipeline por defecto (motor="reglas": rutina, dieta y validador) es 100%
 # Python estándar. NO necesita nada de lo de abajo ni ninguna API key.
 #
-# Lo siguiente solo hace falta si en el futuro se usa motor="llm" (llamadas
+# UI (opcional) — solo si quieres usar el panel del entrenador en ui/app.py:
+streamlit>=1.38.0
+
+# Motor LLM (opcional) — solo si en el futuro se usa motor="llm" (llamadas
 # reales a la API de Anthropic en vez del motor de reglas gratuito):
-#
 # anthropic>=0.40.0
 # python-dotenv>=1.0.0

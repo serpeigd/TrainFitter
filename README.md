@@ -53,6 +53,9 @@ Este repositorio se construye fase a fase, como proyecto de aprendizaje. Ahora m
   validación de seguridad → estado listo para tu aprobación. **Gratis, sin ninguna
   clave ni cuenta que configurar** — el motor por defecto es determinista, no depende
   de ningún servicio externo.
+- Un **panel visual** (no solo terminal): sube o crea la ficha de un cliente, mira el
+  plan generarse, revisa rutina y dieta con tablas y gráficas, y aprueba — todo desde
+  el navegador.
 - Probado con dos casos de ejemplo: uno sin complicaciones y otro con una lesión y
   una dieta vegetariana, para comprobar que el aviso de revisión reforzada salta
   cuando debe.
@@ -76,6 +79,7 @@ TrainFitter/
 ├── admission/
 │   └── ficha_cliente_template.md    Formulario de admisión
 ├── agents/                          Rutina, dieta, validador y orquestador
+├── ui/                              Panel del entrenador (Streamlit)
 ├── mcp/                             Conectores MCP: Notion, Gmail (Fase 5)
 ├── templates/                       Plantillas de email/planes (Fase 5)
 ├── examples/                        Clientes y salidas de ejemplo
@@ -83,10 +87,21 @@ TrainFitter/
 └── .gitignore
 ```
 
-## Cómo probarlo (modo desarrollo)
+## Cómo probarlo
 
-No hace falta instalar nada ni configurar ninguna clave: el pipeline por defecto es
-Python estándar. Desde la raíz del repo:
+### Opción 1 — Panel visual (recomendado)
+
+```bash
+pip install streamlit
+streamlit run ui/app.py
+```
+
+Se abre en el navegador. Elige un cliente de ejemplo o rellena una ficha nueva, y
+verás el plan generarse en vivo.
+
+### Opción 2 — Terminal (sin instalar nada)
+
+El pipeline por defecto es Python estándar puro, sin ninguna clave ni cuenta:
 
 ```bash
 python agents/run_pipeline_demo.py

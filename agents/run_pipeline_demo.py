@@ -41,6 +41,7 @@ def main() -> None:
     for numero in (1, 2):
         perfil = json.loads((EXAMPLES_DIR / f"cliente_ejemplo_{numero}.json").read_text(encoding="utf-8"))
         print("=" * 60)
+        print(f"\nPipeline iniciado para {perfil['id_cliente']} ({perfil['datos_basicos']['nombre']})")
         estado = ejecutar_pipeline(perfil)
         mostrar_resultado(estado)
         print("=" * 60)
