@@ -57,8 +57,11 @@ with `pytest` from repo root — wired into CI) and a live demo at
 on push to master). `agents/analytics_parser.py` extracts bloodwork markers
 from the intake's PDF attachment (best-effort, bilingual, forces
 `revision_reforzada` on out-of-range values via `validator_agent.py` — same
-defense-in-depth pattern as injuries/allergies). Pending: Notion/Gmail
-connectors (`mcp/`), automatic inbox trigger (`main.py`). CI
+defense-in-depth pattern as injuries/allergies). `mcp/gmail_client.py` creates
+a real Gmail **draft** (never sends — enforced by the `gmail.compose` OAuth
+scope, not just by convention) for the trainer to review and send themselves;
+recipient is typed in the approval panel, not part of the intake schema.
+Pending: Notion connector (`mcp/`), automatic inbox trigger (`main.py`). CI
 (`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test suite
 end-to-end on every push — no secrets needed.
 
@@ -82,6 +85,7 @@ if the user explicitly opts in to spending money.
 | Orchestrator | `agents/orchestrator.py` |
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
 | Bloodwork parser | `agents/analytics_parser.py` |
+| Gmail connector (draft-only) | `mcp/gmail_client.py` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |
 | Example clients/outputs | `examples/` |

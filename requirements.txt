@@ -16,6 +16,14 @@ pdfplumber>=0.11.0
 # anthropic>=0.40.0
 # python-dotenv>=1.0.0
 
+# Conector Gmail (opcional) — solo si vas a crear borradores reales desde
+# mcp/gmail_client.py. Requiere configurar tu propio proyecto en Google
+# Cloud Console primero (ver el docstring de ese módulo); gratis, pero no
+# funciona "de fábrica" como pdfplumber o streamlit:
+# google-api-python-client>=2.150.0
+# google-auth-httplib2>=0.2.0
+# google-auth-oauthlib>=1.2.0
+
 # Tests (opcional) — solo si quieres ejecutar la suite en tests/. Gratis,
 # no llama a ninguna API:
 pytest>=8.0.0

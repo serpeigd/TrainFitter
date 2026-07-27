@@ -3,8 +3,9 @@ Trainer's panel — TrainFitter's Streamlit interface.
 
 Turns the pipeline (previously only accessible via CLI) into something a
 non-technical trainer could use: pick or create an intake, generate the
-plan, watch the state trail live, review routine + diet, and "approve"
-(simulated — real sending arrives with Gmail integration).
+plan, watch the state trail live, review routine + diet, approve, and
+optionally create a real Gmail draft (never auto-sent — see
+mcp/gmail_client.py) for the trainer to review and send themselves.
 
 Includes an EN/ES language toggle for the UI chrome (labels, buttons, help
 text). The generated plan content itself (exercise names, messages) is
@@ -26,14 +27,17 @@ import streamlit as st
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
+MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
 
-# agents/ modules import each other as "flat" packages (import knowledge,
-# import routine_agent...), so they need agents/ on sys.path just like when
-# their own run_*_demo.py scripts are executed.
+# agents/ and mcp/ modules import each other as "flat" packages (import
+# knowledge, import routine_agent...), so they need to be on sys.path just
+# like when their own run_*_demo.py scripts are executed.
 sys.path.insert(0, str(AGENTS_DIR))
+sys.path.insert(0, str(MCP_DIR))
 
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
+from gmail_client import GmailClientError, crear_borrador  # noqa: E402
 from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
@@ -138,15 +142,18 @@ TRANSLATIONS = {
         "client_message_header": "Message for the client",
         "download_diet": "Download diet (JSON)",
         "approval_header": "### Trainer's approval",
-        "approval_caption": (
-            "This button simulates your approval within this demo. Actually sending it to the "
-            "client (an email draft) arrives with Gmail integration — not implemented yet."
-        ),
+        "approval_caption": "Marks the plan as reviewed within this session — it's a checklist step, not a send action.",
         "approve_button": "✅ Approve and mark as ready to send",
-        "approved_success": (
-            "Marked as approved at {time}. In a version connected to Gmail, this would leave an "
-            "email draft waiting for you to send manually."
+        "approved_success": "Marked as approved at {time}.",
+        "gmail_section_header": "### ✉️ Email the plan",
+        "gmail_section_caption": (
+            "Creates a **draft** in TrainFitter's Gmail account — nothing is sent until you "
+            "personally open it in Gmail and hit send."
         ),
+        "client_email_label": "Client's email",
+        "create_draft_button": "Create Gmail draft",
+        "draft_created_success": "Draft created — [open it in Gmail]({url}).",
+        "draft_error": "Could not create the draft: {error}",
     },
     "es": {
         "app_title": "💪 TrainFitter — Panel del entrenador",
@@ -239,15 +246,18 @@ TRANSLATIONS = {
         "client_message_header": "Mensaje para el cliente",
         "download_diet": "Descargar dieta (JSON)",
         "approval_header": "### Aprobación del entrenador",
-        "approval_caption": (
-            "Este botón simula tu aprobación dentro de esta demo. El envío real al cliente "
-            "(borrador de email) llega con la integración de Gmail — todavía no implementada."
-        ),
+        "approval_caption": "Marca el plan como revisado dentro de esta sesión — es un paso de checklist, no un envío.",
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
-        "approved_success": (
-            "Marcado como aprobado a las {time}. En una versión conectada a Gmail, esto dejaría "
-            "un borrador de email esperando tu envío manual."
+        "approved_success": "Marcado como aprobado a las {time}.",
+        "gmail_section_header": "### ✉️ Enviar el plan por email",
+        "gmail_section_caption": (
+            "Crea un **borrador** en la cuenta de Gmail de TrainFitter — no se envía nada hasta "
+            "que tú lo abras en Gmail y le des a enviar."
         ),
+        "client_email_label": "Email del cliente",
+        "create_draft_button": "Crear borrador en Gmail",
+        "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
+        "draft_error": "No se pudo crear el borrador: {error}",
     },
 }
 
@@ -669,6 +679,26 @@ def _panel_aprobacion(estado) -> None:
     st.caption(t("approval_caption"))
     if st.button(t("approve_button"), type="primary"):
         st.success(t("approved_success").format(time=datetime.now().strftime("%H:%M:%S")))
+
+    st.markdown(t("gmail_section_header"))
+    st.caption(t("gmail_section_caption"))
+    email_cliente = st.text_input(t("client_email_label"), key="email_cliente")
+    if st.button(t("create_draft_button")):
+        try:
+            url = crear_borrador(
+                email_cliente,
+                estado.perfil_cliente["datos_basicos"]["nombre"],
+                estado.borrador_rutina,
+                estado.borrador_dieta,
+            )
+            st.success(t("draft_created_success").format(url=url))
+        except (GmailClientError, ImportError, ModuleNotFoundError) as exc:
+            # Never crash the app over this: a missing google-api-python-client
+            # (e.g. on the public demo, where it's deliberately not installed)
+            # or missing/expired credentials are expected, recoverable states,
+            # not bugs — same "best-effort, never blocks" spirit as the
+            # bloodwork parser.
+            st.error(t("draft_error").format(error=str(exc)))
 
 
 # ---------------------------------------------------------------------------

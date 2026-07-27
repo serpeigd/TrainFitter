@@ -21,6 +21,10 @@ ENV/
 !.env.example
 .streamlit/secrets.toml
 
+# --- Credenciales OAuth de Gmail (mcp/gmail_client.py) ---
+credentials.json
+token.json
+
 # --- Herramientas / caché ---
 .pytest_cache/
 .mypy_cache/

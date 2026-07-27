@@ -57,7 +57,7 @@ gate should be deterministic and auditable, not a model's "opinion" — see
                                 ▼
                      Human review (ALWAYS, no exceptions)
                                 ▼
-              Sent to the client (Gmail draft — Phase 5+)
+              Gmail draft created (mcp/gmail_client.py) — trainer reviews and sends it themselves
 ```
 
 ## Orchestrator state diagram (real, `agents/orchestrator.py`)
@@ -108,9 +108,13 @@ click-through experience:
 - **Result:** verdict (with reasons if enhanced review applies), routine broken down
   by session with an exercise table, diet with macros and suggested sources, and JSON
   download buttons.
-- **Simulated approval:** an "Approve and mark as ready to send" button in the UI
-  explicitly states it's a simulation — real sending arrives with Gmail (Phase 5+).
-  The UI never sends anything on its own, consistent with the rest of the system.
+- **Approval + Gmail draft:** an "Approve and mark as ready to send" checklist
+  button, plus a real "Create Gmail draft" action (`mcp/gmail_client.py`) that
+  takes the client's email (typed by the trainer — the intake form doesn't
+  collect it) and creates an actual draft in a dedicated Gmail account. The
+  OAuth scope requested (`gmail.compose`) can only create drafts — it's
+  physically incapable of sending or reading mail, so the UI never sends
+  anything on its own even in principle, not just by convention.
 
 **Design note found during testing:** the new-intake widgets are deliberately NOT
 inside an `st.form`. That was tried first, but Streamlit doesn't rerun the script
@@ -138,7 +142,7 @@ a pipeline as fast as the rule engine.
 | Trainer's panel (UI) | `ui/app.py` | 5-lite | **Done** |
 | Bloodwork parser | `agents/analytics_parser.py` | 5+ | **Done** |
 | Notion connector | `mcp/notion_client.py` | 5 | Pending |
-| Gmail connector | `mcp/gmail_client.py` | 5 | Pending |
+| Gmail connector | `mcp/gmail_client.py` | 5 | **Done** |
 | Automatic trigger | `main.py` + `inbox/` | 6 | Pending |
 
 ## Clinical personalization layer (active modulation)

@@ -658,6 +658,51 @@ via direct DOM inspection (not just visual guessing) before fixing:
   and removed the intro paragraph under the app title (redundant with the tab
   labels once "New Client" was first).
 
+## Gmail connector (mcp/gmail_client.py)
+
+Three design decisions made explicitly with the project owner before building,
+each one narrowing scope from what was first suggested:
+
+- **Draft-only, never auto-send, enforced by OAuth scope — not by a design
+  promise.** The first proposal was floated as "send automatically"; flagged
+  back to the owner that this directly contradicts the project's core
+  human-in-the-loop principle *and* creates a real abuse vector on the public
+  demo (trainfitter.streamlit.app) — anyone could type an arbitrary email and
+  trigger a real send from a live account, with no review step. Settled on
+  requesting only the `gmail.compose` OAuth scope, which makes sending
+  physically impossible for the authorized account (Google's API rejects a
+  send call under that scope), rather than relying on the code simply
+  "choosing" not to call send().
+- **Dedicated Gmail account**, created by the owner specifically for this
+  project, not their personal inbox — drafts land somewhere disposable, not
+  mixed with the owner's real correspondence.
+- **Recipient is trainer-typed, not derived from the intake schema.** The
+  client intake form has no email field (deliberately never added — it wasn't
+  needed until this connector existed). Rather than expand the core profile
+  schema for one downstream feature, the "Client's email" field lives directly
+  in the approval panel (`ui/app.py`), scoped to the one place it's used.
+
+Implementation matches the project's existing conventions:
+- **Lazy import** of `google-api-python-client` / `google-auth-oauthlib`
+  inside the functions that need them (same pattern as `anthropic` for
+  `motor="llm"` and `pdfplumber` for the bloodwork parser) — the free
+  pipeline never requires them installed, and they're commented out in
+  `requirements.txt` accordingly (unlike `pdfplumber`, this one also needs a
+  one-time Google Cloud Console setup, so it can't work "out of the box"
+  even if installed).
+- **Pure logic separated from network/auth**: `_construir_cuerpo_email()` and
+  `_construir_mensaje_raw()` are plain functions with no I/O, fully unit
+  tested (including decoding the base64url RFC 2822 message back and checking
+  its headers). `crear_borrador()` (the only part that touches the network) is
+  intentionally untested against the real API — same reasoning as `motor="llm"`
+  never being exercised for real in this suite: it needs a live, authorized
+  account that doesn't exist in CI.
+- Verified in the browser that a missing `credentials.json` (the state of the
+  public demo, which has none configured) surfaces as a clean, catchable error
+  message rather than crashing the app.
+- `credentials.json` and `token.json` added to `.gitignore` explicitly, on top
+  of the existing `.env`-pattern rules.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

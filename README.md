@@ -61,10 +61,13 @@ This repository is built phase by phase, as a learning project. Right now:
   approve — all from the browser.
 - Tested with two example cases: one straightforward, one with an injury and a
   vegetarian diet, to confirm the enhanced-review flag fires when it should.
+- A real **Gmail draft** can be created for the approved plan — never sent
+  automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
+  the trainer reviews and sends it themselves from their own Gmail.
 
 ## What it doesn't include yet
 
-- A real email/Notion connection to send drafts (coming in a later phase).
+- A Notion connection to keep client records (coming in a later phase).
 - Richer, more nuanced generative-AI writing — today's draft comes from deterministic
   rules based on the method; an optional generative-AI layer (`motor="llm"`) is
   already designed and ready to switch on when it makes sense.
@@ -83,7 +86,7 @@ TrainFitter/
 ├── agents/                          Routine, diet, validator, and orchestrator
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
-├── mcp/                             MCP connectors: Notion, Gmail (Phase 5)
+├── mcp/                             Connectors: Gmail (done), Notion (Phase 5)
 ├── templates/                       Email/plan templates (Phase 5)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies
