@@ -66,6 +66,43 @@ def test_catches_conflicting_food_even_if_draft_did_not_flag_it(perfil_base):
     assert any("Eggs" in motivo for motivo in veredicto["motivos"])
 
 
+def test_out_of_range_bloodwork_marker_forces_enhanced_review(perfil_base):
+    """Same defense-in-depth pattern as injuries/allergies, applied to
+    parsed bloodwork markers (agents/analytics_parser.py)."""
+    perfil_base["salud"]["analitica_adjunta"] = {
+        "tiene": True,
+        "archivo": "analitica.pdf",
+        "fecha": "2026-01-20",
+        "notas": "",
+        "marcadores": [
+            {"nombre": "TSH", "valor": 6.8, "unidad": "mIU/L", "rango_normal": "0.4-4.0 mIU/L", "fuera_de_rango": True},
+            {"nombre": "Ferritin", "valor": 75.0, "unidad": "ng/mL", "rango_normal": "15-200 ng/mL", "fuera_de_rango": False},
+        ],
+    }
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("TSH" in motivo for motivo in veredicto["motivos"])
+    assert not any("Ferritin" in motivo for motivo in veredicto["motivos"])
+
+
+def test_all_normal_bloodwork_markers_do_not_force_review(perfil_base):
+    perfil_base["salud"]["analitica_adjunta"] = {
+        "tiene": True,
+        "archivo": "analitica.pdf",
+        "fecha": "2026-01-15",
+        "notas": "",
+        "marcadores": [
+            {"nombre": "Ferritin", "valor": 75.0, "unidad": "ng/mL", "rango_normal": "15-200 ng/mL", "fuera_de_rango": False},
+        ],
+    }
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "aprobado_automatico"
+
+
 def test_duplicate_reasons_are_not_repeated(perfil_base):
     """Both the routine and diet engines independently warn about a declared
     health condition using the exact same wording — the validator must

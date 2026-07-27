@@ -51,12 +51,16 @@ Client intake JSON → routine_agent + diet_agent (motor="reglas"|"llm", same ou
 
 ## Status
 
-Phases 0–4 + 5-lite (Streamlit panel) done, plus a 42-test pytest suite
-(`tests/`, run with `pytest` from repo root — wired into CI). Pending:
-bloodwork parser (`agents/analytics_parser.py`), Notion/Gmail connectors
-(`mcp/`), automatic inbox trigger (`main.py`), Streamlit Cloud deploy.
-CI (`.github/workflows/ci.yml`) runs the free rule-engine pipeline +
-test suite end-to-end on every push — no secrets needed.
+Phases 0–4 + 5-lite (Streamlit panel) done, plus a pytest suite (`tests/`, run
+with `pytest` from repo root — wired into CI) and a live demo at
+[trainfitter.streamlit.app](https://trainfitter.streamlit.app/) (auto-redeploys
+on push to master). `agents/analytics_parser.py` extracts bloodwork markers
+from the intake's PDF attachment (best-effort, bilingual, forces
+`revision_reforzada` on out-of-range values via `validator_agent.py` — same
+defense-in-depth pattern as injuries/allergies). Pending: Notion/Gmail
+connectors (`mcp/`), automatic inbox trigger (`main.py`). CI
+(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test suite
+end-to-end on every push — no secrets needed.
 
 ## Free-only guardrail
 
@@ -77,6 +81,7 @@ if the user explicitly opts in to spending money.
 | Validator | `agents/validator_agent.py` |
 | Orchestrator | `agents/orchestrator.py` |
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
+| Bloodwork parser | `agents/analytics_parser.py` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |
 | Example clients/outputs | `examples/` |

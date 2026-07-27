@@ -6,6 +6,11 @@
 # UI (opcional) — solo si quieres usar el panel del entrenador en ui/app.py:
 streamlit>=1.38.0
 
+# Parser de analítica (opcional) — solo si quieres que el PDF de analítica
+# adjunto en la ficha se lea de verdad (agents/analytics_parser.py). Librería
+# local, sin coste, sin API:
+pdfplumber>=0.11.0
+
 # Motor LLM (opcional) — solo si en el futuro se usa motor="llm" (llamadas
 # reales a la API de Anthropic en vez del motor de reglas gratuito):
 # anthropic>=0.40.0

@@ -33,6 +33,7 @@ EXAMPLES_DIR = REPO_ROOT / "examples"
 # their own run_*_demo.py scripts are executed.
 sys.path.insert(0, str(AGENTS_DIR))
 
+from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
@@ -430,6 +431,9 @@ def _formulario_ficha_nueva() -> dict | None:
         return None
 
     ahora = datetime.now(timezone.utc)
+    marcadores_analitica = (
+        analizar_pdf_analitica(analitica_pdf.getvalue())["marcadores"] if analitica_pdf is not None else []
+    )
     perfil = {
         "id_cliente": f"cliente_ui_{_slug(nombre)}",
         "fecha_admision": ahora.date().isoformat(),
@@ -471,6 +475,7 @@ def _formulario_ficha_nueva() -> dict | None:
                 "archivo": analitica_pdf.name if analitica_pdf is not None else None,
                 "fecha": ahora.date().isoformat() if analitica_pdf is not None else None,
                 "notas": "",
+                "marcadores": marcadores_analitica,
             },
         },
         "nutricion": {

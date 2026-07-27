@@ -136,7 +136,7 @@ a pipeline as fast as the rule engine.
 | Validator agent | `agents/validator_agent.py` | 3 | **Done** |
 | Orchestrator (explicit state) | `agents/orchestrator.py` | 4 | **Done** |
 | Trainer's panel (UI) | `ui/app.py` | 5-lite | **Done** |
-| Bloodwork parser | `agents/analytics_parser.py` | 5+ | Pending |
+| Bloodwork parser | `agents/analytics_parser.py` | 5+ | **Done** |
 | Notion connector | `mcp/notion_client.py` | 5 | Pending |
 | Gmail connector | `mcp/gmail_client.py` | 5 | Pending |
 | Automatic trigger | `main.py` + `inbox/` | 6 | Pending |
@@ -144,13 +144,16 @@ a pipeline as fast as the rule engine.
 ## Clinical personalization layer (active modulation)
 
 Intake captures health data (allergies, conditions, pregnancy/breastfeeding,
-medication, weight) and allows a **PDF bloodwork report** to be attached. Today the
-rule engine already actively modulates the diet based on what it knows about the
-profile (diet type, allergies/intolerances, goal → calories/macros) and applies
-absorption synergies when the diet type calls for it (e.g. iron + vitamin C in
-vegetarian/vegan diets). A future `analytics_parser` will extract markers from the
-bloodwork (glucose/HbA1c, lipids, ferritin, vitamin D, TSH...) to modulate on that
-data as well.
+medication, weight) and allows a **PDF bloodwork report** to be attached. The
+rule engine actively modulates the diet based on what it knows about the profile
+(diet type, allergies/intolerances, goal → calories/macros) and applies absorption
+synergies when the diet type calls for it (e.g. iron + vitamin C in
+vegetarian/vegan diets). `agents/analytics_parser.py` extracts common markers
+from the attached bloodwork PDF (glucose/HbA1c, total/LDL/HDL cholesterol,
+triglycerides, ferritin, vitamin D, TSH) using standard adult reference ranges —
+best-effort, bilingual (ES/EN) keyword matching, same pattern already used for
+injury/allergy detection. It never adjusts the diet's macros directly; it only
+surfaces what it found so the validator can decide.
 
 Modulating actively doesn't loosen the hard rule: the system **never diagnoses or
 prescribes**; any out-of-range marker, condition, pregnancy, medication, injury, or

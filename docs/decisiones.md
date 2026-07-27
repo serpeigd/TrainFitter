@@ -574,6 +574,50 @@ and verdict render exactly as they do locally, with no errors. Linked from the R
 (new "Option 1 — Live demo" section) and set as the GitHub repo's homepage URL
 (`gh repo edit --homepage`), so it surfaces in the repo's About card.
 
+## Bloodwork parser (agents/analytics_parser.py)
+
+Added best-effort PDF marker extraction for the bloodwork attachment the intake
+form already allowed but never actually read. Design choices, confirmed with the
+project owner before building:
+
+- **Parsing is separate from judgment.** `analytics_parser.py` only extracts
+  numbers and range-checks them against standard adult reference ranges — it
+  never adjusts the diet's macros and never decides on its own whether a case
+  needs review. `validator_agent.py` re-reads the parsed markers independently
+  (a new `_motivos_desde_perfil` check) and is the one that turns an
+  out-of-range value into `revision_reforzada`, mirroring the exact
+  defense-in-depth pattern already used for injuries and allergies. Confirmed
+  explicitly: any out-of-range marker forces enhanced review, same as the
+  existing clinical signals — no softer "informational only" path.
+- **Bilingual keyword matching**, same convention as `perfil_utils.tags_lesiones()`
+  and `food_bank.etiquetas_excluidas()`: each marker's name pattern matches both
+  Spanish and English lab-report wording (e.g. "Glucosa en ayunas" / "Glucose
+  (fasting)").
+- **pdfplumber** (free, local, no API) is a lazy import inside
+  `extraer_texto_pdf()`, same as the `anthropic` SDK is lazy-imported for
+  `motor="llm"` — the core pipeline never requires it.
+- **Best-effort, not strict**: a marker the parser doesn't recognize is skipped,
+  not an error; a PDF it can't open at all (corrupted, scanned image, wrong
+  format) returns no markers instead of raising, so a bad upload never blocks
+  the rest of the intake.
+- **Two fictional test-fixture PDFs** (`tests/fixtures/analitica_normal.pdf`,
+  `analitica_fuera_rango.pdf`) were generated for this project specifically —
+  synthetic patient names and lab values, consistent with the rest of the
+  project's fictional data (see the disclaimer at the end of this file). Real
+  bloodwork PDFs were never used or requested.
+- Reference ranges are simplified, unisex, non-personalized adult ranges (not
+  adjusted by age/sex/pregnancy) — a known, documented simplification for a
+  portfolio-scale demo, not a substitute for lab-specific ranges. Sources: ADA
+  Standards of Medical Care in Diabetes (glucose/HbA1c), NCEP ATP III / AHA
+  lipid panel guidance (cholesterol/triglycerides), Endocrine Society Clinical
+  Practice Guideline (vitamin D), typical clinical-lab unisex intervals
+  (ferritin, TSH).
+- Wired into `ui/app.py`'s existing bloodwork `file_uploader`: the PDF bytes are
+  parsed right before the profile dict is built (only on submit, not on every
+  rerun) and the resulting markers are stored under
+  `salud.analitica_adjunta.marcadores` — a backward-compatible schema addition
+  (existing example clients need no changes; the field defaults to `[]`).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

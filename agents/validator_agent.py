@@ -45,6 +45,12 @@ def _motivos_desde_perfil(perfil: dict) -> list[str]:
         motivos.append(
             f"The profile declares food allerg(y/ies): {', '.join(salud['alergias_alimentarias'])}."
         )
+    for marcador in salud.get("analitica_adjunta", {}).get("marcadores", []):
+        if marcador.get("fuera_de_rango"):
+            motivos.append(
+                f"Bloodwork marker out of range: {marcador['nombre']} = {marcador['valor']} "
+                f"{marcador['unidad']} (normal range: {marcador['rango_normal']})."
+            )
     return motivos
 
 
