@@ -1,14 +1,14 @@
 {
   "cliente_id": "cliente_001",
-  "resumen_enfoque": "Split 'torso pierna' para nivel intermedio, 4 días/semana, orientado a hipertrofia. Ejercicios seleccionados según el material disponible del cliente.",
+  "resumen_enfoque": "'upper lower' split for intermediate level, 4 days/week, geared toward hypertrophy. Exercises selected based on the client's available equipment.",
   "nivel_asumido": "intermedio",
-  "split": "torso_pierna",
+  "split": "upper_lower",
   "dias_por_semana": 4,
   "duracion_sesion_min": 60,
   "advertencias_revision_humana": [],
   "sesiones": [
     {
-      "dia": "Día 1 — Torso A",
+      "dia": "Day 1 — Upper A",
       "grupos_musculares": [
         "biceps",
         "espalda",
@@ -16,38 +16,38 @@
         "pecho",
         "triceps"
       ],
-      "calentamiento": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
+      "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Press banca con barra",
+          "nombre": "Barbell bench press",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Remo en polea alta (agarre cerrado)",
+          "nombre": "High cable row (close grip)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Press militar en máquina",
+          "nombre": "Machine shoulder press",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Extensión de tríceps en polea (barra)",
+          "nombre": "Cable triceps pushdown (bar)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Curl con mancuernas",
+          "nombre": "Dumbbell curl",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -57,44 +57,44 @@
       "cardio_opcional": ""
     },
     {
-      "dia": "Día 2 — Pierna A",
+      "dia": "Day 2 — Lower A",
       "grupos_musculares": [
         "core",
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
+      "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
       "ejercicios": [
         {
-          "nombre": "Sentadilla con barra",
+          "nombre": "Barbell squat",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Peso muerto rumano con barra",
+          "nombre": "Barbell Romanian deadlift",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Extensión de cuádriceps en máquina (carga moderada)",
+          "nombre": "Machine leg extension (moderate load)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Curl femoral sentado en máquina",
+          "nombre": "Seated leg curl (machine)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Plancha frontal",
+          "nombre": "Front plank",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -104,7 +104,7 @@
       "cardio_opcional": ""
     },
     {
-      "dia": "Día 3 — Torso B",
+      "dia": "Day 3 — Upper B",
       "grupos_musculares": [
         "biceps",
         "espalda",
@@ -112,38 +112,38 @@
         "pecho",
         "triceps"
       ],
-      "calentamiento": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
+      "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Jalón al pecho",
+          "nombre": "Lat pulldown",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Press inclinado con mancuernas",
+          "nombre": "Incline dumbbell press",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Elevaciones laterales con mancuernas",
+          "nombre": "Dumbbell lateral raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Curl en polea",
+          "nombre": "Cable curl",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Press francés con mancuernas",
+          "nombre": "Dumbbell skull crusher",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -153,47 +153,47 @@
       "cardio_opcional": ""
     },
     {
-      "dia": "Día 4 — Pierna B",
+      "dia": "Day 4 — Lower B",
       "grupos_musculares": [
         "core",
         "gemelos",
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
+      "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
       "ejercicios": [
         {
-          "nombre": "Hip thrust con barra",
+          "nombre": "Barbell hip thrust",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Sentadilla goblet con mancuerna",
+          "nombre": "Goblet squat",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Elevación de gemelos de pie en máquina",
+          "nombre": "Standing machine calf raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Crunch en polea",
+          "nombre": "Cable crunch",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": "Cardio Zona 2 (ritmo cómodo, puedes hablar sin ahogarte), 30-40 min."
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
     }
   ],
-  "progresion": "Sobrecarga progresiva: en cada sesión, intenta sumar una repetición más manteniendo la técnica. Cuando completes el tope del rango en todas las series de un ejercicio, sube el peso ligeramente y vuelve al rango bajo. Nada de cambiar la rutina cada semana — la constancia con el mismo esquema es lo que produce el progreso.",
-  "mensaje_para_el_cliente": "Hola Marta, aquí tienes tu primer borrador de rutina. Vamos poco a poco: primero técnica, luego peso — tu cuerpo aprende antes de forzar. No hace falta que salga perfecto la primera semana, lo importante es que puedas repetirlo. Cualquier duda o si algo duele (no solo molesta), dímelo y lo ajustamos."
+  "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
+  "mensaje_para_el_cliente": "Hi Marta, here's your first draft routine. Let's go step by step: technique first, weight later — your body learns before it forces. It doesn't need to be perfect the first week; what matters is that you can repeat it. If you have any questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
 }

@@ -1,124 +1,124 @@
 # TrainFitter
 
-**Un asistente que te ayuda a preparar borradores de rutinas y dietas para tus
-clientes, replicando tu método y tu criterio — más rápido, sin perder tu sello.**
+[![CI](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml/badge.svg)](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml)
 
-> *"Enseña a tu cuerpo que quien manda es tu mente."*
+**An assistant that helps you prepare draft workout and nutrition plans for your
+clients, following your own method and judgment — faster, without losing your voice.**
 
----
-
-## ¿Qué problema resuelve?
-
-Cuando entrenas online, el cuello de botella no es entrenar: es el **tiempo** que
-inviertes en redactar cada rutina y cada dieta desde cero para cada cliente nuevo.
-Horas de trabajo repetitivo que te restan de lo que de verdad importa —el seguimiento
-y la relación con la persona—.
-
-TrainFitter toma la **ficha de admisión** de un cliente y genera un **primer borrador**
-de su rutina y su dieta siguiendo *tu* metodología documentada: tu forma de progresar
-cargas, tu manera de plantear la nutrición flexible, tu tono cercano y pedagógico, y
-los mitos que rechazas. Tú te limitas a **revisar, ajustar y aprobar**.
-
-## ¿Qué recibes?
-
-- Un **borrador de rutina** adaptado al nivel, material y disponibilidad del cliente.
-- Un **borrador de dieta** flexible, ajustado a sus preferencias y restricciones.
-- Un **aviso automático** cuando un caso necesita tu revisión reforzada (por ejemplo,
-  una lesión o una condición clínica), para que nada delicado se te escape.
-
-La personalización va más allá del objetivo: la ficha recoge **datos de salud**
-(alergias, enfermedades, embarazo, medicación, peso) e incluso permite adjuntar una
-**analítica** para afinar la dieta. Todo lo clínico se marca para que lo revises **tú**;
-el sistema nunca diagnostica ni prescribe.
-
-## Cómo funciona (en una frase)
-
-Ficha del cliente → borrador de rutina → borrador de dieta → revisión de seguridad
-automática → **tú apruebas antes de enviar**.
-
-## Lo más importante: tú tienes la última palabra
-
-TrainFitter **nunca envía nada al cliente por su cuenta**. Todo lo que produce es un
-**borrador para tu revisión**. No sustituye tu criterio profesional ni el consejo
-médico: cualquier lesión, patología o ajuste clínico se marca siempre para que lo
-revises tú personalmente.
+> *"Teach your body that your mind is in charge."*
 
 ---
 
-## Qué incluye ahora mismo
+## What problem does it solve?
 
-Este repositorio se construye fase a fase, como proyecto de aprendizaje. Ahora mismo:
+When you coach online, the bottleneck isn't coaching itself: it's the **time** spent
+writing a routine and a diet from scratch for every new client. Hours of repetitive
+work that take away from what actually matters — follow-up and the relationship with
+the person.
 
-- El **pipeline completo funciona de verdad**: ficha del cliente → rutina → dieta →
-  validación de seguridad → estado listo para tu aprobación. **Gratis, sin ninguna
-  clave ni cuenta que configurar** — el motor por defecto es determinista, no depende
-  de ningún servicio externo.
-- Un **panel visual** (no solo terminal): sube o crea la ficha de un cliente, mira el
-  plan generarse, revisa rutina y dieta con tablas y gráficas, y aprueba — todo desde
-  el navegador.
-- Probado con dos casos de ejemplo: uno sin complicaciones y otro con una lesión y
-  una dieta vegetariana, para comprobar que el aviso de revisión reforzada salta
-  cuando debe.
+TrainFitter takes a client's **intake form** and generates a **first draft** of their
+routine and diet following *your* documented methodology: how you progress load, how
+you approach flexible nutrition, your warm and pedagogical tone, and the myths you
+reject. You just **review, adjust, and approve**.
 
-## Qué NO incluye todavía
+## What do you get?
 
-- Conexión con email/Notion para enviar borradores reales (llega en fases posteriores).
-- Generación por IA generativa de texto más rico y matizado — hoy el borrador sale de
-  reglas deterministas basadas en el método; una capa opcional con IA generativa
-  (motor="llm") ya está diseñada para cuando tenga sentido activarla.
+- A **draft routine** adapted to the client's level, equipment, and availability.
+- A **draft diet** that's flexible and adjusted to their preferences and restrictions.
+- An **automatic flag** whenever a case needs your enhanced review (an injury or a
+  clinical condition, for example), so nothing sensitive slips through.
 
-## Estructura del repositorio
+Personalization goes beyond the goal: the intake form collects **health data**
+(allergies, conditions, pregnancy, medication, weight) and even lets a **bloodwork
+report** be attached to fine-tune the diet. Anything clinical is flagged for **you**
+to review — the system never diagnoses or prescribes.
+
+## How it works (in one sentence)
+
+Client intake → draft routine → draft diet → automatic safety review →
+**you approve before anything is sent**.
+
+## The most important part: you have the final say
+
+TrainFitter **never sends anything to the client on its own**. Everything it produces
+is a **draft for your review**. It doesn't replace your professional judgment or
+medical advice: any injury, condition, or clinical adjustment is always flagged for
+you to review personally.
+
+---
+
+## What it includes right now
+
+This repository is built phase by phase, as a learning project. Right now:
+
+- The **full pipeline actually works**: client intake → routine → diet → safety
+  validation → ready-for-your-approval state. **Free, no API key or account required**
+  — the default engine is deterministic and doesn't depend on any external service.
+- A **visual panel** (not just a terminal): upload or create a client intake, watch
+  the plan get generated, review the routine and diet with tables and metrics, and
+  approve — all from the browser.
+- Tested with two example cases: one straightforward, one with an injury and a
+  vegetarian diet, to confirm the enhanced-review flag fires when it should.
+
+## What it doesn't include yet
+
+- A real email/Notion connection to send drafts (coming in a later phase).
+- Richer, more nuanced generative-AI writing — today's draft comes from deterministic
+  rules based on the method; an optional generative-AI layer (`motor="llm"`) is
+  already designed and ready to switch on when it makes sense.
+
+## Repository structure
 
 ```
 TrainFitter/
-├── README.md                        Este documento
+├── README.md                        This document
 ├── docs/
-│   ├── metodo_entrenador.md         Metodología del entrenador (base de conocimiento)
-│   ├── arquitectura.md              Diseño y flujo del sistema
-│   └── decisiones.md                Log de decisiones técnicas por fase
+│   ├── metodo_entrenador.md         Trainer's methodology (knowledge base)
+│   ├── arquitectura.md              System design and flow
+│   └── decisiones.md                Technical decision log, by phase
 ├── admission/
-│   └── ficha_cliente_template.md    Formulario de admisión
-├── agents/                          Rutina, dieta, validador y orquestador
-├── ui/                              Panel del entrenador (Streamlit)
-├── mcp/                             Conectores MCP: Notion, Gmail (Fase 5)
-├── templates/                       Plantillas de email/planes (Fase 5)
-├── examples/                        Clientes y salidas de ejemplo
-├── requirements.txt                 Dependencias de Python
+│   └── ficha_cliente_template.md    Client intake form
+├── agents/                          Routine, diet, validator, and orchestrator
+├── ui/                              Trainer's panel (Streamlit)
+├── mcp/                             MCP connectors: Notion, Gmail (Phase 5)
+├── templates/                       Email/plan templates (Phase 5)
+├── examples/                        Example clients and sample outputs
+├── requirements.txt                 Python dependencies
 └── .gitignore
 ```
 
-## Cómo probarlo
+## How to try it
 
-### Opción 1 — Panel visual (recomendado)
+### Option 1 — Visual panel (recommended)
 
 ```bash
 pip install streamlit
 streamlit run ui/app.py
 ```
 
-Se abre en el navegador. Elige un cliente de ejemplo o rellena una ficha nueva, y
-verás el plan generarse en vivo.
+Opens in your browser. Pick an example client or fill out a new intake form, and
+you'll watch the plan get generated live.
 
-### Opción 2 — Terminal (sin instalar nada)
+### Option 2 — Terminal (nothing to install)
 
-El pipeline por defecto es Python estándar puro, sin ninguna clave ni cuenta:
+The default pipeline is pure standard Python, no API key or account needed:
 
 ```bash
 python agents/run_pipeline_demo.py
 ```
 
-Esto ejecuta el pipeline completo (rutina → dieta → validador) sobre los dos clientes
-de ejemplo y muestra en la terminal el recorrido de estados y el resultado final.
+This runs the full pipeline (routine → diet → validator) on the two example clients
+and prints the state trail and final result to the terminal.
 
-También puedes ejecutar cada pieza por separado:
+You can also run each piece separately:
 ```bash
-python agents/run_routine_demo.py         # solo el agente de rutina
-python agents/run_manual_pipeline_demo.py # rutina + dieta + validador, sin orquestador
+python agents/run_routine_demo.py         # routine agent only
+python agents/run_manual_pipeline_demo.py # routine + diet + validator, no orchestrator
 ```
 
-**Opcional — capa con IA generativa real:** los agentes también aceptan
-`motor="llm"` para usar la API de Anthropic en vez de las reglas. Si quieres probarlo:
+**Optional — real generative-AI layer:** the agents also accept `motor="llm"` to use
+the Anthropic API instead of the rule engine. To try it:
 ```bash
 pip install -r requirements.txt
 ```
-y copia `.env.example` a `.env` con tu `ANTHROPIC_API_KEY`.
+then copy `.env.example` to `.env` and set your `ANTHROPIC_API_KEY`.

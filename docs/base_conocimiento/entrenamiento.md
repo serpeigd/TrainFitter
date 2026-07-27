@@ -1,76 +1,78 @@
-# Entrenamiento — Hipertrofia, progresión y estructura
+# Training — Hypertrophy, Progression, and Structure
 
-## Tipos de hipertrofia (y cómo entrenarlas)
-- **Sarcoplasmática** (tamaño + resistencia): pesos moderados, **8-12 reps**,
-  descansos cortos (30-60 s). Potenciación: *drop sets*, superseries, subir reps/series
-  con el mismo peso antes de subir carga.
-- **Miofibrilar / sarcomérica** (fuerza funcional): pesos altos, **4-6 reps**,
-  descansos largos (2-3 min). Potenciación: *cluster sets*, fuerza máxima (1-3 reps),
-  incrementar carga.
-- **Regla clave:** alternar bloques pesados y de volumen para evitar estancamientos.
+## Types of hypertrophy (and how to train them)
+- **Sarcoplasmic** (size + endurance): moderate weights, **8-12 reps**, short rest
+  (30-60 s). Boosters: drop sets, supersets, adding reps/sets with the same weight
+  before adding load.
+- **Myofibrillar / sarcomeric** (functional strength): heavy weights, **4-6 reps**,
+  long rest (2-3 min). Boosters: cluster sets, max strength work (1-3 reps),
+  increasing load.
+- **Key rule:** alternate heavy and volume blocks to avoid plateaus.
 
-## Sobrecarga progresiva (principio rector)
-Método simple: subir repeticiones dentro del rango objetivo con buena técnica y, al
-tope del rango, subir el peso. Nada de "confundir al músculo" cambiando todo cada semana.
+## Progressive overload (guiding principle)
+Simple method: add reps within the target range with good technique and, once at the
+top of the range, add weight. No "muscle confusion" — no changing everything every
+week.
 
-## Estructura por fase (ejemplo real del entrenador)
-- **BULKING** (~6 días): split por grupos — Pecho+Tríceps / Pierna / Espalda+Bíceps /
-  Movilidad / Hombro+Pecho / Core+Cardio / Descanso. Básicos a 5-8 reps; aislamiento
-  8-10 y 10-15; pausas de 1 s en poleas; *drop sets* en la última serie.
-- **CUTTING** (~6 días): más torso/pierna y push/pull, mantiene intensidad en básicos
-  (5-8), sube densidad de core y cardio.
+## Structure by phase (real example from the trainer)
+- **BULKING** (~6 days): split by muscle group — Chest+Triceps / Legs / Back+Biceps /
+  Mobility / Shoulders+Chest / Core+Cardio / Rest. Compounds at 5-8 reps; isolation
+  8-10 and 10-15; 1-second pauses on cable work; drop sets on the last set.
+- **CUTTING** (~6 days): more upper/lower and push/pull, keeps intensity on compounds
+  (5-8), increases core and cardio density.
 
-## Rangos de repeticiones (guía práctica)
-- Básicos multiarticulares / fuerza: **5-8**.
-- Hipertrofia general: **8-12**.
-- Aislamiento / bombeo / metabólico: **10-15** (y hasta 15-20 en core).
+## Rep ranges (practical guide)
+- Compound multi-joint / strength: **5-8**.
+- General hypertrophy: **8-12**.
+- Isolation / pump / metabolic work: **10-15** (up to 15-20 for core).
 
-## Cardio integrado
-- **Zona 2 (LISS):** 40-60 min, ritmo moderado — base aeróbica y salud.
-- **Zona 4-5 (HIIT/sprints):** p. ej. 8-10 sprints de 30 s con 1 min de caminata.
-- Caminata diaria como suelo de actividad (ver estilo de vida).
+## Integrated cardio
+- **Zone 2 (LISS):** 40-60 min, moderate pace — aerobic base and health.
+- **Zone 4-5 (HIIT/sprints):** e.g. 8-10 sprints of 30 s with 1 min of walking.
+- Daily walking as a baseline activity floor (see lifestyle notes).
 
-## Técnica y seguridad
-- Trabajo escapular (YTW), *face pulls* y movilidad como prevención.
-- Dejar repeticiones en reserva (RIR) en básicos; el fallo se reserva sobre todo a
-  aislamiento y core. **Dolor ≠ molestia**: si duele, se cambia o retira el ejercicio.
+## Technique and safety
+- Scapular work (YTW), face pulls, and mobility as prevention.
+- Leave reps in reserve (RIR) on compounds; failure is mostly reserved for isolation
+  and core work. **Pain ≠ soreness**: if it hurts, the exercise gets changed or dropped.
 
-## Adaptación por nivel
-- **Principiante:** full-body 2-3 días, técnica antes que carga, progresión casi lineal.
-- **Intermedio:** torso/pierna o PPL 3-4 días, progresión planificada.
-- **Avanzado:** especialización y control de fatiga.
-- **La disponibilidad y el material mandan:** el plan se construye con lo que la persona
-  tiene y el tiempo del que dispone.
+## Adaptation by level
+- **Beginner:** full-body, 2-3 days, technique before load, near-linear progression.
+- **Intermediate:** upper/lower or PPL, 3-4 days, planned progression.
+- **Advanced:** specialization and fatigue management.
+- **Availability and equipment rule everything:** the plan is built around what the
+  person actually has and how much time they have.
 
-## Volumen: landmarks (MEV / MAV / MRV) — refuerzo con evidencia
+## Volume: landmarks (MEV / MAV / MRV) — reinforced with evidence
 
-El modelo de "10 series/semana por grupo" del método (docs/metodo_entrenador.md §2) es
-un punto de entrada razonable, pero el marco de referencia más citado en la literatura
-y en la comunidad de fuerza basada en evidencia (Renaissance Periodization / Dr. Mike
-Israetel; divulgadores como Jeff Nippard) usa **landmarks individuales**, no un número
-fijo para todos:
+The method's "10 sets/week per muscle group" model (docs/metodo_entrenador.md §2) is
+a reasonable entry point, but the most-cited framework in the literature and in the
+evidence-based strength community (Renaissance Periodization / Dr. Mike Israetel;
+communicators like Jeff Nippard) uses **individual landmarks**, not one fixed number
+for everyone:
 
-- **MV (volumen de mantenimiento):** el mínimo para no perder lo ganado (~6 series/semana
-  como referencia general).
-- **MEV (volumen mínimo efectivo):** a partir de aquí el músculo empieza a crecer.
-- **MAV (volumen máximo adaptativo):** la zona donde se progresa mejor; no es un número
-  fijo, es el rango entre MEV y MRV que se recorre progresivamente a lo largo del
-  mesociclo.
-- **MRV (volumen máximo recuperable):** el techo que el cuerpo aún puede recuperar;
-  pasarse de aquí sin descanso lleva a sobreentrenamiento.
+- **MV (maintenance volume):** the minimum to not lose what's been gained (~6
+  sets/week as a general reference).
+- **MEV (minimum effective volume):** the point beyond which the muscle starts
+  growing.
+- **MAV (maximum adaptive volume):** the zone where progress is best; not a fixed
+  number — it's the range between MEV and MRV, worked through progressively across
+  the mesocycle.
+- **MRV (maximum recoverable volume):** the ceiling the body can still recover from;
+  going past this without rest leads to overtraining.
 
-**Aplicación práctica:** empezar cerca del MEV, subir volumen semana a semana dentro
-del mesociclo hacia el MAV, y hacer un **deload** (semana de volumen/intensidad muy
-reducida) antes de llegar al MRV — no esperar a estancarse o notar mal rendimiento.
-Los grupos grandes (espalda, pierna) suelen tolerar más volumen que los pequeños
-(bíceps, tríceps, gemelos).
+**Practical application:** start near MEV, increase volume week to week within the
+mesocycle toward MAV, and take a **deload** (a week of much-reduced volume/intensity)
+before reaching MRV — don't wait until performance stalls or drops. Larger muscle
+groups (back, legs) tend to tolerate more volume than smaller ones (biceps, triceps,
+calves).
 
-**Frecuencia:** con más frecuencia se puede repartir más volumen semanal en series de
-mejor calidad por sesión (menos fatiga acumulada por serie). No se recomienda alta
-frecuencia (5-6x/semana el mismo grupo) para principiantes ni para quien compagina
-fuerza pura e hipertrofia a la vez — mejor reservarla para objetivos específicos.
+**Frequency:** higher frequency lets weekly volume be spread across higher-quality
+sets per session (less fatigue accumulated per set). High frequency (5-6x/week on the
+same muscle group) isn't recommended for beginners or for someone chasing pure
+strength and hypertrophy at the same time — better reserved for specific goals.
 
-## Fuentes consultadas (verificadas, julio 2026)
+## Sources consulted (verified, July 2026)
 - [Training Volume Landmarks for Muscle Growth — RP Strength](https://rpstrength.com/expert-advice/training-volume-landmarks-muscle-growth)
-- [International Society of Sports Nutrition Position Stand: protein and exercise](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5477153/) (contexto de dosis-respuesta en entrenamiento de fuerza)
-- Resumen de principios de Jeff Nippard sobre volumen/frecuencia (divulgación basada en estudios, no una cita textual suya)
+- [International Society of Sports Nutrition Position Stand: protein and exercise](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5477153/) (dose-response context in strength training)
+- Summary of Jeff Nippard's principles on volume/frequency (evidence-based communication, not a direct quote from him)

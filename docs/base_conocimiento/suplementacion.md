@@ -1,49 +1,51 @@
-# Suplementación — Basada en evidencia
+# Supplementation — Evidence-Based
 
-> Filosofía: pocos suplementos, los que tienen respaldo sólido. La comida real primero;
-> el suplemento **complementa**, no sustituye.
+> Philosophy: few supplements, only the ones with solid backing. Real food comes
+> first; a supplement **complements**, it never replaces.
 
-## Creatina (monohidrato)
-- **Qué hace:** aumenta reservas de fosfocreatina → regenera ATP más rápido en
-  esfuerzos cortos e intensos. Beneficios respaldados: fuerza, masa muscular,
-  rendimiento en alta intensidad, recuperación; posible efecto cognitivo (en estudio).
-- **Dosis:** 3-5 g/día (~0.09 g/kg), **una sola toma diaria**.
-- **Timing:** ligera ventaja post-entreno o con una comida, pero **la consistencia
-  importa más que el momento**. Se toma también en días de descanso.
-- **Fase de carga:** opcional (0.3 g/kg/día 5-7 días satura en 1 semana; sin carga se
-  llega igual en 3-4 semanas). Mismo resultado, distinto camino.
-- **Mitos:** no causa calvicie (sin evidencia); el +1-2 kg inicial es **agua
-  intramuscular**, no grasa. Mantener buena hidratación.
-- **Creapure vs monohidrato genérico:** Creapure = mayor pureza certificada; el
-  monohidrato de calidad es igual de eficaz y más económico.
+## Creatine (monohydrate)
+- **What it does:** raises phosphocreatine reserves → regenerates ATP faster during
+  short, intense efforts. Backed benefits: strength, muscle mass, high-intensity
+  performance, recovery; a possible cognitive effect (still under study).
+- **Dose:** 3-5 g/day (~0.09 g/kg), **a single daily dose**.
+- **Timing:** slight edge post-workout or with a meal, but **consistency matters more
+  than timing**. Also taken on rest days.
+- **Loading phase:** optional (0.3 g/kg/day for 5-7 days saturates in 1 week;
+  without loading, you get there in 3-4 weeks just the same). Same result, different
+  path.
+- **Myths:** doesn't cause baldness (no evidence); the initial +1-2 kg is
+  **intramuscular water**, not fat. Keep hydration up.
+- **Creapure vs. generic monohydrate:** Creapure = higher certified purity;
+  quality generic monohydrate is just as effective and cheaper.
 
-## Proteína en polvo
-- **Whey concentrado (70-80%):** económico, bien tolerado. Opción por defecto.
-- **Whey aislado (~90%):** menos grasa/lactosa; útil en definición o intolerancia leve.
-- **Caseína:** digestión lenta → antes de dormir.
-- **Guisante:** vegana, rica en lisina; para veganos o intolerantes.
-- Es una herramienta para **llegar al objetivo de proteína**, no imprescindible si se
-  cubre con comida.
+## Protein powder
+- **Whey concentrate (70-80%):** affordable, well tolerated. Default choice.
+- **Whey isolate (~90%):** less fat/lactose; useful when cutting or with mild
+  intolerance.
+- **Casein:** slow digestion → before bed.
+- **Pea protein:** vegan, rich in lysine; for vegans or intolerances.
+- It's a tool to **hit the protein target**, not essential if food already covers it.
 
-## Cafeína
-- **Qué hace:** mejora rendimiento en sprints, potencia y tareas técnicas.
-- **Dosis:** 3-6 mg/kg, tomada 45-60 min antes de entrenar.
-- **Nota:** sensibilidad individual muy variable; evitar en las horas previas a dormir
-  (afecta al sueño, que es la base de la recuperación — ver `estilo_vida_longevidad.md`).
+## Caffeine
+- **What it does:** improves sprint performance, power output, and technical tasks.
+- **Dose:** 3-6 mg/kg, taken 45-60 min before training.
+- **Note:** individual sensitivity varies a lot; avoid in the hours before bed (it
+  affects sleep, which is the foundation of recovery — see
+  `estilo_vida_longevidad.md`).
 
-## Beta-alanina
-- **Qué hace:** mejora el rendimiento en esfuerzos de alta intensidad de 1-4 minutos
-  (tampona la acidez muscular).
-- **Dosis:** 4-6 g/día, **en tomas repartidas** (~1.6 g) durante al menos 2-4 semanas
-  para notar efecto — no es un suplemento de toma puntual como la cafeína.
-- **Efecto secundario conocido:** hormigueo (parestesia), inofensivo; se reduce
-  repartiendo la dosis.
+## Beta-alanine
+- **What it does:** improves performance in high-intensity efforts lasting 1-4
+  minutes (buffers muscle acidity).
+- **Dose:** 4-6 g/day, **in split doses** (~1.6 g), for at least 2-4 weeks to notice
+  an effect — not a one-off supplement like caffeine.
+- **Known side effect:** tingling (paresthesia), harmless; reduced by splitting the
+  dose.
 
-## Regla de seguridad
-Cualquier suplemento con posible interacción con medicación o patología (p. ej.
-anticoagulantes ↔ vitamina K, hierro/calcio ↔ fármacos) → **marcar para revisión
-humana**, no recomendar por defecto.
+## Safety rule
+Any supplement with a possible interaction with medication or a condition (e.g.
+blood thinners ↔ vitamin K, iron/calcium ↔ certain drugs) → **flag for human
+review**, never recommend by default.
 
-## Fuentes consultadas (verificadas, julio 2026)
+## Sources consulted (verified, July 2026)
 - [ISSN Position Stand: Beta-Alanine](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4501114/)
 - [NIH ODS — Dietary Supplements for Exercise and Athletic Performance](https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/)

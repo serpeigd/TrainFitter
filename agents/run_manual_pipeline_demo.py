@@ -1,12 +1,12 @@
 """
-Demo del pipeline manual (sin orquestador todavía): rutina -> dieta -> validador,
-ejecutado por separado sobre cada cliente de ejemplo. Usa el motor "reglas" en
-ambos agentes: no necesita ANTHROPIC_API_KEY.
+Manual pipeline demo (no orchestrator yet): routine -> diet -> validator,
+run separately on each example client. Uses the "reglas" engine on both
+agents: no ANTHROPIC_API_KEY needed.
 
-Guarda, por cliente, examples/output_rutina_<n>.json, output_dieta_<n>.json y
-output_validacion_<n>.json.
+Saves, per client, examples/output_rutina_<n>.json, output_dieta_<n>.json,
+and output_validacion_<n>.json.
 
-Cómo ejecutarlo (desde la raíz del repo):
+How to run it (from the repo root):
     python agents/run_manual_pipeline_demo.py
 """
 
@@ -24,29 +24,29 @@ EXAMPLES_DIR = REPO_ROOT / "examples"
 def procesar_cliente(numero: int) -> None:
     perfil = json.loads((EXAMPLES_DIR / f"cliente_ejemplo_{numero}.json").read_text(encoding="utf-8"))
     nombre = perfil["datos_basicos"]["nombre"]
-    print(f"\n{'=' * 60}\nCliente {numero}: {nombre}\n{'=' * 60}")
+    print(f"\n{'=' * 60}\nClient {numero}: {nombre}\n{'=' * 60}")
 
-    print("-> Generando rutina...")
+    print("-> Generating routine...")
     rutina = generar_borrador_rutina(perfil)
     (EXAMPLES_DIR / f"output_rutina_{numero}.json").write_text(rutina.to_json(), encoding="utf-8")
 
-    print("-> Generando dieta...")
+    print("-> Generating diet...")
     dieta = generar_borrador_dieta(perfil)
     (EXAMPLES_DIR / f"output_dieta_{numero}.json").write_text(dieta.to_json(), encoding="utf-8")
 
-    print("-> Validando...")
+    print("-> Validating...")
     veredicto = validar_borradores(perfil, rutina.contenido, dieta.contenido)
     (EXAMPLES_DIR / f"output_validacion_{numero}.json").write_text(
         json.dumps(veredicto, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    print(f"\nVEREDICTO: {veredicto['veredicto']}")
+    print(f"\nVERDICT: {veredicto['veredicto']}")
     if veredicto["motivos"]:
-        print("Motivos:")
+        print("Reasons:")
         for motivo in veredicto["motivos"]:
             print(f"  - {motivo}")
     else:
-        print("Sin motivos de revisión reforzada.")
+        print("No reasons for enhanced review.")
 
 
 def main() -> None:

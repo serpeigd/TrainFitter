@@ -1,23 +1,27 @@
 """
-Utilidades para leer señales del perfil del cliente, compartidas entre
-rutina_reglas.py y validator_agent.py (el validador las reutiliza para volver
-a comprobar el perfil de forma independiente, no solo confiar en lo que ya
-marcaron los agentes anteriores).
+Utilities for reading signals from the client profile, shared between
+rutina_reglas.py and validator_agent.py (the validator reuses them to
+independently re-check the profile, instead of just trusting what earlier
+agents already flagged).
 """
 
 
 def tags_lesiones(perfil: dict) -> set[str]:
-    """Detecta zonas de lesión conocidas a partir del texto libre de la ficha."""
+    """Detects known injury zones from the intake form's free text.
+
+    Matches both Spanish and English keywords, since example client profiles
+    were translated to English but this matching logic is otherwise unchanged.
+    """
     lesiones = perfil.get("salud", {}).get("lesiones", [])
     texto = " ".join(
         (l.get("zona", "") + " " + l.get("descripcion", "")) for l in lesiones
     ).lower().replace("_", " ")
 
     tags = set()
-    if "rodilla" in texto:
+    if "rodilla" in texto or "knee" in texto:
         tags.add("rodilla")
-    if "hombro" in texto:
+    if "hombro" in texto or "shoulder" in texto:
         tags.add("hombro")
-    if "lumbar" in texto or "espalda baja" in texto:
+    if any(kw in texto for kw in ("lumbar", "espalda baja", "low back", "lower back")):
         tags.add("lumbar")
     return tags

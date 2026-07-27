@@ -1,14 +1,15 @@
 """
-Agente de dieta: redacta un borrador de dieta para un cliente concreto,
-siguiendo el método del entrenador. Mismo patrón de diseño que routine_agent.py
-(ver ese archivo para el razonamiento completo de "reglas" vs "llm" y de
-salida estructurada); aquí solo se documentan las particularidades de dieta.
+Diet agent: writes a draft diet for a specific client, following the
+trainer's method. Same design pattern as routine_agent.py (see that file
+for the full "reglas" vs. "llm" and structured-output reasoning); only
+diet-specific details are documented here.
 
-IMPORTANTE (método §7-§8): esto es un BORRADOR de nutrición, no una pauta
-clínica. El agente no ajusta nada por patologías, embarazo/lactancia o
-medicación por su cuenta — esas señales se recogen en
-`advertencias_revision_humana` y disparan revisión reforzada del entrenador
-(y derivación a un profesional titulado cuando corresponda) antes de enviar.
+IMPORTANT (method §7-§8): this is a nutrition DRAFT, not a clinical
+prescription. The agent never adjusts anything for conditions,
+pregnancy/breastfeeding, or medication on its own — those signals are
+collected in `advertencias_revision_humana` and trigger the trainer's
+enhanced review (and referral to a licensed professional where appropriate)
+before sending.
 """
 
 import json
@@ -23,8 +24,8 @@ MODEL = "claude-sonnet-5"
 ENTREGAR_BORRADOR_DIETA_TOOL = {
     "name": "entregar_borrador_dieta",
     "description": (
-        "Entrega el borrador de dieta estructurado para el cliente, siguiendo "
-        "fielmente el método del entrenador."
+        "Delivers the structured diet draft for the client, faithfully "
+        "following the trainer's method."
     ),
     "input_schema": {
         "type": "object",
@@ -50,10 +51,11 @@ ENTREGAR_BORRADOR_DIETA_TOOL = {
                 "type": "array",
                 "items": {"type": "string"},
                 "description": (
-                    "Motivos por los que este borrador debería pasar por revisión reforzada "
-                    "antes de enviarse (alergias, condiciones de salud, embarazo, medicación...). "
-                    "Vacío si no aplica ninguno. NUNCA ajustes tú la dieta para una patología: "
-                    "márcala aquí y deja el ajuste clínico al profesional."
+                    "Reasons this draft should go through enhanced review before "
+                    "being sent (allergies, health conditions, pregnancy, "
+                    "medication...). Empty if none apply. NEVER adjust the diet "
+                    "yourself for a condition: flag it here and leave the clinical "
+                    "adjustment to the professional."
                 ),
             },
             "mensaje_para_el_cliente": {"type": "string"},
@@ -72,7 +74,7 @@ ENTREGAR_BORRADOR_DIETA_TOOL = {
 
 
 class DietAgentError(Exception):
-    """Error propio del agente de dieta (clave ausente, timeout, respuesta malformada...)."""
+    """The diet agent's own error (missing key, timeout, malformed response...)."""
 
 
 @dataclass
@@ -91,30 +93,30 @@ def _build_system_prompt() -> str:
         "nutricion", "suplementacion", "sinergias_nutrientes", "seguridad_poblaciones_especiales"
     )
 
-    return f"""Eres el asistente que redacta BORRADORES de dieta para los clientes de un
-entrenador personal, replicando fielmente su método y su criterio. Su motto es:
-"Enseña a tu cuerpo que quien manda es tu mente".
+    return f"""You are the assistant that writes diet DRAFTS for a personal trainer's
+clients, faithfully replicating their method and judgment. Their motto is:
+"Teach your body that your mind is in charge."
 
-No eres un profesional titulado: eres quien prepara un primer borrador para que el
-entrenador (y, cuando corresponda, un profesional de la nutrición) lo revise y apruebe
-antes de que llegue al cliente. Todo lo que generes es un PUNTO DE PARTIDA.
+You are not a licensed professional: you're the one preparing a first draft for the
+trainer (and, when appropriate, a nutrition professional) to review and approve
+before it reaches the client. Everything you generate is a STARTING POINT.
 
-# MÉTODO DEL ENTRENADOR (tu criterio de referencia)
+# TRAINER'S METHOD (your reference judgment)
 {metodo}
 
-# BASE DE CONOCIMIENTO TÉCNICA (nutrición, suplementación, sinergias de absorción)
+# TECHNICAL KNOWLEDGE BASE (nutrition, supplementation, absorption synergies)
 {conocimiento_nutricion}
 
-# REGLAS AL DISEÑAR LA DIETA
-- Sin alimentos prohibidos: cantidades y contexto, no restricción por restricción.
-- Respeta siempre alergias, intolerancias y tipo de dieta (vegetariana/vegana/etc.).
-- Si el perfil menciona una alergia, una enfermedad/condición, embarazo/lactancia o
-  medicación habitual: NO diseñes un ajuste clínico por tu cuenta. Recoge el motivo
-  exacto en `advertencias_revision_humana` y sigue con una dieta general prudente.
-- Aplica sinergias de absorción cuando encajen con el perfil (p.ej. hierro vegetal +
-  vitamina C en dietas vegetarianas/veganas).
-- El mensaje para el cliente debe sonar a él: cercano, directo, pedagógico.
-- Debes responder ÚNICAMENTE llamando a la herramienta `entregar_borrador_dieta`."""
+# RULES WHEN DESIGNING THE DIET
+- No forbidden foods: amounts and context, not restriction for restriction's sake.
+- Always respect allergies, intolerances, and diet type (vegetarian/vegan/etc.).
+- If the profile mentions an allergy, a disease/condition, pregnancy/breastfeeding, or
+  regular medication: DO NOT design a clinical adjustment yourself. Capture the exact
+  reason in `advertencias_revision_humana` and stick to a general, cautious diet.
+- Apply absorption synergies when they fit the profile (e.g. plant iron + vitamin C
+  in vegetarian/vegan diets).
+- The message to the client should sound like the trainer: warm, direct, pedagogical.
+- You must respond ONLY by calling the `entregar_borrador_dieta` tool."""
 
 
 def generar_borrador_dieta(
@@ -125,23 +127,24 @@ def generar_borrador_dieta(
     timeout: float = 60.0,
 ) -> DietDraft:
     """
-    Genera un borrador de dieta para un cliente.
+    Generates a draft diet for a client.
 
     Args:
-        perfil_cliente: dict con el mismo esquema que examples/cliente_ejemplo_*.json.
-        motor: "reglas" (por defecto, gratis, determinista) o "llm".
-        api_key, model, timeout: solo para motor="llm".
+        perfil_cliente: dict with the same schema as examples/cliente_ejemplo_*.json.
+        motor: "reglas" (default, free, deterministic) or "llm".
+        api_key, model, timeout: only for motor="llm".
 
     Raises:
-        DietAgentError: si el motor es "llm" y falta la API key, la llamada
-            falla/expira, o la respuesta del modelo no trae el borrador esperado.
-        ValueError: si `motor` no es "reglas" ni "llm".
+        DietAgentError: if motor is "llm" and the API key is missing, the
+            call fails/times out, or the model's response doesn't include
+            the expected draft.
+        ValueError: if `motor` is neither "reglas" nor "llm".
     """
     if motor == "reglas":
         contenido = generar_borrador_dieta_reglas(perfil_cliente)
         return DietDraft(cliente_id=perfil_cliente.get("id_cliente", "desconocido"), contenido=contenido)
     if motor != "llm":
-        raise ValueError(f"motor debe ser 'reglas' o 'llm', no {motor!r}")
+        raise ValueError(f"motor must be 'reglas' or 'llm', not {motor!r}")
 
     return _generar_borrador_dieta_llm(perfil_cliente, api_key=api_key, model=model, timeout=timeout)
 
@@ -157,8 +160,8 @@ def _generar_borrador_dieta_llm(
     api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise DietAgentError(
-            "No se ha encontrado ANTHROPIC_API_KEY. Configúrala en tu archivo .env "
-            "(copia .env.example a .env y rellena tu clave) antes de usar motor='llm'."
+            "ANTHROPIC_API_KEY not found. Set it in your .env file "
+            "(copy .env.example to .env and fill in your key) before using motor='llm'."
         )
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
@@ -174,8 +177,8 @@ def _generar_borrador_dieta_llm(
                 {
                     "role": "user",
                     "content": (
-                        "Este es el perfil del cliente (ficha de admisión ya rellenada). "
-                        "Genera su borrador de dieta:\n\n" + perfil_json
+                        "Here is the client's profile (intake form already filled out). "
+                        "Generate their draft diet:\n\n" + perfil_json
                     ),
                 }
             ],
@@ -183,18 +186,18 @@ def _generar_borrador_dieta_llm(
             tool_choice={"type": "tool", "name": "entregar_borrador_dieta"},
         )
     except anthropic.APITimeoutError as exc:
-        raise DietAgentError(f"Timeout esperando respuesta del modelo ({timeout}s).") from exc
+        raise DietAgentError(f"Timeout waiting for the model's response ({timeout}s).") from exc
     except anthropic.APIConnectionError as exc:
-        raise DietAgentError(f"No se pudo conectar con la API de Anthropic: {exc}") from exc
+        raise DietAgentError(f"Could not connect to the Anthropic API: {exc}") from exc
     except anthropic.APIStatusError as exc:
         raise DietAgentError(
-            f"La API de Anthropic devolvió un error ({exc.status_code}): {exc.message}"
+            f"The Anthropic API returned an error ({exc.status_code}): {exc.message}"
         ) from exc
 
     tool_uses = [block for block in response.content if block.type == "tool_use"]
     if not tool_uses:
         raise DietAgentError(
-            "La respuesta del modelo no contiene el borrador estructurado esperado "
+            "The model's response doesn't contain the expected structured draft "
             f"(stop_reason={response.stop_reason!r})."
         )
 

@@ -1,43 +1,53 @@
 """
-Motor de reglas para generar el borrador de dieta SIN llamar a ningún LLM.
+Rule engine that generates the diet draft WITHOUT calling any LLM.
 
-Traduce a código los valores del método (docs/base_conocimiento/nutricion.md y
-sinergias_nutrientes.md): cálculo de necesidades calóricas, proteína por
-objetivo, dieta flexible según tipo de dieta/alergias, y consejos de sinergias
-de absorción cuando aplican (p.ej. dieta vegetariana -> hierro + vitamina C).
+Translates the method's values (docs/base_conocimiento/nutricion.md and
+sinergias_nutrientes.md) into code: caloric needs calculation, protein by
+goal, flexible dieting by diet type/allergies, and absorption-synergy tips
+when applicable (e.g. vegetarian diet -> iron + vitamin C).
 
-Igual que rutina_reglas.py: 100% determinista, gratis, mismo esquema de salida
-que usaría un motor LLM equivalente (ver ENTREGAR_BORRADOR_DIETA_TOOL en
+Same as rutina_reglas.py: 100% deterministic, free, same output schema an
+equivalent LLM engine would use (see ENTREGAR_BORRADOR_DIETA_TOOL in
 diet_agent.py).
 """
 
 from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para
 
-# g de proteína por kg de peso corporal, según objetivo (docs/base_conocimiento/nutricion.md,
-# a su vez respaldado por Morton et al. 2018 y el position stand de la ISSN 2017: la
-# ganancia muscular satura ~1.6 g/kg/día, y la ISSN considera 1.4-2.0 g/kg/día suficiente
-# para la mayoría de personas que entrenan). Se toma un valor dentro de esos rangos como
-# punto de partida (método §0: default razonable, no ley fija).
+# g of protein per kg of body weight, by goal (docs/base_conocimiento/nutricion.md,
+# in turn backed by Morton et al. 2018 and the ISSN's 2017 position stand: muscle
+# gain plateaus at ~1.6 g/kg/day, and the ISSN considers 1.4-2.0 g/kg/day sufficient
+# for most people who train). A value within those ranges is used as a starting
+# point (method §0: a reasonable default, not a fixed law).
 PROTEINA_G_POR_KG = {
     "hipertrofia": 2.0,
     "recomposicion_corporal": 2.0,
     "perdida_grasa": 1.8,
-    "salud_general": 1.4,  # "salud general" aquí implica entrenar con regularidad, no sedentarismo
+    "salud_general": 1.4,  # "general health" here implies training regularly, not sedentary
 }
 
-# Ajuste calórico sobre el gasto estimado, según objetivo.
+# Caloric adjustment on top of estimated expenditure, by goal.
 AJUSTE_CALORICO = {
-    "hipertrofia": 0.10,        # superávit ligero
-    "recomposicion_corporal": -0.05,  # déficit suave
-    "perdida_grasa": -0.18,     # déficit moderado, nunca agresivo (método §3)
-    "salud_general": 0.0,       # mantenimiento
+    "hipertrofia": 0.10,        # slight surplus
+    "recomposicion_corporal": -0.05,  # mild deficit
+    "perdida_grasa": -0.18,     # moderate deficit, never aggressive (method §3)
+    "salud_general": 0.0,       # maintenance
 }
 
 PORCENTAJE_GRASA_CALORIAS = 0.27
 
+# Display-only English label for the goal, used when building the
+# human-readable "resumen_enfoque" text (the schema value itself stays
+# in Spanish — see docs/decisiones.md).
+OBJETIVO_LABELS = {
+    "hipertrofia": "hypertrophy",
+    "perdida_grasa": "fat loss",
+    "recomposicion_corporal": "body recomposition",
+    "salud_general": "general health",
+}
+
 
 def _bmr(peso_kg: float, altura_cm: float, edad: int, sexo: str) -> float:
-    """Ecuación de Mifflin-St Jeor (estimación estándar del metabolismo basal)."""
+    """Mifflin-St Jeor equation (standard basal metabolic rate estimate)."""
     base = 10 * peso_kg + 6.25 * altura_cm - 5 * edad
     return base + 5 if sexo == "hombre" else base - 161
 
@@ -82,63 +92,63 @@ def _calcular_necesidades(perfil: dict) -> dict:
 def _consejos_sinergias(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     consejos = [
-        "Vitamina D, E, K y omega-3 se absorben mejor si los tomas con la comida que "
-        "más grasa saludable tenga del día (nunca en ayunas)."
+        "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's "
+        "meal with the most healthy fat (never on an empty stomach)."
     ]
 
     if tipo_dieta in {"vegetariana_ovolacto", "vegana"}:
         consejos.append(
-            "Tu hierro viene sobre todo de fuentes vegetales (no-hemo), que se absorbe peor: "
-            "combina lentejas/espinacas con una fuente de vitamina C en el mismo plato "
-            "(pimiento rojo, limón, kiwi) — puede multiplicar la absorción hasta 3-6 veces."
+            "Most of your iron comes from plant sources (non-heme), which absorb less "
+            "well: combine lentils/spinach with a vitamin C source in the same meal "
+            "(red pepper, lemon, kiwi) — it can multiply absorption 3-6x."
         )
         consejos.append(
-            "Separa el café o el té de tus comidas principales con hierro al menos 1-2 horas: "
-            "los taninos reducen mucho su absorción."
+            "Keep coffee or tea at least 1-2 hours away from your main iron-rich meals: "
+            "tannins significantly reduce iron absorption."
         )
     if tipo_dieta == "vegetariana_ovolacto":
         consejos.append(
-            "Combinar legumbres con huevo o un lácteo en la misma comida mejora el "
-            "aprovechamiento del zinc y del hierro."
+            "Combining legumes with egg or dairy in the same meal improves how well "
+            "your body can use the zinc and iron."
         )
 
     return consejos
 
 
 def _generar_advertencias(perfil: dict) -> list[str]:
-    """Motivos de revisión reforzada desde la óptica nutricional (método §8)."""
+    """Enhanced-review reasons from a nutritional standpoint (method §8)."""
     salud = perfil.get("salud", {})
     advertencias = []
 
     for alergia in salud.get("alergias_alimentarias", []):
         advertencias.append(
-            f"Alergia alimentaria declarada: {alergia}. Confirmar exclusión total antes de enviar "
-            "— una alergia mal gestionada puede ser grave."
+            f"Declared food allergy: {alergia}. Confirm it's fully excluded before sending "
+            "— a poorly managed allergy can be serious."
         )
     for condicion in salud.get("enfermedades_o_condiciones", []):
-        advertencias.append(f"Condición de salud declarada: {condicion}. Revisión reforzada antes de enviar.")
+        advertencias.append(f"Declared health condition: {condicion}. Enhanced review before sending.")
 
     embarazo = salud.get("embarazo_o_lactancia", {})
     if embarazo.get("aplica"):
         advertencias.append(
-            f"Cliente en embarazo/lactancia ({embarazo.get('detalle', '')}). Las necesidades "
-            "nutricionales cambian; requiere ajuste y visto bueno profesional."
+            f"Client is pregnant/breastfeeding ({embarazo.get('detalle', '')}). Nutritional "
+            "needs change; requires adjustment and professional sign-off."
         )
     for medicacion in salud.get("medicacion_habitual", []):
-        advertencias.append(f"Medicación habitual declarada: {medicacion}. Revisar posibles interacciones con la dieta.")
+        advertencias.append(f"Declared regular medication: {medicacion}. Review possible interactions with the diet.")
 
     notas_analitica = salud.get("analitica_adjunta", {}).get("notas", "")
     if notas_analitica and not salud.get("analitica_adjunta", {}).get("tiene"):
         advertencias.append(
-            f"El cliente no adjunta analítica pero hay una nota relevante sin verificar: "
-            f"\"{notas_analitica}\" — pídesela en el seguimiento para poder modular la dieta con datos reales."
+            f"The client hasn't attached bloodwork, but there's a relevant unverified note: "
+            f"\"{notas_analitica}\" — ask for it at follow-up so the diet can be modulated with real data."
         )
 
     return advertencias
 
 
 def generar_borrador_dieta_reglas(perfil_cliente: dict) -> dict:
-    """Genera el borrador de dieta completo aplicando el motor de reglas."""
+    """Generates the full diet draft by applying the rule engine."""
     nombre = perfil_cliente["datos_basicos"]["nombre"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     comidas_al_dia = perfil_cliente.get("nutricion", {}).get("comidas_al_dia_preferidas", 4)
@@ -146,20 +156,21 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict) -> dict:
     necesidades = _calcular_necesidades(perfil_cliente)
 
     resumen = (
-        f"Estimación de {necesidades['calorias_objetivo_kcal']} kcal/día para {objetivo.replace('_', ' ')}, "
-        f"con {necesidades['macros']['proteina_g']} g de proteína como prioridad. Es un punto de partida "
-        "que se ajusta con el peso y la energía reales de las primeras semanas."
+        f"Estimated {necesidades['calorias_objetivo_kcal']} kcal/day for "
+        f"{OBJETIVO_LABELS.get(objetivo, objetivo.replace('_', ' '))}, "
+        f"with {necesidades['macros']['proteina_g']} g of protein as the priority. It's a starting point "
+        "that gets adjusted based on real weight and energy over the first few weeks."
     )
 
     distribucion = (
-        f"Reparte estas calorías en {comidas_al_dia} comidas a lo largo del día, con proteína presente "
-        "en todas ellas. No hace falta que sean exactamente iguales — que encajen con tu rutina real."
+        f"Spread these calories across {comidas_al_dia} meals throughout the day, with protein present "
+        "in all of them. They don't need to be exactly equal — just fit your actual routine."
     )
 
     mensaje_para_el_cliente = (
-        f"Hola {nombre.split()[0]}, este es tu borrador de dieta. No hay alimentos prohibidos aquí: "
-        "hay cantidades y contexto. La idea es que puedas mantener esto dentro de tres meses, no solo "
-        "esta semana. Si algo no encaja con tu día a día, dímelo y lo cambiamos por algo equivalente."
+        f"Hi {nombre.split()[0]}, this is your draft diet. There's no forbidden food here: "
+        "it's about amounts and context. The idea is that you can keep this up in three months, not just "
+        "this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
     )
 
     return {

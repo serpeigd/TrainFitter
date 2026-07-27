@@ -1,32 +1,33 @@
 """
-Agente de rutina: redacta un borrador de rutina de entrenamiento para un
-cliente concreto, siguiendo el método del entrenador.
+Routine agent: writes a draft training routine for a specific client,
+following the trainer's method.
 
-DISEÑO — dos motores intercambiables:
-- "reglas" (por defecto, GRATIS): motor determinista en rutina_reglas.py que
-  aplica los valores del método directamente en código. No necesita API key,
-  no tiene coste, y es 100% reproducible — ideal para desarrollar y probar
-  todo el pipeline sin depender de una cuenta de pago.
-- "llm": llama al modelo de Anthropic con salida forzada por tool use. Se
-  mantiene disponible para cuando haya presupuesto/API key configurada; en
-  ese momento aporta redacción más rica y matices que las reglas no capturan.
-Ambos motores devuelven el MISMO esquema (ver ENTREGAR_BORRADOR_RUTINA_TOOL),
-así que el resto del pipeline (validador, orquestador) es agnóstico a cuál
-se usó.
+DESIGN — two interchangeable engines:
+- "reglas" (default, FREE): a deterministic engine in rutina_reglas.py that
+  applies the method's values directly in code. No API key needed, no cost,
+  and 100% reproducible — ideal for developing and testing the whole
+  pipeline without depending on a paid account.
+- "llm": calls the Anthropic model with output forced via tool use. Kept
+  available for when there's budget/an API key configured; at that point it
+  adds richer writing and nuance the rules can't capture.
+Both engines return the SAME schema (see ENTREGAR_BORRADOR_RUTINA_TOOL), so
+the rest of the pipeline (validator, orchestrator) is agnostic to which one
+was used.
 
-DISEÑO — por qué salida estructurada (JSON) y no Markdown libre:
-Este borrador no es el destino final, es un paso intermedio del pipeline.
-El agente validador (Fase 3) necesita poder recorrer los ejercicios en
-código para cruzarlos contra las lesiones del cliente, y el orquestador
-(Fase 4) necesita un estado programático, no un bloque de texto que haya
-que volver a interpretar. Convertir JSON -> Markdown/HTML bonito para el
-email (Fase 5/6) es un paso trivial; hacerlo al revés (parsear prosa) no lo es.
+DESIGN — why structured output (JSON) and not free-form Markdown:
+This draft isn't the final destination, it's an intermediate step in the
+pipeline. The validator agent (Phase 3) needs to be able to walk the
+exercises in code to cross-check them against the client's injuries, and
+the orchestrator (Phase 4) needs programmatic state, not a block of text
+that has to be re-interpreted. Converting JSON -> nice Markdown/HTML for the
+email (Phase 5/6) is a trivial step; doing it the other way around (parsing
+prose) is not.
 
-DISEÑO — qué parte de la base de conocimiento recibe el motor LLM:
-Además del método (docs/metodo_entrenador.md), se le pasa la nota técnica
-de entrenamiento y la de estilo de vida (recuperación/hábitos), que son las
-relevantes para diseñar una rutina. Las notas de nutrición/suplementación
-son objeto del agente de dieta (Fase 3), no de este.
+DESIGN — what part of the knowledge base the LLM engine receives:
+Besides the method (docs/metodo_entrenador.md), it's given the training note
+and the lifestyle note (recovery/habits), which are the relevant ones for
+designing a routine. The nutrition/supplementation notes are the diet
+agent's concern (Phase 3), not this one's.
 """
 
 import json
@@ -37,23 +38,24 @@ from knowledge import load_knowledge_files, load_metodo_entrenador
 from rutina_reglas import generar_borrador_rutina_reglas
 
 MODEL = "claude-sonnet-5"
-# Sonnet 5 en vez de Opus: la tarea (redactar una rutina siguiendo un método ya
-# documentado) no necesita el razonamiento más profundo/caro de Opus, y en vez
-# de Haiku se prioriza calidad de personalización sobre coste mínimo, porque el
-# resultado lo revisa un profesional pero debe llegarle ya bien pensado.
+# Sonnet 5 instead of Opus: the task (writing a routine following an
+# already-documented method) doesn't need Opus's deeper/more expensive
+# reasoning, and instead of Haiku, personalization quality is prioritized
+# over minimal cost, because a professional reviews the result but it
+# should arrive already well thought out.
 
 ENTREGAR_BORRADOR_RUTINA_TOOL = {
     "name": "entregar_borrador_rutina",
     "description": (
-        "Entrega el borrador de rutina de entrenamiento estructurado para el cliente, "
-        "siguiendo fielmente el método del entrenador."
+        "Delivers the structured training routine draft for the client, "
+        "faithfully following the trainer's method."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
             "resumen_enfoque": {
                 "type": "string",
-                "description": "1-3 frases explicando el enfoque elegido para este cliente y por qué.",
+                "description": "1-3 sentences explaining the approach chosen for this client and why.",
             },
             "nivel_asumido": {
                 "type": "string",
@@ -61,7 +63,7 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
             },
             "split": {
                 "type": "string",
-                "description": "Nombre del split elegido, p.ej. 'full_body', 'torso_pierna', 'push_pull_legs'.",
+                "description": "Name of the chosen split, e.g. 'full_body', 'upper_lower', 'push_pull_legs'.",
             },
             "dias_por_semana": {"type": "integer"},
             "duracion_sesion_min": {"type": "integer"},
@@ -69,9 +71,9 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
                 "type": "array",
                 "items": {"type": "string"},
                 "description": (
-                    "Motivos por los que este borrador debería pasar por revisión "
-                    "reforzada del entrenador antes de enviarse (lesiones, condiciones "
-                    "de salud, dolor mencionado, etc). Lista vacía si no aplica ninguno."
+                    "Reasons this draft should go through the trainer's enhanced "
+                    "review before being sent (injuries, health conditions, pain "
+                    "mentioned, etc). Empty list if none apply."
                 ),
             },
             "sesiones": {
@@ -103,11 +105,11 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
             },
             "progresion": {
                 "type": "string",
-                "description": "Cómo debe progresar el cliente semana a semana (sobrecarga progresiva).",
+                "description": "How the client should progress week to week (progressive overload).",
             },
             "mensaje_para_el_cliente": {
                 "type": "string",
-                "description": "Texto cercano, directo y pedagógico dirigido al cliente, en el tono real del entrenador.",
+                "description": "Warm, direct, pedagogical text addressed to the client, in the trainer's real tone.",
             },
         },
         "required": [
@@ -124,15 +126,15 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
 
 
 class RoutineAgentError(Exception):
-    """Error propio del agente de rutina (clave ausente, timeout, respuesta malformada...)."""
+    """The routine agent's own error (missing key, timeout, malformed response...)."""
 
 
 @dataclass
 class RoutineDraft:
-    """Borrador de rutina ya parseado, listo para el resto del pipeline."""
+    """An already-parsed routine draft, ready for the rest of the pipeline."""
 
     cliente_id: str
-    contenido: dict  # cumple ENTREGAR_BORRADOR_RUTINA_TOOL["input_schema"]
+    contenido: dict  # matches ENTREGAR_BORRADOR_RUTINA_TOOL["input_schema"]
 
     def to_json(self, indent: int = 2) -> str:
         payload = {"cliente_id": self.cliente_id, **self.contenido}
@@ -145,33 +147,32 @@ def _build_system_prompt() -> str:
         "entrenamiento", "estilo_vida_longevidad", "seguridad_poblaciones_especiales"
     )
 
-    return f"""Eres el asistente que redacta BORRADORES de rutina de entrenamiento para
-los clientes de un entrenador personal, replicando fielmente su método y su criterio.
-Su motto es: "Enseña a tu cuerpo que quien manda es tu mente".
+    return f"""You are the assistant that writes training routine DRAFTS for a personal
+trainer's clients, faithfully replicating their method and judgment.
+Their motto is: "Teach your body that your mind is in charge."
 
-No eres el entrenador: eres quien le prepara un primer borrador para que él lo revise,
-ajuste y apruebe antes de que llegue al cliente. Todo lo que generes es un PUNTO DE
-PARTIDA, no una prescripción final.
+You are not the trainer: you're the one preparing a first draft for them to review,
+adjust, and approve before it reaches the client. Everything you generate is a
+STARTING POINT, not a final prescription.
 
-# MÉTODO DEL ENTRENADOR (tu criterio de referencia)
+# TRAINER'S METHOD (your reference judgment)
 {metodo}
 
-# BASE DE CONOCIMIENTO TÉCNICA (entrenamiento y estilo de vida)
+# TECHNICAL KNOWLEDGE BASE (training and lifestyle)
 {conocimiento_entrenamiento}
 
-# REGLAS AL DISEÑAR LA RUTINA
-- Adapta días/semana, duración de sesión y material a la disponibilidad real del
-  cliente. No propongas nada que no pueda hacer con lo que tiene.
-- Si el perfil menciona una lesión, una condición de salud, embarazo/lactancia o
-  cualquier dolor: adapta los ejercicios evitando lo contraindicado (p.ej. evita
-  sentadilla libre profunda si hay lesión de rodilla) y añade el motivo exacto en
-  `advertencias_revision_humana`. Nunca lo ignores ni lo minimices.
-- Los valores del método (rangos de series/reps, volumen...) son puntos de partida
-  razonables, no reglas rígidas: ajústalos al nivel, objetivo y contexto de esta
-  persona concreta.
-- El mensaje para el cliente debe sonar a él: cercano, directo, pedagógico, sin
-  tecnicismos sin explicar.
-- Debes responder ÚNICAMENTE llamando a la herramienta `entregar_borrador_rutina`."""
+# RULES WHEN DESIGNING THE ROUTINE
+- Adapt days/week, session length, and equipment to the client's real availability.
+  Don't propose anything they can't do with what they have.
+- If the profile mentions an injury, a health condition, pregnancy/breastfeeding, or
+  any pain: adapt the exercises to avoid what's contraindicated (e.g. avoid deep free
+  squats if there's a knee injury) and add the exact reason to
+  `advertencias_revision_humana`. Never ignore or downplay it.
+- The method's values (set/rep ranges, volume...) are reasonable starting points,
+  not rigid rules: adjust them to this specific person's level, goal, and context.
+- The message to the client should sound like the trainer: warm, direct,
+  pedagogical, no unexplained jargon.
+- You must respond ONLY by calling the `entregar_borrador_rutina` tool."""
 
 
 def generar_borrador_rutina(
@@ -182,26 +183,27 @@ def generar_borrador_rutina(
     timeout: float = 60.0,
 ) -> RoutineDraft:
     """
-    Genera un borrador de rutina para un cliente.
+    Generates a draft routine for a client.
 
     Args:
-        perfil_cliente: dict con el mismo esquema que examples/cliente_ejemplo_*.json.
-        motor: "reglas" (por defecto, gratis, determinista) o "llm" (API de
-            Anthropic, requiere ANTHROPIC_API_KEY).
-        api_key: solo para motor="llm". Si no se pasa, se lee de ANTHROPIC_API_KEY.
-        model: solo para motor="llm". String de modelo de Anthropic a usar.
-        timeout: solo para motor="llm". Timeout en segundos para la llamada.
+        perfil_cliente: dict with the same schema as examples/cliente_ejemplo_*.json.
+        motor: "reglas" (default, free, deterministic) or "llm" (Anthropic
+            API, requires ANTHROPIC_API_KEY).
+        api_key: only for motor="llm". If not passed, read from ANTHROPIC_API_KEY.
+        model: only for motor="llm". Anthropic model string to use.
+        timeout: only for motor="llm". Timeout in seconds for the call.
 
     Raises:
-        RoutineAgentError: si el motor es "llm" y falta la API key, la llamada
-            falla/expira, o la respuesta del modelo no trae el borrador esperado.
-        ValueError: si `motor` no es "reglas" ni "llm".
+        RoutineAgentError: if motor is "llm" and the API key is missing, the
+            call fails/times out, or the model's response doesn't include
+            the expected draft.
+        ValueError: if `motor` is neither "reglas" nor "llm".
     """
     if motor == "reglas":
         contenido = generar_borrador_rutina_reglas(perfil_cliente)
         return RoutineDraft(cliente_id=perfil_cliente.get("id_cliente", "desconocido"), contenido=contenido)
     if motor != "llm":
-        raise ValueError(f"motor debe ser 'reglas' o 'llm', no {motor!r}")
+        raise ValueError(f"motor must be 'reglas' or 'llm', not {motor!r}")
 
     return _generar_borrador_rutina_llm(perfil_cliente, api_key=api_key, model=model, timeout=timeout)
 
@@ -212,14 +214,14 @@ def _generar_borrador_rutina_llm(
     model: str = MODEL,
     timeout: float = 60.0,
 ) -> RoutineDraft:
-    """Motor LLM (opcional): llama a la API de Anthropic con salida forzada por tool use."""
-    import anthropic  # import perezoso: quien solo use el motor "reglas" no necesita este paquete
+    """LLM engine (optional): calls the Anthropic API with output forced via tool use."""
+    import anthropic  # lazy import: anyone only using motor="reglas" doesn't need this package
 
     api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         raise RoutineAgentError(
-            "No se ha encontrado ANTHROPIC_API_KEY. Configúrala en tu archivo .env "
-            "(copia .env.example a .env y rellena tu clave) antes de usar motor='llm'."
+            "ANTHROPIC_API_KEY not found. Set it in your .env file "
+            "(copy .env.example to .env and fill in your key) before using motor='llm'."
         )
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
@@ -235,8 +237,8 @@ def _generar_borrador_rutina_llm(
                 {
                     "role": "user",
                     "content": (
-                        "Este es el perfil del cliente (ficha de admisión ya rellenada). "
-                        "Genera su borrador de rutina:\n\n" + perfil_json
+                        "Here is the client's profile (intake form already filled out). "
+                        "Generate their draft routine:\n\n" + perfil_json
                     ),
                 }
             ],
@@ -244,18 +246,18 @@ def _generar_borrador_rutina_llm(
             tool_choice={"type": "tool", "name": "entregar_borrador_rutina"},
         )
     except anthropic.APITimeoutError as exc:
-        raise RoutineAgentError(f"Timeout esperando respuesta del modelo ({timeout}s).") from exc
+        raise RoutineAgentError(f"Timeout waiting for the model's response ({timeout}s).") from exc
     except anthropic.APIConnectionError as exc:
-        raise RoutineAgentError(f"No se pudo conectar con la API de Anthropic: {exc}") from exc
+        raise RoutineAgentError(f"Could not connect to the Anthropic API: {exc}") from exc
     except anthropic.APIStatusError as exc:
         raise RoutineAgentError(
-            f"La API de Anthropic devolvió un error ({exc.status_code}): {exc.message}"
+            f"The Anthropic API returned an error ({exc.status_code}): {exc.message}"
         ) from exc
 
     tool_uses = [block for block in response.content if block.type == "tool_use"]
     if not tool_uses:
         raise RoutineAgentError(
-            "La respuesta del modelo no contiene el borrador estructurado esperado "
+            "The model's response doesn't contain the expected structured draft "
             f"(stop_reason={response.stop_reason!r})."
         )
 

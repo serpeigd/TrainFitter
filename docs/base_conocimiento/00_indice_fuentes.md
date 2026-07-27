@@ -1,41 +1,42 @@
-# Base de conocimiento — Índice y fuentes
+# Knowledge Base — Index and Sources
 
-Esta carpeta contiene la **ciencia destilada** que consultarán los agentes (rutina,
-dieta, validador). Es la "memoria" del sistema: notas breves, estructuradas y
-publicables, derivadas del material fuente del entrenador.
+This folder holds the **distilled science** that the agents (routine, diet,
+validator) consult. It's the system's "memory": short, structured, publishable
+notes derived from the trainer's source material.
 
-## Cómo se usa
-- El **método** (`docs/metodo_entrenador.md`) define el *criterio* del entrenador
-  (filosofía, reglas, tono). Es el nivel "system prompt".
-- Esta **base de conocimiento** aporta el *detalle técnico* consultable (números,
-  combinaciones, protocolos). Es el nivel "RAG / referencia".
-- En la Fase 5 podrá migrarse a Notion sin cambiar esta estructura lógica.
+## How it's used
+- The **method** (`docs/metodo_entrenador.md`) defines the trainer's *judgment*
+  (philosophy, rules, tone). This is the "system prompt" level.
+- This **knowledge base** provides the consultable *technical detail* (numbers,
+  combinations, protocols). This is the "RAG / reference" level.
+- In Phase 5 it could migrate to Notion without changing this logical structure.
 
-## Notas de conocimiento
-| Archivo | Tema | Fuente |
+## Knowledge notes
+| File | Topic | Source |
 |---|---|---|
-| [entrenamiento.md](entrenamiento.md) | Hipertrofia, progresión, splits, cardio, volumen (MEV/MAV/MRV) | `Hipertrofia.pdf` + RP Strength / ISSN (verificado jul. 2026) |
-| [nutricion.md](nutricion.md) | Calorías, macros, proteína, fibra, ritmo de pérdida de grasa, longevidad | `CreatinayProte.pdf`, `Dieta_Bloques_Alimentos_Longevidad.pdf` + Morton 2018 / ISSN / USDA (verificado jul. 2026) |
-| [suplementacion.md](suplementacion.md) | Creatina, proteína, cafeína, beta-alanina | `CreatinayProte.pdf` + ISSN / NIH ODS (verificado jul. 2026) |
-| [sinergias_nutrientes.md](sinergias_nutrientes.md) | Absorción, sinergias e interferencias | `Sinergias_Absorcion_Nutrientes.pdf` |
-| [estilo_vida_longevidad.md](estilo_vida_longevidad.md) | Sueño, pasos, zona 2, hábitos | `Routine_Healthy.pdf`, `Routine_Anti_Aging.pdf` + Sleep Foundation (verificado jul. 2026) |
-| [seguridad_poblaciones_especiales.md](seguridad_poblaciones_especiales.md) | Embarazo (ACOG), señales de alarma (ACSM), rehab de rodilla/LCA | Investigación nueva (verificado jul. 2026) — respalda `validator_agent.py` |
+| [entrenamiento.md](entrenamiento.md) | Hypertrophy, progression, splits, cardio, volume (MEV/MAV/MRV) | `Hipertrofia.pdf` + RP Strength / ISSN (verified Jul 2026) |
+| [nutricion.md](nutricion.md) | Calories, macros, protein, fiber, fat-loss rate, longevity | `CreatinayProte.pdf`, `Dieta_Bloques_Alimentos_Longevidad.pdf` + Morton 2018 / ISSN / USDA (verified Jul 2026) |
+| [suplementacion.md](suplementacion.md) | Creatine, protein, caffeine, beta-alanine | `CreatinayProte.pdf` + ISSN / NIH ODS (verified Jul 2026) |
+| [sinergias_nutrientes.md](sinergias_nutrientes.md) | Absorption, synergies, and interference | `Sinergias_Absorcion_Nutrientes.pdf` |
+| [estilo_vida_longevidad.md](estilo_vida_longevidad.md) | Sleep, steps, Zone 2, habits | `Routine_Healthy.pdf`, `Routine_Anti_Aging.pdf` + Sleep Foundation (verified Jul 2026) |
+| [seguridad_poblaciones_especiales.md](seguridad_poblaciones_especiales.md) | Pregnancy (ACOG), red flags (ACSM), knee/ACL rehab | New research (verified Jul 2026) — backs `validator_agent.py` |
 
-## Material fuente (local, NO versionado — `AA_files_Training/`)
-Se mantiene fuera del control de versiones por contener material personal del
-entrenador. Pendiente de destilar en fases posteriores si aportan al método:
+## Source material (local, NOT version-controlled — `AA_files_Training/`)
+Kept out of version control because it contains the trainer's personal material.
+Still pending distillation in later phases if useful to the method:
 
 - `AlimentosClave.pdf`, `Superalimentos.pdf`, `Microutrientes y Minerales.pdf`
-- `HormonasFelicidad.pdf`, `AdenosinayGlutamato.pdf` (neuroquímica/bienestar)
-- `Alcohol.pdf`, `Ozempic.pdf` (educación / mitos)
+- `HormonasFelicidad.pdf`, `AdenosinayGlutamato.pdf` (neurochemistry/wellbeing)
+- `Alcohol.pdf`, `Ozempic.pdf` (education / myth-busting)
 - `Routine_Anti_Aging.pdf`, `RutinaPrincipiante.pdf` / `Routine_Rookie.pdf`
 
-## Sobre el rigor de las fuentes
+## On the rigor of the sources
 
-Cada nota que incorpora investigación externa termina con una sección **"Fuentes
-consultadas"** con enlaces verificables (metaanálisis, posicionamientos ISSN/ACSM/
-ACOG, guías oficiales USDA). Esto no contradice la decisión de la Fase 0c de no
-"congelar" citas como ley eterna: esa decisión hablaba de no depender *solo* de notas
-estáticas para siempre. Citar la fuente de una cifra concreta cuando se investiga es
-buena práctica y no impide que, más adelante, el motor LLM siga contrastando con
-evidencia más reciente en tiempo de generación — ver `docs/decisiones.md`.
+Every note that incorporates outside research ends with a **"Sources consulted"**
+section with verifiable links (meta-analyses, ISSN/ACSM/ACOG position stands,
+official USDA guidelines). This doesn't contradict the Phase 0c decision against
+"freezing" citations as eternal law: that decision was about not depending *solely*
+on static notes forever. Citing the source of a specific figure while actually doing
+the research is good practice, and it doesn't stop the LLM engine from later
+cross-checking against more recent evidence at generation time — see
+`docs/decisiones.md`.

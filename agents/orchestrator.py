@@ -1,24 +1,25 @@
 """
-Orquestador: coordina el pipeline completo (rutina -> dieta -> validador) sobre
-un perfil de cliente, con estado explícito y logging de cada transición.
+Orchestrator: coordinates the full pipeline (routine -> diet -> validator)
+over a client profile, with explicit state and logging of every transition.
 
-DISEÑO — por qué un dataclass de estado explícito y no variables sueltas:
-Con variables sueltas (rutina = ..., dieta = ..., veredicto = ...) el "estado
-del pipeline" no existe como concepto: solo se puede inferir mirando qué
-variables están rellenas en un momento dado. Con un PipelineState explícito,
-el estado es un dato de primera clase: se puede loguear, guardar, inspeccionar,
-o (en la Fase 5+) persistir en Notion sin cambiar la lógica del orquestador.
-También hace el flujo auto-documentado: la lista ESTADOS de abajo ES el
-diagrama de flujo de docs/arquitectura.md, no una aproximación de él.
+DESIGN — why an explicit state dataclass instead of loose variables:
+With loose variables (routine = ..., diet = ..., verdict = ...) the
+"pipeline state" doesn't exist as a concept: it can only be inferred by
+looking at which variables happen to be filled in at a given moment. With an
+explicit PipelineState, the state is a first-class piece of data: it can be
+logged, saved, inspected, or (in Phase 5+) persisted to Notion without
+changing the orchestrator's logic. It also makes the flow self-documenting:
+the ESTADOS list below literally IS the flow diagram in
+docs/arquitectura.md, not an approximation of it.
 
-DISEÑO — por qué transicionar() no imprime directamente:
-El logging por consola es una forma de observar las transiciones, no la
-única. La UI de Streamlit (ui/app.py) necesita pintar el mismo recorrido de
-estados en pantalla en vez de en una terminal que el usuario nunca ve. En
-vez de acoplar el orquestador a print(), transicionar() solo actualiza el
-dato; quien llama a ejecutar_pipeline() decide cómo reaccionar a cada
-transición vía el callback on_transition (por defecto, sigue imprimiendo en
-consola para no romper los scripts de demo existentes).
+DESIGN — why transicionar() doesn't print directly:
+Console logging is one way to observe transitions, not the only one. The
+Streamlit UI (ui/app.py) needs to paint the same state trail on screen
+instead of in a terminal the user never sees. Instead of coupling the
+orchestrator to print(), transicionar() just updates the data; whoever
+calls ejecutar_pipeline() decides how to react to each transition via the
+on_transition callback (by default, it keeps logging to the console so the
+existing demo scripts don't break).
 """
 
 from dataclasses import dataclass, field
@@ -28,8 +29,8 @@ from diet_agent import DietAgentError, generar_borrador_dieta
 from routine_agent import RoutineAgentError, generar_borrador_rutina
 from validator_agent import validar_borradores
 
-# Orden de los estados por los que pasa cada cliente. PipelineState.estado
-# siempre debe ser uno de estos valores.
+# Order of the states each client goes through. PipelineState.estado must
+# always be one of these values.
 ESTADOS = [
     "ficha_recibida",
     "rutina_generada",
@@ -43,7 +44,7 @@ ESTADOS = [
 
 @dataclass
 class PipelineState:
-    """Estado explícito del pipeline para un cliente concreto."""
+    """Explicit pipeline state for a specific client."""
 
     cliente_id: str
     perfil_cliente: dict
@@ -56,7 +57,7 @@ class PipelineState:
 
     def transicionar(self, nuevo_estado: str) -> None:
         if nuevo_estado not in ESTADOS:
-            raise ValueError(f"Estado desconocido: {nuevo_estado!r}")
+            raise ValueError(f"Unknown state: {nuevo_estado!r}")
         self.estado = nuevo_estado
         self.historial.append(nuevo_estado)
 
@@ -68,19 +69,20 @@ def _log_consola(cliente_id: str, nuevo_estado: str) -> None:
 
 def ejecutar_pipeline(perfil_cliente: dict, motor: str = "reglas", on_transition=None) -> PipelineState:
     """
-    Ejecuta el pipeline completo sobre un cliente y devuelve el estado final.
+    Runs the full pipeline on a client and returns the final state.
 
     Args:
-        perfil_cliente: dict con el esquema de examples/cliente_ejemplo_*.json.
-        motor: "reglas" (por defecto) o "llm", se pasa tal cual a cada agente.
-        on_transition: callback opcional (cliente_id: str, nuevo_estado: str) -> None,
-            invocado justo después de cada transición. Por defecto loguea a consola
-            (comportamiento histórico de los scripts run_*_demo.py); la UI pasa su
-            propio callback para actualizar la pantalla en vez de la terminal.
+        perfil_cliente: dict with the schema from examples/cliente_ejemplo_*.json.
+        motor: "reglas" (default) or "llm", passed as-is to each agent.
+        on_transition: optional callback (cliente_id: str, nuevo_estado: str) -> None,
+            invoked right after each transition. Defaults to logging to the
+            console (the historical behavior of the run_*_demo.py scripts);
+            the UI passes its own callback to update the screen instead of
+            the terminal.
 
-    No lanza excepción si un agente falla: la captura, deja el estado en
-    "error" con el detalle, y devuelve el PipelineState para que el llamador
-    decida qué hacer (nunca se envía nada en ese caso).
+    Doesn't raise if an agent fails: it catches it, leaves the state as
+    "error" with the detail, and returns the PipelineState so the caller can
+    decide what to do (nothing is ever sent in that case).
     """
     on_transition = on_transition or _log_consola
     cliente_id = perfil_cliente.get("id_cliente", "desconocido")

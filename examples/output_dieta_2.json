@@ -1,6 +1,6 @@
 {
   "cliente_id": "cliente_002",
-  "resumen_enfoque": "Estimación de 2289 kcal/día para recomposicion corporal, con 168 g de proteína como prioridad. Es un punto de partida que se ajusta con el peso y la energía reales de las primeras semanas.",
+  "resumen_enfoque": "Estimated 2289 kcal/day for body recomposition, with 168 g of protein as the priority. It's a starting point that gets adjusted based on real weight and energy over the first few weeks.",
   "calorias_objetivo_kcal": 2289,
   "macros": {
     "proteina_g": 168,
@@ -8,42 +8,42 @@
     "carbohidratos_g": 250
   },
   "comidas_al_dia": 3,
-  "distribucion_comidas": "Reparte estas calorías en 3 comidas a lo largo del día, con proteína presente en todas ellas. No hace falta que sean exactamente iguales — que encajen con tu rutina real.",
+  "distribucion_comidas": "Spread these calories across 3 meals throughout the day, with protein present in all of them. They don't need to be exactly equal — just fit your actual routine.",
   "fuentes_proteina_sugeridas": [
-    "Huevos",
-    "Lentejas",
-    "Garbanzos",
+    "Eggs",
+    "Lentils",
+    "Chickpeas",
     "Tofu",
     "Tempeh",
     "Edamame",
-    "Seitán",
-    "Proteína de guisante (en polvo)"
+    "Seitan",
+    "Pea protein (powder)"
   ],
   "fuentes_carbohidrato_sugeridas": [
-    "Arroz",
-    "Avena",
-    "Patata / boniato",
-    "Pan integral",
-    "Pasta integral",
+    "Rice",
+    "Oats",
+    "Potato / sweet potato",
+    "Whole wheat bread",
+    "Whole wheat pasta",
     "Quinoa",
-    "Legumbres (también aportan carbohidrato)",
-    "Fruta variada"
+    "Legumes (also a carb source)",
+    "Assorted fruit"
   ],
   "fuentes_grasa_sugeridas": [
-    "Aceite de oliva virgen extra",
-    "Aguacate",
-    "Frutos secos (nueces, almendras)",
-    "Semillas (chía, lino)",
-    "Pescado azul (EPA/DHA)"
+    "Extra virgin olive oil",
+    "Avocado",
+    "Nuts (walnuts, almonds)",
+    "Seeds (chia, flax)",
+    "Oily fish (EPA/DHA)"
   ],
   "consejos_sinergias": [
-    "Vitamina D, E, K y omega-3 se absorben mejor si los tomas con la comida que más grasa saludable tenga del día (nunca en ayunas).",
-    "Tu hierro viene sobre todo de fuentes vegetales (no-hemo), que se absorbe peor: combina lentejas/espinacas con una fuente de vitamina C en el mismo plato (pimiento rojo, limón, kiwi) — puede multiplicar la absorción hasta 3-6 veces.",
-    "Separa el café o el té de tus comidas principales con hierro al menos 1-2 horas: los taninos reducen mucho su absorción.",
-    "Combinar legumbres con huevo o un lácteo en la misma comida mejora el aprovechamiento del zinc y del hierro."
+    "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach).",
+    "Most of your iron comes from plant sources (non-heme), which absorb less well: combine lentils/spinach with a vitamin C source in the same meal (red pepper, lemon, kiwi) — it can multiply absorption 3-6x.",
+    "Keep coffee or tea at least 1-2 hours away from your main iron-rich meals: tannins significantly reduce iron absorption.",
+    "Combining legumes with egg or dairy in the same meal improves how well your body can use the zinc and iron."
   ],
   "advertencias_revision_humana": [
-    "El cliente no adjunta analítica pero hay una nota relevante sin verificar: \"El cliente comenta cansancio frecuente últimamente. No aporta analítica todavía; pendiente de pedírsela en el seguimiento.\" — pídesela en el seguimiento para poder modular la dieta con datos reales."
+    "The client hasn't attached bloodwork, but there's a relevant unverified note: \"Client mentions feeling tired frequently lately. Hasn't provided bloodwork yet; still need to ask for it at follow-up.\" — ask for it at follow-up so the diet can be modulated with real data."
   ],
-  "mensaje_para_el_cliente": "Hola Javier, este es tu borrador de dieta. No hay alimentos prohibidos aquí: hay cantidades y contexto. La idea es que puedas mantener esto dentro de tres meses, no solo esta semana. Si algo no encaja con tu día a día, dímelo y lo cambiamos por algo equivalente."
+  "mensaje_para_el_cliente": "Hi Javier, this is your draft diet. There's no forbidden food here: it's about amounts and context. The idea is that you can keep this up in three months, not just this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
 }

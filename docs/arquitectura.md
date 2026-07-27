@@ -1,61 +1,66 @@
-# Arquitectura de TrainFitter
+# TrainFitter Architecture
 
-> **Estado: pipeline completo (Fases 0-4) + panel del entrenador (Fase 5-lite).**
-> Falta la integración con Notion/Gmail reales y el disparador automático desde
-> `inbox/`. La versión final orientada a lector técnico llega en la Fase 7.
+> **Status: full pipeline (Phases 0-4) + trainer's panel (Phase 5-lite).**
+> Real Notion/Gmail integration and the automatic `inbox/` trigger are still
+> missing. The final version aimed at a technical reader arrives in Phase 7.
+>
+> Note on naming: internal Python identifiers, dict/JSON keys, and literal state
+> values (e.g. `perfil_cliente`, `revision_reforzada`, `generar_borrador_rutina()`)
+> are still in Spanish — only prose, comments, and docs were translated to English
+> in this pass. See `docs/decisiones.md` for that scoping decision.
 
 ---
 
-## Visión general
+## Overview
 
-TrainFitter es un pipeline de agentes que transforma la ficha de un cliente en
-borradores de rutina y dieta, con una **revisión humana obligatoria** antes de
-cualquier envío. Cada agente tiene una responsabilidad única y acotada.
+TrainFitter is an agent pipeline that turns a client's intake form into draft
+routines and diets, with **mandatory human review** before anything is sent. Each
+agent has a single, well-scoped responsibility.
 
-## Decisión clave: dos motores intercambiables por agente
+## Key decision: two interchangeable engines per agent
 
-`routine_agent` y `diet_agent` no llaman a un único backend fijo: exponen un parámetro
-`motor` con dos implementaciones que devuelven **el mismo esquema de salida**, así que
-el resto del pipeline es agnóstico a cuál se usó.
+`routine_agent` and `diet_agent` don't call a single fixed backend: they expose a
+`motor` parameter with two implementations that return **the same output schema**,
+so the rest of the pipeline is agnostic to which one ran.
 
-| Motor | Coste | Cómo funciona | Cuándo se usa |
+| Engine | Cost | How it works | When it's used |
 |---|---|---|---|
-| `"reglas"` (por defecto) | **Gratis**, sin API key, sin red | Código Python determinista que aplica los valores del método directamente (splits, rangos de reps, cálculo de calorías/macros, banco de ejercicios/alimentos filtrado por material/alergias/lesiones) | Desarrollo, demos, todo el pipeline hoy |
-| `"llm"` (opcional) | Requiere `ANTHROPIC_API_KEY` | Llama al modelo de Anthropic con salida forzada por *tool use* (`entregar_borrador_rutina` / `entregar_borrador_dieta`) | Cuando se quiera redacción más rica/matizada; queda ya diseñado para activarse sin tocar el resto del sistema |
+| `"reglas"` (default) | **Free**, no API key, no network | Deterministic Python code that applies the method's values directly (splits, rep ranges, calorie/macro math, exercise/food banks filtered by equipment/allergies/injuries) | Development, demos, the whole pipeline today |
+| `"llm"` (optional) | Requires `ANTHROPIC_API_KEY` | Calls the Anthropic model with output forced via *tool use* (`entregar_borrador_rutina` / `entregar_borrador_dieta`) | When richer, more nuanced writing is wanted; already designed to switch on without touching the rest of the system |
 
-El **agente validador**, en cambio, es **siempre reglas** por diseño: un gate de
-seguridad debe ser determinista y auditable, no una "opinión" de un modelo — ver
-`agents/validator_agent.py` para el razonamiento completo.
+The **validator agent**, by contrast, is **always rule-based** by design: a safety
+gate should be deterministic and auditable, not a model's "opinion" — see
+`agents/validator_agent.py` for the full reasoning.
 
-## Flujo de datos
+## Data flow
 
 ```
-   Ficha cliente (admission/) ──► Perfil JSON (esquema en examples/cliente_ejemplo_*.json)
+   Client intake (admission/) ──► Client profile JSON (schema in examples/cliente_ejemplo_*.json)
                                           │
                      ┌────────────────────┼────────────────────┐
                      ▼                    ▼                    ▼
-              routine_agent          diet_agent          (ambos leen)
-              (motor reglas/llm)     (motor reglas/llm)  docs/metodo_entrenador.md
+              routine_agent          diet_agent          (both read)
+              (motor rules/llm)      (motor rules/llm)   docs/metodo_entrenador.md
                      │                    │              docs/base_conocimiento/*
                      ▼                    ▼
-              borrador_rutina        borrador_dieta
+              routine draft           diet draft
                      │                    │
                      └─────────┬──────────┘
                                 ▼
-                       validator_agent (siempre reglas)
-                     - relee el perfil crudo (no confía ciegamente
-                       en las advertencias de rutina/dieta)
-                     - cruza ejercicios vs. lesiones (exercise_bank)
-                     - cruza alimentos vs. alergias (food_bank)
+                     validator_agent (always rule-based)
+                     - re-reads the raw client profile (doesn't
+                       blindly trust routine/diet's own warnings)
+                     - cross-checks exercises vs. injuries (exercise_bank)
+                     - cross-checks food vs. allergies (food_bank)
                                 ▼
-                    veredicto: aprobado_automatico | revision_reforzada
+              verdict: aprobado_automatico | revision_reforzada
                                 ▼
-                        Revisión humana (SIEMPRE, sin excepción)
+                     Human review (ALWAYS, no exceptions)
                                 ▼
-                  Envío al cliente (borrador en Gmail — Fase 5+)
+              Sent to the client (Gmail draft — Phase 5+)
 ```
 
-## Diagrama de estados del orquestador (real, `agents/orchestrator.py`)
+## Orchestrator state diagram (real, `agents/orchestrator.py`)
 
 ```
  ficha_recibida
@@ -69,93 +74,92 @@ seguridad debe ser determinista y auditable, no una "opinión" de un modelo — 
        ▼
  validado
        │
-       ├── veredicto == "revision_reforzada" ──► pendiente_revision_reforzada
+       ├── verdict == "revision_reforzada" ──► pendiente_revision_reforzada
        │
-       └── veredicto == "aprobado_automatico" ──► pendiente_aprobacion_humana
+       └── verdict == "aprobado_automatico" ──► pendiente_aprobacion_humana
 
- (en cualquier punto, si un agente lanza RoutineAgentError/DietAgentError) ──► error
+ (at any point, if an agent raises RoutineAgentError/DietAgentError) ──► error
 ```
 
-Ambas ramas de éxito terminan en un estado "pendiente_*": **incluso
-`aprobado_automatico` significa "sin motivos de revisión reforzada", nunca "enviar
-sin que nadie lo mire"**. El entrenador siempre aprueba antes de que algo llegue al
-cliente — ver `PipelineState` en `agents/orchestrator.py`.
+Both success branches end in a "pendiente_*" (pending) state: **even
+`aprobado_automatico` only means "no reasons for enhanced review," never "send it
+without anyone looking."** The trainer always approves before anything reaches the
+client — see `PipelineState` in `agents/orchestrator.py`.
 
-`ejecutar_pipeline()` acepta un callback `on_transition` opcional (por defecto,
-loguea a consola). Esto es lo que permite que la UI (ver más abajo) pinte el mismo
-recorrido de estados en pantalla en vez de en una terminal que el usuario nunca ve,
-sin que el orquestador sepa nada de Streamlit.
+`ejecutar_pipeline()` accepts an optional `on_transition` callback (by default, it
+logs to the console). That's what lets the UI (see below) paint the same state trail
+on screen instead of in a terminal the user never sees, without the orchestrator
+knowing anything about Streamlit.
 
-## Panel del entrenador (`ui/app.py`) — interfaz Streamlit
+## Trainer's panel (`ui/app.py`) — Streamlit interface
 
-El pipeline por CLI es la capa de desarrollo; `ui/app.py` es la capa que un
-entrenador sin conocimientos técnicos podría usar de verdad. Convierte
-`ejecutar_pipeline()` en una experiencia de clic:
+The CLI pipeline is the development layer; `ui/app.py` is the layer a
+non-technical trainer could actually use. It turns `ejecutar_pipeline()` into a
+click-through experience:
 
-- **Pestaña "Cliente de ejemplo":** elige uno de los JSON en `examples/`, previsualiza
-  la ficha completa, genera el plan.
-- **Pestaña "Nueva ficha":** formulario completo que espeja
-  `admission/ficha_cliente_template.md` (datos básicos, objetivo, experiencia,
-  disponibilidad, salud, nutrición, estilo de vida) y construye el mismo JSON que
-  consumen los agentes — un entrenador podría dar de alta un cliente real sin tocar
-  código ni JSON a mano.
-- **Ejecución en vivo:** `st.status(...)` + el callback `on_transition` muestran cada
-  transición del orquestador según ocurre.
-- **Resultado:** veredicto (con motivos si aplica revisión reforzada), rutina por
-  sesión con tabla de ejercicios, dieta con macros y fuentes sugeridas, y botones de
-  descarga en JSON.
-- **Aprobación simulada:** un botón "Aprobar y marcar como listo para enviar" dentro
-  de la UI dice explícitamente que es una simulación — el envío real llega con Gmail
-  (Fase 5+). La UI nunca envía nada por su cuenta, coherente con el resto del sistema.
+- **"Example client" tab:** pick one of the JSON files in `examples/`, preview the
+  full intake, generate the plan.
+- **"New intake" tab:** a full form that mirrors `admission/ficha_cliente_template.md`
+  (basic info, goal, experience, availability, health, nutrition, lifestyle) and
+  builds the same JSON the agents consume — a trainer could onboard a real client
+  without touching code or JSON by hand.
+- **Live execution:** `st.status(...)` plus the `on_transition` callback show each
+  orchestrator transition as it happens.
+- **Result:** verdict (with reasons if enhanced review applies), routine broken down
+  by session with an exercise table, diet with macros and suggested sources, and JSON
+  download buttons.
+- **Simulated approval:** an "Approve and mark as ready to send" button in the UI
+  explicitly states it's a simulation — real sending arrives with Gmail (Phase 5+).
+  The UI never sends anything on its own, consistent with the rest of the system.
 
-**Nota de diseño encontrada durante las pruebas:** los widgets de la ficha nueva NO
-están dentro de un `st.form`. Se probó así primero, pero Streamlit no vuelve a
-ejecutar el script dentro de un formulario hasta que se pulsa "enviar" — así que un
-checkbox como "¿tiene lesión?" nunca llegaba a revelar el campo de "zona de la
-lesión" a tiempo. Con widgets sueltos (cada uno con `key` propia), cada interacción
-reejecuta el script y la UI puede reaccionar de inmediato. El coste es una rerenderización
-algo más frecuente, irrelevante para un pipeline tan rápido como el de reglas.
+**Design note found during testing:** the new-intake widgets are deliberately NOT
+inside an `st.form`. That was tried first, but Streamlit doesn't rerun the script
+inside a form until "submit" is pressed — so a checkbox like "has an injury?" never
+got the chance to reveal the "injury area" field in time. With standalone widgets
+(each with its own `key`), every interaction reruns the script and the UI can react
+immediately. The cost is somewhat more frequent re-rendering, which is irrelevant for
+a pipeline as fast as the rule engine.
 
-## Componentes
+## Components
 
-| Componente | Archivo | Fase | Estado |
+| Component | File | Phase | Status |
 |---|---|---|---|
-| Ficha de admisión | `admission/ficha_cliente_template.md` | 1 | **Hecho** |
-| Base de conocimiento | `docs/base_conocimiento/` | 0 | **Hecho** |
-| Helper de lectura de conocimiento | `agents/knowledge.py` | 2 | **Hecho** |
-| Banco de ejercicios | `agents/exercise_bank.py` | 2 | **Hecho** |
-| Motor de reglas — rutina | `agents/rutina_reglas.py` | 2 | **Hecho** |
-| Agente de rutina (dual motor) | `agents/routine_agent.py` | 2 | **Hecho** |
-| Banco de alimentos | `agents/food_bank.py` | 3 | **Hecho** |
-| Motor de reglas — dieta | `agents/dieta_reglas.py` | 3 | **Hecho** |
-| Agente de dieta (dual motor) | `agents/diet_agent.py` | 3 | **Hecho** |
-| Agente validador | `agents/validator_agent.py` | 3 | **Hecho** |
-| Orquestador (estado explícito) | `agents/orchestrator.py` | 4 | **Hecho** |
-| Panel del entrenador (UI) | `ui/app.py` | 5-lite | **Hecho** |
-| Parser de analítica | `agents/analytics_parser.py` | 5+ | Pendiente |
-| Conector Notion | `mcp/notion_client.py` | 5 | Pendiente |
-| Conector Gmail | `mcp/gmail_client.py` | 5 | Pendiente |
-| Disparo automático | `main.py` + `inbox/` | 6 | Pendiente |
+| Client intake form | `admission/ficha_cliente_template.md` | 1 | **Done** |
+| Knowledge base | `docs/base_conocimiento/` | 0 | **Done** |
+| Knowledge-loading helper | `agents/knowledge.py` | 2 | **Done** |
+| Exercise bank | `agents/exercise_bank.py` | 2 | **Done** |
+| Rule engine — routine | `agents/rutina_reglas.py` | 2 | **Done** |
+| Routine agent (dual engine) | `agents/routine_agent.py` | 2 | **Done** |
+| Food bank | `agents/food_bank.py` | 3 | **Done** |
+| Rule engine — diet | `agents/dieta_reglas.py` | 3 | **Done** |
+| Diet agent (dual engine) | `agents/diet_agent.py` | 3 | **Done** |
+| Validator agent | `agents/validator_agent.py` | 3 | **Done** |
+| Orchestrator (explicit state) | `agents/orchestrator.py` | 4 | **Done** |
+| Trainer's panel (UI) | `ui/app.py` | 5-lite | **Done** |
+| Bloodwork parser | `agents/analytics_parser.py` | 5+ | Pending |
+| Notion connector | `mcp/notion_client.py` | 5 | Pending |
+| Gmail connector | `mcp/gmail_client.py` | 5 | Pending |
+| Automatic trigger | `main.py` + `inbox/` | 6 | Pending |
 
-## Capa de personalización clínica (modulación activa)
+## Clinical personalization layer (active modulation)
 
-La admisión captura datos de salud (alergias, enfermedades, embarazo/lactancia,
-medicación, peso) y admite una **analítica en PDF**. Hoy el motor de reglas ya
-modula activamente la dieta a partir de lo que sabe del perfil (tipo de dieta,
-alergias/intolerancias, objetivo → calorías/macros) y aplica sinergias de absorción
-cuando el tipo de dieta lo justifica (p.ej. hierro + vitamina C en dietas
-vegetarianas/veganas). Un futuro `analytics_parser` extraerá marcadores de la
-analítica (glucosa/HbA1c, lípidos, ferritina, vitamina D, TSH...) para modular
-también sobre esos datos.
+Intake captures health data (allergies, conditions, pregnancy/breastfeeding,
+medication, weight) and allows a **PDF bloodwork report** to be attached. Today the
+rule engine already actively modulates the diet based on what it knows about the
+profile (diet type, allergies/intolerances, goal → calories/macros) and applies
+absorption synergies when the diet type calls for it (e.g. iron + vitamin C in
+vegetarian/vegan diets). A future `analytics_parser` will extract markers from the
+bloodwork (glucose/HbA1c, lipids, ferritin, vitamin D, TSH...) to modulate on that
+data as well.
 
-Modular activamente no relaja la regla dura: el sistema **no diagnostica ni
-prescribe**; cualquier marcador fuera de rango, patología, embarazo, medicación,
-lesión o alergia **fuerza `revisión_reforzada`** — ver `docs/metodo_entrenador.md` §7
-y `agents/validator_agent.py`.
+Modulating actively doesn't loosen the hard rule: the system **never diagnoses or
+prescribes**; any out-of-range marker, condition, pregnancy, medication, injury, or
+allergy **forces `revisión_reforzada`** — see `docs/metodo_entrenador.md` §7 and
+`agents/validator_agent.py`.
 
-## Principio transversal: humano en el bucle
+## Cross-cutting principle: human in the loop
 
-Ningún plan llega al cliente sin aprobación humana. El sistema está diseñado para
-**asistir** al entrenador, no para reemplazarlo. La generación siempre produce un
-**borrador**, y cualquier señal de riesgo (lesión, patología, alergia, marcador
-clínico) fuerza una **revisión reforzada**.
+No plan reaches the client without human approval. The system is designed to
+**assist** the trainer, not replace them. Generation always produces a **draft**, and
+any risk signal (injury, condition, allergy, clinical marker) forces an **enhanced
+review**.

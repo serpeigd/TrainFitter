@@ -1,36 +1,37 @@
-# Estilo de vida y longevidad
+# Lifestyle and Longevity
 
-> El entrenamiento y la dieta son dos patas; la tercera es el **estilo de vida**. El
-> método integra hábitos diarios porque la adherencia y la salud a largo plazo dependen
-> tanto del descanso, el estrés y el movimiento diario como del gimnasio.
+> Training and diet are two legs of the stool; the third is **lifestyle**. The
+> method integrates daily habits because long-term adherence and health depend on
+> sleep, stress, and daily movement just as much as on the gym.
 
-## Hábitos semanales de referencia
-- **4 entrenamientos de fuerza** / semana.
-- **1 sesión de cardio Zona 2** (45-60 min) + **1 sesión Zona 4-5 / sprints** (~10 min).
-- **2-3 sesiones de movilidad**; **1 día de recuperación completa** (caminar, estirar,
-  sauna si hay).
-- Tiempo al aire libre a diario; tiempo de calidad social; 3-5 h/semana de aprendizaje.
+## Reference weekly habits
+- **4 strength sessions** / week.
+- **1 Zone 2 cardio session** (45-60 min) + **1 Zone 4-5 / sprint session** (~10 min).
+- **2-3 mobility sessions**; **1 full recovery day** (walking, stretching, sauna if
+  available).
+- Outdoor time daily; quality social time; 3-5 h/week of learning.
 
-## Movimiento diario (NEAT)
-- **8.000-12.000 pasos/día** como suelo de actividad.
-- Levantarse y moverse cada 45-60 min; caminar 10-20 min tras las comidas.
+## Daily movement (NEAT)
+- **8,000-12,000 steps/day** as an activity floor.
+- Getting up and moving every 45-60 min; walking 10-20 min after meals.
 
-## Sueño (pilar de recuperación)
-- **7-9 h** para adultos en general (rango de referencia estándar); quien entrena con
-  frecuencia/intensidad alta puede beneficiarse de estar en la parte alta de ese rango
-  o algo más — el sueño es, junto con la nutrición, el factor de recuperación con más
-  respaldo en la literatura.
-- Dormitorio fresco, oscuro y silencioso; reducir luz azul 1-2 h antes.
-- Luz solar 10-20 min por la mañana para anclar el ritmo circadiano.
+## Sleep (recovery pillar)
+- **7-9 h** for adults in general (standard reference range); anyone training at
+  high frequency/intensity may benefit from the upper end of that range or slightly
+  more — sleep is, alongside nutrition, the recovery factor with the strongest
+  backing in the literature.
+- Cool, dark, quiet bedroom; reduce blue light 1-2 h before bed.
+- 10-20 min of morning sunlight to anchor the circadian rhythm.
 
-## Gestión del estrés y foco
-- Respiración nasal / meditación 2-5 min; evitar el móvil los primeros 20-30 min del día.
-- Gratitud / diario 5 min; planificar la semana el domingo.
+## Stress management and focus
+- Nasal breathing / meditation, 2-5 min; avoid the phone for the first 20-30 min of
+  the day.
+- Gratitude / journaling, 5 min; plan the week on Sunday.
 
-## Por qué importa aquí
-Estos hábitos **modulan** los resultados de rutina y dieta: mal sueño o estrés alto
-reducen recuperación y adherencia. El agente puede sugerir hábitos de apoyo, pero
-**cualquier señal clínica** (ver método, §Seguridad) va a revisión humana.
+## Why it matters here
+These habits **modulate** the routine and diet outcomes: poor sleep or high stress
+reduce recovery and adherence. The agent can suggest supporting habits, but
+**any clinical signal** (see the method's §Safety) goes to human review.
 
-## Fuentes consultadas (verificadas, julio 2026)
+## Sources consulted (verified, July 2026)
 - [Sleep Foundation — How Sleep Affects Athletic Performance](https://www.sleepfoundation.org/physical-activity/athletic-performance-and-sleep)

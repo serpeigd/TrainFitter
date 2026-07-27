@@ -1,129 +1,132 @@
-# Ficha de admisión — Bienvenido/a a TrainFitter
+# Client Intake Form — Welcome to TrainFitter
 
-Antes de preparar tu rutina y tu dieta necesito conocerte un poco. No hace falta que
-sepas nada de entrenamiento ni de nutrición para rellenar esto — cuéntame tu situación
-con tus propias palabras, yo me encargo del resto.
+Before I put together your routine and diet, I need to get to know you a bit. You
+don't need to know anything about training or nutrition to fill this out — just tell
+me your situation in your own words, and I'll take it from there.
 
-Toda la información de salud que te pido (lesiones, alergias, medicación...) es para
-**personalizarte al máximo el plan y cuidarte**, nunca para juzgarte. Si algo de esto
-requiere un ajuste delicado, lo reviso yo personalmente antes de mandarte nada.
-
----
-
-## 1. Datos básicos
-
-- **Nombre:**
-- **Edad:**
-- **Sexo:**
-- **Peso actual (kg):**
-- **Altura (cm):**
-
-## 2. Tu objetivo principal
-
-¿Qué te gustaría conseguir? (marca lo que más se acerque, y cuéntamelo también con tus
-palabras — eso me importa más que la etiqueta)
-
-- [ ] Ganar músculo / "ponerme fuerte" (hipertrofia)
-- [ ] Perder grasa
-- [ ] Recomposición (perder grasa y ganar músculo a la vez)
-- [ ] Salud general / sentirme mejor, sin un objetivo estético concreto
-- [ ] Otro:
-
-**Cuéntamelo con tus palabras:**
-_(¿Por qué quieres esto ahora? ¿Hay algo concreto que te motive?)_
-
-## 3. Tu experiencia entrenando
-
-- [ ] Nunca he entrenado / soy totalmente principiante
-- [ ] Tengo algo de experiencia (menos de 1-2 años, irregular)
-- [ ] Llevo entrenando un tiempo con cierta regularidad (2+ años)
-- [ ] Tengo bastante experiencia y sé lo que es una progresión de carga
-
-**¿Cuántos años llevas entrenando (aunque sea de forma irregular)?**
-
-**Cuéntame un poco más:** _(qué has hecho antes, si te ha gustado, si lo dejaste y por qué...)_
-
-## 4. Tu disponibilidad
-
-- **¿Cuántos días a la semana puedes entrenar?**
-- **¿Cuánto tiempo tienes por sesión (aprox.)?**
-- **¿Dónde vas a entrenar?**
-  - [ ] Gimnasio completo (máquinas, poleas, barras, mancuernas)
-  - [ ] Gimnasio pequeño / con material limitado
-  - [ ] Casa con algo de material (mancuernas, bandas...)
-  - [ ] Casa sin material
-- **Si entrenas en casa o con material limitado, ¿qué tienes disponible?**
-  _(mancuernas, bandas elásticas, barra, banco, nada...)_
-
-## 5. Tu salud — esto es importante, sé sincero/a
-
-> Nada de lo que digas aquí te va a "cerrar puertas": al contrario, cuanto más sepa,
-> mejor te puedo cuidar. Si algo necesita el visto bueno de un médico, te lo digo yo.
-
-- **¿Tienes o has tenido alguna lesión?** (actual o antigua, aunque esté "curada")
-  - [ ] No
-  - [ ] Sí — descríbela: _(zona, qué pasó, si te duele actualmente o solo en ciertos
-    movimientos, si tienes el alta médica)_
-
-- **¿Tienes alguna enfermedad o condición médica diagnosticada?**
-  _(por ejemplo: diabetes, hipertensión, problemas de tiroides, problemas digestivos,
-  cardiovasculares, trastornos de la conducta alimentaria, o cualquier otra)_
-  - [ ] No
-  - [ ] Sí — ¿cuál/es?
-
-- **¿Estás embarazada o en periodo de lactancia?**
-  - [ ] No
-  - [ ] Sí — cuéntame en qué momento estás
-
-- **¿Tomas alguna medicación de forma habitual?**
-  - [ ] No
-  - [ ] Sí — ¿cuál/es?
-
-- **¿Tienes una analítica de sangre reciente?** (opcional, pero ayuda mucho a
-  personalizar tu dieta — por ejemplo, si tienes hierro o vitamina D bajos lo tenemos
-  en cuenta)
-  - [ ] No tengo / prefiero no compartirla
-  - [ ] Sí, la adjunto: _(archivo PDF)_
-
-## 6. Alimentación
-
-- **¿Sigues algún tipo de dieta o forma de comer concreta?**
-  - [ ] Como de todo
-  - [ ] Vegetariana
-  - [ ] Vegana
-  - [ ] Otra:
-
-- **¿Tienes alergias alimentarias?**
-  - [ ] No
-  - [ ] Sí — ¿a qué?
-
-- **¿Tienes intolerancias alimentarias?** (lactosa, gluten, etc.)
-  - [ ] No
-  - [ ] Sí — ¿a qué?
-
-- **¿Hay algún alimento que no soportes o prefieras evitar** (aunque no sea alergia ni
-  intolerancia, simplemente que no te guste)?
-
-- **¿Cuántas comidas al día prefieres hacer?**
-
-- **Cuéntame tu contexto:** _(¿cocinas tú? ¿tienes poco tiempo entre semana? ¿comes
-  fuera a menudo? ¿presupuesto ajustado? Todo esto me ayuda a que el plan sea real
-  para tu vida, no una dieta de laboratorio)_
-
-## 7. Estilo de vida
-
-- **¿Cuántas horas duermes de media?**
-- **¿Cómo dirías que es tu nivel de estrés en el día a día?**
-  - [ ] Bajo &nbsp; [ ] Medio &nbsp; [ ] Alto
-- **¿Tu trabajo o día a día es más bien sedentario o activo?**
-- **¿Tienes idea de cuántos pasos das al día aproximadamente?** (si no lo sabes, no pasa nada)
-
-## 8. Cualquier otra cosa que quieras contarme
-
-_(lo que sea: miedos, experiencias pasadas con dietas o gimnasios, algo que te
-frustre, algo que te motive especialmente...)_
+All the health information I'm asking for (injuries, allergies, medication...) is
+there to **personalize your plan as much as possible and look after you**, never to
+judge you. If anything here needs a careful adjustment, I review it personally
+before sending you anything.
 
 ---
 
-*Con esto ya tengo lo que necesito para preparar tu primer borrador de rutina y dieta.
-Recuerda: es un punto de partida — lo iremos ajustando juntos.*
+## 1. Basic info
+
+- **Name:**
+- **Age:**
+- **Sex:**
+- **Current weight (kg):**
+- **Height (cm):**
+
+## 2. Your main goal
+
+What would you like to achieve? (check whichever is closest, and tell me in your own
+words too — that matters more to me than the label)
+
+- [ ] Build muscle / "get stronger" (hypertrophy)
+- [ ] Lose fat
+- [ ] Recomposition (lose fat and build muscle at the same time)
+- [ ] General health / feel better, no specific aesthetic goal
+- [ ] Other:
+
+**Tell me in your own words:**
+_(Why do you want this now? Is there something specific motivating you?)_
+
+## 3. Your training experience
+
+- [ ] I've never trained / I'm a complete beginner
+- [ ] I have some experience (less than 1-2 years, on and off)
+- [ ] I've been training somewhat regularly for a while (2+ years)
+- [ ] I have solid experience and know what progressive overload means
+
+**How many years have you been training (even on and off)?**
+
+**Tell me a bit more:** _(what you've done before, whether you liked it, if you
+stopped and why...)_
+
+## 4. Your availability
+
+- **How many days a week can you train?**
+- **How much time do you have per session (roughly)?**
+- **Where will you be training?**
+  - [ ] Full gym (machines, cables, barbells, dumbbells)
+  - [ ] Small gym / limited equipment
+  - [ ] Home with some equipment (dumbbells, bands...)
+  - [ ] Home with no equipment
+- **If training at home or with limited equipment, what do you have available?**
+  _(dumbbells, resistance bands, barbell, bench, nothing...)_
+
+## 5. Your health — this is important, please be honest
+
+> Nothing you say here is going to "close doors" for you — quite the opposite: the
+> more I know, the better I can look after you. If anything needs a doctor's sign-off,
+> I'll tell you.
+
+- **Do you have, or have you had, any injury?** (current or old, even if "healed")
+  - [ ] No
+  - [ ] Yes — describe it: _(area, what happened, whether it hurts now or only during
+    certain movements, whether you've been medically cleared)_
+
+- **Do you have any diagnosed disease or medical condition?**
+  _(for example: diabetes, hypertension, thyroid problems, digestive or
+  cardiovascular issues, eating disorders, or anything else)_
+  - [ ] No
+  - [ ] Yes — which one(s)?
+
+- **Are you pregnant or breastfeeding?**
+  - [ ] No
+  - [ ] Yes — tell me where you're at
+
+- **Do you take any medication regularly?**
+  - [ ] No
+  - [ ] Yes — which one(s)?
+
+- **Do you have a recent blood test?** (optional, but it really helps personalize
+  your diet — for example, if your iron or vitamin D is low, we take that into
+  account)
+  - [ ] I don't have one / I'd rather not share it
+  - [ ] Yes, attached: _(PDF file)_
+
+## 6. Nutrition
+
+- **Do you follow any particular type of diet or way of eating?**
+  - [ ] I eat everything
+  - [ ] Vegetarian
+  - [ ] Vegan
+  - [ ] Other:
+
+- **Do you have any food allergies?**
+  - [ ] No
+  - [ ] Yes — to what?
+
+- **Do you have any food intolerances?** (lactose, gluten, etc.)
+  - [ ] No
+  - [ ] Yes — to what?
+
+- **Is there any food you can't tolerate or prefer to avoid** (even if it's not an
+  allergy or intolerance, just something you don't like)?
+
+- **How many meals a day do you prefer to eat?**
+
+- **Tell me your context:** _(do you cook yourself? Are you short on time on
+  weekdays? Do you eat out often? Tight budget? All of this helps me make the plan
+  real for your life, not a lab diet)_
+
+## 7. Lifestyle
+
+- **How many hours do you sleep on average?**
+- **How would you describe your day-to-day stress level?**
+  - [ ] Low &nbsp; [ ] Medium &nbsp; [ ] High
+- **Is your job or daily routine mostly sedentary or active?**
+- **Any idea roughly how many steps you take per day?** (no worries if you don't know)
+
+## 8. Anything else you'd like to tell me
+
+_(anything at all: fears, past experiences with diets or gyms, something that
+frustrates you, something that especially motivates you...)_
+
+---
+
+*With this, I have what I need to prepare your first draft routine and diet.
+Remember: it's a starting point — we'll keep adjusting it together.*

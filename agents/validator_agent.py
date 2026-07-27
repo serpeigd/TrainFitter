@@ -1,23 +1,23 @@
 """
-Agente validador: comprueba coherencia con el método y señales de riesgo antes
-de dar por bueno un borrador de rutina + dieta.
+Validator agent: checks consistency with the method and risk signals before
+signing off on a routine + diet draft.
 
-DISEÑO — por qué este agente es siempre reglas, nunca LLM (a diferencia de
-routine_agent/diet_agent, que sí ofrecen motor="llm" como opción futura):
-un validador es un GATE de seguridad. Un gate de seguridad debe ser auditable
-y determinista — la misma entrada debe dar siempre el mismo veredicto, y
-cualquiera debe poder leer el código y saber exactamente qué se comprueba.
-Eso es justo lo contrario de lo que aporta un LLM (variabilidad, "criterio").
-Por eso el validador no es "la versión gratis de un futuro validador con IA":
-es una elección de diseño que se mantendría igual aunque hubiera presupuesto
-ilimitado de API.
+DESIGN — why this agent is always rule-based, never LLM (unlike
+routine_agent/diet_agent, which do offer motor="llm" as a future option): a
+validator is a safety GATE. A safety gate should be auditable and
+deterministic — the same input should always produce the same verdict, and
+anyone should be able to read the code and know exactly what's being
+checked. That's the exact opposite of what an LLM brings (variability,
+"judgment"). That's why the validator isn't "the free version of a future
+AI-powered validator": it's a design choice that would stay the same even
+with unlimited API budget.
 
-DISEÑO — defensa en profundidad, no solo agregación:
-El validador no confía ciegamente en que routine_agent/diet_agent ya se
-auto-marcaron correctamente. Vuelve a mirar el perfil crudo del cliente de
-forma independiente, y además cruza los ejercicios/alimentos concretos de
-los borradores contra las lesiones/alergias declaradas — por si algún día
-un motor LLM se equivoca al autoevaluarse.
+DESIGN — defense in depth, not just aggregation:
+The validator doesn't blindly trust that routine_agent/diet_agent already
+flagged themselves correctly. It re-reads the client's raw profile
+independently, and it also cross-checks the drafts' actual exercises/foods
+against the declared injuries/allergies — in case a future LLM engine ever
+gets its self-assessment wrong.
 """
 
 from exercise_bank import EXERCISE_BANK
@@ -26,30 +26,30 @@ from perfil_utils import tags_lesiones
 
 
 def _motivos_desde_perfil(perfil: dict) -> list[str]:
-    """Relee el perfil crudo, sin depender de lo que ya marcaron rutina/dieta."""
+    """Re-reads the raw profile, without relying on what routine/diet already flagged."""
     salud = perfil.get("salud", {})
     motivos = []
 
     if salud.get("lesiones"):
-        zonas = ", ".join(l.get("zona", "sin especificar") for l in salud["lesiones"])
-        motivos.append(f"El perfil declara {len(salud['lesiones'])} lesión(es): {zonas}.")
+        zonas = ", ".join(l.get("zona", "not specified") for l in salud["lesiones"])
+        motivos.append(f"The profile declares {len(salud['lesiones'])} injury(ies): {zonas}.")
     if salud.get("enfermedades_o_condiciones"):
         motivos.append(
-            f"El perfil declara condición(es) de salud: {', '.join(salud['enfermedades_o_condiciones'])}."
+            f"The profile declares health condition(s): {', '.join(salud['enfermedades_o_condiciones'])}."
         )
     if salud.get("embarazo_o_lactancia", {}).get("aplica"):
-        motivos.append("El perfil indica embarazo o lactancia.")
+        motivos.append("The profile indicates pregnancy or breastfeeding.")
     if salud.get("medicacion_habitual"):
-        motivos.append(f"El perfil declara medicación habitual: {', '.join(salud['medicacion_habitual'])}.")
+        motivos.append(f"The profile declares regular medication: {', '.join(salud['medicacion_habitual'])}.")
     if salud.get("alergias_alimentarias"):
         motivos.append(
-            f"El perfil declara alergia(s) alimentaria(s): {', '.join(salud['alergias_alimentarias'])}."
+            f"The profile declares food allerg(y/ies): {', '.join(salud['alergias_alimentarias'])}."
         )
     return motivos
 
 
 def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict) -> list[str]:
-    """Cruza cada ejercicio del borrador contra las lesiones declaradas."""
+    """Cross-checks every exercise in the draft against the declared injuries."""
     lesion_tags = tags_lesiones(perfil)
     if not lesion_tags:
         return []
@@ -60,18 +60,18 @@ def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict) -> list
         for ejercicio in sesion.get("ejercicios", []):
             info = indice_ejercicios.get(ejercicio["nombre"])
             if info is None:
-                continue  # ejercicio fuera del banco (p.ej. venía del motor LLM): no se puede cruzar
+                continue  # exercise not in the bank (e.g. came from the LLM engine): can't be cross-checked
             conflicto = info["contraindicaciones"] & lesion_tags
             if conflicto:
                 motivos.append(
-                    f"¡Revisar! '{ejercicio['nombre']}' en '{sesion['dia']}' está contraindicado "
-                    f"para la lesión declarada ({', '.join(sorted(conflicto))})."
+                    f"Review needed! '{ejercicio['nombre']}' in '{sesion['dia']}' is contraindicated "
+                    f"for the declared injury ({', '.join(sorted(conflicto))})."
                 )
     return motivos
 
 
 def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict) -> list[str]:
-    """Cruza cada alimento sugerido en el borrador contra alergias/intolerancias declaradas."""
+    """Cross-checks every food suggested in the draft against declared allergies/intolerances."""
     excluidas = etiquetas_excluidas(perfil)
     if not excluidas:
         return []
@@ -89,15 +89,15 @@ def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict) -> list[s
         conflicto = etiquetas & excluidas
         if conflicto:
             motivos.append(
-                f"¡Revisar! '{nombre_alimento}' en el borrador de dieta podría chocar con una "
-                f"alergia/intolerancia declarada ({', '.join(sorted(conflicto))})."
+                f"Review needed! '{nombre_alimento}' in the diet draft might clash with a "
+                f"declared allergy/intolerance ({', '.join(sorted(conflicto))})."
             )
     return motivos
 
 
 def validar_borradores(perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict) -> dict:
     """
-    Emite el veredicto final del pipeline.
+    Issues the pipeline's final verdict.
 
     Returns:
         {"veredicto": "aprobado_automatico" | "revision_reforzada", "motivos": [...]}
@@ -109,7 +109,7 @@ def validar_borradores(perfil_cliente: dict, borrador_rutina: dict, borrador_die
     motivos += _validar_rutina_contra_lesiones(perfil_cliente, borrador_rutina)
     motivos += _validar_dieta_contra_alergias(perfil_cliente, borrador_dieta)
 
-    motivos_unicos = list(dict.fromkeys(motivos))  # dedup conservando el orden
+    motivos_unicos = list(dict.fromkeys(motivos))  # dedup while keeping order
 
     veredicto = "revision_reforzada" if motivos_unicos else "aprobado_automatico"
     return {"veredicto": veredicto, "motivos": motivos_unicos}

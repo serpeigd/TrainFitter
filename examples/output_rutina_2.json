@@ -1,16 +1,16 @@
 {
   "cliente_id": "cliente_002",
-  "resumen_enfoque": "Split 'full body' para nivel principiante, 3 días/semana, orientado a recomposicion corporal. Ejercicios seleccionados según el material disponible del cliente y adaptados por lesión declarada en: rodilla.",
+  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward body recomposition. Exercises selected based on the client's available equipment and adapted for a declared injury in: knee.",
   "nivel_asumido": "principiante",
   "split": "full_body",
   "dias_por_semana": 3,
   "duracion_sesion_min": 45,
   "advertencias_revision_humana": [
-    "Lesión declarada (rodilla_izquierda): Rotura de ligamento cruzado anterior hace 6 años jugando al fútbol. Operado y rehabilitado en su momento, con alta médica. Actualmente nota molestias leves con sentadilla profunda y zancadas largas. — ejercicios de riesgo excluidos o adaptados; requiere el visto bueno del entrenador antes de enviar."
+    "Declared injury (left knee): Torn ACL 6 years ago playing football. Had surgery and rehab at the time, medically cleared. Currently gets mild discomfort with deep squats and long lunges. — risky exercises excluded or adapted; requires the trainer's sign-off before sending."
   ],
   "sesiones": [
     {
-      "dia": "Día 1 — Full Body",
+      "dia": "Day 1 — Full Body",
       "grupos_musculares": [
         "core",
         "espalda",
@@ -19,45 +19,45 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Prensa de piernas (rango controlado)",
+          "nombre": "Leg press (controlled range)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Press en máquina",
-          "series": 4,
-          "repeticiones": "5-8",
-          "descanso_seg": 150,
-          "notas": ""
-        },
-        {
-          "nombre": "Remo en polea alta (agarre cerrado)",
+          "nombre": "Machine chest press",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Curl femoral sentado en máquina",
+          "nombre": "High cable row (close grip)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Seated leg curl (machine)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Elevaciones laterales con mancuernas",
+          "nombre": "Dumbbell lateral raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Plancha frontal",
+          "nombre": "Front plank",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -67,7 +67,7 @@
       "cardio_opcional": ""
     },
     {
-      "dia": "Día 2 — Full Body",
+      "dia": "Day 2 — Full Body",
       "grupos_musculares": [
         "core",
         "espalda",
@@ -76,45 +76,45 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Prensa de piernas (rango controlado)",
+          "nombre": "Leg press (controlled range)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Fondos en paralelas",
-          "series": 4,
-          "repeticiones": "5-8",
-          "descanso_seg": 150,
-          "notas": ""
-        },
-        {
-          "nombre": "Jalón al pecho",
+          "nombre": "Parallel bar dips",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Curl femoral tumbado en máquina",
+          "nombre": "Lat pulldown",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Lying leg curl (machine)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Pájaros (deltoide posterior) en máquina",
+          "nombre": "Machine reverse fly (rear delt)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Crunch en polea",
+          "nombre": "Cable crunch",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -124,7 +124,7 @@
       "cardio_opcional": ""
     },
     {
-      "dia": "Día 3 — Full Body",
+      "dia": "Day 3 — Full Body",
       "grupos_musculares": [
         "core",
         "espalda",
@@ -133,54 +133,54 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Prensa de piernas (rango controlado)",
+          "nombre": "Leg press (controlled range)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Flexiones (variante estándar)",
-          "series": 4,
-          "repeticiones": "5-8",
-          "descanso_seg": 150,
-          "notas": ""
-        },
-        {
-          "nombre": "Dominadas (asistidas si hace falta)",
+          "nombre": "Push-ups (standard)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Puente de glúteo a una pierna",
+          "nombre": "Pull-ups (assisted if needed)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Single-leg glute bridge",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
-          "notas": "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, no solo fatiga muscular."
+          "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Elevaciones frontales con mancuernas",
+          "nombre": "Dumbbell front raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Elevación de piernas colgado / tumbado",
+          "nombre": "Hanging / lying leg raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": "Cardio Zona 2 (ritmo cómodo, puedes hablar sin ahogarte), 30-40 min."
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
     }
   ],
-  "progresion": "Sobrecarga progresiva: en cada sesión, intenta sumar una repetición más manteniendo la técnica. Cuando completes el tope del rango en todas las series de un ejercicio, sube el peso ligeramente y vuelve al rango bajo. Nada de cambiar la rutina cada semana — la constancia con el mismo esquema es lo que produce el progreso.",
-  "mensaje_para_el_cliente": "Hola Javier, aquí tienes tu primer borrador de rutina. Vamos poco a poco: primero técnica, luego peso — tu cuerpo aprende antes de forzar. No hace falta que salga perfecto la primera semana, lo importante es que puedas repetirlo. Cualquier duda o si algo duele (no solo molesta), dímelo y lo ajustamos."
+  "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
+  "mensaje_para_el_cliente": "Hi Javier, here's your first draft routine. Let's go step by step: technique first, weight later — your body learns before it forces. It doesn't need to be perfect the first week; what matters is that you can repeat it. If you have any questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
 }

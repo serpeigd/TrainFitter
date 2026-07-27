@@ -1,419 +1,540 @@
-# Log de decisiones técnicas
+# Technical Decision Log
 
-> Registro cronológico de las decisiones de diseño de TrainFitter, fase a fase.
-> Sirve para retomar el proyecto y para explicarlo (entrevistas, cliente técnico).
-
----
-
-## Fase 0 — Scaffold + método del entrenador
-
-**Decisión principal.** Proyecto en **Python puro + SDK de Anthropic**, no low-code.
-
-**Por qué.** El objetivo es de aprendizaje: entender agentes, orquestación y MCP de
-**bajo nivel**. Una herramienta low-code (p. ej. n8n, Make) escondería justo lo que
-se quiere aprender. Python + SDK oficial da control total sobre prompts, estado y
-manejo de errores, y produce un código legible que se puede explicar en una entrevista.
-
-**Otras decisiones de esta fase:**
-
-- **`docs/` en vez de `files/`.** El diagrama del enunciado nombraba `files/`, pero
-  todas las tareas y todas las fases posteriores referencian `docs/`. Se usa `docs/`
-  para evitar rutas rotas y por ser el nombre convencional.
-- **Raíz del repo = `TrainFitter/`.** El enunciado nombraba `piloto-de-planes/` como
-  raíz, pero ya se trabajaba dentro de una carpeta `TrainFitter/`. Anidar sería
-  redundante; se usa `TrainFitter/` como raíz.
-- **Documentación separada del código.** El método del entrenador vive en un `.md`
-  legible (`docs/metodo_entrenador.md`) que hará de base de conocimiento consultable
-  por los agentes. En la Fase 5 podrá leerse desde Notion en lugar de un archivo local.
-- **Prioridad: claridad y comentarios didácticos** sobre optimización prematura, por
-  ser proyecto de portfolio/aprendizaje.
-- **Humano en el bucle desde el diseño.** La revisión y aprobación humana antes del
-  envío es un requisito de arquitectura, no un añadido posterior.
-
-**Pendiente / a revisar en próximas fases:**
-
-- Confirmar el *string* exacto de modelo de Anthropic a usar (Fase 2).
-- Decidir formato de salida de los borradores: Markdown vs JSON (Fase 2).
+> Chronological record of TrainFitter's design decisions, phase by phase.
+> Useful for picking the project back up and for explaining it (interviews,
+> technical stakeholders).
 
 ---
 
-## Fase 0b — Incorporación del material real del entrenador + capa clínica
+## Phase 0 — Scaffold + trainer's method
 
-Tras el scaffold, el entrenador aportó material propio en `AA_files_Training/` (su
-rutina real, PDFs de hipertrofia, nutrición, creatina/proteína, sinergias de absorción,
-longevidad, hábitos de vida). Decisiones tomadas:
+**Main decision.** Project in **plain Python + the Anthropic SDK**, no low-code.
 
-- **Base de conocimiento destilada (`docs/base_conocimiento/`).** Se separa el *criterio*
-  (método, nivel "system prompt") del *detalle técnico consultable* (nivel "RAG"). Cinco
-  notas: entrenamiento, nutrición, suplementación, sinergias de nutrientes y estilo de
-  vida/longevidad, más un índice/manifiesto que mapea cada tema a su PDF fuente. Esta
-  estructura lógica se podrá migrar a Notion en la Fase 5 sin cambios.
-- **Método enriquecido con contenido real** (números de proteína 0.8/1.6-2.4/1.2-2.2,
-  creatina 3-5 g, hipertrofia sarcoplasmática vs miofibrilar, cardio Zona 2 / Zona 4-5,
-  sinergias de absorción). Pilares nuevos: **suplementación** y **estilo de vida/longevidad**.
-  El documento creció por encima de las 600-900 palabras iniciales al ampliarse el alcance;
-  se asume el trade-off a favor de reflejar bien el método.
-- **Capa de personalización clínica (nueva).** La admisión capturará alergias,
-  enfermedades, embarazo/lactancia, medicación, peso/altura/edad y lesiones; además se
-  podrá adjuntar una **analítica en PDF** que *modula* las recomendaciones no clínicas
-  (futuro `agents/analytics_parser.py`). Regla dura reforzada: el sistema **no diagnostica
-  ni prescribe**; cualquier marcador fuera de rango / patología / embarazo / medicación /
-  lesión fuerza `revisión_reforzada`. Documentado en método §7-§8 y arquitectura.
-- **Privacidad (decisión importante).** `AA_files_Training/` contiene material personal
-  del entrenador (pesos propios, guiones de vlog). Se añade a `.gitignore` y **no se sube**
-  al repo público; solo se versiona la ciencia destilada (no personal) en
-  `docs/base_conocimiento/`. Reversible si el entrenador prefiere incluirlos.
+**Why.** The goal is learning: understanding agents, orchestration, and MCP at a
+**low level**. A low-code tool (n8n, Make, etc.) would hide exactly what's meant to
+be learned. Python + the official SDK gives full control over prompts, state, and
+error handling, and produces readable code that can be explained in an interview.
 
-**Pendiente / a revisar:**
+**Other decisions from this phase:**
 
-- Contrastar las cifras del material con fuentes científicas actualizadas (ISSN/ACSM,
-  metaanálisis) usando búsqueda web en fases posteriores, y citar fuentes en la KB.
-- Definir rangos de referencia de la analítica y el mapeo marcador → señal dietética
-  (Fase 3, junto al agente de dieta y el validador).
-- Destilar el resto de PDFs pendientes (alimentos clave, micronutrientes, hormonas, etc.)
-  si aportan al criterio.
+- **`docs/` instead of `files/`.** The original brief's diagram named `files/`, but
+  every task and every later phase references `docs/`. `docs/` is used to avoid
+  broken paths and because it's the conventional name.
+- **Repo root = `TrainFitter/`.** The brief named `piloto-de-planes/` as the root,
+  but work was already happening inside a `TrainFitter/` folder. Nesting would be
+  redundant; `TrainFitter/` is used as the root.
+- **Documentation separated from code.** The trainer's method lives in a readable
+  `.md` file (`docs/metodo_entrenador.md`) that will act as a knowledge base the
+  agents can query. In Phase 5 it could be read from Notion instead of a local file.
+- **Priority: clarity and instructive comments** over premature optimization, since
+  this is a portfolio/learning project.
+- **Human in the loop from the design stage.** Human review and approval before
+  sending is an architectural requirement, not something bolted on later.
+
+**Pending / to revisit in later phases:**
+
+- Confirm the exact Anthropic model string to use (Phase 2).
+- Decide the draft output format: Markdown vs JSON (Phase 2).
 
 ---
 
-## Fase 0c — Aclaraciones del entrenador: criterio evolutivo, ciencia dinámica, modulación activa
+## Phase 0b — Bringing in the trainer's real material + the clinical layer
 
-Tres respuestas del entrenador a las preguntas abiertas de la Fase 0b, con impacto en
-diseño:
+After the scaffold, the trainer contributed their own material in
+`AA_files_Training/` (their real routine, PDFs on hypertrophy, nutrition,
+creatine/protein, absorption synergies, longevity, lifestyle habits). Decisions made:
 
-- **El método es un punto de partida, no ley fija.** Los valores numéricos (reps,
-  g/kg, dosis) son defaults razonables que el entrenador ajusta caso a caso. Se añade
-  `docs/metodo_entrenador.md` §0 dejándolo explícito para los agentes.
-  - **Por qué:** cada cliente es distinto (genética, respuesta individual) y el
-    entrenador no quiere que el sistema trate sus cifras como reglas rígidas.
-  - **Implicación a futuro (fuera de alcance ahora):** cuando el entrenador revise y
-    edite borradores generados por la IA, esas ediciones son **datos de entrenamiento
-    reales** ("borrador IA → corrección del entrenador"). Con suficiente volumen, se
-    podrá afinar el criterio del sistema hacia el suyo específico. No se implementa
-    aún; queda anotado como dirección futura (posible Fase 8+: registro de ediciones +
-    aprendizaje de preferencias).
-- **No se fijan citas científicas estáticas en la KB.** El entrenador prefiere que el
-  sistema esté siempre actualizado a la evidencia más reciente en vez de "congelar"
-  referencias en `docs/base_conocimiento/`.
-  - **Por qué:** una nota estática con citas envejece; la ciencia nutricional/deportiva
-    se actualiza.
-  - **Cómo aplicar:** en fases de agentes (2+), evaluar dar a `routine_agent`/`diet_agent`
-    acceso a búsqueda web para contrastar con evidencia reciente en tiempo de generación,
-    en vez de depender solo de la KB estática. La KB sigue siendo la base del *criterio y
-    estilo* del entrenador, no la fuente de verdad científica.
-- **La modulación clínica debe ser ACTIVA, no solo de detección de riesgo.** El
-  objetivo final: rutina + dieta + suplementación + hábitos salen cuadrados entre sí a
-  partir del perfil completo (analítica, enfermedades, alergias, genética, contexto),
-  maximizando sinergias nutricionales y potenciando beneficios — no limitarse a marcar
-  lo peligroso.
-  - **Por qué:** es el objetivo de producto declarado por el entrenador; "máxima
-    personalización" es el valor central de TrainFitter frente a una plantilla genérica.
-  - **Cómo aplicar:** `docs/metodo_entrenador.md` §7 actualizado con ejemplos de
-    modulación activa (ferritina baja → hierro+vitamina C; vit. D baja → timing con
-    grasa; lípidos altos → ajuste de perfil graso/fibra). **La regla de seguridad no
-    cambia**: modular activamente no es diagnosticar ni prescribir — el borrador
-    modulado sigue disparando `revisión_reforzada` ante cualquier señal clínica, y
-    sigue esperando aprobación humana antes de enviarse. El diseño técnico del
-    `analytics_parser` y el mapeo marcador→ajuste se abordan en la Fase 3.
+- **Distilled knowledge base (`docs/base_conocimiento/`).** Separates the *judgment*
+  layer (the method, "system prompt" level) from the *consultable technical detail*
+  (the "RAG" level). Five notes: training, nutrition, supplementation, nutrient
+  synergies, and lifestyle/longevity, plus an index/manifest mapping each topic to
+  its source PDF. This logical structure could migrate to Notion in Phase 5 without
+  changes.
+- **Method enriched with real content** (protein numbers 0.8/1.6-2.4/1.2-2.2,
+  creatine 3-5 g, sarcoplasmic vs. myofibrillar hypertrophy, Zone 2 / Zone 4-5
+  cardio, absorption synergies). New pillars: **supplementation** and
+  **lifestyle/longevity**. The document grew past the initial 600-900-word target as
+  the scope expanded; that trade-off is accepted in favor of accurately reflecting
+  the method.
+- **Clinical personalization layer (new).** Intake will capture allergies,
+  conditions, pregnancy/breastfeeding, medication, weight/height/age, and injuries;
+  it will also allow a **PDF bloodwork report** to be attached that *modulates*
+  non-clinical recommendations (future `agents/analytics_parser.py`). Reinforced
+  hard rule: the system **never diagnoses or prescribes**; any out-of-range marker /
+  condition / pregnancy / medication / injury forces `revisión_reforzada`. Documented
+  in the method §7-§8 and in the architecture doc.
+- **Privacy (an important decision).** `AA_files_Training/` contains the trainer's
+  personal material (their own weights, vlog scripts). It's added to `.gitignore`
+  and **never pushed** to the public repo; only the distilled (non-personal) science
+  is version-controlled in `docs/base_conocimiento/`. Reversible if the trainer
+  prefers to include it.
 
-**Cómo se trabaja el repo (aclarado a petición del entrenador).** Git es el backbone de
-código y versionado durante todo el proyecto, incluidas las Fases 0-4 (desarrollo 100%
-local, sin dependencias externas). Notion entra recién en la **Fase 5** como fuente viva
-del método (en vez de leer `docs/metodo_entrenador.md` como archivo local) y como base
-de datos de estado de clientes/pipelines — pero **no sustituye a git**: el código, los
-agentes y el historial de decisiones siguen viviendo y versionándose aquí.
+**Pending / to revisit:**
+
+- Cross-check the material's figures against updated scientific sources
+  (ISSN/ACSM, meta-analyses) using web search in later phases, and cite sources in
+  the KB.
+- Define bloodwork reference ranges and the marker → dietary signal mapping
+  (Phase 3, alongside the diet agent and the validator).
+- Distill the remaining pending PDFs (key foods, micronutrients, hormones, etc.) if
+  they add to the method.
 
 ---
 
-## Fase 1 — Ficha de admisión + clientes de ejemplo
+## Phase 0c — Trainer's clarifications: evolving judgment, dynamic science, active modulation
 
-- **`admission/ficha_cliente_template.md`** redactado como formulario 100% orientado al
-  cliente final: lenguaje llano, sin jerga, con la explicación de por qué se pide cada
-  dato de salud (para personalizar y cuidar, nunca para "cerrar puertas"). Incluye las
-  preguntas clínicas definidas en la Fase 0b/0c (lesiones, enfermedades, embarazo/
-  lactancia, medicación, analítica opcional) integradas de forma natural, no como un
-  cuestionario médico frío.
-- **Esquema JSON de cliente** (usado por ambos ejemplos y que consumirán los agentes):
-  `datos_basicos`, `objetivo`, `experiencia`, `disponibilidad`, `salud` (con
+Three answers from the trainer to the open questions from Phase 0b, with design
+impact:
+
+- **The method is a starting point, not a fixed law.** The numeric values (reps,
+  g/kg, dosages) are reasonable defaults the trainer adjusts case by case. Added as
+  `docs/metodo_entrenador.md` §0, making it explicit for the agents.
+  - **Why:** every client is different (genetics, individual response), and the
+    trainer doesn't want the system to treat their figures as rigid rules.
+  - **Future implication (out of scope for now):** as the trainer reviews and edits
+    AI-generated drafts, those edits are **real training data** ("AI draft →
+    trainer's correction"). With enough volume, the system's judgment could be
+    tuned toward theirs specifically. Not implemented yet; noted as a future
+    direction (possible Phase 8+: logging edits + learning preferences).
+- **No static scientific citations fixed in the KB.** The trainer prefers the
+  system to stay current with the latest evidence rather than "freezing"
+  references in `docs/base_conocimiento/`.
+  - **Why:** a static note with citations ages; nutrition/sports science keeps
+    updating.
+  - **How to apply:** in the agent phases (2+), evaluate giving `routine_agent`/
+    `diet_agent` web search access to cross-check against recent evidence at
+    generation time, instead of relying only on the static KB. The KB remains the
+    base for the trainer's *judgment and style*, not the scientific source of
+    truth.
+- **Clinical modulation must be ACTIVE, not just risk detection.** End goal:
+  routine + diet + supplementation + habits all line up together based on the full
+  profile (bloodwork, conditions, allergies, genetics, context), maximizing
+  nutritional synergies and boosting benefits — not just flagging what's
+  dangerous.
+  - **Why:** it's the product goal the trainer stated explicitly; "maximum
+    personalization" is TrainFitter's core value versus a generic template.
+  - **How to apply:** `docs/metodo_entrenador.md` §7 updated with examples of
+    active modulation (low ferritin → iron+vitamin C; low vit. D → timing with
+    fat; high lipids → adjusting fat/fiber profile). **The safety rule doesn't
+    change**: modulating actively isn't diagnosing or prescribing — the modulated
+    draft still triggers `revisión_reforzada` on any clinical signal, and still
+    waits for human approval before being sent. The `analytics_parser`'s technical
+    design and the marker→adjustment mapping are addressed in Phase 3.
+
+**How the repo is worked (clarified at the trainer's request).** Git is the
+backbone for code and version control throughout the whole project, including
+Phases 0-4 (100% local development, no external dependencies). Notion only enters
+in **Phase 5**, as a live source for the method (instead of reading
+`docs/metodo_entrenador.md` as a local file) and as a status database for
+clients/pipelines — but **it doesn't replace git**: the code, the agents, and the
+decision history keep living and being version-controlled here.
+
+---
+
+## Phase 1 — Client intake form + example clients
+
+- **`admission/ficha_cliente_template.md`** written as a form 100% aimed at the end
+  client: plain language, no jargon, with an explanation of why each piece of
+  health data is asked for (to personalize and take care of them, never to "close
+  doors"). Includes the clinical questions defined in Phase 0b/0c (injuries,
+  conditions, pregnancy/breastfeeding, medication, optional bloodwork) woven in
+  naturally, not as a cold medical questionnaire.
+- **Client JSON schema** (used by both examples and consumed by the agents):
+  `datos_basicos`, `objetivo`, `experiencia`, `disponibilidad`, `salud` (with
   `lesiones`, `enfermedades_o_condiciones`, `embarazo_o_lactancia`,
-  `medicacion_habitual`, alergias/intolerancias, `analitica_adjunta` como placeholder
-  para la Fase 3+), `nutricion` y `estilo_de_vida`. Se añade `en_sus_palabras` /
-  `detalle` / `contexto` como campos de texto libre en varias secciones: el método
-  prioriza entender a la persona, no solo rellenar casillas.
-- **`cliente_ejemplo_1.json` (caso normal):** experiencia intermedia, 4 días/semana,
-  gimnasio completo, sin lesiones ni condiciones, dieta omnívora sin restricciones
-  complejas. Sirve de caso base para validar que el pipeline produce un buen borrador
-  sin activar ninguna alerta.
-- **`cliente_ejemplo_2.json` (caso complejo, para probar el validador):** combina
-  **lesión antigua de rodilla** (LCA, controlada pero con molestias en sentadilla
-  profunda — debe activar `revisión_reforzada` y excluir/adaptar ese patrón de
-  movimiento) con **vegetarianismo** (relevante para el agente de dieta y las sinergias
-  de absorción de proteína/hierro) e intolerancia leve a la lactosa. Se añadió también
-  una nota de "cansancio frecuente" sin analítica adjunta, a propósito, como gancho
-  narrativo para cuando se implemente el modulador de analítica (Fase 3+): hoy el
-  sistema no tiene con qué interpretarlo, así que debe quedar como texto libre sin
-  inventar un diagnóstico.
-- **`analitica_adjunta`** se deja modelado en el esquema pero **sin uso real todavía**
-  (`tiene: false` en ambos ejemplos): implementar el parser real es tarea de Fase 3+,
-  no de Fase 1.
+  `medicacion_habitual`, allergies/intolerances, `analitica_adjunta` as a
+  placeholder for Phase 3+), `nutricion`, and `estilo_de_vida`. Added
+  `en_sus_palabras` / `detalle` / `contexto` as free-text fields across several
+  sections: the method prioritizes understanding the person, not just filling in
+  boxes.
+- **`cliente_ejemplo_1.json` (normal case):** intermediate experience, 4 days/week,
+  full gym, no injuries or conditions, omnivorous diet with no complex
+  restrictions. Serves as the base case to validate that the pipeline produces a
+  good draft without triggering any alert.
+- **`cliente_ejemplo_2.json` (complex case, to test the validator):** combines an
+  **old knee injury** (ACL, controlled but with discomfort on deep squats — should
+  trigger `revisión_reforzada` and exclude/adapt that movement pattern) with
+  **vegetarianism** (relevant to the diet agent and protein/iron absorption
+  synergies) and a mild lactose intolerance. Also deliberately added a note about
+  "frequent fatigue" with no bloodwork attached, as a narrative hook for when the
+  bloodwork modulator gets built (Phase 3+): today the system has no way to
+  interpret it, so it has to stay as free text without inventing a diagnosis.
+- **`analitica_adjunta`** is modeled in the schema but **not actually used yet**
+  (`tiene: false` in both examples): building the real parser is Phase 3+ work, not
+  Phase 1.
 
 ---
 
-## Fase 2 — Agente de rutina
+## Phase 2 — Routine agent
 
-- **Modelo: `claude-sonnet-5`.** Descartado Opus (razonamiento más caro/profundo del
-  que necesita "redactar una rutina siguiendo un método ya documentado") y Haiku (se
-  prioriza calidad de personalización — el resultado lo revisa un profesional, pero
-  debe llegarle ya bien pensado, no genérico). Sonnet 5 es el punto medio correcto para
-  este agente; se reevaluará por agente si algún caso concreto lo justifica.
-- **Salida estructurada por *tool use*, no Markdown libre.** Se fuerza al modelo a
-  responder rellenando un esquema fijo (`entregar_borrador_rutina`) en vez de pedirle
-  JSON en texto y parsearlo. Motivo: el validador (Fase 3) necesita recorrer los
-  ejercicios en código para cruzarlos con las lesiones del cliente, y el orquestador
-  (Fase 4) necesita estado programático. Convertir JSON → Markdown/HTML bonito para el
-  email (Fase 5/6) es un paso trivial; parsear prosa hacia atrás no lo es. Se guarda
-  como `.json`, no `.md`.
-- **Qué parte de la base de conocimiento recibe el agente.** Además del método
-  completo, se le pasan las notas de `entrenamiento.md` y `estilo_vida_longevidad.md`
-  (relevantes para diseñar una rutina). Las notas de nutrición/suplementación quedan
-  para el agente de dieta (Fase 3) — cada agente recibe solo lo que necesita, no toda
-  la KB de golpe.
-- **Seguridad en dos capas.** El propio `routine_agent` ya adapta ejercicios ante
-  lesiones/condiciones mencionadas en el perfil y rellena `advertencias_revision_humana`
-  — pero esto es una primera pasada, no el control formal. La comprobación exhaustiva y
-  el veredicto (`aprobado_automático` / `revisión_reforzada`) es responsabilidad del
-  **agente validador** (Fase 3), que no se ha implementado todavía.
-- **Manejo de errores:** clase `RoutineAgentError` propia; se distingue explícitamente
-  API key ausente (mensaje que apunta a `.env.example`), timeout, error de conexión,
-  error de la API, y respuesta sin bloque `tool_use` (respuesta malformada).
-- **`agents/knowledge.py`** nuevo: helper compartido para leer `docs/metodo_entrenador.md`
-  y notas de `docs/base_conocimiento/` por nombre. Lo reutilizarán `diet_agent` y
-  `validator_agent` en la Fase 3 para no duplicar lógica de lectura de archivos.
-- **No se ejecutó el demo en esta sesión** (no hay `ANTHROPIC_API_KEY` configurada en
-  este entorno). Se verificó únicamente que el código compila (`py_compile`) sin errores
-  de sintaxis. Pendiente: que el entrenador ejecute `python agents/run_routine_demo.py`
-  con su propia clave y confirme que el borrador generado tiene sentido antes de dar por
-  buena la Fase 2.
-
----
-
-## Pivote — Motor de reglas gratuito por defecto (antes de seguir a Fase 3)
-
-El entrenador pidió explícitamente aparcar el requisito de API key y tener una
-**versión gratuita totalmente funcional**. Esto cambia el diseño de fondo del
-pipeline, no solo la Fase 2:
-
-- **Cada agente generador (`routine_agent`, `diet_agent`) expone un parámetro
-  `motor`: `"reglas"` (por defecto) o `"llm"` (opcional).** Ambos devuelven exactamente
-  el mismo esquema de salida, así que el validador y el orquestador son agnósticos a
-  cuál se usó — no hubo que tocarlos al añadir el motor de reglas.
-  - **Por qué no se descarta el motor LLM:** el objetivo del proyecto sigue siendo
-    aprender a montar agentes con el SDK de Anthropic. El código de tool use de la
-    Fase 2 se conserva íntegro (renombrado a función privada `_generar_borrador_*_llm`)
-    y queda listo para activarse el día que haya API key, sin rediseñar nada.
-  - **Import perezoso de `anthropic`:** se mueve `import anthropic` de nivel de módulo
-    a dentro de la función `_llm`, así que quien solo usa `motor="reglas"` ni siquiera
-    necesita tener el paquete instalado. El pipeline por defecto es **100% Python
-    estándar, cero dependencias de terceros**.
-- **Motor de reglas de rutina (`agents/exercise_bank.py` + `agents/rutina_reglas.py`):**
-  banco de ~40 ejercicios reales (inspirados en la rutina propia del entrenador de la
-  Fase 0b) etiquetados por grupo muscular, material necesario y contraindicaciones
-  (rodilla/hombro/lumbar). El motor elige split según días/semana (full body ≤3,
-  torso-pierna =4, push/pull/legs ≥5), selecciona ejercicios que el cliente puede hacer
-  con su material, aplica los rangos del método (básico 5-8, aislamiento 10-15) y
-  **excluye/sustituye ejercicios contraindicados por lesiones declaradas**, dejando el
-  motivo en `advertencias_revision_humana`.
-- **Detección de lesiones por texto libre (`agents/perfil_utils.py`):** función
-  `tags_lesiones()` que busca palabras clave (rodilla/hombro/lumbar) en `zona` +
-  `descripcion` de la ficha. Es una simplificación deliberada (matching de substring,
-  no NLP real) documentada como limitación conocida — suficiente para el MVP y para
-  que el validador pueda re-derivarla de forma independiente.
-- **Verificado con ejecución real** (ya no hace falta esperar a que el entrenador
-  configure una clave): `python agents/run_routine_demo.py` sobre ambos clientes de
-  ejemplo confirma que la lesión de rodilla de `cliente_002` excluye "Sentadilla con
-  barra" y la sustituye por "Prensa de piernas" / "Curl femoral" / "Puente de glúteo",
-  con nota explicativa en cada ejercicio adaptado.
+- **Model: `claude-sonnet-5`.** Opus was ruled out (more expensive/deeper reasoning
+  than "writing a routine following an already-documented method" needs) and so was
+  Haiku (personalization quality is prioritized — a professional reviews the
+  result, but it should arrive already well thought out, not generic). Sonnet 5 is
+  the right middle ground for this agent; will be re-evaluated per agent if a
+  specific case justifies it.
+- **Structured output via *tool use*, not free-form Markdown.** The model is forced
+  to respond by filling a fixed schema (`entregar_borrador_rutina`) instead of
+  being asked for JSON in text and having it parsed. Reason: the validator (Phase
+  3) needs to walk the exercises in code to cross-check them against the client's
+  injuries, and the orchestrator (Phase 4) needs programmatic state. Converting
+  JSON → nice Markdown/HTML for the email (Phase 5/6) is trivial; parsing prose
+  back into structure is not. Saved as `.json`, not `.md`.
+- **What part of the knowledge base the agent receives.** Besides the full method,
+  it's given the `entrenamiento.md` and `estilo_vida_longevidad.md` notes
+  (relevant to designing a routine). Nutrition/supplementation notes are left for
+  the diet agent (Phase 3) — each agent gets only what it needs, not the whole KB
+  at once.
+- **Two layers of safety.** `routine_agent` itself already adapts exercises when
+  injuries/conditions are mentioned in the profile and fills in
+  `advertencias_revision_humana` — but this is a first pass, not the formal
+  control. The exhaustive check and the verdict (`aprobado_automático` /
+  `revisión_reforzada`) is the **validator agent**'s responsibility (Phase 3), not
+  yet built.
+- **Error handling:** its own `RoutineAgentError` class; explicitly distinguishes a
+  missing API key (message pointing to `.env.example`), timeout, connection error,
+  API error, and a response with no `tool_use` block (malformed response).
+- **New `agents/knowledge.py`:** a shared helper for reading
+  `docs/metodo_entrenador.md` and notes from `docs/base_conocimiento/` by name.
+  `diet_agent` and `validator_agent` will reuse it in Phase 3 to avoid duplicating
+  file-reading logic.
+- **The demo wasn't run in this session** (no `ANTHROPIC_API_KEY` configured in
+  this environment). Only verified that the code compiles (`py_compile`) with no
+  syntax errors. Pending: the trainer runs `python agents/run_routine_demo.py`
+  with their own key and confirms the generated draft makes sense before Phase 2
+  is signed off.
 
 ---
 
-## Fase 3 — Agente de dieta + agente validador
+## Pivot — Free rule engine by default (before moving on to Phase 3)
 
-- **Motor de reglas de dieta (`agents/food_bank.py` + `agents/dieta_reglas.py`):**
-  calorías vía Mifflin-St Jeor (BMR) × factor de actividad derivado de
-  días de entreno/semana y pasos diarios, con ajuste por objetivo (hipertrofia +10%,
-  recomposición -5%, pérdida de grasa -18%, salud general 0%) — todo tomado de
-  `docs/base_conocimiento/nutricion.md`. Proteína por objetivo usando el punto medio
-  del rango del método (p.ej. hipertrofia → 2.0 g/kg). Banco de alimentos filtrado por
-  tipo de dieta (omnívora/vegetariana/vegana) y por alergias/intolerancias declaradas
-  (excluye lácteos, gluten, frutos secos, huevo, soja, pescado según corresponda).
-  Añade consejos de `sinergias_nutrientes.md` cuando el perfil los justifica (hierro +
-  vitamina C y separar café/té del hierro en dietas vegetarianas/veganas).
-- **`agents/diet_agent.py`** sigue el mismo patrón dual-motor que `routine_agent.py`.
-  El system prompt del motor LLM deja explícito que **no debe ajustar nada por
-  patologías/embarazo/medicación por su cuenta**: eso se marca en
-  `advertencias_revision_humana`, nunca se resuelve solo (método §7-§8).
-- **`agents/validator_agent.py` es intencionadamente SIEMPRE reglas**, nunca LLM — a
-  diferencia de rutina/dieta, no es una elección temporal por falta de API key. Un
-  gate de seguridad debe ser determinista y auditable: la misma entrada debe dar
-  siempre el mismo veredicto y cualquiera debe poder leer el código y saber qué se
-  comprueba exactamente.
-- **Defensa en profundidad, no solo agregación.** El validador no confía en que
-  rutina/dieta ya se auto-marcaron bien: vuelve a leer el perfil crudo de forma
-  independiente, Y ADEMÁS cruza cada ejercicio concreto del borrador contra
-  `exercise_bank` (¿algún ejercicio contraindicado se coló?) y cada alimento sugerido
-  contra `food_bank` (¿alguna sugerencia choca con una alergia declarada?). Esto
-  importa sobre todo de cara al futuro motor LLM: si algún día se equivoca al
-  autoevaluarse, el validador lo pilla igualmente.
-- **Alergias añadidas a los disparadores de `revisión_reforzada`.** El método §8
-  original no las listaba explícitamente (solo lesiones/patologías/embarazo/
-  medicación); se añaden porque una alergia mal gestionada puede ser grave — extensión
-  razonable, documentada aquí para que quede claro que es una decisión nueva.
-- **Probado con ejecución real** sobre ambos clientes
-  (`python agents/run_manual_pipeline_demo.py`): `cliente_001` →
-  `aprobado_automatico`; `cliente_002` → `revision_reforzada` con 3 motivos concretos
-  (lesión de rodilla, advertencia de rutina asociada, y una nota sobre "cansancio
-  frecuente" sin analítica adjunta que queda marcada para pedir en el seguimiento en
-  vez de inventar una interpretación clínica).
+The trainer explicitly asked to set aside the API-key requirement and have a
+**fully functional free version**. This changes the pipeline's underlying design,
+not just Phase 2:
+
+- **Each generator agent (`routine_agent`, `diet_agent`) exposes a `motor`
+  parameter: `"reglas"` (default) or `"llm"` (optional).** Both return exactly the
+  same output schema, so the validator and the orchestrator are agnostic to which
+  one was used — no need to touch them when adding the rule engine.
+  - **Why the LLM engine isn't dropped:** the project's goal is still learning to
+    build agents with the Anthropic SDK. Phase 2's tool-use code is kept intact
+    (renamed to a private `_generar_borrador_*_llm` function) and stays ready to
+    switch on the day there's an API key, with no redesign needed.
+  - **Lazy import of `anthropic`:** `import anthropic` moves from module level to
+    inside the `_llm` function, so anyone only using `motor="reglas"` doesn't even
+    need the package installed. The default pipeline is **100% standard Python,
+    zero third-party dependencies**.
+- **Routine rule engine (`agents/exercise_bank.py` + `agents/rutina_reglas.py`):**
+  a bank of ~40 real exercises (inspired by the trainer's own routine from Phase
+  0b) tagged by muscle group, required equipment, and contraindications
+  (knee/shoulder/lower-back). The engine picks a split based on days/week
+  (full body ≤3, upper/lower =4, push/pull/legs ≥5), selects exercises the client
+  can do with their equipment, applies the method's ranges (compound 5-8,
+  isolation 10-15), and **excludes/substitutes exercises contraindicated by
+  declared injuries**, leaving the reason in `advertencias_revision_humana`.
+- **Injury detection from free text (`agents/perfil_utils.py`):** a
+  `tags_lesiones()` function that looks for keywords (knee/shoulder/lower-back) in
+  the intake's `zona` + `descripcion`. A deliberate simplification (substring
+  matching, not real NLP), documented as a known limitation — sufficient for the
+  MVP and so the validator can independently re-derive it.
+- **Verified with a real run** (no longer blocked on waiting for the trainer to set
+  up a key): `python agents/run_routine_demo.py` on both example clients confirms
+  that `cliente_002`'s knee injury excludes "Barbell squat" and replaces it with
+  "Leg press" / "Leg curl" / "Glute bridge," with an explanatory note on each
+  adapted exercise.
 
 ---
 
-## Fase 4 — Orquestador
+## Phase 3 — Diet agent + validator agent
 
-- **Estado explícito vía `PipelineState` (dataclass), no variables sueltas.** El
-  estado del pipeline es un dato de primera clase — se puede loguear, inspeccionar o
-  (en la Fase 5+) persistir en Notion sin cambiar la lógica del orquestador. La lista
-  `ESTADOS` en `agents/orchestrator.py` es, literalmente, el diagrama de flujo.
-- **Transiciones:** `ficha_recibida → rutina_generada → dieta_generada → validado →
-  (pendiente_aprobacion_humana | pendiente_revision_reforzada)`, con una rama `error`
-  si algún agente lanza excepción. Cada transición se loguea con marca de tiempo.
-- **Ambas ramas de éxito exigen aprobación humana** — `aprobado_automatico` solo
-  significa "sin motivos de revisión reforzada", nunca "envíalo sin mirar". Esto es
-  deliberado: el principio de humano-en-el-bucle no depende del veredicto del
-  validador, es una propiedad del propio orquestador.
-- **Probado con ejecución real de punta a punta**
-  (`python agents/run_pipeline_demo.py`) sobre ambos clientes: se ve el recorrido de
-  estados completo en terminal y el resultado final coincide con lo verificado en la
-  Fase 3.
-
----
-
-## Investigación externa — ampliación de la base de conocimiento con fuentes verificadas
-
-El entrenador pidió reforzar la KB más allá de su material propio, buscando evidencia
-externa (estudios, posicionamientos de sociedades científicas, divulgación
-science-based tipo Jeff Nippard) y creando skills para que este proceso sea repetible.
-
-- **Qué se investigó y qué cambió** (ver `docs/base_conocimiento/*` → sección "Fuentes
-  consultadas" de cada nota para los enlaces):
-  - `entrenamiento.md`: se añade el marco de **landmarks de volumen (MEV/MAV/MRV)** de
-    Renaissance Periodization/Mike Israetel, con nota de que el "10 series/semana" del
-    método original es un punto de entrada razonable, no el marco completo. Se añade
-    guía de deload y de por qué la alta frecuencia no es para todos.
-  - `nutricion.md`: la tabla de proteína se refina con el meta-análisis de **Morton et
-    al. 2018** (satura ~1.6 g/kg/día, techo razonable ~2.2) y el **position stand de la
-    ISSN 2017** (1.4-2.0 g/kg/día suficiente para la mayoría). Se añade el dato real de
-    **fibra** (USDA: 22-28 g/día mujeres, 28-34 g/día hombres) y el **ritmo de pérdida
-    de grasa sostenible** (0.5-1% del peso corporal/semana), sustituyendo la
-    descripción cualitativa vaga por un rango accionable.
-  - `suplementacion.md`: se añaden **cafeína** (3-6 mg/kg, 45-60 min pre-entreno) y
-    **beta-alanina** (4-6 g/día repartidos, 2-4 semanas para notar efecto), ambos con
-    respaldo ISSN — el método original solo cubría creatina y proteína.
-  - `estilo_vida_longevidad.md`: cita de referencia (Sleep Foundation) para el rango de
-    sueño, sin cambiar el rango ya correcto del método.
-  - **Nota nueva: `seguridad_poblaciones_especiales.md`.** Directamente ligada a la
-    capa clínica: guía de ejercicio en embarazo (ACOG — 150 min/semana, RPE 13-15 o
-    test del habla), señales de alarma que exigen derivación médica inmediata (base
-    ACSM), y el respaldo real de por qué se restringe la flexión profunda de rodilla
-    tras lesión (guías de rehabilitación de LCA: rango ~0-80°, dosificar por RPE 6-8/10
-    en vez de al fallo). Esta nota existe para que las reglas de `validator_agent.py`
-    y `exercise_bank.py` no sean solo "sentido común programado", sino que tengan
-    detrás una razón citable.
-- **Código actualizado para reflejar la investigación, no solo la documentación:**
-  - `agents/dieta_reglas.py`: `PROTEINA_G_POR_KG["salud_general"]` sube de 1.2 a **1.4**
-    (rango ISSN para personas que entrenan, no sedentarias — el valor anterior venía
-    de una lectura de "mantenimiento" más pensada para alguien sedentario).
-  - `agents/rutina_reglas.py`: las notas que el motor genera para ejercicios adaptados
-    por lesión de rodilla ahora referencian el criterio real (rango controlado, esfuerzo
-    moderado tipo RPE) en vez de un texto genérico de "controla el rango de movimiento".
-  - `agents/routine_agent.py` y `agents/diet_agent.py`: el motor LLM (cuando se active)
-    recibe también `seguridad_poblaciones_especiales.md` como parte de su contexto.
-- **Reconciliación con la decisión de la Fase 0c** ("no hace falta poner citas, que
-  esto se actualice solo"): esa decisión hablaba de no depender de citas estáticas
-  como mecanismo *permanente* de frescura — no de nunca citar nada. Investigar y citar
-  fuentes reales en una pasada de trabajo concreta es buena práctica y no sustituye la
-  idea de que, en el futuro, el motor LLM siga contrastando con evidencia reciente en
-  tiempo de generación (eso sigue siendo el plan a más largo plazo).
-- **Skills de proyecto creadas** (`.claude/skills/`):
-  - `actualizar-base-conocimiento`: codifica el proceso de esta misma investigación
-    (dónde buscar, cómo citar, cuándo ampliar nota existente vs. crear una nueva, cómo
-    sincronizar código y documentación, qué registrar en este log) para que sea
-    repetible sin tener que redescubrirlo cada vez.
-  - `nuevo-cliente-prueba`: permite generar y probar un cliente de ejemplo ad-hoc a
-    partir de una descripción en lenguaje natural, sin que el entrenador tenga que
-    escribir JSON a mano — útil para explorar casos límite del validador.
+- **Diet rule engine (`agents/food_bank.py` + `agents/dieta_reglas.py`):** calories
+  via Mifflin-St Jeor (BMR) × an activity factor derived from training days/week
+  and daily steps, with a goal-based adjustment (hypertrophy +10%, recomposition
+  -5%, fat loss -18%, general health 0%) — all taken from
+  `docs/base_conocimiento/nutricion.md`. Protein by goal using the midpoint of the
+  method's range (e.g. hypertrophy → 2.0 g/kg). Food bank filtered by diet type
+  (omnivorous/vegetarian/vegan) and by declared allergies/intolerances (excludes
+  dairy, gluten, tree nuts, egg, soy, fish as appropriate). Adds tips from
+  `sinergias_nutrientes.md` when the profile calls for them (iron + vitamin C and
+  separating coffee/tea from iron in vegetarian/vegan diets).
+- **`agents/diet_agent.py`** follows the same dual-engine pattern as
+  `routine_agent.py`. The LLM engine's system prompt makes explicit that it
+  **must not adjust anything for conditions/pregnancy/medication on its own**:
+  that gets flagged in `advertencias_revision_humana`, never resolved solo
+  (method §7-§8).
+- **`agents/validator_agent.py` is deliberately ALWAYS rule-based**, never LLM —
+  unlike routine/diet, this isn't a temporary choice due to the lack of an API key.
+  A safety gate should be deterministic and auditable: the same input should always
+  produce the same verdict, and anyone should be able to read the code and know
+  exactly what's being checked.
+- **Defense in depth, not just aggregation.** The validator doesn't trust that
+  routine/diet already flagged themselves correctly: it re-reads the raw profile
+  independently, AND ALSO cross-checks each specific exercise in the draft against
+  `exercise_bank` (did a contraindicated exercise slip through?) and each
+  suggested food against `food_bank` (does any suggestion clash with a declared
+  allergy?). This matters most looking ahead to a future LLM engine: if it ever
+  misjudges its own self-assessment, the validator still catches it.
+- **Allergies added to the `revisión_reforzada` triggers.** The original method §8
+  didn't explicitly list them (only injuries/conditions/pregnancy/medication);
+  they're added because a mismanaged allergy can be serious — a reasonable
+  extension, documented here so it's clear it's a new decision.
+- **Tested with a real run** on both clients (`python agents/run_manual_pipeline_demo.py`):
+  `cliente_001` → `aprobado_automatico`; `cliente_002` → `revision_reforzada` with 3
+  concrete reasons (knee injury, the associated routine warning, and a note about
+  "frequent fatigue" with no bloodwork attached, flagged to ask about at follow-up
+  instead of inventing a clinical interpretation).
 
 ---
 
-## Fase 5-lite — Panel del entrenador (UI con Streamlit)
+## Phase 4 — Orchestrator
 
-Ante la elección explícita del entrenador entre seguir con Notion/Gmail reales, seguir
-ampliando la KB, o construir una interfaz, se optó por la **UI**: el pipeline ya
-funciona de punta a punta pero solo es usable por alguien cómodo con una terminal.
+- **Explicit state via a `PipelineState` dataclass, not loose variables.** The
+  pipeline's state is a first-class piece of data — it can be logged, inspected, or
+  (in Phase 5+) persisted to Notion without changing the orchestrator's logic. The
+  `ESTADOS` list in `agents/orchestrator.py` literally *is* the flow diagram.
+- **Transitions:** `ficha_recibida → rutina_generada → dieta_generada → validado →
+  (pendiente_aprobacion_humana | pendiente_revision_reforzada)`, with an `error`
+  branch if any agent raises an exception. Every transition is logged with a
+  timestamp.
+- **Both success branches require human approval** — `aprobado_automatico` only
+  means "no reasons for enhanced review," never "send it without looking." This is
+  deliberate: the human-in-the-loop principle doesn't depend on the validator's
+  verdict, it's a property of the orchestrator itself.
+- **Tested with a real end-to-end run** (`python agents/run_pipeline_demo.py`) on
+  both clients: the full state trail is visible in the terminal and the final
+  result matches what was verified in Phase 3.
 
-- **Streamlit sobre alternativas.** Python puro (coherente con el resto del proyecto,
-  sin añadir un stack de frontend separado), suficiente para un panel interno, y
-  permite iterar rápido. Se descartó FastAPI+HTML a propósito por ahora: más control,
-  pero más superficie para un paso que es "hacerlo demostrable", no "producto final".
-- **Refactor de `agents/orchestrator.py`: `on_transition` como callback en vez de
-  `print()` dentro de `transicionar()`.** El logging por consola era una decisión de
-  la Fase 4 que acoplaba el orquestador a la terminal. Se extrae a un callback
-  opcional (por defecto sigue logueando a consola, así que `run_pipeline_demo.py` no
-  cambia de comportamiento) para que la UI pueda pintar el mismo recorrido de estados
-  en pantalla. Es el tipo de cambio que conviene hacer *cuando aparece el segundo
-  consumidor* del dato, no antes — hacerlo en la Fase 4 hubiera sido especular sobre
-  una UI que todavía no existía.
-- **`ui/app.py`:** dos formas de generar un plan — elegir un cliente de `examples/`,
-  o rellenar un formulario nuevo que espeja la ficha de admisión y produce el mismo
-  JSON que consumen los agentes. Resultado: veredicto, rutina por sesión (tabla de
-  ejercicios), dieta (macros + fuentes + sinergias), descargas en JSON, y un botón de
-  aprobación **explícitamente marcado como simulado** (el envío real es Fase 5+ con
-  Gmail) — coherente con que el sistema nunca envía nada por su cuenta.
-- **Bug real encontrado y corregido durante las pruebas: `st.form` bloqueaba los
-  campos condicionales.** El diseño inicial metía el checkbox "¿tiene lesión?" y los
-  campos de zona/descripción dentro de un único `st.form`. Al probarlo en el
-  navegador (ver más abajo), marcar el checkbox nunca revelaba los campos siguientes:
-  Streamlit no reejecuta el script dentro de un formulario hasta el envío, así que la
-  UI no podía reaccionar a mitad de rellenar el formulario. Se solucionó quitando
-  `st.form` y usando widgets sueltos con `key` explícita + un botón normal al final.
-  Es exactamente el tipo de bug que solo aparece probando de verdad, no leyendo el
-  código — motivo por el que se dedicó tiempo a verificarlo en un navegador real en
-  vez de darlo por bueno tras compilar.
-- **Verificación real, con límites honestos.** Se lanzó `streamlit run ui/app.py` vía
-  `preview_start` (con `.claude/launch.json` nuevo) y se confirmó en el navegador: el
-  camino "feliz" completo (cliente de ejemplo → plan generado → rutina con tablas de
-  ejercicios → dieta con métricas → veredicto de aprobación → descargas) renderiza
-  correctamente de principio a fin. El entorno de pruebas de este chat no tiene el
-  panel de navegador visible (`screenshot`/`read_page` fallan intermitentemente sin
-  compositing activo), lo que dificultó automatizar el desplegable de selección de
-  cliente y la escritura sintética en el formulario para probar específicamente el
-  caso con lesión (`revisión_reforzada`) de principio a fin en la UI. Esa rama de
-  código (`st.warning` + lista de motivos) es estructuralmente idéntica a la rama de
-  éxito ya verificada, y la lógica que decide el veredicto (`validator_agent.py`) está
-  probada exhaustivamente por CLI — pero queda anotado aquí como verificación
-  pendiente de confirmar visualmente por el entrenador, no como algo dado por sentado
-  sin más.
-- **Dependencias nuevas:** `streamlit>=1.38.0` en `requirements.txt`, marcado como
-  opcional (el pipeline en modo "reglas" sigue sin necesitar nada). `.streamlit/config.toml`
-  con tema propio (verde azulado, `#0F766E`). `.streamlit/secrets.toml` añadido al
-  `.gitignore` por si en el futuro se necesitan credenciales ahí.
-- **Instalación de Streamlit en este entorno tuvo fricción** (errores intermitentes de
-  `pip` al escribir los `.exe` de consola en `C:\Python312\Scripts`, aparentemente por
-  bloqueo de archivo transitorio). Se resolvió reintentando la instalación; el módulo
-  quedó importable y funcional. Si el entrenador ve el mismo error al instalar, no es
-  un problema del proyecto — reintentar `pip install streamlit` suele bastar.
+---
 
-**Pendiente para cuando el entrenador lo pruebe él mismo:**
-- Confirmar visualmente el caso de revisión reforzada en la UI (`streamlit run ui/app.py`,
-  pestaña "Cliente de ejemplo" → Javier Ruiz, o pestaña "Nueva ficha" marcando una lesión).
-- Decidir si la UI necesita algo más antes de considerarla "lista para enseñar a un
-  cliente potencial" (¿logo?, ¿nombre de dominio si se despliega?, etc. — fuera de
-  alcance de esta fase).
+## External research — expanding the knowledge base with verified sources
+
+The trainer asked for the KB to be strengthened beyond their own material, by
+searching for external evidence (studies, scientific society position stands,
+science-based communication like Jeff Nippard's) and by creating skills so this
+process could be repeated.
+
+- **What was researched and what changed** (see `docs/base_conocimiento/*` →
+  each note's "Sources consulted" section for the links):
+  - `entrenamiento.md`: added the **volume landmarks (MEV/MAV/MRV)** framework
+    from Renaissance Periodization/Mike Israetel, noting that the original
+    method's "10 sets/week" is a reasonable entry point, not the whole framework.
+    Added deload guidance and why high frequency isn't for everyone.
+  - `nutricion.md`: the protein table is refined with the **Morton et al. 2018**
+    meta-analysis (plateaus ~1.6 g/kg/day, reasonable ceiling ~2.2) and the
+    **ISSN 2017 position stand** (1.4-2.0 g/kg/day sufficient for most). Added
+    real **fiber** data (USDA: 22-28 g/day women, 28-34 g/day men) and a
+    **sustainable fat-loss rate** (0.5-1% of body weight/week), replacing the
+    vague qualitative description with an actionable range.
+  - `suplementacion.md`: added **caffeine** (3-6 mg/kg, 45-60 min pre-workout) and
+    **beta-alanine** (4-6 g/day split, 2-4 weeks to notice an effect), both with
+    ISSN backing — the original method only covered creatine and protein.
+  - `estilo_vida_longevidad.md`: added a reference citation (Sleep Foundation) for
+    the sleep range, without changing the method's already-correct range.
+  - **New note: `seguridad_poblaciones_especiales.md`.** Directly tied to the
+    clinical layer: pregnancy exercise guidance (ACOG — 150 min/week, RPE 13-15
+    or the talk test), red flags requiring immediate medical referral (ACSM
+    basis), and the real backing for why deep knee flexion gets restricted after
+    an injury (ACL rehab guidelines: ~0-80° range, dosing by RPE 6-8/10 instead of
+    to failure). This note exists so the rules in `validator_agent.py` and
+    `exercise_bank.py` aren't just "hardcoded common sense," but have a citable
+    reason behind them.
+- **Code updated to reflect the research, not just the docs:**
+  - `agents/dieta_reglas.py`: `PROTEINA_G_POR_KG["salud_general"]` goes from 1.2
+    to **1.4** (the ISSN range for people who train, not sedentary ones — the
+    previous value came from a "maintenance" reading more suited to someone
+    sedentary).
+  - `agents/rutina_reglas.py`: the notes the engine generates for exercises
+    adapted for a knee injury now reference the real criteria (controlled range,
+    RPE-based moderate effort) instead of generic "control your range of motion"
+    text.
+  - `agents/routine_agent.py` and `agents/diet_agent.py`: the LLM engine (once
+    switched on) also receives `seguridad_poblaciones_especiales.md` as part of
+    its context.
+- **Reconciling with the Phase 0c decision** ("no need to add citations, this
+  should update itself"): that decision was about not depending on static
+  citations as a *permanent* freshness mechanism — not about never citing
+  anything. Researching and citing real sources during one focused work pass is
+  good practice and doesn't replace the idea that, in the future, the LLM engine
+  will keep cross-checking against recent evidence at generation time (that
+  remains the longer-term plan).
+- **Project skills created** (`.claude/skills/`):
+  - `update-knowledge-base`: codifies the process behind this very research pass
+    (where to search, how to cite, when to expand an existing note vs. create a
+    new one, how to keep code and documentation in sync, what to log here) so it's
+    repeatable without having to rediscover it each time.
+  - `new-test-client`: lets an ad-hoc example client be generated and tested from
+    a natural-language description, without the trainer having to write JSON by
+    hand — useful for exploring the validator's edge cases.
+
+---
+
+## Phase 5-lite — Trainer's panel (Streamlit UI)
+
+Given an explicit choice between continuing with real Notion/Gmail, continuing to
+expand the KB, or building an interface, the trainer picked the **UI**: the
+pipeline already works end to end but is only usable by someone comfortable with a
+terminal.
+
+- **Streamlit over the alternatives.** Plain Python (consistent with the rest of
+  the project, no separate frontend stack to add), enough for an internal panel,
+  and it allows fast iteration. FastAPI+HTML was deliberately ruled out for now:
+  more control, but more surface area for a step that's about "making it
+  demonstrable," not "final product."
+- **Refactor of `agents/orchestrator.py`: `on_transition` as a callback instead of
+  a `print()` inside `transicionar()`.** Console logging was a Phase 4 decision
+  that coupled the orchestrator to the terminal. It's extracted into an optional
+  callback (still logs to console by default, so `run_pipeline_demo.py`'s
+  behavior doesn't change) so the UI can paint the same state trail on screen.
+  This is the kind of change worth making *once a second consumer shows up*, not
+  before — doing it in Phase 4 would have meant speculating about a UI that
+  didn't exist yet.
+- **`ui/app.py`:** two ways to generate a plan — pick a client from `examples/`, or
+  fill out a new form that mirrors the intake form and produces the same JSON the
+  agents consume. Result: verdict, routine by session (exercise table), diet
+  (macros + sources + synergies), JSON downloads, and an approval button
+  **explicitly labeled as simulated** (real sending is Phase 5+ with Gmail) —
+  consistent with the system never sending anything on its own.
+- **A real bug found and fixed during testing: `st.form` was blocking the
+  conditional fields.** The initial design put the "has an injury?" checkbox and
+  the area/description fields inside a single `st.form`. When tested in the
+  browser (see below), checking the box never revealed the following fields:
+  Streamlit doesn't rerun the script inside a form until submission, so the UI
+  couldn't react partway through filling out the form. Fixed by removing
+  `st.form` and using standalone widgets with an explicit `key` each, plus a
+  regular button at the end. This is exactly the kind of bug that only shows up
+  by actually testing it, not by reading the code — the reason time was spent
+  verifying it in a real browser instead of trusting it once it compiled.
+- **Real verification, with honest limits.** `streamlit run ui/app.py` was
+  launched via `preview_start` (with a new `.claude/launch.json`) and confirmed in
+  the browser: the full "happy path" (example client → plan generated → routine
+  with exercise tables → diet with metrics → approval verdict → downloads) renders
+  correctly start to finish. This chat's test environment doesn't have the
+  browser pane reliably visible (`screenshot`/`read_page` intermittently fail
+  without active compositing), which made it hard to automate the client-selection
+  dropdown and synthetic form typing needed to specifically test the injury case
+  (`revisión_reforzada`) end to end in the UI. That code branch (`st.warning` +
+  the list of reasons) is structurally identical to the already-verified success
+  branch, and the logic that decides the verdict (`validator_agent.py`) is
+  exhaustively tested by CLI — but it's noted here as verification still pending
+  visual confirmation from the trainer, not as something taken for granted.
+- **New dependencies:** `streamlit>=1.38.0` in `requirements.txt`, marked optional
+  (the "reglas" pipeline still needs nothing). `.streamlit/config.toml` with its
+  own theme (teal, `#0F766E`). `.streamlit/secrets.toml` added to `.gitignore` in
+  case credentials are ever needed there.
+- **Installing Streamlit in this environment had some friction** (intermittent
+  `pip` errors writing the console `.exe` files under `C:\Python312\Scripts`,
+  apparently a transient file lock). Resolved by retrying the install; the module
+  ended up importable and functional. If the trainer sees the same error
+  installing it, it's not a project issue — retrying `pip install streamlit`
+  usually does it.
+
+**Pending for when the trainer tries it themselves:**
+- Visually confirm the enhanced-review case in the UI (`streamlit run ui/app.py`,
+  "Example client" tab → Javier Ruiz, or "New intake" tab while checking an
+  injury).
+- Decide whether the UI needs anything else before it's considered "ready to show
+  a potential client" (logo? a domain name if it gets deployed? etc. — out of
+  scope for this phase).
+
+---
+
+## Security audit + GitHub portfolio setup
+
+The trainer asked for the repo to be checked for personal-data leaks or security
+issues before using it as a public portfolio piece, for the GitHub "About" section
+and topics to be polished for discoverability, and for Releases/Packages/suggested
+workflows to be reviewed for anything worth adding.
+
+- **Audit findings:**
+  - `AA_files_Training/` (the trainer's personal PDFs, real routine data) — never
+    committed, confirmed clean via `git log --all --full-history`.
+  - `.env` — never committed, confirmed clean.
+  - No API keys, secrets, or tokens found anywhere in the full commit history.
+  - No leaked personal file paths found in any versioned file's content.
+  - `.claude/settings.local.json` had been committed once, in the very first
+    commit, before being untracked — content was low-severity (just Bash
+    permission-allow patterns, no real PII), but purged from history anyway for
+    hygiene since a rewrite was already happening for the item below.
+  - **Real finding: the author's real email (`sergiopdeb@gmail.com`) was present
+    in every commit's metadata**, now publicly visible since the repo is public.
+    Fixed by rewriting history (`git filter-branch`, `--env-filter` +
+    `--index-filter` in one pass) to use GitHub's official noreply address
+    (`<id>+<username>@users.noreply.github.com`) and to purge the
+    `settings.local.json` blob, then force-pushing. Given how brand-new the repo
+    was (created and pushed minutes earlier, no forks/clones yet), this was judged
+    low-risk to do immediately rather than leave the exposure live — but the
+    force-push itself was blocked by Claude Code's auto-mode classifier (a
+    destructive git operation), so it required the user's explicit go-ahead before
+    landing.
+- **GitHub "About" section:** rewrote the repo description to lead with the tech
+  stack (Python, Anthropic SDK, multi-agent, Streamlit) instead of just the
+  product pitch, and added 12 topics (`python`, `ai-agents`, `llm`,
+  `anthropic-claude`, `multi-agent-systems`, `agentic-ai`, `orchestration`,
+  `streamlit`, `mcp`, `rule-engine`, `portfolio-project`, `fitness-tech`) for
+  discoverability.
+- **Releases/Packages/workflows review:** no releases, no packages, and no custom
+  workflows existed (only GitHub's automatic Dependency Graph). Added a real CI
+  workflow (`.github/workflows/ci.yml`) that runs `py_compile` on every module,
+  validates both example clients' JSON, and — since the default `motor="reglas"`
+  pipeline needs no API key — actually **runs the full agent pipeline** on every
+  push/PR, not a mock. Added the resulting badge to the top of `README.md`.
+- **Full repo translation to English.** At the trainer's explicit request (for
+  English-language job interviews), all prose content — docs, code comments and
+  docstrings, UI text, this log, the skill files (renamed to English folder names:
+  `update-knowledge-base`, `new-test-client`) — was translated to English.
+  **Scoping decision:** Python identifiers, dict keys, and the JSON client schema
+  itself (`perfil_cliente`, `objetivo`, `lesiones`, state literals like
+  `revisión_reforzada`) were deliberately left in Spanish for this pass — renaming
+  those cascades through every agent file and the example JSON and needs careful
+  re-verification that wasn't worth rushing under time pressure in the same pass
+  as a git-history rewrite. Any code reference to an actual identifier/state value
+  in the docs stays in Spanish to match the real code, even in otherwise-English
+  prose. Chat conversation with the user stays in Spanish going forward; only the
+  repo's content changed language. See the `language-convention` memory for the
+  durable version of this rule.
+- **Exercise and food bank names translated too.** `agents/exercise_bank.py`'s and
+  `agents/food_bank.py`'s `"nombre"` values (the ~40 exercise names, ~30 food names
+  actually shown in a generated plan) were translated to English along with
+  everything else, since they're user-facing content, not code identifiers — only
+  the `"grupo"`/`"material"`/`"tipo"`/`"etiquetas"` tag keys and values stayed
+  Spanish (matched elsewhere in the code).
+- **Bilingual keyword matching (a real correctness fix, not just cosmetic).**
+  Translating the example clients' free-text fields to English
+  (`salud.lesiones[].descripcion`, `intolerancias_alimentarias`, etc.) would have
+  silently broken `perfil_utils.tags_lesiones()` and `food_bank.etiquetas_excluidas()`,
+  which detect injuries/allergies by matching Spanish keywords ("rodilla", "lactosa"...)
+  against that free text — a safety-critical feature (it's what triggers
+  `revisión_reforzada`). Both functions were updated to match **both Spanish and
+  English** keywords (knee/rodilla, shoulder/hombro, lactose/lactosa, egg/huevo,
+  soy/soja, fish/pescado, nut/fruto seco, etc.), verified by re-running the full
+  pipeline afterward and confirming `cliente_002`'s knee injury and lactose
+  intolerance were still detected correctly with the translated text. This also
+  makes the system more robust in general, not just retroactively safe.
+- **Display-only label dicts for schema values shown in generated text.**
+  `rutina_reglas.py` and `dieta_reglas.py` build human-readable summary sentences
+  (`resumen_enfoque`) that interpolate schema values like `nivel` ("intermedio") and
+  `objetivo` ("hipertrofia") directly. Since those fields stayed in Spanish but the
+  surrounding sentence is now English, the raw values would have leaked into
+  otherwise-English text ("for intermedio level... geared toward hipertrofia").
+  Added small `NIVEL_LABELS`/`OBJETIVO_LABELS`/`LESION_TAG_LABELS` dicts used only
+  when building that display text — the actual `nivel_asumido` field returned to
+  the rest of the pipeline is untouched.
+- **`ui/app.py` ES/EN toggle.** Rather than just translating the UI to English
+  outright, the trainer asked for a language switcher, since the UI is the one
+  place a bilingual product (Spanish-speaking trainer/clients, English-speaking
+  interview demo) genuinely makes sense. Implemented as a `TRANSLATIONS`/
+  `OPTION_LABELS` dictionary pair plus a sidebar radio selector, defaulting to
+  English. The generated plan's own content (exercise names, messages) is always
+  in English regardless of the toggle — the toggle only translates the UI chrome,
+  not a full live-translation of generated content, which was out of scope.
+  Verified in-browser: both languages render correctly and the toggle switches
+  live without losing the currently displayed plan.
+
+---
+
+## Fitness content disclaimer
+
+Client names, injuries, and other fitness/health details throughout this project
+(the trainer's persona, `examples/cliente_ejemplo_*.json`, the knowledge base) are
+entirely **fictional**, created for demo purposes. See `docs/metodo_entrenador.md`
+for the fictional trainer profile this project was built around.

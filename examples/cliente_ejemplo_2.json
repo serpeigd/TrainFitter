@@ -10,12 +10,12 @@
   },
   "objetivo": {
     "principal": "recomposicion_corporal",
-    "en_sus_palabras": "Quiero perder algo de grasa y ganar músculo, sobre todo recuperar la forma que tenía hace unos años. Lo que más me preocupa es no volver a lesionarme la rodilla."
+    "en_sus_palabras": "I want to lose some fat and gain muscle, mainly get back the shape I had a few years ago. What worries me most is re-injuring my knee."
   },
   "experiencia": {
     "nivel": "principiante",
     "anios_entrenando": 0.5,
-    "detalle": "Jugué al fútbol de forma habitual hasta los 35 años, luego lo dejé casi por completo. En el último medio año he ido al gimnasio de forma irregular, sin mucha estructura."
+    "detalle": "I played football regularly until I was 35, then pretty much stopped. Over the last six months I've been going to the gym on and off, without much structure."
   },
   "disponibilidad": {
     "dias_por_semana": 3,
@@ -26,8 +26,8 @@
   "salud": {
     "lesiones": [
       {
-        "zona": "rodilla_izquierda",
-        "descripcion": "Rotura de ligamento cruzado anterior hace 6 años jugando al fútbol. Operado y rehabilitado en su momento, con alta médica. Actualmente nota molestias leves con sentadilla profunda y zancadas largas.",
+        "zona": "left knee",
+        "descripcion": "Torn ACL 6 years ago playing football. Had surgery and rehab at the time, medically cleared. Currently gets mild discomfort with deep squats and long lunges.",
         "estado": "antigua_controlada",
         "activa_actualmente": false
       }
@@ -39,26 +39,26 @@
     },
     "medicacion_habitual": [],
     "alergias_alimentarias": [],
-    "intolerancias_alimentarias": ["lactosa (leve, tolera pequeñas cantidades)"],
+    "intolerancias_alimentarias": ["lactose (mild, tolerates small amounts)"],
     "analitica_adjunta": {
       "tiene": false,
       "archivo": null,
       "fecha": null,
-      "notas": "El cliente comenta cansancio frecuente últimamente. No aporta analítica todavía; pendiente de pedírsela en el seguimiento."
+      "notas": "Client mentions feeling tired frequently lately. Hasn't provided bloodwork yet; still need to ask for it at follow-up."
     }
   },
   "nutricion": {
     "tipo_dieta": "vegetariana_ovolacto",
-    "restricciones": ["sin_carne", "sin_pescado"],
+    "restricciones": ["no meat", "no fish"],
     "alimentos_que_no_le_gustan": ["tofu"],
     "comidas_al_dia_preferidas": 3,
-    "contexto": "Vegetariano desde hace 10 años por convicción personal, no está dispuesto a cambiarlo. Cocina poco entre semana por falta de tiempo, recurre a comida ya preparada con frecuencia."
+    "contexto": "Vegetarian for 10 years by personal choice, not willing to change that. Cooks little during the week due to lack of time, often relies on pre-made food."
   },
   "estilo_de_vida": {
     "horas_sueno_promedio": 6,
     "nivel_estres_percibido": "alto",
-    "tipo_trabajo": "oficina_muy_sedentario_muchas_horas",
+    "tipo_trabajo": "very sedentary office job, long hours",
     "pasos_diarios_aprox": 4000
   },
-  "notas_libres": "Está preocupado por volver a lesionarse la rodilla y pide explícitamente que se evite la sentadilla libre profunda si es posible. Nivel de estrés y sueño bajo — a tener en cuenta para la adherencia del plan."
+  "notas_libres": "Worried about re-injuring his knee and explicitly asks to avoid deep free squats if possible. Low sleep and high stress level — worth keeping in mind for plan adherence."
 }

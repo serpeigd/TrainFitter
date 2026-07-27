@@ -1,15 +1,15 @@
 """
-Motor de reglas para generar el borrador de rutina SIN llamar a ningún LLM.
+Rule engine that generates the routine draft WITHOUT calling any LLM.
 
-Es la versión "gratuita" del agente de rutina: 100% determinista, sin coste,
-sin clave de API. Traduce a código los valores por defecto del método
-(docs/base_conocimiento/entrenamiento.md) — split según nivel/días, rangos de
-reps básico=5-8 / aislamiento=10-15 — y adapta la selección de ejercicios al
-material disponible y a las lesiones declaradas.
+This is the "free" version of the routine agent: 100% deterministic, no
+cost, no API key. It translates the method's default values
+(docs/base_conocimiento/entrenamiento.md) into code — split by level/days,
+rep ranges basic=5-8 / isolation=10-15 — and adapts exercise selection to
+the client's available equipment and declared injuries.
 
-Devuelve un dict con el mismo esquema que espera el resto del pipeline
-(ENTREGAR_BORRADOR_RUTINA_TOOL en routine_agent.py), para que sea intercambiable
-con el motor LLM sin que el resto del sistema note la diferencia.
+Returns a dict with the same schema the rest of the pipeline expects
+(ENTREGAR_BORRADOR_RUTINA_TOOL in routine_agent.py), so it's interchangeable
+with the LLM engine without the rest of the system noticing the difference.
 """
 
 from collections import defaultdict
@@ -17,32 +17,33 @@ from collections import defaultdict
 from exercise_bank import EXERCISE_BANK
 from perfil_utils import tags_lesiones
 
-# Series/descanso por tipo de ejercicio, según docs/base_conocimiento/entrenamiento.md.
+# Sets/rest per exercise type, per docs/base_conocimiento/entrenamiento.md.
 PARAMETROS_POR_TIPO = {
     "basico": {"series": 4, "repeticiones": "5-8", "descanso_seg": 150},
     "aislamiento": {"series": 3, "repeticiones": "10-15", "descanso_seg": 60},
 }
 
-# Qué grupos musculares se trabajan cada tipo de día, y si cada slot debe ser
-# básico o aislamiento (orden = orden en que aparecen en la sesión).
+# Which muscle groups get trained on each day type, and whether each slot
+# should be basic or isolation (order = order in which they appear in the
+# session).
 PLANTILLAS_DIA = {
     "Full Body": [
         ("pierna_cuadriceps", "basico"), ("pecho", "basico"), ("espalda", "basico"),
         ("pierna_isquios_gluteo", "aislamiento"), ("hombro", "aislamiento"), ("core", "aislamiento"),
     ],
-    "Torso A": [
+    "Upper A": [
         ("pecho", "basico"), ("espalda", "basico"), ("hombro", "basico"),
         ("triceps", "aislamiento"), ("biceps", "aislamiento"),
     ],
-    "Torso B": [
+    "Upper B": [
         ("espalda", "basico"), ("pecho", "basico"), ("hombro", "aislamiento"),
         ("biceps", "aislamiento"), ("triceps", "aislamiento"),
     ],
-    "Pierna A": [
+    "Lower A": [
         ("pierna_cuadriceps", "basico"), ("pierna_isquios_gluteo", "basico"),
         ("pierna_cuadriceps", "aislamiento"), ("pierna_isquios_gluteo", "aislamiento"), ("core", "aislamiento"),
     ],
-    "Pierna B": [
+    "Lower B": [
         ("pierna_isquios_gluteo", "basico"), ("pierna_cuadriceps", "basico"),
         ("gemelos", "aislamiento"), ("core", "aislamiento"),
     ],
@@ -60,21 +61,33 @@ PLANTILLAS_DIA = {
     ],
 }
 
+# Display-only English labels for schema values that stay in Spanish
+# internally (see docs/decisiones.md) — used just when building the
+# human-readable "resumen_enfoque" text, not the returned field values.
+NIVEL_LABELS = {"principiante": "beginner", "intermedio": "intermediate", "avanzado": "advanced"}
+OBJETIVO_LABELS = {
+    "hipertrofia": "hypertrophy",
+    "perdida_grasa": "fat loss",
+    "recomposicion_corporal": "body recomposition",
+    "salud_general": "general health",
+}
+LESION_TAG_LABELS = {"rodilla": "knee", "hombro": "shoulder", "lumbar": "lower back"}
+
 CALENTAMIENTO_POR_DIA = {
-    "Full Body": "5-10 min de movilidad general (cadera, hombro, tobillo) + 1-2 series ligeras del primer ejercicio.",
-    "Torso A": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
-    "Torso B": "5 min de movilidad de hombro y muñeca + series de aproximación en el primer ejercicio.",
-    "Pierna A": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
-    "Pierna B": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
-    "Push": "5 min de movilidad de hombro + series de aproximación en el primer ejercicio.",
-    "Pull": "5 min de movilidad de hombro y escápula + series de aproximación en el primer ejercicio.",
-    "Legs": "5-10 min de movilidad de cadera, rodilla y tobillo + series de aproximación antes de la carga de trabajo.",
+    "Full Body": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+    "Upper A": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
+    "Upper B": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
+    "Lower A": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
+    "Lower B": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
+    "Push": "5 min of shoulder mobility + warm-up sets on the first exercise.",
+    "Pull": "5 min of shoulder and scapular mobility + warm-up sets on the first exercise.",
+    "Legs": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
 }
 
 
 def _material_cliente(perfil: dict) -> set[str]:
     material = set(perfil.get("disponibilidad", {}).get("material_disponible", []))
-    material.add("peso_corporal")  # el cuerpo siempre está disponible
+    material.add("peso_corporal")  # the body is always available
     return material
 
 
@@ -93,39 +106,39 @@ def _elegir_split_y_secuencia(dias_por_semana: int) -> tuple[str, list[str]]:
     if dias <= 3:
         return "full_body", ["Full Body"] * dias
     if dias == 4:
-        return "torso_pierna", ["Torso A", "Pierna A", "Torso B", "Pierna B"]
+        return "upper_lower", ["Upper A", "Lower A", "Upper B", "Lower B"]
     ciclo = ["Push", "Pull", "Legs"]
     return "push_pull_legs", [ciclo[i % 3] for i in range(dias)]
 
 
 def _generar_advertencias(perfil: dict) -> list[str]:
-    """Traduce señales de salud del perfil en motivos de revisión reforzada (método §8)."""
+    """Translates health signals in the profile into enhanced-review reasons (method §8)."""
     salud = perfil.get("salud", {})
     advertencias = []
 
     for lesion in salud.get("lesiones", []):
         advertencias.append(
-            f"Lesión declarada ({lesion.get('zona', 'zona no especificada')}): "
-            f"{lesion.get('descripcion', '')} — ejercicios de riesgo excluidos o adaptados; "
-            "requiere el visto bueno del entrenador antes de enviar."
+            f"Declared injury ({lesion.get('zona', 'area not specified')}): "
+            f"{lesion.get('descripcion', '')} — risky exercises excluded or adapted; "
+            "requires the trainer's sign-off before sending."
         )
     for condicion in salud.get("enfermedades_o_condiciones", []):
-        advertencias.append(f"Condición de salud declarada: {condicion}. Revisión reforzada antes de enviar.")
+        advertencias.append(f"Declared health condition: {condicion}. Enhanced review before sending.")
 
     embarazo = salud.get("embarazo_o_lactancia", {})
     if embarazo.get("aplica"):
         advertencias.append(
-            f"Cliente en embarazo/lactancia ({embarazo.get('detalle', '')}). "
-            "Requiere adaptación y visto bueno profesional antes de enviar."
+            f"Client is pregnant/breastfeeding ({embarazo.get('detalle', '')}). "
+            "Requires adaptation and professional sign-off before sending."
         )
     for medicacion in salud.get("medicacion_habitual", []):
-        advertencias.append(f"Medicación habitual declarada: {medicacion}. Revisar posibles interacciones antes de enviar.")
+        advertencias.append(f"Declared regular medication: {medicacion}. Review possible interactions before sending.")
 
     return advertencias
 
 
 def generar_borrador_rutina_reglas(perfil_cliente: dict) -> dict:
-    """Genera el borrador de rutina completo aplicando el motor de reglas."""
+    """Generates the full routine draft by applying the rule engine."""
     disponibilidad = perfil_cliente["disponibilidad"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     nivel = perfil_cliente["experiencia"]["nivel"]
@@ -142,7 +155,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict) -> dict:
         for grupo, tipo in PLANTILLAS_DIA[tipo_dia]:
             candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags)
             if not candidatos:
-                continue  # sin material/opciones seguras para este hueco: se omite en vez de fallar
+                continue  # no equipment/safe options for this slot: skip it instead of failing
             rotacion = contador_rotacion[(grupo, tipo)]
             ejercicio = candidatos[rotacion % len(candidatos)]
             contador_rotacion[(grupo, tipo)] += 1
@@ -154,18 +167,18 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict) -> dict:
                 "hombro": {"pecho", "espalda", "hombro", "triceps"},
                 "lumbar": {"pierna_isquios_gluteo", "core"},
             }
-            # Nota de rodilla informada por guías de rehabilitación de LCA: restringir
-            # carga alta a rango de flexión ~0-80° y dosificar por esfuerzo percibido
-            # (RPE), no al fallo — ver docs/base_conocimiento/seguridad_poblaciones_especiales.md
+            # Knee note informed by ACL rehab guidelines: restrict high load to
+            # a ~0-80° flexion range and dose by perceived effort (RPE), not to
+            # failure — see docs/base_conocimiento/seguridad_poblaciones_especiales.md
             notas_por_tag = {
                 "rodilla": (
-                    "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango "
-                    "controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías "
-                    "hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, "
-                    "no solo fatiga muscular."
+                    "Chosen because it's more tolerable for your knee injury. Work in a "
+                    "controlled range (avoid very deep flexion) at a moderate effort (you "
+                    "could probably do 2-3 more reps than listed); stop if you feel joint "
+                    "pain, not just muscle fatigue."
                 ),
-                "hombro": "Seleccionado por ser más tolerable para tu hombro; controla el rango de movimiento y para si notas dolor.",
-                "lumbar": "Seleccionado por ser más tolerable para tu zona lumbar; prioriza técnica sobre carga y para si notas dolor.",
+                "hombro": "Chosen because it's more tolerable for your shoulder; control the range of motion and stop if it hurts.",
+                "lumbar": "Chosen because it's more tolerable for your lower back; prioritize technique over load and stop if it hurts.",
             }
             tags_aplicables = [tag for tag in lesion_tags if grupo in grupos_afectados.get(tag, set())]
             if tags_aplicables:
@@ -179,38 +192,40 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict) -> dict:
             })
 
         sesiones.append({
-            "dia": f"Día {indice} — {tipo_dia}",
+            "dia": f"Day {indice} — {tipo_dia}",
             "grupos_musculares": sorted({grupo for grupo, _ in PLANTILLAS_DIA[tipo_dia]}),
             "calentamiento": CALENTAMIENTO_POR_DIA[tipo_dia],
             "ejercicios": ejercicios,
             "cardio_opcional": (
-                "Cardio Zona 2 (ritmo cómodo, puedes hablar sin ahogarte), 30-40 min."
+                "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
                 if indice == len(secuencia_dias) else ""
             ),
         })
 
     resumen = (
-        f"Split '{split.replace('_', ' ')}' para nivel {nivel}, {disponibilidad['dias_por_semana']} "
-        f"días/semana, orientado a {objetivo.replace('_', ' ')}. Ejercicios seleccionados según el "
-        "material disponible del cliente"
+        f"'{split.replace('_', ' ')}' split for {NIVEL_LABELS.get(nivel, nivel)} level, "
+        f"{disponibilidad['dias_por_semana']} days/week, geared toward "
+        f"{OBJETIVO_LABELS.get(objetivo, objetivo.replace('_', ' '))}. Exercises selected based on "
+        "the client's available equipment"
     )
     if lesion_tags:
-        resumen += f" y adaptados por lesión declarada en: {', '.join(sorted(lesion_tags))}."
+        etiquetas_legibles = sorted(LESION_TAG_LABELS.get(tag, tag) for tag in lesion_tags)
+        resumen += f" and adapted for a declared injury in: {', '.join(etiquetas_legibles)}."
     else:
         resumen += "."
 
     progresion = (
-        "Sobrecarga progresiva: en cada sesión, intenta sumar una repetición más manteniendo la "
-        "técnica. Cuando completes el tope del rango en todas las series de un ejercicio, sube "
-        "el peso ligeramente y vuelve al rango bajo. Nada de cambiar la rutina cada semana — "
-        "la constancia con el mismo esquema es lo que produce el progreso."
+        "Progressive overload: each session, try to add one more rep while keeping good "
+        "technique. Once you hit the top of the range on every set of an exercise, add a "
+        "little weight and go back to the bottom of the range. No changing the routine every "
+        "week — sticking with the same scheme is what actually drives progress."
     )
 
     mensaje_para_el_cliente = (
-        f"Hola {nombre.split()[0]}, aquí tienes tu primer borrador de rutina. Vamos poco a poco: "
-        "primero técnica, luego peso — tu cuerpo aprende antes de forzar. No hace falta que salga "
-        "perfecto la primera semana, lo importante es que puedas repetirlo. Cualquier duda o si algo "
-        "duele (no solo molesta), dímelo y lo ajustamos."
+        f"Hi {nombre.split()[0]}, here's your first draft routine. Let's go step by step: "
+        "technique first, weight later — your body learns before it forces. It doesn't need "
+        "to be perfect the first week; what matters is that you can repeat it. If you have any "
+        "questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
     )
 
     return {

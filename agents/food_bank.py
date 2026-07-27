@@ -1,68 +1,76 @@
 """
-Banco de alimentos para el motor de reglas de dieta.
+Food bank for the diet rule engine.
 
-Cada fuente de proteína/comida declara qué tipo de dieta la admite y qué
-alergias/intolerancias la excluyen, para poder filtrar por perfil sin
-necesidad de que un LLM "razone" sobre restricciones alimentarias básicas.
+Each protein/food source declares which diet types allow it and which
+allergies/intolerances exclude it, so the profile can be filtered without
+needing an LLM to "reason" about basic dietary restrictions.
+
+Note on scope: the "nombre" (name) values are the food display names shown
+to the user and were translated to English along with the rest of the
+project's content. `etiquetas_excluidas()` matches keywords against the free
+text in the client's declared allergies/intolerances — it checks both
+Spanish and English keywords so it keeps working regardless of which
+language that free text was written in (relevant now that example profiles
+were translated to English too). See docs/decisiones.md.
 """
 
 FUENTES_PROTEINA = [
-    {"nombre": "Pechuga de pollo", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
-    {"nombre": "Pavo", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
-    {"nombre": "Ternera magra", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
-    {"nombre": "Pescado blanco (merluza, lenguado)", "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}},
-    {"nombre": "Salmón / pescado azul", "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}},
-    {"nombre": "Huevos", "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"huevo"}},
-    {"nombre": "Yogur griego / queso fresco batido", "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}},
-    {"nombre": "Lentejas", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"}},
-    {"nombre": "Garbanzos", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"}},
+    {"nombre": "Chicken breast", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
+    {"nombre": "Turkey", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
+    {"nombre": "Lean beef", "tipos_dieta": {"omnivora"}, "etiquetas": set()},
+    {"nombre": "White fish (hake, sole)", "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}},
+    {"nombre": "Salmon / oily fish", "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}},
+    {"nombre": "Eggs", "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"huevo"}},
+    {"nombre": "Greek yogurt / whipped fresh cheese", "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}},
+    {"nombre": "Lentils", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"}},
+    {"nombre": "Chickpeas", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"}},
     {"nombre": "Tofu", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"}},
     {"nombre": "Tempeh", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"}},
     {"nombre": "Edamame", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"}},
-    {"nombre": "Seitán", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"gluten"}},
-    {"nombre": "Proteína de guisante (en polvo)", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set()},
+    {"nombre": "Seitan", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"gluten"}},
+    {"nombre": "Pea protein (powder)", "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set()},
 ]
 
 FUENTES_CARBOHIDRATO = [
-    {"nombre": "Arroz", "etiquetas": set()},
-    {"nombre": "Avena", "etiquetas": {"gluten_trazas"}},
-    {"nombre": "Patata / boniato", "etiquetas": set()},
-    {"nombre": "Pan integral", "etiquetas": {"gluten"}},
-    {"nombre": "Pasta integral", "etiquetas": {"gluten"}},
+    {"nombre": "Rice", "etiquetas": set()},
+    {"nombre": "Oats", "etiquetas": {"gluten_trazas"}},
+    {"nombre": "Potato / sweet potato", "etiquetas": set()},
+    {"nombre": "Whole wheat bread", "etiquetas": {"gluten"}},
+    {"nombre": "Whole wheat pasta", "etiquetas": {"gluten"}},
     {"nombre": "Quinoa", "etiquetas": set()},
-    {"nombre": "Legumbres (también aportan carbohidrato)", "etiquetas": {"legumbre"}},
-    {"nombre": "Fruta variada", "etiquetas": set()},
+    {"nombre": "Legumes (also a carb source)", "etiquetas": {"legumbre"}},
+    {"nombre": "Assorted fruit", "etiquetas": set()},
 ]
 
 FUENTES_GRASA = [
-    {"nombre": "Aceite de oliva virgen extra", "etiquetas": set()},
-    {"nombre": "Aguacate", "etiquetas": set()},
-    {"nombre": "Frutos secos (nueces, almendras)", "etiquetas": {"frutos_secos"}},
-    {"nombre": "Semillas (chía, lino)", "etiquetas": set()},
-    {"nombre": "Pescado azul (EPA/DHA)", "etiquetas": {"pescado"}},
+    {"nombre": "Extra virgin olive oil", "etiquetas": set()},
+    {"nombre": "Avocado", "etiquetas": set()},
+    {"nombre": "Nuts (walnuts, almonds)", "etiquetas": {"frutos_secos"}},
+    {"nombre": "Seeds (chia, flax)", "etiquetas": set()},
+    {"nombre": "Oily fish (EPA/DHA)", "etiquetas": {"pescado"}},
 ]
 
 
 def etiquetas_excluidas(perfil: dict) -> set[str]:
-    """Alergias/intolerancias del perfil traducidas a etiquetas del banco de alimentos."""
+    """Profile allergies/intolerances translated into food-bank exclusion tags."""
     salud = perfil.get("salud", {})
     texto = " ".join(
         salud.get("alergias_alimentarias", []) + salud.get("intolerancias_alimentarias", [])
     ).lower()
 
     excluidas = set()
-    if "lactosa" in texto or "lácteo" in texto or "lacteo" in texto:
+    if any(kw in texto for kw in ("lactosa", "lácteo", "lacteo", "lactose", "dairy")):
         excluidas.add("lacteo")
     if "gluten" in texto:
         excluidas.add("gluten")
         excluidas.add("gluten_trazas")
-    if "fruto" in texto and "seco" in texto:
+    if ("fruto" in texto and "seco" in texto) or "nut" in texto:
         excluidas.add("frutos_secos")
-    if "huevo" in texto:
+    if "huevo" in texto or "egg" in texto:
         excluidas.add("huevo")
-    if "soja" in texto:
+    if "soja" in texto or "soy" in texto:
         excluidas.add("soja")
-    if "pescado" in texto or "marisco" in texto:
+    if any(kw in texto for kw in ("pescado", "marisco", "fish", "seafood", "shellfish")):
         excluidas.add("pescado")
     return excluidas
 
