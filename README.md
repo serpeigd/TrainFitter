@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml/badge.svg)](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml)
 
+**🔗 [Live demo](https://trainfitter.streamlit.app/) — no install, no login, no API key.**
+
 **An assistant that helps you prepare draft workout and nutrition plans for your
 clients, following your own method and judgment — faster, without losing your voice.**
 
@@ -90,7 +92,15 @@ TrainFitter/
 
 ## How to try it
 
-### Option 1 — Visual panel (recommended)
+### Option 1 — Live demo (fastest, nothing to install)
+
+👉 **[trainfitter.streamlit.app](https://trainfitter.streamlit.app/)**
+
+Hosted free on Streamlit Community Cloud, running the same rule engine as local —
+no API key needed. Note: free-tier apps sleep after inactivity, so the first load
+may take a few seconds to wake up.
+
+### Option 2 — Visual panel, locally
 
 ```bash
 pip install streamlit
@@ -100,7 +110,7 @@ streamlit run ui/app.py
 Opens in your browser. Pick an example client or fill out a new intake form, and
 you'll watch the plan get generated live.
 
-### Option 2 — Terminal (nothing to install)
+### Option 3 — Terminal (nothing to install)
 
 The default pipeline is pure standard Python, no API key or account needed:
 

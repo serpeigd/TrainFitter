@@ -561,6 +561,19 @@ Design choices:
   Rewrote the workflow's step names to English in the same pass (they had been added
   before the "translate everything" instruction and were missed by the earlier sweep).
 
+## Live demo deployment (Streamlit Community Cloud)
+
+Deployed `ui/app.py` to Streamlit Community Cloud at
+[trainfitter.streamlit.app](https://trainfitter.streamlit.app/) — free tier, no API
+key, tracks `master` directly (auto-redeploys on push). The account login/OAuth
+authorization to Streamlit Cloud was done by the project owner directly, not by
+Claude — deploying is a one-time manual step at share.streamlit.io that requires the
+owner's own GitHub credentials. Verified live: ran the full pipeline against the
+in-app "Example client" flow via browser automation and confirmed the routine, diet,
+and verdict render exactly as they do locally, with no errors. Linked from the README
+(new "Option 1 — Live demo" section) and set as the GitHub repo's homepage URL
+(`gh repo edit --homepage`), so it surfaces in the repo's About card.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
