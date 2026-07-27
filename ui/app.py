@@ -654,16 +654,24 @@ st.markdown(t("app_intro"))
 
 tab_ejemplo, tab_nueva = st.tabs([t("tab_example"), t("tab_new_intake")])
 
-perfil_generado = None
+# Both tabs' bodies run on every script execution (Streamlit only hides the
+# inactive one client-side, it doesn't skip it) — so the generated plan must
+# be rendered *inside* the tab that produced it, tagged with "ultimo_origen",
+# or it ends up glued to the bottom of the page regardless of which tab is
+# selected. This also makes switching tabs reset what's visible: the other
+# tab simply has no matching origin to show yet.
 with tab_ejemplo:
-    perfil_generado = _selector_cliente_ejemplo()
+    perfil_ejemplo = _selector_cliente_ejemplo()
+    if perfil_ejemplo is not None:
+        st.session_state["ultimo_perfil"] = perfil_ejemplo
+        st.session_state["ultimo_origen"] = "ejemplo"
+    if st.session_state.get("ultimo_origen") == "ejemplo":
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
+
 with tab_nueva:
     perfil_nuevo = _formulario_ficha_nueva()
     if perfil_nuevo is not None:
-        perfil_generado = perfil_nuevo
-
-if perfil_generado is not None:
-    st.session_state["ultimo_perfil"] = perfil_generado
-
-if "ultimo_perfil" in st.session_state and perfil_generado is not None:
-    _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
+        st.session_state["ultimo_perfil"] = perfil_nuevo
+        st.session_state["ultimo_origen"] = "nueva"
+    if st.session_state.get("ultimo_origen") == "nueva":
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
