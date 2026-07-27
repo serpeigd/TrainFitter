@@ -36,7 +36,7 @@ jobs:
         run: python run_pipeline_demo.py
 
       - name: Install test dependencies
-        run: pip install pytest
+        run: pip install pytest pdfplumber
 
       - name: Run the test suite
         run: python -m pytest tests/ -v
