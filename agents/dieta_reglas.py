@@ -13,14 +13,16 @@ diet_agent.py).
 
 from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para
 
-# g de proteína por kg de peso corporal, según objetivo (docs/base_conocimiento/nutricion.md).
-# Se toma un valor intermedio del rango del método como punto de partida (método §0:
-# esto es un default razonable, no ley fija).
+# g de proteína por kg de peso corporal, según objetivo (docs/base_conocimiento/nutricion.md,
+# a su vez respaldado por Morton et al. 2018 y el position stand de la ISSN 2017: la
+# ganancia muscular satura ~1.6 g/kg/día, y la ISSN considera 1.4-2.0 g/kg/día suficiente
+# para la mayoría de personas que entrenan). Se toma un valor dentro de esos rangos como
+# punto de partida (método §0: default razonable, no ley fija).
 PROTEINA_G_POR_KG = {
     "hipertrofia": 2.0,
     "recomposicion_corporal": 2.0,
     "perdida_grasa": 1.8,
-    "salud_general": 1.2,
+    "salud_general": 1.4,  # "salud general" aquí implica entrenar con regularidad, no sedentarismo
 }
 
 # Ajuste calórico sobre el gasto estimado, según objetivo.

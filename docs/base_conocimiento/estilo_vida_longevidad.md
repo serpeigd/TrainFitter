@@ -16,7 +16,10 @@
 - Levantarse y moverse cada 45-60 min; caminar 10-20 min tras las comidas.
 
 ## Sueño (pilar de recuperación)
-- **7,5-9 h**; hora de despertar estable.
+- **7-9 h** para adultos en general (rango de referencia estándar); quien entrena con
+  frecuencia/intensidad alta puede beneficiarse de estar en la parte alta de ese rango
+  o algo más — el sueño es, junto con la nutrición, el factor de recuperación con más
+  respaldo en la literatura.
 - Dormitorio fresco, oscuro y silencioso; reducir luz azul 1-2 h antes.
 - Luz solar 10-20 min por la mañana para anclar el ritmo circadiano.
 
@@ -28,3 +31,6 @@
 Estos hábitos **modulan** los resultados de rutina y dieta: mal sueño o estrés alto
 reducen recuperación y adherencia. El agente puede sugerir hábitos de apoyo, pero
 **cualquier señal clínica** (ver método, §Seguridad) va a revisión humana.
+
+## Fuentes consultadas (verificadas, julio 2026)
+- [Sleep Foundation — How Sleep Affects Athletic Performance](https://www.sleepfoundation.org/physical-activity/athletic-performance-and-sleep)

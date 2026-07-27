@@ -141,7 +141,9 @@ class RoutineDraft:
 
 def _build_system_prompt() -> str:
     metodo = load_metodo_entrenador()
-    conocimiento_entrenamiento = load_knowledge_files("entrenamiento", "estilo_vida_longevidad")
+    conocimiento_entrenamiento = load_knowledge_files(
+        "entrenamiento", "estilo_vida_longevidad", "seguridad_poblaciones_especiales"
+    )
 
     return f"""Eres el asistente que redacta BORRADORES de rutina de entrenamiento para
 los clientes de un entrenador personal, replicando fielmente su método y su criterio.

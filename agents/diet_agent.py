@@ -87,7 +87,9 @@ class DietDraft:
 
 def _build_system_prompt() -> str:
     metodo = load_metodo_entrenador()
-    conocimiento_nutricion = load_knowledge_files("nutricion", "suplementacion", "sinergias_nutrientes")
+    conocimiento_nutricion = load_knowledge_files(
+        "nutricion", "suplementacion", "sinergias_nutrientes", "seguridad_poblaciones_especiales"
+    )
 
     return f"""Eres el asistente que redacta BORRADORES de dieta para los clientes de un
 entrenador personal, replicando fielmente su método y su criterio. Su motto es:

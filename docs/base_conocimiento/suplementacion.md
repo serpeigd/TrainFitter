@@ -25,7 +25,25 @@
 - Es una herramienta para **llegar al objetivo de proteína**, no imprescindible si se
   cubre con comida.
 
+## Cafeína
+- **Qué hace:** mejora rendimiento en sprints, potencia y tareas técnicas.
+- **Dosis:** 3-6 mg/kg, tomada 45-60 min antes de entrenar.
+- **Nota:** sensibilidad individual muy variable; evitar en las horas previas a dormir
+  (afecta al sueño, que es la base de la recuperación — ver `estilo_vida_longevidad.md`).
+
+## Beta-alanina
+- **Qué hace:** mejora el rendimiento en esfuerzos de alta intensidad de 1-4 minutos
+  (tampona la acidez muscular).
+- **Dosis:** 4-6 g/día, **en tomas repartidas** (~1.6 g) durante al menos 2-4 semanas
+  para notar efecto — no es un suplemento de toma puntual como la cafeína.
+- **Efecto secundario conocido:** hormigueo (parestesia), inofensivo; se reduce
+  repartiendo la dosis.
+
 ## Regla de seguridad
 Cualquier suplemento con posible interacción con medicación o patología (p. ej.
 anticoagulantes ↔ vitamina K, hierro/calcio ↔ fármacos) → **marcar para revisión
 humana**, no recomendar por defecto.
+
+## Fuentes consultadas (verificadas, julio 2026)
+- [ISSN Position Stand: Beta-Alanine](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4501114/)
+- [NIH ODS — Dietary Supplements for Exercise and Athletic Performance](https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/)

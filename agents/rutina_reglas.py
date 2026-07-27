@@ -154,8 +154,22 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict) -> dict:
                 "hombro": {"pecho", "espalda", "hombro", "triceps"},
                 "lumbar": {"pierna_isquios_gluteo", "core"},
             }
-            if any(grupo in grupos_afectados.get(tag, set()) for tag in lesion_tags):
-                notas = "Seleccionado por ser más tolerable dado tu perfil de salud; controla el rango de movimiento y para si notas dolor."
+            # Nota de rodilla informada por guías de rehabilitación de LCA: restringir
+            # carga alta a rango de flexión ~0-80° y dosificar por esfuerzo percibido
+            # (RPE), no al fallo — ver docs/base_conocimiento/seguridad_poblaciones_especiales.md
+            notas_por_tag = {
+                "rodilla": (
+                    "Seleccionado por tolerar mejor tu lesión de rodilla. Trabaja en rango "
+                    "controlado (evita flexión muy profunda) y a esfuerzo moderado (podrías "
+                    "hacer 2-3 repeticiones más de las indicadas); para si notas dolor articular, "
+                    "no solo fatiga muscular."
+                ),
+                "hombro": "Seleccionado por ser más tolerable para tu hombro; controla el rango de movimiento y para si notas dolor.",
+                "lumbar": "Seleccionado por ser más tolerable para tu zona lumbar; prioriza técnica sobre carga y para si notas dolor.",
+            }
+            tags_aplicables = [tag for tag in lesion_tags if grupo in grupos_afectados.get(tag, set())]
+            if tags_aplicables:
+                notas = notas_por_tag[tags_aplicables[0]]
             ejercicios.append({
                 "nombre": ejercicio["nombre"],
                 "series": parametros["series"],

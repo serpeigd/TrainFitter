@@ -293,3 +293,60 @@ pipeline, no solo la Fase 2:
   (`python agents/run_pipeline_demo.py`) sobre ambos clientes: se ve el recorrido de
   estados completo en terminal y el resultado final coincide con lo verificado en la
   Fase 3.
+
+---
+
+## Investigación externa — ampliación de la base de conocimiento con fuentes verificadas
+
+El entrenador pidió reforzar la KB más allá de su material propio, buscando evidencia
+externa (estudios, posicionamientos de sociedades científicas, divulgación
+science-based tipo Jeff Nippard) y creando skills para que este proceso sea repetible.
+
+- **Qué se investigó y qué cambió** (ver `docs/base_conocimiento/*` → sección "Fuentes
+  consultadas" de cada nota para los enlaces):
+  - `entrenamiento.md`: se añade el marco de **landmarks de volumen (MEV/MAV/MRV)** de
+    Renaissance Periodization/Mike Israetel, con nota de que el "10 series/semana" del
+    método original es un punto de entrada razonable, no el marco completo. Se añade
+    guía de deload y de por qué la alta frecuencia no es para todos.
+  - `nutricion.md`: la tabla de proteína se refina con el meta-análisis de **Morton et
+    al. 2018** (satura ~1.6 g/kg/día, techo razonable ~2.2) y el **position stand de la
+    ISSN 2017** (1.4-2.0 g/kg/día suficiente para la mayoría). Se añade el dato real de
+    **fibra** (USDA: 22-28 g/día mujeres, 28-34 g/día hombres) y el **ritmo de pérdida
+    de grasa sostenible** (0.5-1% del peso corporal/semana), sustituyendo la
+    descripción cualitativa vaga por un rango accionable.
+  - `suplementacion.md`: se añaden **cafeína** (3-6 mg/kg, 45-60 min pre-entreno) y
+    **beta-alanina** (4-6 g/día repartidos, 2-4 semanas para notar efecto), ambos con
+    respaldo ISSN — el método original solo cubría creatina y proteína.
+  - `estilo_vida_longevidad.md`: cita de referencia (Sleep Foundation) para el rango de
+    sueño, sin cambiar el rango ya correcto del método.
+  - **Nota nueva: `seguridad_poblaciones_especiales.md`.** Directamente ligada a la
+    capa clínica: guía de ejercicio en embarazo (ACOG — 150 min/semana, RPE 13-15 o
+    test del habla), señales de alarma que exigen derivación médica inmediata (base
+    ACSM), y el respaldo real de por qué se restringe la flexión profunda de rodilla
+    tras lesión (guías de rehabilitación de LCA: rango ~0-80°, dosificar por RPE 6-8/10
+    en vez de al fallo). Esta nota existe para que las reglas de `validator_agent.py`
+    y `exercise_bank.py` no sean solo "sentido común programado", sino que tengan
+    detrás una razón citable.
+- **Código actualizado para reflejar la investigación, no solo la documentación:**
+  - `agents/dieta_reglas.py`: `PROTEINA_G_POR_KG["salud_general"]` sube de 1.2 a **1.4**
+    (rango ISSN para personas que entrenan, no sedentarias — el valor anterior venía
+    de una lectura de "mantenimiento" más pensada para alguien sedentario).
+  - `agents/rutina_reglas.py`: las notas que el motor genera para ejercicios adaptados
+    por lesión de rodilla ahora referencian el criterio real (rango controlado, esfuerzo
+    moderado tipo RPE) en vez de un texto genérico de "controla el rango de movimiento".
+  - `agents/routine_agent.py` y `agents/diet_agent.py`: el motor LLM (cuando se active)
+    recibe también `seguridad_poblaciones_especiales.md` como parte de su contexto.
+- **Reconciliación con la decisión de la Fase 0c** ("no hace falta poner citas, que
+  esto se actualice solo"): esa decisión hablaba de no depender de citas estáticas
+  como mecanismo *permanente* de frescura — no de nunca citar nada. Investigar y citar
+  fuentes reales en una pasada de trabajo concreta es buena práctica y no sustituye la
+  idea de que, en el futuro, el motor LLM siga contrastando con evidencia reciente en
+  tiempo de generación (eso sigue siendo el plan a más largo plazo).
+- **Skills de proyecto creadas** (`.claude/skills/`):
+  - `actualizar-base-conocimiento`: codifica el proceso de esta misma investigación
+    (dónde buscar, cómo citar, cuándo ampliar nota existente vs. crear una nueva, cómo
+    sincronizar código y documentación, qué registrar en este log) para que sea
+    repetible sin tener que redescubrirlo cada vez.
+  - `nuevo-cliente-prueba`: permite generar y probar un cliente de ejemplo ad-hoc a
+    partir de una descripción en lenguaje natural, sin que el entrenador tenga que
+    escribir JSON a mano — útil para explorar casos límite del validador.

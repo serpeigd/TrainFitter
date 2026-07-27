@@ -41,3 +41,36 @@ tope del rango, subir el peso. Nada de "confundir al músculo" cambiando todo ca
 - **Avanzado:** especialización y control de fatiga.
 - **La disponibilidad y el material mandan:** el plan se construye con lo que la persona
   tiene y el tiempo del que dispone.
+
+## Volumen: landmarks (MEV / MAV / MRV) — refuerzo con evidencia
+
+El modelo de "10 series/semana por grupo" del método (docs/metodo_entrenador.md §2) es
+un punto de entrada razonable, pero el marco de referencia más citado en la literatura
+y en la comunidad de fuerza basada en evidencia (Renaissance Periodization / Dr. Mike
+Israetel; divulgadores como Jeff Nippard) usa **landmarks individuales**, no un número
+fijo para todos:
+
+- **MV (volumen de mantenimiento):** el mínimo para no perder lo ganado (~6 series/semana
+  como referencia general).
+- **MEV (volumen mínimo efectivo):** a partir de aquí el músculo empieza a crecer.
+- **MAV (volumen máximo adaptativo):** la zona donde se progresa mejor; no es un número
+  fijo, es el rango entre MEV y MRV que se recorre progresivamente a lo largo del
+  mesociclo.
+- **MRV (volumen máximo recuperable):** el techo que el cuerpo aún puede recuperar;
+  pasarse de aquí sin descanso lleva a sobreentrenamiento.
+
+**Aplicación práctica:** empezar cerca del MEV, subir volumen semana a semana dentro
+del mesociclo hacia el MAV, y hacer un **deload** (semana de volumen/intensidad muy
+reducida) antes de llegar al MRV — no esperar a estancarse o notar mal rendimiento.
+Los grupos grandes (espalda, pierna) suelen tolerar más volumen que los pequeños
+(bíceps, tríceps, gemelos).
+
+**Frecuencia:** con más frecuencia se puede repartir más volumen semanal en series de
+mejor calidad por sesión (menos fatiga acumulada por serie). No se recomienda alta
+frecuencia (5-6x/semana el mismo grupo) para principiantes ni para quien compagina
+fuerza pura e hipertrofia a la vez — mejor reservarla para objetivos específicos.
+
+## Fuentes consultadas (verificadas, julio 2026)
+- [Training Volume Landmarks for Muscle Growth — RP Strength](https://rpstrength.com/expert-advice/training-volume-landmarks-muscle-growth)
+- [International Society of Sports Nutrition Position Stand: protein and exercise](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5477153/) (contexto de dosis-respuesta en entrenamiento de fuerza)
+- Resumen de principios de Jeff Nippard sobre volumen/frecuencia (divulgación basada en estudios, no una cita textual suya)
