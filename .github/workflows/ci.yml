@@ -1,8 +1,8 @@
 name: CI
 
-# El pipeline por defecto (motor="reglas") es Python estándar y no necesita
-# ninguna API key, así que este workflow puede ejecutar los agentes de
-# verdad -- no solo un placeholder -- en cada push/PR, gratis.
+# The default engine (motor="reglas") is standard Python and needs no API
+# key, so this workflow can run the real agents and test suite -- not just
+# a placeholder -- on every push/PR, for free.
 on:
   push:
     branches: [master]
@@ -19,18 +19,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Comprobar sintaxis de todos los módulos
+      - name: Check syntax of all modules
         run: python -m py_compile agents/*.py ui/app.py
 
-      - name: Validar esquema de los clientes de ejemplo
+      - name: Validate example client schemas
         run: |
           python -c "
           import json
           for n in (1, 2):
               json.load(open(f'examples/cliente_ejemplo_{n}.json', encoding='utf-8'))
-          print('JSON válido: ambos clientes de ejemplo')
+          print('Valid JSON: both example clients')
           "
 
-      - name: Ejecutar el pipeline completo (motor de reglas, sin API key)
+      - name: Run the full pipeline (rule engine, no API key)
         working-directory: agents
         run: python run_pipeline_demo.py
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run the test suite
+        run: python -m pytest tests/ -v

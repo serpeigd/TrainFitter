@@ -10,3 +10,7 @@ streamlit>=1.38.0
 # reales a la API de Anthropic en vez del motor de reglas gratuito):
 # anthropic>=0.40.0
 # python-dotenv>=1.0.0
+
+# Tests (opcional) — solo si quieres ejecutar la suite en tests/. Gratis,
+# no llama a ninguna API:
+pytest>=8.0.0

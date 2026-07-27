@@ -532,6 +532,47 @@ workflows to be reviewed for anything worth adding.
 
 ---
 
+## Test suite (pytest)
+
+Added `tests/` with 42 tests covering: split/day selection and injury-based exercise
+exclusion in `rutina_reglas.py`; calorie/macro math and allergy warnings in
+`dieta_reglas.py`; bilingual keyword matching in `perfil_utils.tags_lesiones()` and
+`food_bank.etiquetas_excluidas()` (the exact logic a prior translation pass silently
+broke — see the English translation entry above); the validator's aggregation *and*
+its defense-in-depth cross-check (hand-built "defective" drafts that don't self-flag
+a contraindicated exercise/food, confirming the validator catches it independently);
+and the orchestrator end-to-end against both real example clients, asserting the
+exact state history and that every terminal state is `pendiente_*` — never a "sent"
+state.
+
+Design choices:
+- A root `conftest.py` puts `agents/` on `sys.path`, mirroring how the existing demo
+  scripts already run (`python agents/run_pipeline_demo.py` adds its own directory to
+  `sys.path` automatically) — no package restructuring needed just to make tests
+  importable.
+- `tests/conftest.py` provides one `perfil_base` fixture (a clean, deep-copyable
+  client profile) instead of a fixture per scenario — individual tests mutate the
+  specific field they're testing, keeping intent obvious at the call site.
+- No mocking anywhere: every test runs the real deterministic rule engine, matching
+  the project's own "free and reproducible" principle instead of testing behavior
+  against a stand-in.
+- Wired into `.github/workflows/ci.yml` as an additional step (`pytest tests/ -v`)
+  after the existing smoke test — same job, no new secrets, still runs on every push.
+  Rewrote the workflow's step names to English in the same pass (they had been added
+  before the "translate everything" instruction and were missed by the earlier sweep).
+
+## Free-only guardrail
+
+Reconfirmed while planning next steps: the **only** piece of this project that would
+ever require a paid API key is the optional `motor="llm"` path (pay-per-token
+Anthropic API calls). Every other planned addition — the test suite above, deploying
+the Streamlit demo, a bloodwork PDF parser, Gmail/Notion connectors — uses either
+local libraries or free-tier OAuth APIs. `motor="llm"` stays designed-but-untested
+against the real API and is treated as strictly optional: the project's "fully free"
+promise does not depend on it ever being exercised.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

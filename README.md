@@ -79,6 +79,7 @@ TrainFitter/
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
 ├── agents/                          Routine, diet, validator, and orchestrator
+├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             MCP connectors: Notion, Gmail (Phase 5)
 ├── templates/                       Email/plan templates (Phase 5)
@@ -122,3 +123,15 @@ the Anthropic API instead of the rule engine. To try it:
 pip install -r requirements.txt
 ```
 then copy `.env.example` to `.env` and set your `ANTHROPIC_API_KEY`.
+
+## Running the tests
+
+Free — no API key needed, covers the rule engines, the validator's safety cross-checks,
+and the full orchestrator pipeline:
+
+```bash
+pip install pytest
+pytest
+```
+
+This is the same command CI runs on every push (`.github/workflows/ci.yml`).
