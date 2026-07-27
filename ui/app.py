@@ -50,13 +50,9 @@ TRANSLATIONS = {
     "en": {
         "app_title": "💪 TrainFitter — Trainer's panel",
         "app_motto": '"Teach your body that your mind is in charge."',
-        "app_intro": (
-            "Generate a draft routine and diet from a client's intake. "
-            "**Everything you see here is a draft**: nothing is sent without your approval."
-        ),
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
-        "tab_new_intake": "📝 New intake",
+        "tab_new_intake": "📝 New Client",
         "sec_basic_info": "1. Basic info",
         "full_name": "Full name",
         "age": "Age",
@@ -155,13 +151,9 @@ TRANSLATIONS = {
     "es": {
         "app_title": "💪 TrainFitter — Panel del entrenador",
         "app_motto": '"Enseña a tu cuerpo que quien manda es tu mente."',
-        "app_intro": (
-            "Genera un borrador de rutina y dieta a partir de la ficha de un cliente. "
-            "**Todo lo que ves aquí es un borrador**: nada se envía sin tu aprobación."
-        ),
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
-        "tab_new_intake": "📝 Nueva ficha",
+        "tab_new_intake": "📝 Cliente nuevo",
         "sec_basic_info": "1. Datos básicos",
         "full_name": "Nombre completo",
         "age": "Edad",
@@ -338,6 +330,33 @@ def _slug(texto: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", texto.lower()).strip("-") or "cliente"
 
 
+# A selectbox/multiselect's already-rendered collapsed label doesn't refresh
+# on its own when only format_func's output changes on a rerun (a known
+# Streamlit/BaseWeb limitation) — confirmed while building the language
+# toggle: switching language left previously-selected options (e.g. the
+# equipment multiselect's default chips) showing their old-language text.
+# Suffixing the widget's key with the current language forces a remount,
+# which does pick up the new labels; these helpers carry the previously
+# chosen raw value across that key swap so switching language mid-form
+# doesn't reset the trainer's in-progress selection back to the default.
+def _clave_selectbox(nombre_base: str, opciones: list[str], por_defecto: str) -> tuple[str, int]:
+    clave_valor = f"{nombre_base}_valor"
+    clave_widget = f"{nombre_base}_{st.session_state.lang}"
+    if clave_widget in st.session_state:
+        st.session_state[clave_valor] = st.session_state[clave_widget]
+    valor_actual = st.session_state.get(clave_valor, por_defecto)
+    indice = opciones.index(valor_actual) if valor_actual in opciones else 0
+    return clave_widget, indice
+
+
+def _clave_multiselect(nombre_base: str, por_defecto: list[str]) -> tuple[str, list[str]]:
+    clave_valor = f"{nombre_base}_valor"
+    clave_widget = f"{nombre_base}_{st.session_state.lang}"
+    if clave_widget in st.session_state:
+        st.session_state[clave_valor] = st.session_state[clave_widget]
+    return clave_widget, st.session_state.get(clave_valor, por_defecto)
+
+
 # ---------------------------------------------------------------------------
 # Building the profile from the new-intake form
 # ---------------------------------------------------------------------------
@@ -353,18 +372,22 @@ def _formulario_ficha_nueva() -> dict | None:
     c1, c2, c3 = st.columns(3)
     nombre = c1.text_input(t("full_name"), key="nombre")
     edad = c2.number_input(t("age"), min_value=14, max_value=100, value=30, key="edad")
-    sexo = c3.selectbox(t("sex"), ["mujer", "hombre"], format_func=opt, key="sexo")
+    clave_sexo, indice_sexo = _clave_selectbox("sexo", ["mujer", "hombre"], "mujer")
+    sexo = c3.selectbox(t("sex"), ["mujer", "hombre"], format_func=opt, index=indice_sexo, key=clave_sexo)
     c4, c5 = st.columns(2)
     peso_kg = c4.number_input(t("weight_kg"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="peso")
     altura_cm = c5.number_input(t("height_cm"), min_value=120, max_value=230, value=170, key="altura")
 
     st.subheader(t("sec_goal"))
-    principal = st.selectbox(t("goal_main"), OBJETIVOS, format_func=opt, key="objetivo")
+    clave_objetivo, indice_objetivo = _clave_selectbox("objetivo", OBJETIVOS, OBJETIVOS[0])
+    principal = st.selectbox(t("goal_main"), OBJETIVOS, format_func=opt, index=indice_objetivo, key=clave_objetivo)
     en_sus_palabras = st.text_area(t("goal_in_words"), key="en_sus_palabras")
 
     st.subheader(t("sec_experience"))
     c6, c7 = st.columns(2)
-    nivel = c6.selectbox(t("level"), ["principiante", "intermedio", "avanzado"], format_func=opt, key="nivel")
+    niveles = ["principiante", "intermedio", "avanzado"]
+    clave_nivel, indice_nivel = _clave_selectbox("nivel", niveles, "principiante")
+    nivel = c6.selectbox(t("level"), niveles, format_func=opt, index=indice_nivel, key=clave_nivel)
     anios_entrenando = c7.number_input(t("years_training"), min_value=0.0, max_value=50.0, value=0.5, step=0.5, key="anios")
     detalle_experiencia = st.text_area(t("experience_details"), key="detalle_experiencia")
 
@@ -372,13 +395,15 @@ def _formulario_ficha_nueva() -> dict | None:
     c8, c9 = st.columns(2)
     dias_por_semana = c8.slider(t("days_per_week"), 1, 6, 4, key="dias")
     minutos_por_sesion = c9.number_input(t("minutes_per_session"), min_value=15, max_value=180, value=60, step=5, key="minutos")
+    lugares_entreno = ["gimnasio_completo", "gimnasio_pequeno", "casa_con_material", "casa_sin_material"]
+    clave_lugar, indice_lugar = _clave_selectbox("lugar_entreno", lugares_entreno, lugares_entreno[0])
     lugar_entreno = st.selectbox(
-        t("training_location"),
-        ["gimnasio_completo", "gimnasio_pequeno", "casa_con_material", "casa_sin_material"],
-        format_func=opt,
-        key="lugar_entreno",
+        t("training_location"), lugares_entreno, format_func=opt, index=indice_lugar, key=clave_lugar,
     )
-    material_disponible = st.multiselect(t("available_equipment"), MATERIAL_OPCIONES, default=MATERIAL_OPCIONES, format_func=opt, key="material")
+    clave_material, valor_material = _clave_multiselect("material", MATERIAL_OPCIONES)
+    material_disponible = st.multiselect(
+        t("available_equipment"), MATERIAL_OPCIONES, default=valor_material, format_func=opt, key=clave_material,
+    )
 
     st.subheader(t("sec_health"))
     st.caption(t("sec_health_caption"))
@@ -388,7 +413,11 @@ def _formulario_ficha_nueva() -> dict | None:
     if tiene_lesion:
         zona_lesion = st.text_input(t("injury_area"), key="zona_lesion")
         descripcion_lesion = st.text_area(t("injury_description"), key="descripcion_lesion")
-        estado_lesion = st.selectbox(t("injury_status"), ["antigua_controlada", "activa"], format_func=opt, key="estado_lesion")
+        estados_lesion = ["antigua_controlada", "activa"]
+        clave_estado_lesion, indice_estado_lesion = _clave_selectbox("estado_lesion", estados_lesion, estados_lesion[0])
+        estado_lesion = st.selectbox(
+            t("injury_status"), estados_lesion, format_func=opt, index=indice_estado_lesion, key=clave_estado_lesion,
+        )
 
     c10, c11 = st.columns(2)
     enfermedades_texto = c10.text_input(t("conditions"), key="enfermedades")
@@ -404,7 +433,9 @@ def _formulario_ficha_nueva() -> dict | None:
     analitica_pdf = st.file_uploader(t("bloodwork_upload"), type=["pdf"], key="analitica")
 
     st.subheader(t("sec_nutrition"))
-    tipo_dieta = st.selectbox(t("diet_type"), ["omnivora", "vegetariana_ovolacto", "vegana"], format_func=opt, key="tipo_dieta")
+    tipos_dieta = ["omnivora", "vegetariana_ovolacto", "vegana"]
+    clave_tipo_dieta, indice_tipo_dieta = _clave_selectbox("tipo_dieta", tipos_dieta, "omnivora")
+    tipo_dieta = st.selectbox(t("diet_type"), tipos_dieta, format_func=opt, index=indice_tipo_dieta, key=clave_tipo_dieta)
     c14, c15 = st.columns(2)
     restricciones_texto = c14.text_input(t("additional_restrictions"), key="restricciones")
     no_le_gustan_texto = c15.text_input(t("disliked_foods"), key="no_le_gustan")
@@ -414,7 +445,9 @@ def _formulario_ficha_nueva() -> dict | None:
     st.subheader(t("sec_lifestyle"))
     c16, c17, c18 = st.columns(3)
     horas_sueno = c16.number_input(t("avg_sleep"), min_value=3.0, max_value=12.0, value=7.0, step=0.5, key="sueno")
-    estres = c17.selectbox(t("stress_level"), ["bajo", "medio", "alto"], format_func=opt, key="estres")
+    niveles_estres = ["bajo", "medio", "alto"]
+    clave_estres, indice_estres = _clave_selectbox("estres", niveles_estres, "medio")
+    estres = c17.selectbox(t("stress_level"), niveles_estres, format_func=opt, index=indice_estres, key=clave_estres)
     pasos = c18.number_input(t("daily_steps"), min_value=0, max_value=30000, value=6000, step=500, key="pasos")
     tipo_trabajo = st.text_input(t("job_type"), key="tipo_trabajo")
 
@@ -655,28 +688,38 @@ with st.sidebar:
 
 st.title(t("app_title"))
 st.caption(t("app_motto"))
-st.markdown(t("app_intro"))
 
-tab_ejemplo, tab_nueva = st.tabs([t("tab_example"), t("tab_new_intake")])
+# st.tabs() is deliberately NOT used here: its labels double as its React
+# identity, so translating them on a language switch remounts the whole
+# component and resets the view to the first tab — reproduced and confirmed
+# while building this. st.segmented_control's value is decoupled from its
+# displayed text (format_func), exactly like the selectboxes elsewhere in
+# this file, so the active section survives a language switch untouched.
+SECCIONES = ["nueva", "ejemplo"]  # "New Client" first, per the trainer's workflow
+seccion_activa = st.segmented_control(
+    "navigation",
+    SECCIONES,
+    format_func=lambda k: t("tab_new_intake") if k == "nueva" else t("tab_example"),
+    default="nueva",
+    key="seccion_activa",
+    label_visibility="collapsed",
+)
 
-# Both tabs' bodies run on every script execution (Streamlit only hides the
-# inactive one client-side, it doesn't skip it) — so the generated plan must
-# be rendered *inside* the tab that produced it, tagged with "ultimo_origen",
-# or it ends up glued to the bottom of the page regardless of which tab is
-# selected. This also makes switching tabs reset what's visible: the other
-# tab simply has no matching origin to show yet.
-with tab_ejemplo:
-    perfil_ejemplo = _selector_cliente_ejemplo()
-    if perfil_ejemplo is not None:
-        st.session_state["ultimo_perfil"] = perfil_ejemplo
-        st.session_state["ultimo_origen"] = "ejemplo"
-    if st.session_state.get("ultimo_origen") == "ejemplo":
-        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
-
-with tab_nueva:
+# The generated plan is rendered *inside* whichever section produced it,
+# tagged with "ultimo_origen" — otherwise it would stay visible after
+# switching to the other section, which has nothing to do with it.
+if seccion_activa == "nueva":
     perfil_nuevo = _formulario_ficha_nueva()
     if perfil_nuevo is not None:
         st.session_state["ultimo_perfil"] = perfil_nuevo
         st.session_state["ultimo_origen"] = "nueva"
     if st.session_state.get("ultimo_origen") == "nueva":
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
+
+elif seccion_activa == "ejemplo":
+    perfil_ejemplo = _selector_cliente_ejemplo()
+    if perfil_ejemplo is not None:
+        st.session_state["ultimo_perfil"] = perfil_ejemplo
+        st.session_state["ultimo_origen"] = "ejemplo"
+    if st.session_state.get("ultimo_origen") == "ejemplo":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])

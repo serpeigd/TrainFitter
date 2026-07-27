@@ -618,6 +618,46 @@ project owner before building:
   `salud.analitica_adjunta.marcadores` — a backward-compatible schema addition
   (existing example clients need no changes; the field defaults to `[]`).
 
+## UI navigation and i18n fixes (ui/app.py)
+
+Three bugs reported after using the app for a while, all reproduced and confirmed
+via direct DOM inspection (not just visual guessing) before fixing:
+
+- **Switching language reset the active tab to the first one.** Root cause:
+  `st.tabs([t("tab_example"), t("tab_new_intake")])` has no `key=` parameter, so
+  Streamlit derives the tab component's frontend identity partly from its
+  arguments — the (now-translated) labels. Changing the labels on a language
+  switch changes that derived identity, so React unmounts and remounts the whole
+  tabs component, which forgets which tab was active and defaults back to index 0.
+  Confirmed via `document.querySelectorAll('[role="tab"]')[...].getAttribute('aria-selected')`
+  flipping back to the first tab specifically on a language-radio click, not on
+  ordinary reruns (e.g. clicking "Generate plan" didn't reset it).
+  **Fix**: replaced `st.tabs()` with `st.segmented_control()`, whose selected
+  *value* is a stable, language-independent string (`"nueva"` / `"ejemplo"`)
+  decoupled from its displayed text via `format_func` — the same
+  value/display-label separation already used for every other translated
+  selectbox in this file. Its `key="seccion_activa"` keeps the selection in
+  `st.session_state` across any rerun, language-triggered or not.
+- **Already-selected selectbox/multiselect options kept showing their previous
+  language's label after switching.** Confirmed on the equipment multiselect:
+  its default-selected chips stayed as "Guided machines" etc. after switching to
+  Spanish, even though every *unset* label on the page translated correctly.
+  This is a known Streamlit/BaseWeb Select limitation — the collapsed/chip
+  display doesn't reliably re-render from a changed `format_func` alone when the
+  underlying raw value hasn't changed. **Fix**: `_clave_selectbox()` /
+  `_clave_multiselect()` helpers suffix the affected widgets' keys with the
+  current language, forcing a full remount (which does pick up fresh labels) on
+  a language switch, while carrying the previously chosen raw value across that
+  key swap so the trainer's in-progress selection isn't lost. Verified with both
+  the untouched default (all 6 equipment items) and a manually deselected chip
+  (5 items) — both survived a full EN→ES→EN round trip with the exact right
+  items, correctly translated each time.
+- **Requested polish**: swapped section order ("New Client" now first, matching
+  the trainer's actual workflow of starting a fresh intake more often than
+  picking an example), renamed "New intake" → "New Client" / "Cliente nuevo",
+  and removed the intro paragraph under the app title (redundant with the tab
+  labels once "New Client" was first).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
