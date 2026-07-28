@@ -26,12 +26,24 @@ secret (like an API key), not a three-legged OAuth flow like Gmail's — no
 browser consent screen, no token refresh cycle. Simpler setup, same secret-
 handling discipline (env var, never committed — see .env.example).
 
+DESIGN — "Email Sent" is a manual checkbox, not an automated one: it's
+initialized to False here so the trainer has a follow-up flag to tick
+themselves, in Notion, once they've actually hit send on the Gmail draft
+(see mcp/gmail_client.py). Automatically detecting a real send would need
+either a broader Gmail OAuth scope than the deliberately minimal
+`gmail.compose` this project uses (which can't read the mailbox at all —
+see gmail_client.py's docstring), or push-notification infrastructure that
+doesn't fit a Streamlit app with no persistent backend. Deliberately not
+built — the manual checkbox gets the actual follow-up value (a filterable
+"who's still pending" view in Notion) without weakening the send-scope
+guarantee that was a considered trade-off elsewhere in this project.
+
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
      copy its "Internal Integration Secret".
   2. In Notion, create a database with these exact properties:
        Name (title), Date (date), Goal (select), Level (select),
-       Verdict (select), Summary (text)
+       Verdict (select), Summary (text), Email Sent (checkbox)
   3. Share that database with the integration (the "..." menu on the
      database page -> Connections -> add the integration by name).
   4. Set NOTION_API_KEY and NOTION_DATABASE_ID in your .env (see
@@ -95,6 +107,7 @@ def _construir_propiedades_pagina(
         "Level": {"select": {"name": NIVEL_LABELS.get(nivel, nivel)}},
         "Verdict": {"select": {"name": VEREDICTO_LABELS.get(veredicto["veredicto"], veredicto["veredicto"])}},
         "Summary": {"rich_text": [{"text": {"content": _construir_resumen(borrador_rutina, borrador_dieta)}}]},
+        "Email Sent": {"checkbox": False},
     }
 
 

@@ -50,12 +50,16 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
 
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
 
-    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary"}
+    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent"}
     assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
     assert propiedades["Date"]["date"]["start"] == "2026-01-15"
     assert propiedades["Goal"]["select"]["name"] == "Hypertrophy"
     assert propiedades["Level"]["select"]["name"] == "Intermediate"
     assert propiedades["Verdict"]["select"]["name"] == "Approved"
+    # New records always start unsent -- "Email Sent" is a manual follow-up
+    # flag the trainer ticks themselves in Notion after actually sending the
+    # Gmail draft (see the module docstring for why this isn't automated).
+    assert propiedades["Email Sent"]["checkbox"] is False
 
 
 def test_enhanced_review_verdict_label(perfil_base, borrador_rutina, borrador_dieta):

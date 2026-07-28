@@ -881,6 +881,22 @@ them well:
   inconsistency for a static marketing-style banner (as opposed to any
   functional UI copy, which does still fully translate).
 
+## "Email Sent" follow-up flag (manual, not automated)
+
+Added a sixth property to the Notion database, `Email Sent` (checkbox,
+defaults to unchecked on every new record) — the project owner asked whether
+this could be detected automatically once the Gmail connector is fully wired
+up. Answered honestly rather than building it: automatic detection would
+need either a broader Gmail OAuth scope than `gmail.compose` (which cannot
+read the mailbox at all, by design — see `gmail_client.py`) or a
+push-notification/polling backend, which doesn't fit a Streamlit app with no
+persistent server. Both options would weaken or contradict the send-scope
+guarantee that was a deliberate, previously-confirmed trade-off elsewhere in
+this project. Chose the manual alternative instead: the trainer ticks the
+checkbox themselves, directly in Notion, after actually hitting send — zero
+new code, and it still delivers the real value (a filterable "who's still
+pending" view) without touching the OAuth scope decision.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
