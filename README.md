@@ -70,10 +70,13 @@ This repository is built phase by phase, as a learning project. Right now:
 - A real **Gmail draft** can be created for the approved plan — never sent
   automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
   the trainer reviews and sends it themselves from their own Gmail.
+- Every real new-client plan is automatically **saved to Notion** as a
+  persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
+  — a lightweight CRM outside the browser session, which otherwise forgets
+  everything on refresh. Example-client demo runs are deliberately excluded.
 
 ## What it doesn't include yet
 
-- A Notion connection to keep client records (coming in a later phase).
 - Richer, more nuanced generative-AI writing — today's draft comes from deterministic
   rules based on the method; an optional generative-AI layer (`motor="llm"`) is
   already designed and ready to switch on when it makes sense.
@@ -93,7 +96,7 @@ TrainFitter/
 ├── agents/                          Routine, diet, validator, and orchestrator
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
-├── mcp/                             Connectors: Gmail (done), Notion (Phase 5)
+├── mcp/                             Connectors: Gmail, Notion (both done)
 ├── assets/                          Project logo
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies

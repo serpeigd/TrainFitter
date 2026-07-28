@@ -799,6 +799,61 @@ a handful of small, concrete gaps — fixed in one pass rather than left as vagu
   customize it from inside `ui/app.py`. Already covered at the README level
   instead (a note in the "how to try it" section).
 
+## Notion connector (mcp/notion_connector.py)
+
+Decisions confirmed explicitly with the project owner before building, same
+practice as the Gmail connector:
+
+- **Fires automatically**, unlike Gmail's explicit "Create draft" button. The
+  distinction: a Gmail draft is an addressed message to a real person, which
+  deserves a deliberate click; a Notion row only ever touches the trainer's
+  own private workspace, so the friction of a button doesn't buy any real
+  safety — it would just make the "persistent record" promise unreliable
+  (easy to forget to click).
+- **Scoped to real new-client intakes only**, not the example-client demo
+  path. This was a real, live design tension worth naming: "automatic" on a
+  *public* demo (trainfitter.streamlit.app) means every visitor who clicks
+  "Generate plan" would otherwise auto-write to the actual Notion workspace.
+  Reused the existing `ultimo_origen` tracking (added earlier for the
+  tab-content-leak fix) to gate the save to the "nueva" section specifically
+  — a visitor exploring the example clients never touches Notion at all.
+- **Summarized record, not the full plan** (name/date/goal/level/verdict/
+  short combined summary) — enough to find and recognize a case later; the
+  full JSON is already downloadable from the UI for anyone who needs it.
+- **Static token, no OAuth flow** — Notion's "internal integration" secret is
+  a plain API key (like `ANTHROPIC_API_KEY`), not a three-legged OAuth dance
+  like Gmail's. Read from `NOTION_API_KEY`/`NOTION_DATABASE_ID` via the same
+  `python-dotenv`-optional pattern already used by `motor="llm"`.
+
+Two bugs caught and fixed *before* they shipped, both while building rather
+than from a later bug report:
+
+- **Self-import collision**: the module was originally named
+  `mcp/notion_client.py` — identical to the real PyPI package it needs to
+  import (`notion_client`). Since `mcp/` is on `sys.path` (the same flat-
+  import convention `agents/` uses), `from notion_client import Client`
+  inside that file resolved to *itself*, not the installed package. Caught
+  immediately when a smoke-test import raised `ImportError: cannot import
+  name 'Client' from 'notion_client'` pointing at the project's own file.
+  Renamed to `mcp/notion_connector.py` — no other fix needed once the name
+  no longer collided.
+- **Duplicate-save-per-rerun**: `_ejecutar_y_mostrar()` re-executes the whole
+  pipeline on *every* rerun while a plan is on screen (confirmed earlier
+  this session testing the language toggle — switching languages re-runs
+  it), not just when a new plan is actually generated. A naive unconditional
+  save would have written a new Notion page on every unrelated interaction
+  (language switch, any widget touch) while viewing the same plan. Fixed by
+  tracking `id(perfil)` in `st.session_state["notion_guardado_para"]` — the
+  profile dict's object identity is stable across reruns for the same
+  submission (it's only ever reassigned on an actual new form submit), so
+  it's a cheap, reliable "already saved this one" marker without needing a
+  real content hash.
+
+Same testing shape as Gmail: pure logic (`_construir_propiedades_pagina()`,
+`_construir_resumen()`) fully unit tested; the real Notion API call is lazy-
+imported and untested live, same reasoning as `motor="llm"` — needs a real,
+shared database that doesn't exist in CI.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

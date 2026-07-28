@@ -1,0 +1,77 @@
+"""Tests for mcp/notion_connector.py's pure logic (page-properties building,
+credential validation) — no network, no real Notion workspace needed.
+guardar_registro_cliente() itself (the part that actually talks to the
+Notion API) is intentionally not covered here: it requires a real, shared
+database, same reasoning as motor="llm" and the Gmail draft creation never
+being exercised against their real APIs in this suite (see
+docs/decisiones.md)."""
+
+import pytest
+from notion_connector import NotionClientError, _construir_propiedades_pagina, _construir_resumen, _credenciales
+
+
+@pytest.fixture
+def borrador_rutina():
+    return {"resumen_enfoque": "'upper lower' split for intermediate level."}
+
+
+@pytest.fixture
+def borrador_dieta():
+    return {
+        "resumen_enfoque": "Estimated 2125 kcal/day.",
+        "calorias_objetivo_kcal": 2125,
+        "macros": {"proteina_g": 136},
+    }
+
+
+def test_summary_combines_routine_and_diet(borrador_rutina, borrador_dieta):
+    resumen = _construir_resumen(borrador_rutina, borrador_dieta)
+    assert "upper lower" in resumen
+    assert "2125 kcal/day" in resumen
+    assert "136 g protein" in resumen
+
+
+def test_summary_is_truncated_to_notion_rich_text_limit(borrador_rutina):
+    borrador_dieta_largo = {
+        "resumen_enfoque": "x" * 3000,
+        "calorias_objetivo_kcal": 2000,
+        "macros": {"proteina_g": 100},
+    }
+    resumen = _construir_resumen(borrador_rutina, borrador_dieta_largo)
+    assert len(resumen) == 2000
+
+
+def test_page_properties_match_the_documented_database_schema(perfil_base, borrador_rutina, borrador_dieta):
+    perfil_base["datos_basicos"]["nombre"] = "Ana Test"
+    perfil_base["objetivo"]["principal"] = "hipertrofia"
+    perfil_base["experiencia"]["nivel"] = "intermedio"
+    perfil_base["fecha_admision"] = "2026-01-15"
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary"}
+    assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
+    assert propiedades["Date"]["date"]["start"] == "2026-01-15"
+    assert propiedades["Goal"]["select"]["name"] == "Hypertrophy"
+    assert propiedades["Level"]["select"]["name"] == "Intermediate"
+    assert propiedades["Verdict"]["select"]["name"] == "Approved"
+
+
+def test_enhanced_review_verdict_label(perfil_base, borrador_rutina, borrador_dieta):
+    veredicto = {"veredicto": "revision_reforzada", "motivos": ["some reason"]}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Verdict"]["select"]["name"] == "Enhanced review"
+
+
+def test_missing_credentials_raises_clear_error(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    # Point at an empty directory so a real local .env (if the trainer has
+    # since set up real Notion credentials for actual use) can't leak into
+    # this test and make it flaky depending on the machine it runs on.
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        _credenciales()

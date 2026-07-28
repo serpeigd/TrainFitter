@@ -64,9 +64,14 @@ defense-in-depth pattern as injuries/allergies). `mcp/gmail_client.py` creates
 a real Gmail **draft** (never sends — enforced by the `gmail.compose` OAuth
 scope, not just by convention) for the trainer to review and send themselves;
 recipient is typed in the approval panel, not part of the intake schema.
-Pending: Notion connector (`mcp/`), automatic inbox trigger (`main.py`). CI
-(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test suite
-end-to-end on every push — no secrets needed.
+`mcp/notion_connector.py` auto-saves a summarized record of every real
+new-client plan to a Notion database (name/date/goal/level/verdict/summary) —
+fires only for genuine new-client intakes, never for the example-client demo
+path, and guards against Streamlit's rerun-on-any-interaction model creating
+duplicate pages (`id(perfil)` tracked in `st.session_state`). Pending:
+automatic inbox trigger (`main.py`). CI (`.github/workflows/ci.yml`) runs the
+free rule-engine pipeline + test suite + lint end-to-end on every push — no
+secrets needed.
 
 ## Free-only guardrail
 
@@ -89,6 +94,7 @@ if the user explicitly opts in to spending money.
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
 | Bloodwork parser | `agents/analytics_parser.py` |
 | Gmail connector (draft-only) | `mcp/gmail_client.py` |
+| Notion connector (auto-save) | `mcp/notion_connector.py` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |
 | Example clients/outputs | `examples/` |

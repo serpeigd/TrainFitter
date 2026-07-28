@@ -58,6 +58,7 @@ sys.path.insert(0, str(MCP_DIR))
 
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from gmail_client import GmailClientError, crear_borrador  # noqa: E402
+from notion_connector import NotionClientError, guardar_registro_cliente  # noqa: E402
 from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
@@ -330,6 +331,7 @@ TRANSLATIONS = {
         "create_draft_button": "Create Gmail draft",
         "draft_created_success": "Draft created — [open it in Gmail]({url}).",
         "draft_error": "Could not create the draft: {error}",
+        "notion_saved_note": "📋 Saved to Notion — [open it]({url}).",
     },
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
@@ -434,6 +436,7 @@ TRANSLATIONS = {
         "create_draft_button": "Crear borrador en Gmail",
         "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
         "draft_error": "No se pudo crear el borrador: {error}",
+        "notion_saved_note": "📋 Guardado en Notion — [ábrelo]({url}).",
     },
 }
 
@@ -750,7 +753,7 @@ def _selector_cliente_ejemplo() -> dict | None:
 # Pipeline execution + result
 # ---------------------------------------------------------------------------
 
-def _ejecutar_y_mostrar(perfil: dict) -> None:
+def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     with st.status(t("generating_status"), expanded=True) as status:
         def _al_transicionar(_cliente_id: str, nuevo_estado: str) -> None:
             status.write(f"✅ {ETIQUETAS_ESTADO[st.session_state.lang].get(nuevo_estado, nuevo_estado)}")
@@ -767,6 +770,21 @@ def _ejecutar_y_mostrar(perfil: dict) -> None:
 
     st.divider()
     _mostrar_veredicto(estado.veredicto)
+
+    # This whole function reruns on every interaction while a plan is on
+    # screen (language toggle, etc.), not just when a new one is generated —
+    # so saving unconditionally here would create a duplicate Notion page on
+    # every rerun. id(perfil) stays stable across reruns for the *same*
+    # submission (st.session_state only reassigns "ultimo_perfil" on an
+    # actual new submit) and changes on the next one, so it's a cheap,
+    # reliable "already saved this one" marker without needing a real hash.
+    if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
+        try:
+            url = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
+            st.session_state["notion_guardado_para"] = id(perfil)
+            st.caption(t("notion_saved_note").format(url=url))
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            pass  # best-effort: not configured on this deployment (e.g. the public demo) — stay silent
 
     col_rutina, col_dieta = st.columns(2)
     with col_rutina, st.container(border=True):
@@ -946,7 +964,11 @@ if seccion_activa == "nueva":
         st.session_state["ultimo_perfil"] = perfil_nuevo
         st.session_state["ultimo_origen"] = "nueva"
     if st.session_state.get("ultimo_origen") == "nueva":
-        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"])
+        # Notion auto-save only fires for real new-client intakes, never for
+        # the example-client demo below — a public-demo visitor clicking
+        # through the sample clients shouldn't clutter the trainer's actual
+        # Notion database.
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "ejemplo":
     perfil_ejemplo = _selector_cliente_ejemplo()
