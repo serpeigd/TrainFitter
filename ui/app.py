@@ -719,13 +719,21 @@ def _formulario_ficha_nueva() -> dict | None:
 # Example client selection
 # ---------------------------------------------------------------------------
 
-def _selector_cliente_ejemplo() -> dict | None:
+@st.cache_data
+def _cargar_clientes_ejemplo() -> dict[str, dict]:
+    """{filename: profile} for every example/test client on disk. Cached the
+    same way as _logo_base64(): these files don't change while the app is
+    running, so re-reading and re-parsing them on every rerun is wasted work."""
     rutas = sorted(EXAMPLES_DIR.glob("cliente_ejemplo_*.json")) + sorted(EXAMPLES_DIR.glob("cliente_prueba_*.json"))
-    if not rutas:
+    return {ruta.name: json.loads(ruta.read_text(encoding="utf-8")) for ruta in rutas}
+
+
+def _selector_cliente_ejemplo() -> dict | None:
+    perfiles = _cargar_clientes_ejemplo()
+    if not perfiles:
         st.info(t("no_example_clients"))
         return None
 
-    perfiles = {ruta.name: json.loads(ruta.read_text(encoding="utf-8")) for ruta in rutas}
     etiquetas = {
         nombre: f"{perfil['datos_basicos']['nombre']} ({nombre})" for nombre, perfil in perfiles.items()
     }

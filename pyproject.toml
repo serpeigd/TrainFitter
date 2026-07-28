@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 160
+target-version = "py312"
+
+[tool.ruff.lint]
+# Core correctness checks (pyflakes, pycodestyle, import sorting). Deliberately
+# not turning on stricter/opinionated rule sets (naming conventions, docstring
+# rules, etc.) — this project keeps Python identifiers in Spanish on purpose
+# (see docs/decisiones.md), and a linter shouldn't fight a documented decision.
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# One exercise per line, deliberately dense/tabular — wrapping would hurt
+# readability more than a few over-length lines do.
+"agents/exercise_bank.py" = ["E501"]

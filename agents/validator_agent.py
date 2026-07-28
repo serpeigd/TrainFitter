@@ -31,7 +31,7 @@ def _motivos_desde_perfil(perfil: dict) -> list[str]:
     motivos = []
 
     if salud.get("lesiones"):
-        zonas = ", ".join(l.get("zona", "not specified") for l in salud["lesiones"])
+        zonas = ", ".join(lesion.get("zona", "not specified") for lesion in salud["lesiones"])
         motivos.append(f"The profile declares {len(salud['lesiones'])} injury(ies): {zonas}.")
     if salud.get("enfermedades_o_condiciones"):
         motivos.append(

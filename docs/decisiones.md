@@ -759,6 +759,46 @@ background; a brand-teal `::-webkit-scrollbar`; and the horizontal
 `st.divider()` rule restyled as a fading teal gradient line instead of
 Streamlit's default flat gray one.
 
+## Repo hygiene pass
+
+A self-review of the whole project (code, tests, CI, docs, GitHub metadata) surfaced
+a handful of small, concrete gaps — fixed in one pass rather than left as vague
+"could be nicer" notes:
+
+- `.env.example` was still in Spanish — missed by the earlier full-repo translation
+  sweep (it predates that pass and wasn't in the file list checked at the time).
+- No `LICENSE` — added MIT. A public portfolio repo without one is technically
+  "all rights reserved" by default, which isn't the intent here.
+- `agents/orchestrator.py`'s error path (`RoutineAgentError`/`DietAgentError` →
+  `estado == "error"`) had zero test coverage — added one using `monkeypatch` to
+  simulate a `RoutineAgentError` without needing a real API failure, asserting the
+  pipeline never crashes and never gets far enough to generate a diet or verdict.
+- Added `ruff` (config in `pyproject.toml`, wired into CI) — deliberately scoped to
+  correctness rules only (`E`, `F`, `W`, `I`), not opinionated style/naming rules,
+  since this project keeps Python identifiers in Spanish on purpose. Found and fixed
+  two real `E741` ambiguous-variable-name hits (`l` in `perfil_utils.py` and
+  `validator_agent.py` — renamed to `lesion`); excluded `E501` for
+  `agents/exercise_bank.py` specifically, since its one-exercise-per-line density is
+  intentional and wrapping those lines would hurt readability, not help it.
+- Removed `templates/` — empty since Phase 0, never referenced anywhere in code; the
+  "email template" concern it was meant for turned out to live directly in
+  `mcp/gmail_client.py`'s `_construir_cuerpo_email()` instead.
+- `ui/app.py`'s example-client loader now uses `@st.cache_data`, matching the
+  pattern already used for `_logo_base64()` — the JSON files don't change while the
+  app runs, so re-reading them every rerun was wasted work.
+- Checked mobile responsiveness directly (resize to 375px, fresh load, not just a
+  runtime resize of an already-open desktop session — the sidebar's default
+  open/closed state is decided at mount time, so testing that accurately means
+  reloading at the target width): routine/diet columns stack vertically, metrics
+  stack full-width, and the sidebar correctly starts collapsed off-screen. No CSS
+  changes were needed — Streamlit's built-in responsive behavior already covers
+  this app's layout.
+- Considered adding an in-app "waking up" loading message for Streamlit
+  Community Cloud's cold start, but that screen is rendered by Streamlit Cloud's
+  own wrapper before this app's Python code ever runs — there's no hook to
+  customize it from inside `ui/app.py`. Already covered at the README level
+  instead (a note in the "how to try it" section).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

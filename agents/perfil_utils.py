@@ -14,7 +14,7 @@ def tags_lesiones(perfil: dict) -> set[str]:
     """
     lesiones = perfil.get("salud", {}).get("lesiones", [])
     texto = " ".join(
-        (l.get("zona", "") + " " + l.get("descripcion", "")) for l in lesiones
+        (lesion.get("zona", "") + " " + lesion.get("descripcion", "")) for lesion in lesiones
     ).lower().replace("_", " ")
 
     tags = set()

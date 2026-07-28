@@ -62,7 +62,8 @@ This repository is built phase by phase, as a learning project. Right now:
   — the default engine is deterministic and doesn't depend on any external service.
 - A **visual panel** (not just a terminal): upload or create a client intake, watch
   the plan get generated, review the routine and diet with tables and metrics, and
-  approve — all from the browser.
+  approve — all from the browser. Dark theme by default, and a full **English/Spanish
+  toggle** for the interface (the generated plan itself is always in English).
 - Tested with two example cases: one straightforward, one with an injury and a
   vegetarian diet, to confirm the enhanced-review flag fires when it should.
 - A real **Gmail draft** can be created for the approved plan — never sent
@@ -91,7 +92,7 @@ TrainFitter/
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (done), Notion (Phase 5)
-├── templates/                       Email/plan templates (Phase 5)
+├── assets/                          Project logo
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies
 └── .gitignore

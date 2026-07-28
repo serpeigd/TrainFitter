@@ -6,7 +6,9 @@ shipped examples/output_*.json snapshots."""
 import json
 from pathlib import Path
 
+import orchestrator
 from orchestrator import ejecutar_pipeline
+from routine_agent import RoutineAgentError
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 
@@ -61,3 +63,27 @@ def test_pipeline_never_sends_anything_automatically():
     for numero in (1, 2):
         estado = ejecutar_pipeline(_cargar_cliente(numero), on_transition=lambda *_: None)
         assert estado.estado.startswith("pendiente_")
+
+
+def test_routine_agent_failure_lands_in_error_state_without_crashing(monkeypatch):
+    """A RoutineAgentError (e.g. motor="llm" hitting a bad API key, a
+    timeout, or a malformed model response) must be caught, not propagated —
+    ejecutar_pipeline() always returns a PipelineState, even on failure, so
+    the caller (the UI) never has to wrap it in its own try/except."""
+    def _fallar(*args, **kwargs):
+        raise RoutineAgentError("simulated failure: bad API key")
+
+    monkeypatch.setattr(orchestrator, "generar_borrador_rutina", _fallar)
+
+    transiciones = []
+    estado = ejecutar_pipeline(
+        _cargar_cliente(1), on_transition=lambda cliente_id, nuevo_estado: transiciones.append(nuevo_estado)
+    )
+
+    assert estado.estado == "error"
+    assert "simulated failure" in estado.error
+    assert estado.historial == ["ficha_recibida", "error"]
+    assert transiciones == ["error"]
+    # Never got far enough to generate a diet or a verdict.
+    assert estado.borrador_dieta is None
+    assert estado.veredicto is None
