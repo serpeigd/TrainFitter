@@ -29,6 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
+LOGO_PATH = REPO_ROOT / "assets" / "logo.png"
 
 # agents/ and mcp/ modules import each other as "flat" packages (import
 # knowledge, import routine_agent...), so they need to be on sys.path just
@@ -42,7 +43,7 @@ from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
-    page_icon="💪",
+    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "💪",
     layout="wide",
 )
 
@@ -706,6 +707,8 @@ def _panel_aprobacion(estado) -> None:
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
+    if LOGO_PATH.exists():
+        st.image(str(LOGO_PATH), width=120)
     lang_choice = st.radio(
         "🌐 Language / Idioma",
         ["en", "es"],

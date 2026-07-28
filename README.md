@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="TrainFitter logo" width="180">
+</p>
+
 # TrainFitter
 
 [![CI](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml/badge.svg)](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml)
