@@ -19,6 +19,9 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
 - Full chronological decision log with rationale lives in
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
+- [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
+  version of the same log (6 decisions, 1 page) — update it when a change adds
+  a genuinely new "defensible decision," not for routine work.
 
 ## Architecture (see [`docs/arquitectura.md`](docs/arquitectura.md) for full detail)
 

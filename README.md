@@ -7,6 +7,7 @@
 [![CI](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml/badge.svg)](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml)
 
 **🔗 [Live demo](https://trainfitter.streamlit.app/) — no install, no login, no API key.**
+**📋 [Engineering highlights](docs/highlights.md)** — the 1-page version of what's interesting here.
 
 **An assistant that helps you prepare draft workout and nutrition plans for your
 clients, following your own method and judgment — faster, without losing your voice.**
@@ -85,7 +86,8 @@ TrainFitter/
 ├── docs/
 │   ├── metodo_entrenador.md         Trainer's methodology (knowledge base)
 │   ├── arquitectura.md              System design and flow
-│   └── decisiones.md                Technical decision log, by phase
+│   ├── decisiones.md                Technical decision log, by phase
+│   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
 ├── agents/                          Routine, diet, validator, and orchestrator
