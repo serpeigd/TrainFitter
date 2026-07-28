@@ -854,6 +854,33 @@ Same testing shape as Gmail: pure logic (`_construir_propiedades_pagina()`,
 imported and untested live, same reasoning as `motor="llm"` — needs a real,
 shared database that doesn't exist in CI.
 
+## Logo refresh: banner + icon split
+
+The project owner supplied three new logo variants (AI-generated). Rather than
+adopt one file for every use, split by role since one image can't serve all of
+them well:
+
+- **`assets/icon.png`** — the clean square mark (dumbbell + leaf, plain
+  background), functionally identical to the original `assets/logo.png`.
+  Still used for the favicon, the sidebar image, and the small inline logo in
+  the app's hero — all places that need to read clearly at small sizes.
+- **`assets/logo.jpg`** — a new, more elaborate "hero" scene (dark gym
+  background, neon accents, the mark rendered large) used as a cover banner:
+  full-width at the top of the README, and full-width at the top of the
+  Streamlit app, above the existing translated hero. Saved as JPEG rather
+  than PNG deliberately — for this kind of photographic/gradient-heavy
+  content, JPEG at quality 87 came out to ~110 KB versus ~970 KB for an
+  equivalent PNG, no visible difference at web size. Resized from the
+  source's 1536px width down to 1200px, which is already oversized for how
+  it's actually displayed.
+- **Known, accepted trade-off**: the banner has a Spanish tagline ("Entrena.
+  Nutre. Evoluciona.") baked into the image pixels. Confirmed explicitly with
+  the project owner: shown as-is regardless of the EN/ES toggle, since it's
+  not translatable text — a deliberate exception to the "UI chrome fully
+  translates" rule, made because the visual impact was judged worth the
+  inconsistency for a static marketing-style banner (as opposed to any
+  functional UI copy, which does still fully translate).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

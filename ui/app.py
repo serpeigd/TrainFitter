@@ -30,9 +30,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
-LOGO_PATH = REPO_ROOT / "assets" / "logo.png"
+# Two distinct assets: ICON_PATH is the clean square mark (favicon, sidebar
+# — needs to read clearly at ~30-120px), BANNER_PATH is the wider "hero"
+# photo-style image (assets/logo.jpg, JPEG since it's photographic content —
+# a PNG of the same image was ~9x heavier for no visible quality gain at web
+# sizes) used as a big cover image, not as an icon anywhere.
+ICON_PATH = REPO_ROOT / "assets" / "icon.png"
+BANNER_PATH = REPO_ROOT / "assets" / "logo.jpg"
 
-# Sampled from assets/logo.png (teal leaf, orange dumbbell) — see
+# Sampled from assets/icon.png (teal leaf, orange dumbbell) — see
 # .streamlit/config.toml for the same palette applied to Streamlit's own
 # theme engine (buttons, sliders, links, and the dark base itself). These
 # are for the extra styling config.toml can't reach: the hero banner, and
@@ -63,18 +69,25 @@ from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
-    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "💪",
+    page_icon=str(ICON_PATH) if ICON_PATH.exists() else "💪",
     layout="wide",
 )
 
 
 @st.cache_data
 def _logo_base64() -> str:
-    """Base64-embedding the logo lets it sit inside the custom-HTML hero
-    banner below — Streamlit has no built-in way to mix a local image into
-    an st.markdown(unsafe_allow_html=True) block otherwise. Cached since the
+    """Base64-embedding the icon lets it sit inside the custom-HTML hero
+    below — Streamlit has no built-in way to mix a local image into an
+    st.markdown(unsafe_allow_html=True) block otherwise. Cached since the
     ~700 KB file would otherwise be re-encoded on every rerun."""
-    return base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii") if LOGO_PATH.exists() else ""
+    return base64.b64encode(ICON_PATH.read_bytes()).decode("ascii") if ICON_PATH.exists() else ""
+
+
+@st.cache_data
+def _banner_base64() -> str:
+    """Same embedding approach as _logo_base64(), for the wider cover-style
+    banner (assets/logo.jpg) shown above the hero."""
+    return base64.b64encode(BANNER_PATH.read_bytes()).decode("ascii") if BANNER_PATH.exists() else ""
 
 
 def _inyectar_estilos() -> None:
@@ -103,6 +116,15 @@ def _inyectar_estilos() -> None:
         [data-testid="stSidebar"] img {{
             border-radius: 14px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        }}
+
+        .tf-banner {{
+            width: 100%;
+            border-radius: 16px;
+            display: block;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+            animation: tf-fade-in 0.5s ease-out;
         }}
 
         .tf-hero {{
@@ -909,8 +931,8 @@ def _panel_aprobacion(estado) -> None:
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=120)
+    if ICON_PATH.exists():
+        st.image(str(ICON_PATH), width=120)
     lang_choice = st.radio(
         "🌐 Language / Idioma",
         ["en", "es"],
@@ -922,6 +944,17 @@ with st.sidebar:
     st.session_state.lang = lang_choice
 
 _inyectar_estilos()
+
+# Cover banner (assets/logo.jpg) — kept in its original Spanish tagline
+# regardless of the EN/ES toggle below: it's baked into the image itself,
+# not translatable text, a deliberate trade-off for the visual (see
+# docs/decisiones.md).
+_banner_b64 = _banner_base64()
+if _banner_b64:
+    st.markdown(
+        f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter">',
+        unsafe_allow_html=True,
+    )
 
 _logo_b64 = _logo_base64()
 _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" alt="TrainFitter logo">' if _logo_b64 else ""

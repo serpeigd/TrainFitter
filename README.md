@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="TrainFitter logo" width="180">
+  <img src="assets/logo.jpg" alt="TrainFitter" width="100%">
 </p>
 
 # TrainFitter
@@ -97,7 +97,7 @@ TrainFitter/
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail, Notion (both done)
-├── assets/                          Project logo
+├── assets/                          logo.jpg (banner), icon.png (favicon/sidebar mark)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies
 └── .gitignore

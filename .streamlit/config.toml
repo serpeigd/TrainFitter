@@ -1,6 +1,6 @@
 [theme]
 # Dark theme, built around the same brand colors sampled from
-# assets/logo.png (teal leaf, orange dumbbell) — see ui/app.py's
+# assets/icon.png (teal leaf, orange dumbbell) — see ui/app.py's
 # _inyectar_estilos() for the matching custom-CSS layer.
 base = "dark"
 primaryColor = "#05A081"
