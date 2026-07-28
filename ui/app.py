@@ -34,14 +34,21 @@ LOGO_PATH = REPO_ROOT / "assets" / "logo.png"
 
 # Sampled from assets/logo.png (teal leaf, orange dumbbell) — see
 # .streamlit/config.toml for the same palette applied to Streamlit's own
-# theme engine (buttons, sliders, links). These two are used for the extra
-# styling config.toml can't reach: the hero banner, and color-coding the
-# routine (orange, the dumbbell half of the mark) versus the diet (teal,
-# the leaf half) sections so the plan's two halves read as a matched pair.
+# theme engine (buttons, sliders, links, and the dark base itself). These
+# are for the extra styling config.toml can't reach: the hero banner, and
+# color-coding the routine (orange, the dumbbell half of the mark) versus
+# the diet (teal, the leaf half) so the plan's two halves read as a matched
+# pair. Tuned for the dark background in .streamlit/config.toml — Streamlit
+# doesn't expose its theme colors as reusable CSS variables in this version
+# (checked directly in the browser), so switching the base theme means
+# these need to stay in sync by hand, not automatically.
 COLOR_TEAL = "#05A081"
-COLOR_TEAL_DARK = "#047857"
-COLOR_TEAL_LIGHT = "#E6F7F2"
+COLOR_TEAL_BRIGHT = "#5EEAD4"
 COLOR_ORANGE = "#F8802A"
+COLOR_BG_ELEVATED = "#141F33"
+COLOR_BORDER = "rgba(255, 255, 255, 0.10)"
+COLOR_TEXT_BRIGHT = "#F8FAFC"
+COLOR_TEXT_MUTED = "#94A3B8"
 
 # agents/ and mcp/ modules import each other as "flat" packages (import
 # knowledge, import routine_agent...), so they need to be on sys.path just
@@ -70,19 +77,31 @@ def _logo_base64() -> str:
 
 
 def _inyectar_estilos() -> None:
-    """CSS on top of .streamlit/config.toml's theme — covers what the theme
-    engine can't reach: the hero banner, section color-coding, and card/
-    button polish. Targets Streamlit's documented data-testid attributes
-    (stable across releases), not its auto-generated emotion-cache classes."""
+    """CSS on top of .streamlit/config.toml's dark theme — covers what the
+    theme engine can't reach: the hero banner, section color-coding, card/
+    button polish, and a few extra dark-mode-specific touches (glow instead
+    of flat shadow, a subtle background vignette, brighter link/scrollbar
+    accents for readability on a dark background). Targets Streamlit's
+    documented data-testid attributes (stable across releases), not its
+    auto-generated emotion-cache classes."""
     st.markdown(
         f"""
         <style>
+        /* Subtle brand-colored vignette instead of a flat black background —
+        adds depth without competing with the content on top of it. */
+        [data-testid="stMain"] {{
+            background:
+                radial-gradient(circle at 15% 0%, rgba(5, 160, 129, 0.10) 0%, transparent 45%),
+                radial-gradient(circle at 100% 20%, rgba(248, 128, 42, 0.06) 0%, transparent 40%);
+        }}
+
         [data-testid="stSidebar"] {{
-            background: linear-gradient(180deg, {COLOR_TEAL_LIGHT} 0%, #FFFFFF 260px);
-            border-right: 1px solid #E5E7EB;
+            background: linear-gradient(180deg, rgba(5, 160, 129, 0.16) 0%, {COLOR_BG_ELEVATED} 260px);
+            border-right: 1px solid {COLOR_BORDER};
         }}
         [data-testid="stSidebar"] img {{
             border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }}
 
         .tf-hero {{
@@ -90,23 +109,25 @@ def _inyectar_estilos() -> None:
             align-items: center;
             gap: 1.1rem;
             margin-bottom: 0.2rem;
+            animation: tf-fade-in 0.4s ease-out;
         }}
         .tf-hero img {{
             width: 60px;
             height: 60px;
             border-radius: 14px;
             flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(5, 160, 129, 0.35);
         }}
         .tf-hero-title {{
             font-size: 2rem;
             font-weight: 800;
             margin: 0;
             line-height: 1.15;
-            color: #111827;
+            color: {COLOR_TEXT_BRIGHT};
         }}
         .tf-hero-subtitle {{
             margin: 0.2rem 0 0 0;
-            color: #6B7280;
+            color: {COLOR_TEXT_MUTED};
             font-style: italic;
             font-size: 0.95rem;
         }}
@@ -115,6 +136,11 @@ def _inyectar_estilos() -> None:
             border-radius: 4px;
             margin: 1rem 0 1.5rem 0;
             background: linear-gradient(90deg, {COLOR_TEAL} 0%, {COLOR_ORANGE} 100%);
+            box-shadow: 0 0 12px rgba(5, 160, 129, 0.45);
+        }}
+        @keyframes tf-fade-in {{
+            from {{ opacity: 0; transform: translateY(-6px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
         }}
 
         /* Routine = orange (the mark's dumbbell half), Diet = teal (its leaf
@@ -128,23 +154,40 @@ def _inyectar_estilos() -> None:
         .tf-section-dieta {{ border-color: {COLOR_TEAL}; }}
         .tf-section-rutina h3, .tf-section-dieta h3 {{ margin: 0; }}
 
+        /* Bordered st.container() cards (routine/diet/approval) */
+        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {{
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }}
         [data-testid="stExpander"] {{
-            border: 1px solid #E5E7EB;
+            border: 1px solid {COLOR_BORDER};
             border-radius: 12px;
+        }}
+
+        hr {{
+            height: 2px;
+            border: none;
+            border-radius: 2px;
+            background: linear-gradient(90deg, {COLOR_TEAL} 0%, transparent 70%);
+            opacity: 0.5;
         }}
 
         [data-testid="stBaseButton-primary"] {{
             border-radius: 10px;
             font-weight: 600;
-            box-shadow: 0 1px 3px rgba(5, 160, 129, 0.35);
+            box-shadow: 0 0 0 rgba(5, 160, 129, 0);
             transition: transform 0.05s ease-in-out, box-shadow 0.15s ease-in-out;
         }}
         [data-testid="stBaseButton-primary"]:hover {{
             transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(5, 160, 129, 0.35);
+            box-shadow: 0 0 16px rgba(5, 160, 129, 0.55);
         }}
         [data-testid="stBaseButton-secondary"] {{
             border-radius: 10px;
+            border-color: {COLOR_BORDER};
+        }}
+        [data-testid="stBaseButton-secondary"]:hover {{
+            border-color: {COLOR_TEAL};
+            color: {COLOR_TEAL_BRIGHT};
         }}
 
         [data-testid="stMetricValue"] {{
@@ -152,11 +195,28 @@ def _inyectar_estilos() -> None:
             font-weight: 700;
         }}
         [data-testid="stMetricLabel"] {{
-            color: {COLOR_TEAL_DARK};
+            color: {COLOR_TEAL_BRIGHT};
             text-transform: uppercase;
             letter-spacing: 0.04em;
             font-size: 0.75rem;
         }}
+
+        [data-testid="stAlertContainer"] {{
+            border-radius: 10px;
+        }}
+
+        /* Segmented control (New Client / Example client) selected state */
+        [data-testid="stBaseButton-primary"] p {{
+            color: inherit;
+        }}
+
+        ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
+        ::-webkit-scrollbar-track {{ background: transparent; }}
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(5, 160, 129, 0.45);
+            border-radius: 8px;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{ background: rgba(5, 160, 129, 0.7); }}
         </style>
         """,
         unsafe_allow_html=True,

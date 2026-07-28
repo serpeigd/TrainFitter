@@ -735,6 +735,30 @@ displaying it in a corner:
   environment's screenshot tool has been unreliable all session; computed
   CSS values are an equally valid, arguably more precise, verification.
 
+## Dark theme
+
+Switched `.streamlit/config.toml` to `base = "dark"` with a dark navy background
+(`#0B1220`) and light text (`#E5E7EB`), keeping the exact same brand teal/orange
+sampled from the logo — the accent colors didn't need to change, only the
+neutrals (background, borders, muted text) needed dark-appropriate values.
+
+Checked first whether Streamlit exposes its active theme as reusable CSS
+variables (would have let the custom CSS layer adapt automatically to either
+theme): it doesn't, in this version — `getComputedStyle` on `.stApp` returned
+empty strings for `--background-color`/`--text-color`/etc. So the custom CSS
+constants in `ui/app.py` (`COLOR_BG_ELEVATED`, `COLOR_BORDER`,
+`COLOR_TEXT_BRIGHT`, `COLOR_TEXT_MUTED`) are hand-tuned to match the dark
+theme specifically, not theme-agnostic — switching the base theme again means
+updating both places by hand.
+
+Added a few more dark-mode-native details while at it: a subtle radial
+vignette (teal top-left, orange top-right, both very low opacity) behind the
+main content instead of a flat black background; glow-style box-shadows on
+hover instead of the flat drop-shadows that read as "light mode" on a dark
+background; a brand-teal `::-webkit-scrollbar`; and the horizontal
+`st.divider()` rule restyled as a fading teal gradient line instead of
+Streamlit's default flat gray one.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

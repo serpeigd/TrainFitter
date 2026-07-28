@@ -1,10 +1,12 @@
 [theme]
-# Colors sampled directly from assets/logo.png (teal leaf, orange dumbbell)
-# so the app's palette actually matches the brand mark, not just "a green".
+# Dark theme, built around the same brand colors sampled from
+# assets/logo.png (teal leaf, orange dumbbell) — see ui/app.py's
+# _inyectar_estilos() for the matching custom-CSS layer.
+base = "dark"
 primaryColor = "#05A081"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#EFFBF6"
-textColor = "#1F2937"
+backgroundColor = "#0B1220"
+secondaryBackgroundColor = "#141F33"
+textColor = "#E5E7EB"
 font = "sans serif"
 
 [server]
