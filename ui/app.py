@@ -341,7 +341,10 @@ TRANSLATIONS = {
         "client_message_header": "Message for the client",
         "download_diet": "Download diet (JSON)",
         "approval_header": "### Trainer's approval",
-        "approval_caption": "Marks the plan as reviewed within this session — it's a checklist step, not a send action.",
+        "approval_caption": (
+            "Marks the plan as reviewed within this session and saves a record to Notion "
+            "(if configured) — it's a checklist step, not a send action."
+        ),
         "approve_button": "✅ Approve and mark as ready to send",
         "approved_success": "Marked as approved at {time}.",
         "gmail_section_header": "### ✉️ Email the plan",
@@ -349,11 +352,13 @@ TRANSLATIONS = {
             "Creates a **draft** in TrainFitter's Gmail account — nothing is sent until you "
             "personally open it in Gmail and hit send."
         ),
+        "gmail_requires_approval": "Approve the plan above first — the Gmail draft unlocks once you do.",
         "client_email_label": "Client's email",
         "create_draft_button": "Create Gmail draft",
         "draft_created_success": "Draft created — [open it in Gmail]({url}).",
         "draft_error": "Could not create the draft: {error}",
         "notion_saved_note": "📋 Saved to Notion — [open it]({url}).",
+        "notion_error_note": "📋 Not saved to Notion: {error}",
     },
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
@@ -446,7 +451,10 @@ TRANSLATIONS = {
         "client_message_header": "Mensaje para el cliente",
         "download_diet": "Descargar dieta (JSON)",
         "approval_header": "### Aprobación del entrenador",
-        "approval_caption": "Marca el plan como revisado dentro de esta sesión — es un paso de checklist, no un envío.",
+        "approval_caption": (
+            "Marca el plan como revisado dentro de esta sesión y guarda un registro en Notion "
+            "(si está configurado) — es un paso de checklist, no un envío."
+        ),
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
         "approved_success": "Marcado como aprobado a las {time}.",
         "gmail_section_header": "### ✉️ Enviar el plan por email",
@@ -454,11 +462,13 @@ TRANSLATIONS = {
             "Crea un **borrador** en la cuenta de Gmail de TrainFitter — no se envía nada hasta "
             "que tú lo abras en Gmail y le des a enviar."
         ),
+        "gmail_requires_approval": "Aprueba primero el plan de arriba — el borrador de Gmail se desbloquea al hacerlo.",
         "client_email_label": "Email del cliente",
         "create_draft_button": "Crear borrador en Gmail",
         "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
         "draft_error": "No se pudo crear el borrador: {error}",
         "notion_saved_note": "📋 Guardado en Notion — [ábrelo]({url}).",
+        "notion_error_note": "📋 No se guardó en Notion: {error}",
     },
 }
 
@@ -793,21 +803,6 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     st.divider()
     _mostrar_veredicto(estado.veredicto)
 
-    # This whole function reruns on every interaction while a plan is on
-    # screen (language toggle, etc.), not just when a new one is generated —
-    # so saving unconditionally here would create a duplicate Notion page on
-    # every rerun. id(perfil) stays stable across reruns for the *same*
-    # submission (st.session_state only reassigns "ultimo_perfil" on an
-    # actual new submit) and changes on the next one, so it's a cheap,
-    # reliable "already saved this one" marker without needing a real hash.
-    if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
-        try:
-            url = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
-            st.session_state["notion_guardado_para"] = id(perfil)
-            st.caption(t("notion_saved_note").format(url=url))
-        except (NotionClientError, ImportError, ModuleNotFoundError):
-            pass  # best-effort: not configured on this deployment (e.g. the public demo) — stay silent
-
     col_rutina, col_dieta = st.columns(2)
     with col_rutina, st.container(border=True):
         _mostrar_rutina(estado.borrador_rutina)
@@ -816,7 +811,7 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
 
     st.divider()
     with st.container(border=True):
-        _panel_aprobacion(estado)
+        _panel_aprobacion(estado, guardar_en_notion=guardar_en_notion)
 
 
 def _mostrar_veredicto(veredicto: dict) -> None:
@@ -899,20 +894,55 @@ def _mostrar_dieta(dieta: dict) -> None:
     )
 
 
-def _panel_aprobacion(estado) -> None:
+def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
+    perfil = estado.perfil_cliente
+
     st.markdown(t("approval_header"))
     st.caption(t("approval_caption"))
     if st.button(t("approve_button"), type="primary"):
+        # Tracked in session_state (keyed by id(perfil), stable for this
+        # exact submission — same pattern as the Notion dedup guard below)
+        # so the Gmail section below stays unlocked across reruns after
+        # this click, not just during the one rerun the click happened on.
+        st.session_state["aprobado_para"] = id(perfil)
         st.success(t("approved_success").format(time=datetime.now().strftime("%H:%M:%S")))
+
+        # Saved on approval, not on generation: a trainer might regenerate a
+        # few times while tweaking before settling on one — only the plan
+        # they actually approve is worth a permanent Notion record. Guards
+        # against a double-click creating two rows for the same approval the
+        # same way the old auto-save guarded against duplicate reruns:
+        # id(perfil) is stable for this exact submission (see
+        # st.session_state["ultimo_perfil"]) and changes on the next one.
+        if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
+            try:
+                url = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
+                st.session_state["notion_guardado_para"] = id(perfil)
+                st.caption(t("notion_saved_note").format(url=url))
+            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                # Unlike the old silent auto-save, this is now a direct
+                # result of a click the trainer just made — worth a visible
+                # (but non-blocking) note instead of failing silently, so
+                # "why didn't this show up in Notion" has an answer on screen.
+                st.caption(t("notion_error_note").format(error=str(exc)))
+
+    # Gmail is locked until this exact plan has been approved above — a
+    # trainer could otherwise create a real, addressed draft for a plan
+    # they never actually signed off on. Re-checked on every rerun (not
+    # just remembered from the click) via the same id(perfil) key so a
+    # freshly generated/regenerated plan starts locked again.
+    aprobado = st.session_state.get("aprobado_para") == id(perfil)
 
     st.markdown(t("gmail_section_header"))
     st.caption(t("gmail_section_caption"))
-    email_cliente = st.text_input(t("client_email_label"), key="email_cliente")
-    if st.button(t("create_draft_button")):
+    if not aprobado:
+        st.info(t("gmail_requires_approval"))
+    email_cliente = st.text_input(t("client_email_label"), key="email_cliente", disabled=not aprobado)
+    if st.button(t("create_draft_button"), disabled=not aprobado):
         try:
             url = crear_borrador(
                 email_cliente,
-                estado.perfil_cliente["datos_basicos"]["nombre"],
+                perfil["datos_basicos"]["nombre"],
                 estado.borrador_rutina,
                 estado.borrador_dieta,
             )

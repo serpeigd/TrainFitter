@@ -897,6 +897,40 @@ checkbox themselves, directly in Notion, after actually hitting send — zero
 new code, and it still delivers the real value (a filterable "who's still
 pending" view) without touching the OAuth scope decision.
 
+## Notion save moved from "on generation" to "on approval"; Gmail gated on approval
+
+Two related UI changes, both from direct user feedback after trying the app:
+
+- **Notion save trigger moved.** It originally fired automatically the
+  moment a new-client plan finished generating. Moved to fire from the
+  "Approve and mark as ready" button instead — a trainer might regenerate a
+  plan a few times while adjusting inputs before settling on one, and only
+  the version they actually approve is worth a permanent record. This also
+  simplified the duplicate-save guard: the old version had to defend against
+  `_ejecutar_y_mostrar()` re-running on *every* rerun (language toggle,
+  etc.); a button click only returns `True` on the exact rerun it happened
+  on, so the same `id(perfil)` marker now just guards against an accidental
+  double-click instead of every unrelated interaction.
+- **A likely real cause of "nothing is saving," separate from the trigger
+  question**: the public demo (trainfitter.streamlit.app) never had
+  `NOTION_API_KEY`/`NOTION_DATABASE_ID` configured — those live only in a
+  local, gitignored `.env`, never pushed, and Streamlit Community Cloud
+  needs its own separate "Secrets" configuration (its dashboard, not a
+  file in the repo) to expose them to the deployed app. Previously this
+  failed completely silently (caught and swallowed, matching the bloodwork
+  parser's best-effort convention). Now that the trigger is a deliberate
+  click rather than an invisible background action, a failed save surfaces
+  as a visible (but non-blocking) caption instead of staying silent — the
+  silent version made sense for an automatic action nobody asked for in the
+  moment; it stopped making sense once it's a direct response to a click.
+- **Gmail draft locked behind approval.** The "Create Gmail draft" button
+  and recipient field are now disabled until the trainer clicks "Approve"
+  for that exact plan (`st.session_state["aprobado_para"]`, keyed by
+  `id(perfil)` the same way as the Notion guard) — closes a real gap where a
+  draft addressed to a real person could be created for a plan nobody had
+  actually signed off on. Re-checked every rerun rather than remembered
+  once, so a freshly regenerated plan starts locked again.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
