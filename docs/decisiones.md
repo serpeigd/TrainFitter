@@ -703,6 +703,38 @@ Implementation matches the project's existing conventions:
 - `credentials.json` and `token.json` added to `.gitignore` explicitly, on top
   of the existing `.env`-pattern rules.
 
+## Visual redesign around the logo (ui/app.py)
+
+Once the logo existed, the app's look was rebuilt around it instead of just
+displaying it in a corner:
+
+- **Colors sampled directly from the PNG** (`assets/logo.png`), not eyeballed:
+  clustered its non-background pixels to find the exact teal (`#05A081`) and
+  orange (`#F8802A`) used in the mark, applied to both
+  `.streamlit/config.toml`'s theme engine (buttons, sliders, links) and a
+  custom CSS layer for what the theme engine can't reach (the hero banner,
+  metric colors, card borders).
+- **The logo's own visual metaphor drives the section color-coding**: the
+  mark merges a dumbbell (orange) with a leaf (teal) into one symbol —
+  strength and nutrition as one idea. The Routine section picked up the
+  orange accent, Diet picked up teal, so the two halves of a generated plan
+  visually echo the two halves of the logo, rather than an arbitrary color
+  choice.
+- **CSS targets Streamlit's documented `data-testid` attributes**
+  (`stSidebar`, `stBaseButton-primary`, `stMetricValue`, ...), not its
+  auto-generated `st-emotion-cache-*` classes, which change across releases
+  and would silently break the styling on a Streamlit upgrade.
+- The logo is **base64-embedded** (`@st.cache_data`-cached) to place it
+  inside the custom-HTML hero banner — Streamlit has no other way to mix a
+  local file into an `unsafe_allow_html=True` block.
+- Routine/diet/approval blocks now render inside `st.container(border=True)`
+  cards instead of bare columns, for visual separation without hand-rolled
+  CSS box models.
+- Verified entirely through DOM inspection (computed styles, injected
+  `<style>` presence, rendered class names) rather than a screenshot — this
+  environment's screenshot tool has been unreliable all session; computed
+  CSS values are an equally valid, arguably more precise, verification.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

@@ -17,6 +17,7 @@ How to run it (from the repo root):
     streamlit run ui/app.py
 """
 
+import base64
 import json
 import re
 import sys
@@ -30,6 +31,17 @@ AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
 LOGO_PATH = REPO_ROOT / "assets" / "logo.png"
+
+# Sampled from assets/logo.png (teal leaf, orange dumbbell) — see
+# .streamlit/config.toml for the same palette applied to Streamlit's own
+# theme engine (buttons, sliders, links). These two are used for the extra
+# styling config.toml can't reach: the hero banner, and color-coding the
+# routine (orange, the dumbbell half of the mark) versus the diet (teal,
+# the leaf half) sections so the plan's two halves read as a matched pair.
+COLOR_TEAL = "#05A081"
+COLOR_TEAL_DARK = "#047857"
+COLOR_TEAL_LIGHT = "#E6F7F2"
+COLOR_ORANGE = "#F8802A"
 
 # agents/ and mcp/ modules import each other as "flat" packages (import
 # knowledge, import routine_agent...), so they need to be on sys.path just
@@ -47,13 +59,116 @@ st.set_page_config(
     layout="wide",
 )
 
+
+@st.cache_data
+def _logo_base64() -> str:
+    """Base64-embedding the logo lets it sit inside the custom-HTML hero
+    banner below — Streamlit has no built-in way to mix a local image into
+    an st.markdown(unsafe_allow_html=True) block otherwise. Cached since the
+    ~700 KB file would otherwise be re-encoded on every rerun."""
+    return base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii") if LOGO_PATH.exists() else ""
+
+
+def _inyectar_estilos() -> None:
+    """CSS on top of .streamlit/config.toml's theme — covers what the theme
+    engine can't reach: the hero banner, section color-coding, and card/
+    button polish. Targets Streamlit's documented data-testid attributes
+    (stable across releases), not its auto-generated emotion-cache classes."""
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stSidebar"] {{
+            background: linear-gradient(180deg, {COLOR_TEAL_LIGHT} 0%, #FFFFFF 260px);
+            border-right: 1px solid #E5E7EB;
+        }}
+        [data-testid="stSidebar"] img {{
+            border-radius: 14px;
+        }}
+
+        .tf-hero {{
+            display: flex;
+            align-items: center;
+            gap: 1.1rem;
+            margin-bottom: 0.2rem;
+        }}
+        .tf-hero img {{
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            flex-shrink: 0;
+        }}
+        .tf-hero-title {{
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1.15;
+            color: #111827;
+        }}
+        .tf-hero-subtitle {{
+            margin: 0.2rem 0 0 0;
+            color: #6B7280;
+            font-style: italic;
+            font-size: 0.95rem;
+        }}
+        .tf-hero-bar {{
+            height: 4px;
+            border-radius: 4px;
+            margin: 1rem 0 1.5rem 0;
+            background: linear-gradient(90deg, {COLOR_TEAL} 0%, {COLOR_ORANGE} 100%);
+        }}
+
+        /* Routine = orange (the mark's dumbbell half), Diet = teal (its leaf
+        half) — the plan's two halves echo the logo's own two-tone split. */
+        .tf-section-rutina, .tf-section-dieta {{
+            border-left: 4px solid transparent;
+            padding-left: 0.8rem;
+            margin-bottom: 0.4rem;
+        }}
+        .tf-section-rutina {{ border-color: {COLOR_ORANGE}; }}
+        .tf-section-dieta {{ border-color: {COLOR_TEAL}; }}
+        .tf-section-rutina h3, .tf-section-dieta h3 {{ margin: 0; }}
+
+        [data-testid="stExpander"] {{
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+        }}
+
+        [data-testid="stBaseButton-primary"] {{
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(5, 160, 129, 0.35);
+            transition: transform 0.05s ease-in-out, box-shadow 0.15s ease-in-out;
+        }}
+        [data-testid="stBaseButton-primary"]:hover {{
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(5, 160, 129, 0.35);
+        }}
+        [data-testid="stBaseButton-secondary"] {{
+            border-radius: 10px;
+        }}
+
+        [data-testid="stMetricValue"] {{
+            color: {COLOR_ORANGE};
+            font-weight: 700;
+        }}
+        [data-testid="stMetricLabel"] {{
+            color: {COLOR_TEAL_DARK};
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.75rem;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # ---------------------------------------------------------------------------
 # i18n — UI chrome translations (EN default, ES available via the toggle)
 # ---------------------------------------------------------------------------
 
 TRANSLATIONS = {
     "en": {
-        "app_title": "💪 TrainFitter — Trainer's panel",
+        "app_title": "TrainFitter — Trainer's panel",
         "app_motto": '"Teach your body that your mind is in charge."',
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
@@ -117,7 +232,7 @@ TRANSLATIONS = {
             "✅ **No reasons for enhanced review.** It still needs your approval "
             "before sending — TrainFitter never sends anything on its own."
         ),
-        "routine_header": "### 🏋️ Routine",
+        "routine_header": "🏋️ Routine",
         "split_label": "**Split:**",
         "days_week_label": "**Days/week:**",
         "duration_label": "**Duration:**",
@@ -131,7 +246,7 @@ TRANSLATIONS = {
         "progression_label": "**Progression:**",
         "for_client_label": "**For the client:**",
         "download_routine": "Download routine (JSON)",
-        "diet_header": "### 🍽️ Diet",
+        "diet_header": "🍽️ Diet",
         "kcal_day": "Kcal/day",
         "protein_label": "Protein",
         "fat_label": "Fat",
@@ -157,7 +272,7 @@ TRANSLATIONS = {
         "draft_error": "Could not create the draft: {error}",
     },
     "es": {
-        "app_title": "💪 TrainFitter — Panel del entrenador",
+        "app_title": "TrainFitter — Panel del entrenador",
         "app_motto": '"Enseña a tu cuerpo que quien manda es tu mente."',
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
@@ -221,7 +336,7 @@ TRANSLATIONS = {
             "✅ **Sin motivos de revisión reforzada.** Aun así, sigue esperando tu aprobación "
             "antes de enviarse — TrainFitter nunca envía nada por su cuenta."
         ),
-        "routine_header": "### 🏋️ Rutina",
+        "routine_header": "🏋️ Rutina",
         "split_label": "**Split:**",
         "days_week_label": "**Días/semana:**",
         "duration_label": "**Duración:**",
@@ -235,7 +350,7 @@ TRANSLATIONS = {
         "progression_label": "**Progresión:**",
         "for_client_label": "**Para el cliente:**",
         "download_routine": "Descargar rutina (JSON)",
-        "diet_header": "### 🍽️ Dieta",
+        "diet_header": "🍽️ Dieta",
         "kcal_day": "Kcal/día",
         "protein_label": "Proteína",
         "fat_label": "Grasa",
@@ -586,13 +701,14 @@ def _ejecutar_y_mostrar(perfil: dict) -> None:
     _mostrar_veredicto(estado.veredicto)
 
     col_rutina, col_dieta = st.columns(2)
-    with col_rutina:
+    with col_rutina, st.container(border=True):
         _mostrar_rutina(estado.borrador_rutina)
-    with col_dieta:
+    with col_dieta, st.container(border=True):
         _mostrar_dieta(estado.borrador_dieta)
 
     st.divider()
-    _panel_aprobacion(estado)
+    with st.container(border=True):
+        _panel_aprobacion(estado)
 
 
 def _mostrar_veredicto(veredicto: dict) -> None:
@@ -605,7 +721,7 @@ def _mostrar_veredicto(veredicto: dict) -> None:
 
 
 def _mostrar_rutina(rutina: dict) -> None:
-    st.markdown(t("routine_header"))
+    st.markdown(f'<div class="tf-section-rutina"><h3>{t("routine_header")}</h3></div>', unsafe_allow_html=True)
     st.caption(rutina["resumen_enfoque"])
     st.markdown(
         f"{t('split_label')} {rutina['split'].replace('_', ' ')} · "
@@ -643,7 +759,7 @@ def _mostrar_rutina(rutina: dict) -> None:
 
 
 def _mostrar_dieta(dieta: dict) -> None:
-    st.markdown(t("diet_header"))
+    st.markdown(f'<div class="tf-section-dieta"><h3>{t("diet_header")}</h3></div>', unsafe_allow_html=True)
     st.caption(dieta["resumen_enfoque"])
 
     m1, m2, m3, m4 = st.columns(4)
@@ -719,8 +835,23 @@ with st.sidebar:
     )
     st.session_state.lang = lang_choice
 
-st.title(t("app_title"))
-st.caption(t("app_motto"))
+_inyectar_estilos()
+
+_logo_b64 = _logo_base64()
+_logo_html = f'<img src="data:image/png;base64,{_logo_b64}" alt="TrainFitter logo">' if _logo_b64 else ""
+st.markdown(
+    f"""
+    <div class="tf-hero">
+        {_logo_html}
+        <div>
+            <p class="tf-hero-title">{t("app_title")}</p>
+            <p class="tf-hero-subtitle">{t("app_motto")}</p>
+        </div>
+    </div>
+    <div class="tf-hero-bar"></div>
+    """,
+    unsafe_allow_html=True,
+)
 
 # st.tabs() is deliberately NOT used here: its labels double as its React
 # identity, so translating them on a language switch remounts the whole

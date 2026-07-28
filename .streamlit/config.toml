@@ -1,7 +1,9 @@
 [theme]
-primaryColor = "#0F766E"
+# Colors sampled directly from assets/logo.png (teal leaf, orange dumbbell)
+# so the app's palette actually matches the brand mark, not just "a green".
+primaryColor = "#05A081"
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F4F3"
+secondaryBackgroundColor = "#EFFBF6"
 textColor = "#1F2937"
 font = "sans serif"
 
