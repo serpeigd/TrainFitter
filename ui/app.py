@@ -35,6 +35,40 @@ try:  # dotenv is optional, same convention as agents/run_routine_demo.py
 except ImportError:
     pass
 
+
+def _materializar_secretos_gmail() -> None:
+    """Streamlit Cloud's "Secrets" panel only stores plain key/value pairs
+    (TOML), not uploadable files — but mcp/gmail_client.py expects
+    credentials.json/token.json as actual files on disk (deliberately kept
+    framework-agnostic: it doesn't import Streamlit at all, and shouldn't
+    have to just to run locally). Bridges the two here, in the UI layer,
+    instead of teaching gmail_client.py about Streamlit: if the JSON
+    content is present under GMAIL_CREDENTIALS_JSON / GMAIL_TOKEN_JSON in
+    st.secrets, write it out to the paths gmail_client.py already reads —
+    but only if that file doesn't already exist, so a real local
+    credentials.json/token.json from running this on your own machine is
+    never clobbered by (typically absent, since this only matters on a
+    deployment) Streamlit secrets."""
+    # st.secrets doesn't raise on the attribute access itself when there's
+    # no secrets.toml anywhere (plain local dev, the common case) -- it's
+    # lazy, so the actual StreamlitSecretNotFoundError only fires on first
+    # real use (e.g. the `in` check below). Wrapping just the assignment
+    # doesn't catch it; the whole block needs to be inside the try.
+    try:
+        secretos = st.secrets
+        for nombre_archivo, clave_secreto in (
+            ("credentials.json", "GMAIL_CREDENTIALS_JSON"),
+            ("token.json", "GMAIL_TOKEN_JSON"),
+        ):
+            ruta = REPO_ROOT / nombre_archivo
+            if clave_secreto in secretos and not ruta.exists():
+                ruta.write_text(secretos[clave_secreto], encoding="utf-8")
+    except Exception:
+        return  # no secrets.toml at all -- nothing to bridge, nothing to do
+
+
+_materializar_secretos_gmail()
+
 # Gates the "Approve" button (and, by extension, Notion/Gmail — both only
 # unlock after approval) behind a shared password on deployments where it's
 # set. Deliberately an env var / Streamlit secret, never hardcoded here:
@@ -1021,8 +1055,17 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             # this without Notion configured (or where the approval-time
             # save failed) shouldn't see an error over a background update
             # for a feature they may not even have set up.
-            pagina_id = st.session_state.get("notion_pagina_id")
-            if pagina_id:
+            #
+            # Gated on notion_guardado_para matching *this* perfil, not just
+            # "is notion_pagina_id set" — otherwise approving a real client
+            # (saved to Notion), then switching to the Example client
+            # section and creating a draft there, would silently backfill
+            # the example client's email onto the real client's Notion page:
+            # notion_pagina_id is a single session-wide slot that only ever
+            # gets written for "New Client" plans, so without this check
+            # it'd still be holding the previous real client's page ID.
+            if st.session_state.get("notion_guardado_para") == id(perfil):
+                pagina_id = st.session_state.get("notion_pagina_id")
                 try:
                     actualizar_email_cliente(pagina_id, email_cliente)
                 except (NotionClientError, ImportError, ModuleNotFoundError):

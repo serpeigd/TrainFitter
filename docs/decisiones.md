@@ -1008,6 +1008,50 @@ and `_obtener_credenciales()` itself imported `google.auth`/
 before importing anything — the common case on a deployment where Gmail
 was never configured (e.g. the public demo, until now).
 
+## Preparing for the public demo: a second real bug, and the secrets bridge
+
+Re-reviewed the Notion scoping before enabling this on the public demo, since
+that was the explicit ask: confirmed `guardar_en_notion=True` is only ever
+passed for the "New Client" section (`ui/app.py`'s call site), never for
+"Example client" — unchanged through every refactor this session (approval
+gating, the password dialog). But the review surfaced a real, related bug
+nearby: `st.session_state["notion_pagina_id"]` was a single session-wide
+slot, not scoped by `id(perfil)` like every other approval/save marker in
+this file. Sequence that would have broken it: approve a real client
+(Notion page created, ID cached) → switch to Example client → approve that
+demo plan too → create a Gmail draft for it → `actualizar_email_cliente()`
+would silently backfill the *example client's* test email onto the *real*
+client's Notion page, since the cached ID never got invalidated. Fixed by
+gating the backfill on `notion_guardado_para == id(perfil)` — the same
+check already used to decide whether to save in the first place, reused
+here to also decide whether the cached page ID actually belongs to the
+plan currently being processed.
+
+**Enabling Gmail on Streamlit Community Cloud** needed one more piece:
+Cloud's "Secrets" panel only stores plain key/value strings (TOML), it
+can't accept file uploads — but `mcp/gmail_client.py` expects
+`credentials.json`/`token.json` as real files on disk, and deliberately
+doesn't import Streamlit at all (kept framework-agnostic on purpose, so it
+works identically whether called from the CLI demos or the UI). Rather
+than teach that module about Streamlit, added a small bridge in
+`ui/app.py`: at startup, if `GMAIL_CREDENTIALS_JSON`/`GMAIL_TOKEN_JSON` are
+present in `st.secrets` *and* the corresponding file doesn't already exist
+locally, write the secret's content out to the path `gmail_client.py`
+already reads. Verified both directions locally (temporarily swapping the
+real files aside and back): secrets correctly materialize into files when
+missing, and an existing local `credentials.json`/`token.json` from running
+this on your own machine is never clobbered by stale secrets.
+
+Caught one bug building this too: the first version wrapped only
+`secretos = st.secrets` in a `try/except`, on the assumption that accessing
+`st.secrets` with no `secrets.toml` anywhere would raise there. It doesn't —
+`st.secrets` is lazy, and `StreamlitSecretNotFoundError` only actually
+fires on first real use (the `in` check right after), which was *outside*
+the try block. Confirmed by running the app locally with no secrets file at
+all and seeing the exact traceback in the browser. Fixed by moving the
+entire secrets-reading block inside the `try`, not just the initial
+assignment.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
