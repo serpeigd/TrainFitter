@@ -973,6 +973,41 @@ Two more changes from the same round of real usage:
   becomes possible (see the persisted memory note on that — still blocked
   on the same Gmail OAuth scope trade-off as "Email Sent").
 
+## Gmail fully connected; a real CI-caught bug in the lazy-import ordering
+
+`mcp/gmail_client.py` was authorized end-to-end for real against a dedicated
+account (`trainfitter.official@gmail.com`) — Google Cloud project, OAuth
+consent screen, Desktop-app credentials, first-run browser authorization
+(`token.json` cached locally, gitignored, never committed). One real
+snag along the way, unrelated to this project's code: the OAuth consent
+screen's User Type defaulted to "Internal" (only accounts in the same
+Google Workspace organization as the Cloud project can authenticate),
+producing `Error 403: org_internal` for the separate `trainfitter.official`
+account — fixed by switching it to "External" in Cloud Console. Verified
+with a real draft creation, then confirmed nothing was actually sent (per
+design, `gmail.compose` can't).
+
+Pushing the previous commit (password gate + email backfill) then broke
+CI — the first real failure of this project's own quality gate all session.
+Root cause: `mcp/notion_connector.py`'s new `actualizar_email_cliente()`
+imported `notion_client` (the PyPI package) *before* calling `_credenciales()`,
+so on CI (which doesn't install `notion-client`, matching its
+optional-dependency status) the import failed first, masking the intended
+"missing credentials" test with an unrelated `ModuleNotFoundError`.
+`guardar_registro_cliente()` had the exact same ordering, just never
+exercised by a test that would have caught it. Fixed both by moving the
+credentials check before the lazy import — checking configuration first is
+cheap (a couple of `os.environ.get()` calls) and should always run before
+paying the cost of an import that might not even be installed. Audited
+`mcp/gmail_client.py` for the same pattern while at it and found it too:
+`crear_borrador()` imported `googleapiclient` before resolving credentials,
+and `_obtener_credenciales()` itself imported `google.auth`/
+`google_auth_oauthlib` before checking whether `credentials.json` or
+`token.json` even existed. Fixed the same way, with an added fast-path in
+`_obtener_credenciales()`: if neither file exists, raise immediately,
+before importing anything — the common case on a deployment where Gmail
+was never configured (e.g. the public demo, until now).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

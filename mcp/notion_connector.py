@@ -157,10 +157,16 @@ def guardar_registro_cliente(
         NotionClientError: missing credentials, or a Notion API failure
             (e.g. the database wasn't shared with the integration).
     """
+    # Credentials checked before the lazy import: if notion-client isn't
+    # installed (e.g. a deployment where it's deliberately left out) AND
+    # credentials aren't set either, the trainer should see the clear
+    # "missing credentials" message, not an unrelated ModuleNotFoundError
+    # that happens to fire first just because of statement order.
+    api_key, database_id = _credenciales()
+
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    api_key, database_id = _credenciales()
     propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto)
 
     try:
@@ -182,10 +188,13 @@ def actualizar_email_cliente(pagina_id: str, email: str) -> None:
     Raises:
         NotionClientError: missing credentials, or a Notion API failure.
     """
+    # Same ordering fix as guardar_registro_cliente(): check credentials
+    # before the lazy import, so a missing notion-client package doesn't
+    # mask the clearer "missing credentials" error.
+    api_key, _ = _credenciales()
+
     from notion_client import Client
     from notion_client.errors import APIResponseError
-
-    api_key, _ = _credenciales()
 
     try:
         cliente = Client(auth=api_key)

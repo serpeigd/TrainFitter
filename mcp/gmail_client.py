@@ -88,7 +88,22 @@ def _construir_mensaje_raw(destinatario: str, asunto: str, cuerpo_texto: str) ->
 def _obtener_credenciales():
     """Lazy-imports the Google client libraries and runs (or reuses) the
     OAuth flow. Only called from crear_borrador(), never at module import
-    time — see the module docstring."""
+    time — see the module docstring.
+
+    Checks for *some* usable setup (either file) before importing anything:
+    on a deployment with neither file present (e.g. the public demo without
+    Gmail configured) and google-auth-oauthlib not installed either, this
+    raises the clear "missing credentials.json" message instead of a bare
+    ModuleNotFoundError — same fix applied to notion_connector.py after CI
+    caught the equivalent bug there (a lazy import running before the
+    credentials check it should have deferred to)."""
+    if not RUTA_TOKEN.exists() and not RUTA_CREDENCIALES.exists():
+        raise GmailClientError(
+            f"Missing {RUTA_CREDENCIALES.name}. Create an OAuth Desktop-app "
+            "credential in Google Cloud Console and save it at the repo root "
+            "(see mcp/gmail_client.py's module docstring for the full steps)."
+        )
+
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
@@ -126,17 +141,24 @@ def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict
         GmailClientError: invalid recipient, missing/expired credentials
             the user needs to re-authorize, or a Gmail API failure.
     """
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
-
     cuerpo = _construir_mensaje_raw(
         destinatario,
         asunto=f"Your plan from TrainFitter — {nombre_cliente}",
         cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta),
     )
 
+    # Resolved before importing googleapiclient: _obtener_credenciales()
+    # checks whether Gmail is set up at all first (see its docstring), so a
+    # deployment with neither file nor any Google package installed raises
+    # the clear "missing credentials.json" message rather than whichever
+    # import happens to fail first.
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
     try:
-        servicio = build("gmail", "v1", credentials=_obtener_credenciales())
+        servicio = build("gmail", "v1", credentials=credenciales)
         borrador = servicio.users().drafts().create(userId="me", body=cuerpo).execute()
     except HttpError as exc:
         raise GmailClientError(f"Gmail API error: {exc}") from exc
