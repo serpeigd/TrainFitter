@@ -7,7 +7,13 @@ being exercised against their real APIs in this suite (see
 docs/decisiones.md)."""
 
 import pytest
-from notion_connector import NotionClientError, _construir_propiedades_pagina, _construir_resumen, _credenciales
+from notion_connector import (
+    NotionClientError,
+    _construir_propiedades_pagina,
+    _construir_resumen,
+    _credenciales,
+    actualizar_email_cliente,
+)
 
 
 @pytest.fixture
@@ -79,3 +85,17 @@ def test_missing_credentials_raises_clear_error(monkeypatch, tmp_path):
     monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
     with pytest.raises(NotionClientError):
         _credenciales()
+
+
+def test_actualizar_email_missing_credentials_raises(monkeypatch, tmp_path):
+    """actualizar_email_cliente() backfills the client's email onto an
+    already-created record once a Gmail draft is made (see
+    docs/decisiones.md) -- same credential-checking path as
+    guardar_registro_cliente(), so it fails the same clean way when unset."""
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        actualizar_email_cliente("some-page-id", "client@example.com")

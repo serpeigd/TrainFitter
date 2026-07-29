@@ -38,12 +38,25 @@ built — the manual checkbox gets the actual follow-up value (a filterable
 "who's still pending" view in Notion) without weakening the send-scope
 guarantee that was a considered trade-off elsewhere in this project.
 
+DESIGN — "Email" is filled in at draft-creation time, not send time: the
+project owner's next idea was to cross-reference a future "Check-ins"
+database by the client's email once a Gmail draft is actually sent. The
+"actually sent" part is still blocked on the same broader-OAuth-scope
+trade-off as "Email Sent" above — but *capturing* the address doesn't need
+that at all, since the trainer already types it into the Gmail section
+before creating the draft (see ui/app.py). So this module exposes
+actualizar_email_cliente() to backfill it onto the already-created Notion
+page the moment a draft is made, well ahead of when "detect a real send"
+becomes possible — the join key future automation would need is ready
+before the automation itself is.
+
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
      copy its "Internal Integration Secret".
   2. In Notion, create a database with these exact properties:
        Name (title), Date (date), Goal (select), Level (select),
-       Verdict (select), Summary (text), Email Sent (checkbox)
+       Verdict (select), Summary (text), Email Sent (checkbox),
+       Email (email)
   3. Share that database with the integration (the "..." menu on the
      database page -> Connections -> add the integration by name).
   4. Set NOTION_API_KEY and NOTION_DATABASE_ID in your .env (see
@@ -130,13 +143,15 @@ def _credenciales() -> tuple[str, str]:
 
 def guardar_registro_cliente(
     perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict
-) -> str:
+) -> dict:
     """
     Saves a summarized record of this client's plan as a new page in the
     trainer's Notion database.
 
     Returns:
-        A notion.so link to the created page.
+        {"id": the page's Notion ID, "url": a notion.so link to it}. The ID
+        is what actualizar_email_cliente() needs later — the URL alone
+        isn't enough to address a follow-up API call.
 
     Raises:
         NotionClientError: missing credentials, or a Notion API failure
@@ -154,4 +169,26 @@ def guardar_registro_cliente(
     except APIResponseError as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
-    return pagina["url"]
+    return {"id": pagina["id"], "url": pagina["url"]}
+
+
+def actualizar_email_cliente(pagina_id: str, email: str) -> None:
+    """
+    Backfills the "Email" property on an already-created record — called
+    once a Gmail draft is created for that same client (see ui/app.py),
+    since the recipient address isn't known yet at guardar_registro_cliente()
+    time (approval happens before the trainer has necessarily typed it in).
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    api_key, _ = _credenciales()
+
+    try:
+        cliente = Client(auth=api_key)
+        cliente.pages.update(page_id=pagina_id, properties={"Email": {"email": email}})
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc

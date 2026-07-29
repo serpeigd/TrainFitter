@@ -19,6 +19,7 @@ How to run it (from the repo root):
 
 import base64
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -27,6 +28,22 @@ from pathlib import Path
 import streamlit as st
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+try:  # dotenv is optional, same convention as agents/run_routine_demo.py
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env")
+except ImportError:
+    pass
+
+# Gates the "Approve" button (and, by extension, Notion/Gmail — both only
+# unlock after approval) behind a shared password on deployments where it's
+# set. Deliberately an env var / Streamlit secret, never hardcoded here:
+# this file is in a public repo, so a literal password in the source would
+# be readable by anyone on GitHub the moment it's committed. Unset (the
+# default for local dev) means the gate is simply off — nothing to check
+# against, matching how every other optional credential in this project
+# degrades to "off" rather than "broken" when not configured.
+APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
@@ -64,7 +81,7 @@ sys.path.insert(0, str(MCP_DIR))
 
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from gmail_client import GmailClientError, crear_borrador  # noqa: E402
-from notion_connector import NotionClientError, guardar_registro_cliente  # noqa: E402
+from notion_connector import NotionClientError, actualizar_email_cliente, guardar_registro_cliente  # noqa: E402
 from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
@@ -341,10 +358,13 @@ TRANSLATIONS = {
         "client_message_header": "Message for the client",
         "download_diet": "Download diet (JSON)",
         "approval_header": "### Trainer's approval",
+        "approval_dialog_title": "Trainer's approval",
         "approval_caption": (
             "Marks the plan as reviewed within this session and saves a record to Notion "
             "(if configured) — it's a checklist step, not a send action."
         ),
+        "approval_password_label": "Password (required to approve on this deployment)",
+        "approval_password_wrong": "Incorrect password.",
         "approve_button": "✅ Approve and mark as ready to send",
         "approved_success": "Marked as approved at {time}.",
         "gmail_section_header": "### ✉️ Email the plan",
@@ -451,10 +471,13 @@ TRANSLATIONS = {
         "client_message_header": "Mensaje para el cliente",
         "download_diet": "Descargar dieta (JSON)",
         "approval_header": "### Aprobación del entrenador",
+        "approval_dialog_title": "Aprobación del entrenador",
         "approval_caption": (
             "Marca el plan como revisado dentro de esta sesión y guarda un registro en Notion "
             "(si está configurado) — es un paso de checklist, no un envío."
         ),
+        "approval_password_label": "Contraseña (necesaria para aprobar en este despliegue)",
+        "approval_password_wrong": "Contraseña incorrecta.",
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
         "approved_success": "Marcado como aprobado a las {time}.",
         "gmail_section_header": "### ✉️ Enviar el plan por email",
@@ -894,37 +917,79 @@ def _mostrar_dieta(dieta: dict) -> None:
     )
 
 
+def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
+    """The actual approval side-effects (unlock Gmail, save to Notion) —
+    factored out so both the no-password path (direct button click) and the
+    password-dialog path (confirm inside the popup) run identical logic."""
+    perfil = estado.perfil_cliente
+
+    # Tracked in session_state (keyed by id(perfil), stable for this exact
+    # submission — see st.session_state["ultimo_perfil"]) so the Gmail
+    # section stays unlocked across reruns after this click, not just
+    # during the one rerun the click happened on.
+    st.session_state["aprobado_para"] = id(perfil)
+    st.success(t("approved_success").format(time=datetime.now().strftime("%H:%M:%S")))
+
+    # Saved on approval, not on generation: a trainer might regenerate a few
+    # times while tweaking before settling on one — only the plan they
+    # actually approve is worth a permanent Notion record. Guards against a
+    # double-click creating two rows for the same approval the same way the
+    # old auto-save guarded against duplicate reruns.
+    if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
+        try:
+            resultado = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
+            st.session_state["notion_guardado_para"] = id(perfil)
+            # Kept for the Gmail section below: it can't know the Notion
+            # page to backfill the client's email onto otherwise, since the
+            # trainer usually hasn't typed it in yet at approval time.
+            st.session_state["notion_pagina_id"] = resultado["id"]
+            st.caption(t("notion_saved_note").format(url=resultado["url"]))
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            # Unlike the old silent auto-save, this is now a direct result
+            # of a click the trainer just made — worth a visible (but
+            # non-blocking) note instead of failing silently, so "why
+            # didn't this show up in Notion" has an answer on screen.
+            st.caption(t("notion_error_note").format(error=str(exc)))
+
+
+@st.dialog(t("approval_dialog_title"))
+def _dialogo_aprobacion(estado, guardar_en_notion: bool) -> None:
+    """Popup shown instead of approving directly, on any deployment where
+    APPROVAL_PASSWORD is set — keeps a public demo visitor from writing to
+    the trainer's real Notion/Gmail just by clicking through the app.
+    Streamlit gotcha: a dialog's *open* state has to live in session_state,
+    not just "was the trigger button clicked this rerun" — typing in the
+    password field below is itself a rerun, and on that rerun the trigger
+    button is no longer True, so without the session_state flag the modal
+    would appear to vanish the moment you start typing.
+
+    The decorator's title argument is re-evaluated on every script rerun
+    (Streamlit re-executes the whole module top to bottom each time), so
+    t("approval_header") here does track the language toggle correctly —
+    it's not frozen at first import the way a module-level constant would be."""
+    password_ingresada = st.text_input(t("approval_password_label"), type="password", key="approval_password_dialog")
+    if st.button(t("approve_button"), type="primary"):
+        if password_ingresada != APPROVAL_PASSWORD:
+            st.error(t("approval_password_wrong"))
+            return
+        _ejecutar_aprobacion(estado, guardar_en_notion)
+        st.session_state["mostrar_dialogo_aprobacion"] = False
+        st.rerun()
+
+
 def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     perfil = estado.perfil_cliente
 
     st.markdown(t("approval_header"))
     st.caption(t("approval_caption"))
-    if st.button(t("approve_button"), type="primary"):
-        # Tracked in session_state (keyed by id(perfil), stable for this
-        # exact submission — same pattern as the Notion dedup guard below)
-        # so the Gmail section below stays unlocked across reruns after
-        # this click, not just during the one rerun the click happened on.
-        st.session_state["aprobado_para"] = id(perfil)
-        st.success(t("approved_success").format(time=datetime.now().strftime("%H:%M:%S")))
 
-        # Saved on approval, not on generation: a trainer might regenerate a
-        # few times while tweaking before settling on one — only the plan
-        # they actually approve is worth a permanent Notion record. Guards
-        # against a double-click creating two rows for the same approval the
-        # same way the old auto-save guarded against duplicate reruns:
-        # id(perfil) is stable for this exact submission (see
-        # st.session_state["ultimo_perfil"]) and changes on the next one.
-        if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
-            try:
-                url = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
-                st.session_state["notion_guardado_para"] = id(perfil)
-                st.caption(t("notion_saved_note").format(url=url))
-            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                # Unlike the old silent auto-save, this is now a direct
-                # result of a click the trainer just made — worth a visible
-                # (but non-blocking) note instead of failing silently, so
-                # "why didn't this show up in Notion" has an answer on screen.
-                st.caption(t("notion_error_note").format(error=str(exc)))
+    if APPROVAL_PASSWORD:
+        if st.button(t("approve_button"), type="primary"):
+            st.session_state["mostrar_dialogo_aprobacion"] = True
+        if st.session_state.get("mostrar_dialogo_aprobacion"):
+            _dialogo_aprobacion(estado, guardar_en_notion)
+    elif st.button(t("approve_button"), type="primary"):
+        _ejecutar_aprobacion(estado, guardar_en_notion)
 
     # Gmail is locked until this exact plan has been approved above — a
     # trainer could otherwise create a real, addressed draft for a plan
@@ -947,6 +1012,21 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 estado.borrador_dieta,
             )
             st.success(t("draft_created_success").format(url=url))
+
+            # Backfills the client's email onto their Notion record, ahead
+            # of the (still-blocked, see docs/decisiones.md) future "detect
+            # a real send and cross-reference the Check-ins database by
+            # email" automation — the join key needs to exist before the
+            # automation that will use it does. Best-effort: a trainer using
+            # this without Notion configured (or where the approval-time
+            # save failed) shouldn't see an error over a background update
+            # for a feature they may not even have set up.
+            pagina_id = st.session_state.get("notion_pagina_id")
+            if pagina_id:
+                try:
+                    actualizar_email_cliente(pagina_id, email_cliente)
+                except (NotionClientError, ImportError, ModuleNotFoundError):
+                    pass
         except (GmailClientError, ImportError, ModuleNotFoundError) as exc:
             # Never crash the app over this: a missing google-api-python-client
             # (e.g. on the public demo, where it's deliberately not installed)

@@ -931,6 +931,48 @@ Two related UI changes, both from direct user feedback after trying the app:
   actually signed off on. Re-checked every rerun rather than remembered
   once, so a freshly regenerated plan starts locked again.
 
+## Password-gated approval popup + email backfill on the Notion record
+
+Two more changes from the same round of real usage:
+
+- **The public demo needed Notion and Gmail active, but not open to
+  anyone.** The trainer wanted to use the live app (trainfitter.streamlit.app)
+  without running it locally, but a random visitor clicking through "New
+  Client" and approving could otherwise write real rows to the trainer's
+  Notion and unlock real Gmail drafts. Solved with a shared password behind
+  the "Approve" button — `APP_APPROVAL_PASSWORD` (env var / Streamlit
+  secret), checked in a `st.dialog` popup rather than an inline field, per
+  explicit request. **Never hardcoded**: this is a public repo, so a literal
+  password string in `ui/app.py` would be readable by anyone on GitHub the
+  moment it's committed — same secret-handling discipline as every other
+  credential in this project. Unset (local dev's default) means the gate is
+  simply off, nothing to check against.
+  - Streamlit gotcha hit while building this: a dialog's *open* state has to
+    live in `st.session_state`, not just "was the trigger button clicked
+    this rerun." Typing into the password field inside the dialog is itself
+    a rerun; on that rerun the trigger button reads `False` again, so a
+    naive `if st.button(...): show_dialog()` makes the modal appear to
+    vanish the instant you start typing. Fixed by tracking
+    `st.session_state["mostrar_dialogo_aprobacion"]` explicitly and checking
+    that flag on every rerun, not the button's momentary return value.
+  - Also caught: `@st.dialog(t("approval_header"))` would have shown a
+    literal `"### "` in the modal's title bar — `approval_header`'s value
+    carries a markdown prefix meant for `st.markdown()` elsewhere, and a
+    dialog's title argument isn't markdown-rendered. Added a separate
+    `approval_dialog_title` key without the prefix instead of reusing the
+    markdown-formatted string.
+- **Notion's "Email" property now fills in at Gmail-draft-creation time**,
+  not at approval time — the trainer's own refinement of the future
+  check-ins idea: cross-reference a later "Check-ins" database by email
+  instead of a Notion page relation. `guardar_registro_cliente()` now
+  returns `{"id", "url"}` instead of a bare URL string, specifically so the
+  page ID survives in `st.session_state["notion_pagina_id"]` long enough for
+  the new `actualizar_email_cliente()` to backfill it once the trainer
+  types a recipient into the Gmail section — capturing the join key well
+  ahead of when the "detect a real send" automation it's meant to support
+  becomes possible (see the persisted memory note on that — still blocked
+  on the same Gmail OAuth scope trade-off as "Email Sent").
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

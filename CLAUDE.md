@@ -60,18 +60,25 @@ with `pytest` from repo root — wired into CI) and a live demo at
 on push to master). `agents/analytics_parser.py` extracts bloodwork markers
 from the intake's PDF attachment (best-effort, bilingual, forces
 `revision_reforzada` on out-of-range values via `validator_agent.py` — same
-defense-in-depth pattern as injuries/allergies). `mcp/gmail_client.py` creates
-a real Gmail **draft** (never sends — enforced by the `gmail.compose` OAuth
-scope, not just by convention) for the trainer to review and send themselves;
-recipient is typed in the approval panel, not part of the intake schema.
-`mcp/notion_connector.py` auto-saves a summarized record of every real
-new-client plan to a Notion database (name/date/goal/level/verdict/summary) —
-fires only for genuine new-client intakes, never for the example-client demo
-path, and guards against Streamlit's rerun-on-any-interaction model creating
-duplicate pages (`id(perfil)` tracked in `st.session_state`). Pending:
-automatic inbox trigger (`main.py`). CI (`.github/workflows/ci.yml`) runs the
-free rule-engine pipeline + test suite + lint end-to-end on every push — no
-secrets needed.
+defense-in-depth pattern as injuries/allergies). `mcp/gmail_client.py` creates a real Gmail **draft** (never sends —
+enforced by the `gmail.compose` OAuth scope, not just by convention),
+**live-tested end-to-end** with a real OAuth-authorized account
+(`trainfitter.official@gmail.com`); recipient is typed in the approval
+panel, not part of the intake schema. `mcp/notion_connector.py` saves a
+summarized record (name/date/goal/level/verdict/summary) to a Notion
+database, and backfills the client's email onto that record once a Gmail
+draft is created for them (`actualizar_email_cliente()` — groundwork for a
+future Check-ins database, see persisted memory). Both Notion-save and
+Gmail-draft-creation are gated behind the "Approve" button (Gmail stays
+disabled until that exact plan is approved; Notion saves on approval, not
+generation) — fires only for genuine new-client intakes, never the
+example-client demo path. On any deployment with `APP_APPROVAL_PASSWORD`
+set (env var / Streamlit secret, never hardcoded), approving requires that
+password via a popup (`st.dialog`), so the public demo can have both
+connectors active without a random visitor writing to the trainer's real
+accounts. Pending: automatic inbox trigger (`main.py`). CI
+(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test
+suite + lint end-to-end on every push — no secrets needed.
 
 ## Free-only guardrail
 
