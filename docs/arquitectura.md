@@ -1,9 +1,10 @@
 # TrainFitter Architecture
 
 > **Status: full pipeline (Phases 0-4) + trainer's panel (Phase 5-lite).**
-> Gmail and Notion are both connected. The automatic `inbox/` trigger is
-> still missing. The final version aimed at a technical reader arrives in
-> Phase 7.
+> Gmail and Notion are both connected, including a second Notion "Check-ins"
+> database that logs a client's interaction history once a real Gmail send
+> is confirmed. The automatic `inbox/` trigger is still missing. The final
+> version aimed at a technical reader arrives in Phase 7.
 >
 > Note on naming: internal Python identifiers, dict/JSON keys, and literal state
 > values (e.g. `perfil_cliente`, `revision_reforzada`, `generar_borrador_rutina()`)
@@ -58,7 +59,13 @@ gate should be deterministic and auditable, not a model's "opinion" — see
                                 ▼
                      Human review (ALWAYS, no exceptions)
                                 ▼
+              Notion "Clients" record saved (mcp/notion_connector.py)
+                                ▼
               Gmail draft created (mcp/gmail_client.py) — trainer reviews and sends it themselves
+                                ▼
+              Trainer confirms the send in the UI ("Check if it was sent")
+                                ▼
+              Notion "Email Sent" ticked + a row added to "Check-ins"
 ```
 
 ## Orchestrator state diagram (real, `agents/orchestrator.py`)
@@ -115,7 +122,21 @@ click-through experience:
   collect it) and creates an actual draft in a dedicated Gmail account. The
   OAuth scope requested (`gmail.compose`) can only create drafts — it's
   physically incapable of sending or reading mail, so the UI never sends
-  anything on its own even in principle, not just by convention.
+  anything on its own even in principle, not just by convention. On real
+  new-client plans, approving also saves a record to a Notion "Clients"
+  database (`mcp/notion_connector.py`).
+- **Send confirmation + Check-ins:** a "Check if it was sent" button calls
+  `gmail_client.verificar_envio()` (needs the added `gmail.metadata` scope —
+  labels/headers only) to check whether the trainer actually sent the draft,
+  not just created it. On a confirmed send, it ticks "Email Sent" on the
+  Clients record and logs a row in a second Notion "Check-ins" database
+  (joined by email, not a relation property) — the interaction history for
+  that client. This is trainer-triggered, not a background job: a stateless
+  Streamlit app has no push infrastructure to notice a send passively.
+- **Password-gated approval:** on any deployment with `APP_APPROVAL_PASSWORD`
+  set, approving a plan requires that password via a popup — so the public
+  demo can have Notion and Gmail both active without a random visitor
+  writing to the trainer's real accounts just by clicking through.
 
 **Design note found during testing:** the new-intake widgets are deliberately NOT
 inside an `st.form`. That was tried first, but Streamlit doesn't rerun the script
@@ -142,8 +163,8 @@ a pipeline as fast as the rule engine.
 | Orchestrator (explicit state) | `agents/orchestrator.py` | 4 | **Done** |
 | Trainer's panel (UI) | `ui/app.py` | 5-lite | **Done** |
 | Bloodwork parser | `agents/analytics_parser.py` | 5+ | **Done** |
-| Notion connector | `mcp/notion_connector.py` | 5 | **Done** |
-| Gmail connector | `mcp/gmail_client.py` | 5 | **Done** |
+| Notion connector (Clients + Check-ins) | `mcp/notion_connector.py` | 5 | **Done** |
+| Gmail connector (draft + send-detection) | `mcp/gmail_client.py` | 5 | **Done** |
 | Automatic trigger | `main.py` + `inbox/` | 6 | Pending |
 
 ## Clinical personalization layer (active modulation)

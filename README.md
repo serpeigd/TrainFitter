@@ -67,6 +67,10 @@ This repository is built phase by phase, as a learning project. Right now:
   toggle** for the interface (the generated plan itself is always in English).
 - Tested with two example cases: one straightforward, one with an injury and a
   vegetarian diet, to confirm the enhanced-review flag fires when it should.
+- An optional **bloodwork PDF** can be attached to the intake — out-of-range markers
+  are extracted (best-effort, bilingual) and automatically force enhanced review,
+  same defense-in-depth pattern as injuries and allergies
+  (see [`agents/analytics_parser.py`](agents/analytics_parser.py)).
 - A real **Gmail draft** can be created for the approved plan — never sent
   automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
   the trainer reviews and sends it themselves from their own Gmail.
@@ -74,12 +78,23 @@ This repository is built phase by phase, as a learning project. Right now:
   persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
   — a lightweight CRM outside the browser session, which otherwise forgets
   everything on refresh. Example-client demo runs are deliberately excluded.
+- A second **Check-ins** Notion database logs the client's interaction history
+  (joined to the main record by email). A "Check if it was sent" button confirms
+  whether the trainer actually sent the Gmail draft (not just created it) and, on a
+  confirmed send, ticks it off and logs the check-in automatically.
+- On the public demo, approving a plan (and unlocking Notion/Gmail) is gated
+  behind a shared password, so a random visitor can't write to the trainer's
+  real accounts just by clicking through.
 
 ## What it doesn't include yet
 
 - Richer, more nuanced generative-AI writing — today's draft comes from deterministic
   rules based on the method; an optional generative-AI layer (`motor="llm"`) is
   already designed and ready to switch on when it makes sense.
+- More personalized, less deterministic routine/diet generation for the free rule
+  engine (same input always produces the same plan today) — a real scoped-out
+  improvement, not started yet.
+- An automatic inbox trigger (`main.py`) instead of manual intake via the panel.
 
 ## Repository structure
 
@@ -96,7 +111,7 @@ TrainFitter/
 ├── agents/                          Routine, diet, validator, and orchestrator
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
-├── mcp/                             Connectors: Gmail, Notion (both done)
+├── mcp/                             Connectors: Gmail (draft + send-detection), Notion (Clients + Check-ins)
 ├── assets/                          logo.jpg (banner), icon.png (favicon/sidebar mark)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies

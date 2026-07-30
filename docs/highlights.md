@@ -34,7 +34,11 @@ The Gmail connector (`mcp/gmail_client.py`) requests only the
 — Google's API physically rejects a send call under that scope. On a public
 demo where anyone can type an arbitrary recipient email, that distinction is
 the difference between "the code currently doesn't send" and "the code
-*can't*."
+*can't*." When the project later needed to detect a real send (to log it in
+a Notion "Check-ins" history), the added scope was `gmail.metadata` —
+labels and headers only — deliberately not the broader `gmail.readonly`,
+which would also have worked but grants full message-body access this
+feature never needed.
 
 ## 4. An explicit state machine, not loose variables
 
