@@ -1475,6 +1475,34 @@ Moving the centering rule to target `stFullScreenFrame` instead fixed it —
 confirmed by re-measuring the image's left/right gap against the sidebar
 edges post-fix (89.5px / 90.5px, i.e. centered within a rounding error).
 
+## The banner stopped re-cropping a frame that was already cropped
+
+Follow-up to the hand-prepared-crops pass above: the compact-strip banner
+(fixed `height: 240px` + `object-fit: cover`) was designed for `logo.jpg`'s
+full-scene photo, where CSS was doing the only cropping happening. Once
+`BANNER_PATH` switched to `Cropped.jpg` — already hand-composed by the
+project owner specifically for this spot — that same fixed-height crop was
+re-cropping an already-cropped frame, zooming in until the "TrainFitter"
+wordmark (which sits low in that frame, ~80-97% of its height) fell mostly
+outside the visible 240px band. Fixed by matching `.tf-banner-wrap`'s
+`aspect-ratio` to the file's own 1200:487 ratio instead of a fixed height,
+so `object-fit: cover` has nothing left to crop — confirmed by measuring
+the rendered box's width/height ratio against the source file's own ratio
+post-fix (both landed at ~2.465). `max-width: 1200px` (the file's native
+resolution) keeps it from upscaling past its real pixels and caps how wide
+it spans on an ultra-wide monitor — addressing the earlier "too intrusive"
+feedback by capping *width* instead of cropping *content*, since the
+intrusiveness complaint was about the banner spanning the full page edge
+to edge, not about tall it was. Also dropped the bottom gradient fade
+that existed on the old compact-strip version: it lived in the same
+80-97%-height band as the wordmark, so keeping it would have faded out
+the exact text this change was meant to make visible again.
+
+Also added a colored glow (teal + a hint of orange, matching the
+`.tf-hero` icon's existing treatment) to the sidebar icon, which previously
+only had a plain dark drop shadow — a flat shadow read as dull next to
+artwork that's actually meant to glow.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

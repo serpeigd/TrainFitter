@@ -192,39 +192,42 @@ def _inyectar_estilos() -> None:
             background: linear-gradient(180deg, rgba(5, 160, 129, 0.16) 0%, {COLOR_BG_ELEVATED} 260px);
             border-right: 1px solid {COLOR_BORDER};
         }}
+        /* A colored neon glow behind the sidebar mark, echoing the same
+        two-tone treatment .tf-hero img already gets below — a plain dark
+        drop shadow alone (the pre-existing rule) reads as flat next to the
+        glowing artwork inside the image itself. */
         [data-testid="stSidebar"] img {{
             border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            box-shadow:
+                0 4px 16px rgba(0, 0, 0, 0.4),
+                0 0 34px rgba(5, 160, 129, 0.40),
+                0 0 60px rgba(248, 128, 42, 0.18);
         }}
 
-        /* Cover banner: a permanent, compact strip rather than a full-size
-        splash — the project owner's call after two animated approaches
-        (scroll-linked, then a timed reveal) both turned out more trouble
-        than they were worth (see docs/decisiones.md for that history).
-        Fixed `height` + `object-fit: cover` crops the photo to a short
-        band instead of showing it at full aspect ratio, which is also
-        what keeps it from ever being able to clip again — unlike the
-        max-height approach this replaces, a `height`-capped `object-fit:
-        cover` image can never render taller than the box, at any monitor
-        width. Doesn't need to keep the "TrainFitter" wordmark/tagline
-        baked into the photo legible either: that identity is already
-        rendered as real, translatable HTML in .tf-hero right below it, so
-        this crop is free to just show an atmospheric slice of the scene.
-        A soft gradient fade at the bottom blends it into the page
-        background instead of ending on a hard edge. */
+        /* Cover banner: shown exactly as the source photo (assets/Cropped.jpg)
+        was hand-composed — the project owner cropped and centered that
+        frame externally specifically for this spot, so CSS shouldn't
+        re-crop it again on top. `aspect-ratio` matched to the file's own
+        1200x487 ratio (instead of a fixed `height`) means `object-fit:
+        cover` never actually needs to crop anything: the box is always
+        exactly the image's shape, just scaled. `max-width` caps it at the
+        source's native resolution so it never upscales past its real
+        pixels on an ultra-wide monitor, and centers it instead of
+        stretching edge-to-edge — the "too intrusive" complaint that led to
+        the earlier compact-strip version was about a banner spanning the
+        full page width, not about its height, so capping width solves
+        that without cropping content. No bottom gradient fade here (the
+        old compact-strip version had one): the wordmark sits low in this
+        frame (~80-97% of its height), which a fade in that zone would
+        have obscured. */
         .tf-banner-wrap {{
             position: relative;
-            height: 240px;
+            width: 100%;
+            max-width: 1200px;
+            aspect-ratio: 1200 / 487;
             overflow: hidden;
             border-radius: 16px;
-            margin-bottom: 1.25rem;
-        }}
-        .tf-banner-wrap::after {{
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent 55%, rgba(11, 18, 32, 0.85) 100%);
-            pointer-events: none;
+            margin: 0 auto 1.25rem auto;
         }}
         /* !important on the fit properties specifically: Streamlit's own
         emotion-generated CSS applies "img" object-fit: scale-down rules
@@ -240,7 +243,7 @@ def _inyectar_estilos() -> None:
             width: 100%;
             height: 100%;
             object-fit: cover !important;
-            object-position: center 48% !important;
+            object-position: center !important;
             display: block;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
             animation: tf-fade-in 0.5s ease-out;
@@ -620,7 +623,7 @@ def _inyectar_estilos() -> None:
         @media (max-width: 640px) {{
             .tf-hero-title {{ font-size: 1.4rem; }}
             .tf-hero img {{ width: 46px; height: 46px; }}
-            .tf-banner-wrap {{ border-radius: 10px; height: 150px; }}
+            .tf-banner-wrap {{ border-radius: 10px; }}
             .tf-step-label {{ font-size: 0.6rem; }}
             .tf-step-dot {{ width: 26px; height: 26px; font-size: 0.7rem; }}
         }}
@@ -1610,12 +1613,12 @@ _inyectar_estilos()
 # just "TrainFitter" (no language-specific copy), so unlike the old
 # logo.jpg crop there's no EN/ES mismatch to worry about here; the
 # translatable title/subtitle right below it in .tf-hero cover that.
-# Always rendered, no session_state involved — a
-# permanent compact strip (see .tf-banner-wrap's fixed height in
-# _inyectar_estilos()) rather than a one-time splash. Two animated
-# versions were tried and abandoned before this one: scroll-linked (broken
-# by Streamlit Cloud's iframe) and a timed reveal-then-vanish (functional,
-# but the project owner preferred it just staying put, sized down instead).
+# Always rendered, no session_state involved — a permanent fixture shown
+# at its own aspect ratio (see .tf-banner-wrap in _inyectar_estilos())
+# rather than a one-time splash. Two animated versions were tried and
+# abandoned before this one: scroll-linked (broken by Streamlit Cloud's
+# iframe) and a timed reveal-then-vanish (functional, but the project
+# owner preferred it just staying put).
 _banner_b64 = _banner_base64()
 if _banner_b64:
     st.markdown(
