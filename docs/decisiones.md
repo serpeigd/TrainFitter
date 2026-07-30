@@ -1298,6 +1298,44 @@ on every single click, which is both the wrong UX (the reveal should mean
 tall image re-pushing the actual panel down the page on every rerun once
 the trainer is mid-task).
 
+## The entrance transition became scroll-driven, not time-driven
+
+The project owner asked for the banner reveal to be manual — triggered by
+scrolling, reversible on scrolling back up, "pausing" wherever you stop —
+rather than a fixed-duration animation that plays once and is gone. Rebuilt
+on CSS scroll-driven animations (`animation-timeline: scroll(...)`,
+`animation-range`) instead of a `st.session_state` flag plus a timed
+keyframe: the collapse is now a direct, continuous function of scroll
+position, so scrolling down collapses it, scrolling up restores it, and
+stopping mid-scroll holds it at exactly that partial state — all for free,
+with zero JavaScript and zero Streamlit rerun involvement. This also
+simplified the Python side back down: the banner just renders unconditionally
+on every run again (it has to stay in the DOM for "scroll up brings it
+back" to be possible at all), and the one-shot `intro_reproducida` session
+flag from the previous version was removed as dead weight.
+
+Confirmed which element actually scrolls before writing the selector,
+rather than assuming the browser window does: `[data-testid="stMain"]` has
+`overflow-y: auto` with real overflow (scrollHeight >> clientHeight) in
+this Streamlit version, while `document.documentElement` doesn't scroll at
+all (scrollHeight == clientHeight). That's why the timeline uses
+`scroll(nearest block)`, not `scroll(root block)` — `root` would have
+silently attached to a scroller that never moves.
+
+**Verification has an honest gap, disclosed rather than papered over:**
+confirmed `CSS.supports('animation-timeline', 'scroll()')` is `true` and
+that `element.getAnimations()` reports a real, running `ScrollTimeline` on
+the banner — proof the browser accepted and is executing the CSS. Could
+*not* confirm the actual visual collapse/reveal against a real scroll
+gesture: this environment's browser-automation pane doesn't composite
+frames (confirmed by an explicit tool error to that effect), and scroll-
+driven animations are resolved on the compositor thread — `getComputedStyle`
+and even `requestAnimationFrame` callbacks reliably came back stale or never
+fired at all when probed here, regardless of technique tried. Unsupported
+browsers (Firefox, Safari, as of this writing) simply ignore the unknown
+`animation-timeline` property and render the banner as a static image —
+a safe default, not a broken one, if that gap ever matters in practice.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

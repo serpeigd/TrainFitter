@@ -190,21 +190,33 @@ def _inyectar_estilos() -> None:
         }}
 
         /* Wrapper (not the image itself) owns the radius/margin/overflow so
-        the entrance animation can collapse max-height down to 0 and take
-        the rounded corners and bottom margin with it, instead of leaving a
-        clipped, corner-less sliver behind right before it disappears. */
+        the scroll-driven collapse can take max-height down to 0 and pull
+        the rounded corners and bottom margin along with it, instead of
+        leaving a clipped, corner-less sliver behind at the end.
+
+        Tied directly to scroll position (animation-timeline: scroll(...)),
+        not a fixed-duration keyframe animation: scrolling down collapses
+        the banner, scrolling back up brings it back, and stopping mid-
+        scroll holds it at whatever partial state it was in — reversible
+        and "paused" for free, just by how CSS scroll-driven animations
+        work, no JS scroll listener needed. `nearest` (not `root`) because
+        this Streamlit version scrolls internally inside
+        [data-testid="stMain"], not the actual browser window — confirmed
+        by inspecting scrollHeight/overflow live rather than assuming it.
+        Unsupported browsers (Firefox, Safari as of this writing) simply
+        ignore `animation-timeline` and show the banner as a normal static
+        image — a safe, non-breaking fallback, not an error. */
         .tf-banner-wrap {{
             overflow: hidden;
             border-radius: 16px;
             margin-bottom: 1.25rem;
+            animation: tf-banner-scroll-collapse linear both;
+            animation-timeline: scroll(nearest block);
+            animation-range: 0 340px;
         }}
-        .tf-banner-wrap.tf-banner-intro {{
-            animation: tf-banner-reveal 2.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-        }}
-        @keyframes tf-banner-reveal {{
-            0% {{ max-height: 640px; opacity: 1; }}
-            55% {{ max-height: 640px; opacity: 1; }}
-            100% {{ max-height: 0; opacity: 0; margin-bottom: 0; }}
+        @keyframes tf-banner-scroll-collapse {{
+            from {{ max-height: 640px; opacity: 1; transform: translateY(0); margin-bottom: 1.25rem; }}
+            to {{ max-height: 0; opacity: 0; transform: translateY(-24px); margin-bottom: 0; }}
         }}
         .tf-banner {{
             width: 100%;
@@ -1570,22 +1582,17 @@ _inyectar_estilos()
 # Cover banner (assets/logo.jpg) — kept in its original Spanish tagline
 # regardless of the EN/ES toggle below: it's baked into the image itself,
 # not translatable text, a deliberate trade-off for the visual (see
-# docs/decisiones.md). Shown once per session as an entrance transition —
-# it plays its slide-up-and-reveal animation on the very first script run,
-# then is skipped entirely on every later rerun (Streamlit reruns the whole
-# script on every interaction, so "just don't render it again" is what
-# keeps it from reappearing — and as a side effect, stops a large image
-# from pushing the actual panel down the page on every click once the
-# trainer is mid-task).
-if "intro_reproducida" not in st.session_state:
-    _banner_b64 = _banner_base64()
-    if _banner_b64:
-        st.markdown(
-            f'<div class="tf-banner-wrap tf-banner-intro">'
-            f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter"></div>',
-            unsafe_allow_html=True,
-        )
-    st.session_state["intro_reproducida"] = True
+# docs/decisiones.md). Always rendered (not gated on session_state) — the
+# collapse/reveal is entirely CSS scroll-timeline driven now (see
+# .tf-banner-wrap in _inyectar_estilos()), so the banner needs to stay in
+# the DOM at all times for scrolling back up to bring it back.
+_banner_b64 = _banner_base64()
+if _banner_b64:
+    st.markdown(
+        f'<div class="tf-banner-wrap">'
+        f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter"></div>',
+        unsafe_allow_html=True,
+    )
 
 _logo_b64 = _logo_base64()
 _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" alt="TrainFitter logo">' if _logo_b64 else ""
