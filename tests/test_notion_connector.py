@@ -13,6 +13,8 @@ from notion_connector import (
     _construir_resumen,
     _credenciales,
     actualizar_email_cliente,
+    crear_registro_checkin,
+    marcar_email_enviado,
 )
 
 
@@ -99,3 +101,40 @@ def test_actualizar_email_missing_credentials_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
     with pytest.raises(NotionClientError):
         actualizar_email_cliente("some-page-id", "client@example.com")
+
+
+def test_marcar_email_enviado_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        marcar_email_enviado("some-page-id")
+
+
+def test_crear_registro_checkin_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.delenv("NOTION_CHECKINS_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        crear_registro_checkin("client@example.com", "Ana Test", "Plan sent", "2026-07-30")
+
+
+def test_crear_registro_checkin_missing_checkins_database_id_raises(monkeypatch, tmp_path):
+    """Same credentials-before-import ordering as every other network call in
+    this module (see docs/decisiones.md's CI-caught bug): a set
+    NOTION_API_KEY/NOTION_DATABASE_ID but missing NOTION_CHECKINS_DATABASE_ID
+    should fail with a clear NotionClientError, not a bare
+    ModuleNotFoundError if notion-client isn't installed either."""
+    import notion_connector
+
+    monkeypatch.setenv("NOTION_API_KEY", "fake-key")
+    monkeypatch.setenv("NOTION_DATABASE_ID", "fake-database-id")
+    monkeypatch.delenv("NOTION_CHECKINS_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        crear_registro_checkin("client@example.com", "Ana Test", "Plan sent", "2026-07-30")

@@ -64,21 +64,29 @@ defense-in-depth pattern as injuries/allergies). `mcp/gmail_client.py` creates a
 enforced by the `gmail.compose` OAuth scope, not just by convention),
 **live-tested end-to-end** with a real OAuth-authorized account
 (`trainfitter.official@gmail.com`); recipient is typed in the approval
-panel, not part of the intake schema. `mcp/notion_connector.py` saves a
-summarized record (name/date/goal/level/verdict/summary) to a Notion
-database, and backfills the client's email onto that record once a Gmail
-draft is created for them (`actualizar_email_cliente()` — groundwork for a
-future Check-ins database, see persisted memory). Both Notion-save and
-Gmail-draft-creation are gated behind the "Approve" button (Gmail stays
-disabled until that exact plan is approved; Notion saves on approval, not
-generation) — fires only for genuine new-client intakes, never the
-example-client demo path. On any deployment with `APP_APPROVAL_PASSWORD`
-set (env var / Streamlit secret, never hardcoded), approving requires that
-password via a popup (`st.dialog`), so the public demo can have both
-connectors active without a random visitor writing to the trainer's real
-accounts. Pending: automatic inbox trigger (`main.py`). CI
-(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test
-suite + lint end-to-end on every push — no secrets needed.
+panel, not part of the intake schema. Also exposes `verificar_envio()`
+(needs the added `gmail.metadata` scope — labels/headers only, never the
+message body) to check on demand whether a draft's thread now contains a
+sent message. `mcp/notion_connector.py` saves a summarized record
+(name/date/goal/level/verdict/summary) to a "Clients" Notion database, and
+backfills the client's email onto that record once a Gmail draft is
+created for them (`actualizar_email_cliente()`). A second "Check-ins"
+Notion database (joined to Clients by email, not a relation property)
+logs one row per interaction: `ui/app.py`'s "Check if it was sent" button
+calls `verificar_envio()`, and on a confirmed real send, ticks "Email
+Sent" on the Clients record (`marcar_email_enviado()`) and adds a
+"Plan sent" row to Check-ins (`crear_registro_checkin()`) — trainer-
+triggered, not a background job (stateless Streamlit app, no push
+infra). Notion-save and Gmail-draft-creation are gated behind the
+"Approve" button (Gmail stays disabled until that exact plan is approved;
+Notion saves on approval, not generation) — fires only for genuine
+new-client intakes, never the example-client demo path. On any deployment
+with `APP_APPROVAL_PASSWORD` set (env var / Streamlit secret, never
+hardcoded), approving requires that password via a popup (`st.dialog`), so
+the public demo can have both connectors active without a random visitor
+writing to the trainer's real accounts. Pending: automatic inbox trigger
+(`main.py`). CI (`.github/workflows/ci.yml`) runs the free rule-engine
+pipeline + test suite + lint end-to-end on every push — no secrets needed.
 
 ## Free-only guardrail
 

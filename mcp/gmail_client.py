@@ -14,21 +14,45 @@ any email address into the client-email field, so the one thing that must
 never happen is an email actually leaving the dedicated Gmail account
 without the trainer reviewing it first in their own Gmail draft folder.
 
+DESIGN — `gmail.metadata` added alongside `gmail.compose`, deliberately not
+`gmail.readonly`: once the project owner explicitly opted into detecting a
+real send (for the Notion Check-ins database — see notion_connector.py),
+the narrowest scope that can answer "was this thread actually sent?" is
+`gmail.metadata` — it exposes labels and headers, never message bodies or
+attachments. `gmail.readonly` would also work but grants full mailbody read
+access this feature doesn't need, so it was deliberately not requested.
+Adding a new scope means any existing token.json (authorized under the old
+scope list only) stops being sufficient — Google enforces scope at the API
+call, not just locally — so re-running the OAuth consent flow (deleting
+token.json first) is required once, both locally and on any deployment.
+
 DESIGN — pure logic separated from network/auth: _construir_mensaje_raw()
 and _construir_cuerpo_email() are plain functions with no I/O, fully unit
-tested without any credentials. Only crear_borrador() touches the network,
-and only when actually called — the google-api-python-client /
-google-auth-oauthlib packages are lazy imports, same convention as
-`anthropic` for motor="llm" and `pdfplumber` for the bloodwork parser: the
-free pipeline never needs them installed.
+tested without any credentials. Only crear_borrador() and verificar_envio()
+touch the network, and only when actually called — the
+google-api-python-client / google-auth-oauthlib packages are lazy imports,
+same convention as `anthropic` for motor="llm" and `pdfplumber` for the
+bloodwork parser: the free pipeline never needs them installed.
+
+DESIGN — verificar_envio() is trainer-triggered, not a background job: this
+is a stateless Streamlit app with no persistent backend or push
+infrastructure, so "detecting" a send means checking on demand (a button in
+ui/app.py) whether the draft's thread now contains a message with the SENT
+label — not passively noticing the moment it happens.
 
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create a Google Cloud project and enable the Gmail API.
   2. Create an OAuth 2.0 Client ID (type: Desktop app) and download it as
      credentials.json into the repo root (gitignored — never committed).
-  3. First call to crear_borrador() opens a browser consent screen; the
-     resulting token is cached to token.json (also gitignored) so it isn't
-     repeated on every run.
+  3. In the OAuth consent screen's "Data Access" section, add both scopes
+     below (gmail.compose and gmail.metadata) to the app's registered scope
+     list — Google rejects a token request for a scope the app doesn't have
+     registered, even in testing mode.
+  4. First call to crear_borrador() or verificar_envio() opens a browser
+     consent screen; the resulting token is cached to token.json (also
+     gitignored) so it isn't repeated on every run. If token.json already
+     exists from before gmail.metadata was added, delete it first so the
+     consent screen re-runs and grants the new scope.
 """
 
 import base64
@@ -39,9 +63,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RUTA_CREDENCIALES = REPO_ROOT / "credentials.json"
 RUTA_TOKEN = REPO_ROOT / "token.json"
 
-# Draft-only, by design (see module docstring) — this is the narrowest scope
-# the Gmail API offers for composing mail.
-SCOPES = ["https://www.googleapis.com/auth/gmail.compose"]
+# Draft-only plus read-only label/header access (see module docstring) —
+# the narrowest scopes that cover both "create a draft" and "check whether
+# it was actually sent" without ever granting message-body read access.
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.compose",
+    "https://www.googleapis.com/auth/gmail.metadata",
+]
 
 
 class GmailClientError(Exception):
@@ -129,13 +157,15 @@ def _obtener_credenciales():
     return credenciales
 
 
-def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict) -> str:
+def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict) -> dict:
     """
     Creates a Gmail draft (never sends it) with the approved plan.
 
     Returns:
-        A gmail.com link to the created draft, so the trainer can jump
-        straight to it.
+        {"url": a gmail.com link to the created draft, "thread_id": the
+        underlying thread's ID}. thread_id is what verificar_envio() needs
+        later — Gmail keeps a sent message in the same thread as the draft
+        it came from, which is how a real send gets detected.
 
     Raises:
         GmailClientError: invalid recipient, missing/expired credentials
@@ -163,4 +193,42 @@ def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict
     except HttpError as exc:
         raise GmailClientError(f"Gmail API error: {exc}") from exc
 
-    return f"https://mail.google.com/mail/u/0/#drafts/{borrador['message']['id']}"
+    return {
+        "url": f"https://mail.google.com/mail/u/0/#drafts/{borrador['message']['id']}",
+        "thread_id": borrador["message"]["threadId"],
+    }
+
+
+def verificar_envio(id_hilo: str) -> bool:
+    """
+    Checks whether the draft's thread now contains a message with the SENT
+    label — i.e. whether the trainer actually opened the draft in Gmail and
+    hit send, not just created it. Uses format="metadata" explicitly: the
+    gmail.metadata scope this needs only ever authorizes reading labels and
+    headers, never the message body (see module docstring).
+
+    Args:
+        id_hilo: the thread_id returned by crear_borrador().
+
+    Returns:
+        True if a sent message exists in this thread, False if it's still
+        just a draft (or the thread was deleted).
+
+    Raises:
+        GmailClientError: missing/expired credentials the user needs to
+            re-authorize, or a Gmail API failure other than "not found".
+    """
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    try:
+        servicio = build("gmail", "v1", credentials=credenciales)
+        hilo = servicio.users().threads().get(userId="me", id=id_hilo, format="metadata").execute()
+    except HttpError as exc:
+        if exc.resp.status == 404:
+            return False
+        raise GmailClientError(f"Gmail API error: {exc}") from exc
+
+    return any("SENT" in mensaje.get("labelIds", []) for mensaje in hilo.get("messages", []))

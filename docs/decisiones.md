@@ -1090,6 +1090,60 @@ toggle rough edges, and making generated routines/diets less generic/
 deterministic (more personalized to the individual intake). Both are real,
 scoped as future work.
 
+## Notion Check-ins database + detecting a real Gmail send
+
+The project owner explicitly opted into widening Gmail's OAuth scope for
+this (previously deliberately deferred — see the "Email Sent" follow-up
+flag entry above), so this builds the automation that was blocked on that
+decision.
+
+**Check-ins is a second database, not a property on Clients.** Created via
+the same direct Notion API approach used for the original "Clients"
+database (`databases.create()` + `data_sources.update()` for the schema,
+since this API version doesn't fully apply properties on create). Schema:
+Name (title), Email, Type (select: "Plan sent" / "Manual check-in"), Date,
+Adherence notes, Adherence rating (Low/Medium/High), Next follow-up.
+Joined to Clients by email only — no Notion relation property — matching
+the project owner's own earlier call: simpler, and still works if
+something outside Notion ever needs to match records later. Clients stays
+the one master record per person; Check-ins is the append-only history.
+
+**Detecting a real send needed a new Gmail scope.** `gmail.compose` can't
+read the mailbox at all (by design — see gmail_client.py's docstring), so
+there was no way to tell "created" from "actually sent" through it. Added
+`gmail.metadata` — read-only labels/headers, explicitly not `gmail.readonly`
+(which would also work but grants full body read this feature doesn't
+need). Verified there's no known restriction preventing this scope from
+being requested alongside `gmail.compose` in the same OAuth grant, and that
+`gmail.metadata`'s format restriction only concerns the `format` query
+parameter on read endpoints (`messages.get`, `threads.get`) — it doesn't
+touch `drafts.create()`, which `crear_borrador()` already used and keeps
+using unmodified.
+
+**Detection mechanism:** `crear_borrador()` now also returns the created
+draft's `thread_id` (Gmail keeps a sent message in the same thread as the
+draft it came from). `verificar_envio(thread_id)` calls
+`threads.get(..., format="metadata")` and checks whether any message in
+that thread carries the `SENT` label. This is trainer-triggered (a "Check
+if it was sent" button in `ui/app.py`), not a passive background job —
+this is a stateless Streamlit app with no push-notification infrastructure
+to notice a send happening on its own. On a confirmed send: ticks "Email
+Sent" on the Clients record (`marcar_email_enviado()`) and adds a
+"Plan sent" row to Check-ins (`crear_registro_checkin()`), guarded against
+duplicate rows on a repeated click the same way every other approve/save
+action in this file already is (an `id(perfil)`-keyed session-state marker).
+
+**Scope change means re-authorizing Gmail once, everywhere it's
+configured.** Google enforces scope at the API call, not just locally, so
+the existing `token.json` (authorized under `gmail.compose` only) stops
+being sufficient the moment `verificar_envio()` is called — re-running the
+OAuth consent flow (after deleting the old token and registering the new
+scope on the OAuth consent screen's Data Access page) is required both
+locally and on the Streamlit Cloud deployment (a fresh `GMAIL_TOKEN_JSON`
+secret). Not something this environment can do for the project owner: it
+has no interactive browser to complete a Google consent screen, same
+limitation hit when Gmail was first connected earlier in this project.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

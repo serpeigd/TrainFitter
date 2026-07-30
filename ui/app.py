@@ -114,8 +114,14 @@ sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
-from gmail_client import GmailClientError, crear_borrador  # noqa: E402
-from notion_connector import NotionClientError, actualizar_email_cliente, guardar_registro_cliente  # noqa: E402
+from gmail_client import GmailClientError, crear_borrador, verificar_envio  # noqa: E402
+from notion_connector import (  # noqa: E402
+    NotionClientError,
+    actualizar_email_cliente,
+    crear_registro_checkin,
+    guardar_registro_cliente,
+    marcar_email_enviado,
+)
 from orchestrator import ejecutar_pipeline  # noqa: E402
 
 st.set_page_config(
@@ -405,6 +411,10 @@ TRANSLATIONS = {
         "draft_error": "Could not create the draft: {error}",
         "notion_saved_note": "📋 Saved to Notion — [open it]({url}).",
         "notion_error_note": "📋 Not saved to Notion: {error}",
+        "check_send_status_button": "Check if it was sent",
+        "checkin_confirmed_send": "✅ Confirmed sent — logged in Check-ins.",
+        "checkin_not_sent_yet": "Still just a draft in Gmail — not sent yet.",
+        "checkin_error": "Could not check send status: {error}",
     },
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
@@ -510,6 +520,10 @@ TRANSLATIONS = {
         "draft_error": "No se pudo crear el borrador: {error}",
         "notion_saved_note": "📋 Guardado en Notion — [ábrelo]({url}).",
         "notion_error_note": "📋 No se guardó en Notion: {error}",
+        "check_send_status_button": "Comprobar si se envió",
+        "checkin_confirmed_send": "✅ Confirmado como enviado — registrado en Check-ins.",
+        "checkin_not_sent_yet": "Sigue siendo solo un borrador en Gmail — aún no se ha enviado.",
+        "checkin_error": "No se pudo comprobar el envío: {error}",
     },
 }
 
@@ -1041,22 +1055,26 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     email_cliente = st.text_input(t("client_email_label"), key="email_cliente", disabled=not aprobado)
     if st.button(t("create_draft_button"), disabled=not aprobado):
         try:
-            url = crear_borrador(
+            resultado_borrador = crear_borrador(
                 email_cliente,
                 perfil["datos_basicos"]["nombre"],
                 estado.borrador_rutina,
                 estado.borrador_dieta,
             )
-            st.success(t("draft_created_success").format(url=url))
+            st.success(t("draft_created_success").format(url=resultado_borrador["url"]))
+            # Kept for the "check if sent" button below — same single-slot,
+            # owner-checked pattern as notion_pagina_id/notion_guardado_para.
+            st.session_state["gmail_hilo_id"] = resultado_borrador["thread_id"]
+            st.session_state["gmail_hilo_para"] = id(perfil)
+            st.session_state["checkin_registrado_para"] = None
 
             # Backfills the client's email onto their Notion record, ahead
-            # of the (still-blocked, see docs/decisiones.md) future "detect
-            # a real send and cross-reference the Check-ins database by
-            # email" automation — the join key needs to exist before the
-            # automation that will use it does. Best-effort: a trainer using
-            # this without Notion configured (or where the approval-time
-            # save failed) shouldn't see an error over a background update
-            # for a feature they may not even have set up.
+            # of the "detect a real send" check below — the join key needs
+            # to exist before the automation that will use it does.
+            # Best-effort: a trainer using this without Notion configured
+            # (or where the approval-time save failed) shouldn't see an
+            # error over a background update for a feature they may not
+            # even have set up.
             #
             # Gated on notion_guardado_para matching *this* perfil, not just
             # "is notion_pagina_id set" — otherwise approving a real client
@@ -1079,6 +1097,42 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             # not bugs — same "best-effort, never blocks" spirit as the
             # bloodwork parser.
             st.error(t("draft_error").format(error=str(exc)))
+
+    # "Check if sent" is trainer-triggered, not automatic: this is a
+    # stateless Streamlit app with no push infrastructure to notice a send
+    # passively (see gmail_client.py's docstring). Only shown once a draft
+    # exists for *this* plan — same owner-check pattern as the Notion email
+    # backfill above, so switching to a different client's plan doesn't
+    # offer to check a thread that belongs to someone else.
+    if st.session_state.get("gmail_hilo_para") == id(perfil):
+        if st.button(t("check_send_status_button")):
+            try:
+                enviado = verificar_envio(st.session_state["gmail_hilo_id"])
+            except (GmailClientError, ImportError, ModuleNotFoundError) as exc:
+                st.error(t("checkin_error").format(error=str(exc)))
+            else:
+                if not enviado:
+                    st.info(t("checkin_not_sent_yet"))
+                elif st.session_state.get("checkin_registrado_para") != id(perfil):
+                    # Guards against a repeated click after already logging
+                    # this send from creating a second Check-ins row for the
+                    # same event.
+                    hoy = datetime.now().date().isoformat()
+                    if st.session_state.get("notion_guardado_para") == id(perfil):
+                        try:
+                            marcar_email_enviado(st.session_state["notion_pagina_id"])
+                        except (NotionClientError, ImportError, ModuleNotFoundError):
+                            pass
+                    try:
+                        crear_registro_checkin(
+                            email_cliente, perfil["datos_basicos"]["nombre"], "Plan sent", hoy,
+                        )
+                        st.session_state["checkin_registrado_para"] = id(perfil)
+                        st.success(t("checkin_confirmed_send"))
+                    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                        st.error(t("checkin_error").format(error=str(exc)))
+                else:
+                    st.success(t("checkin_confirmed_send"))
 
 
 # ---------------------------------------------------------------------------

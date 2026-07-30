@@ -26,42 +26,53 @@ secret (like an API key), not a three-legged OAuth flow like Gmail's — no
 browser consent screen, no token refresh cycle. Simpler setup, same secret-
 handling discipline (env var, never committed — see .env.example).
 
-DESIGN — "Email Sent" is a manual checkbox, not an automated one: it's
-initialized to False here so the trainer has a follow-up flag to tick
-themselves, in Notion, once they've actually hit send on the Gmail draft
-(see mcp/gmail_client.py). Automatically detecting a real send would need
-either a broader Gmail OAuth scope than the deliberately minimal
-`gmail.compose` this project uses (which can't read the mailbox at all —
-see gmail_client.py's docstring), or push-notification infrastructure that
-doesn't fit a Streamlit app with no persistent backend. Deliberately not
-built — the manual checkbox gets the actual follow-up value (a filterable
-"who's still pending" view in Notion) without weakening the send-scope
-guarantee that was a considered trade-off elsewhere in this project.
+DESIGN — "Email Sent" used to be a manual-only checkbox; now auto-checked
+too: originally there was no way to detect a real Gmail send without a
+broader OAuth scope than this project's deliberately minimal
+`gmail.compose` (which can't read the mailbox at all). Once the project
+owner explicitly opted into widening that scope (see mcp/gmail_client.py's
+docstring for `verificar_envio()`), marcar_email_enviado() became possible:
+the UI calls it after confirming via Gmail that a draft's thread now
+contains a message with the SENT label — an on-demand check triggered by
+the trainer, not a background job (this is a stateless Streamlit app with
+no push infrastructure to detect a send passively).
 
 DESIGN — "Email" is filled in at draft-creation time, not send time: the
-project owner's next idea was to cross-reference a future "Check-ins"
-database by the client's email once a Gmail draft is actually sent. The
-"actually sent" part is still blocked on the same broader-OAuth-scope
-trade-off as "Email Sent" above — but *capturing* the address doesn't need
-that at all, since the trainer already types it into the Gmail section
-before creating the draft (see ui/app.py). So this module exposes
-actualizar_email_cliente() to backfill it onto the already-created Notion
-page the moment a draft is made, well ahead of when "detect a real send"
-becomes possible — the join key future automation would need is ready
-before the automation itself is.
+project owner's idea was to cross-reference a "Check-ins" database by the
+client's email once a Gmail draft is actually sent. *Capturing* the address
+doesn't need the broader scope at all, since the trainer already types it
+into the Gmail section before creating the draft (see ui/app.py). So this
+module exposes actualizar_email_cliente() to backfill it onto the
+already-created Notion page the moment a draft is made — the join key the
+Check-ins automation needs is ready well before the automation is.
+
+DESIGN — Check-ins is a second, append-only database, joined by email
+rather than a Notion relation property: the project owner's own call — it
+stays simple and would still work if something outside Notion ever needed
+to match records later. This "Clients" database is the one master record
+per client (overwritten in place, e.g. Email/Email Sent); "Check-ins" is
+the history (one new row per interaction — a "Plan sent" row is created
+automatically by crear_registro_checkin() the moment a real send is
+detected, and the trainer can add further "Manual check-in" rows by hand
+for adherence notes over time). No relation property is set between the
+two databases; email is the only link.
 
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
      copy its "Internal Integration Secret".
-  2. In Notion, create a database with these exact properties:
+  2. In Notion, create a "Clients" database with these exact properties:
        Name (title), Date (date), Goal (select), Level (select),
        Verdict (select), Summary (text), Email Sent (checkbox),
        Email (email)
-  3. Share that database with the integration (the "..." menu on the
+  3. Create a second "Check-ins" database with these properties:
+       Name (title), Email (email), Type (select: "Plan sent" /
+       "Manual check-in"), Date (date), Adherence notes (text),
+       Adherence rating (select: Low/Medium/High), Next follow-up (date)
+  4. Share both databases with the integration (the "..." menu on each
      database page -> Connections -> add the integration by name).
-  4. Set NOTION_API_KEY and NOTION_DATABASE_ID in your .env (see
-     .env.example) — NOTION_DATABASE_ID is the 32-character ID in the
-     database's URL.
+  5. Set NOTION_API_KEY, NOTION_DATABASE_ID, and NOTION_CHECKINS_DATABASE_ID
+     in your .env (see .env.example) — each *_DATABASE_ID is the
+     32-character ID in that database's URL.
 """
 
 import os
@@ -201,3 +212,87 @@ def actualizar_email_cliente(pagina_id: str, email: str) -> None:
         cliente.pages.update(page_id=pagina_id, properties={"Email": {"email": email}})
     except APIResponseError as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
+def marcar_email_enviado(pagina_id: str) -> None:
+    """
+    Checks the "Email Sent" box on an already-created Clients record — called
+    once ui/app.py confirms via gmail_client.verificar_envio() that the
+    trainer actually hit send on the draft in Gmail, not just created it.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        cliente.pages.update(page_id=pagina_id, properties={"Email Sent": {"checkbox": True}})
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
+def _checkins_database_id() -> str:
+    try:  # dotenv is optional, same convention as _credenciales()
+        from dotenv import load_dotenv
+        load_dotenv(REPO_ROOT / ".env")
+    except ImportError:
+        pass
+
+    database_id = os.environ.get("NOTION_CHECKINS_DATABASE_ID")
+    if not database_id:
+        raise NotionClientError(
+            "Missing NOTION_CHECKINS_DATABASE_ID. Set it in your .env "
+            "(see mcp/notion_connector.py's module docstring for the full setup steps)."
+        )
+    return database_id
+
+
+def crear_registro_checkin(email: str, nombre_cliente: str, tipo: str, fecha: str, notas: str = "") -> dict:
+    """
+    Adds one row to the "Check-ins" database — the append-only interaction
+    history for a client, cross-referenced to the Clients database by email
+    (a plain property match, not a Notion relation — see this module's
+    docstring for why).
+
+    Args:
+        email: the client's email — the join key back to their Clients record.
+        nombre_cliente: only used to build a readable title for the row.
+        tipo: "Plan sent" (this module's own convention — used by ui/app.py
+            right after verificar_envio() confirms a real send) or
+            "Manual check-in" (anything the trainer adds later by hand).
+        fecha: ISO date string (YYYY-MM-DD) for the Date property.
+        notas: optional adherence notes for this interaction.
+
+    Returns:
+        {"id": the page's Notion ID, "url": a notion.so link to it}.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure
+            (e.g. the Check-ins database wasn't shared with the integration).
+    """
+    api_key, _ = _credenciales()
+    database_id = _checkins_database_id()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    propiedades = {
+        "Name": {"title": [{"text": {"content": f"{nombre_cliente} — {fecha}"}}]},
+        "Email": {"email": email},
+        "Type": {"select": {"name": tipo}},
+        "Date": {"date": {"start": fecha}},
+    }
+    if notas:
+        propiedades["Adherence notes"] = {"rich_text": [{"text": {"content": notas[:2000]}}]}
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.create(parent={"database_id": database_id}, properties=propiedades)
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return {"id": pagina["id"], "url": pagina["url"]}
