@@ -1231,6 +1231,40 @@ reading stiffly enough to undermine exactly that. Hand-curated bilingual
 content was worth the one-time authoring cost specifically because this
 project's content vocabulary is small and stable, not the general case.
 
+## Visual polish pass: a pipeline stepper, and a CSS selector that silently stopped matching
+
+Asked for a creative pass on structure/visuals/transitions, on-theme with
+the logo (teal leaf + orange dumbbell) and the neon-gym banner. Added: a
+horizontal step-progress indicator (`_render_stepper()`) reused in two
+places — once summarizing the orchestrator's own pipeline stages (Routine →
+Diet → Validation → Ready, turning orange for "Enhanced review" instead of
+teal) right after generation, and once for the human workflow that follows
+(Approve → Email → Confirm) inside the approval card. Same visual language
+for "what the AI pipeline did" and "what the trainer still needs to do" —
+a deliberate callback to this project's own architecture, not just
+decoration. Also: primary buttons now fill with the brand's teal→orange
+gradient (previously a flat theme color) with a lift-and-glow hover, the
+exercise table got custom striped/hover styling instead of Streamlit's bare
+default, alerts gained a left accent bar colored by severity, and a
+responsive breakpoint was added for narrow screens.
+
+**Found while verifying it, not while writing it:** the pre-existing hover/
+glow rule for the routine/diet/approval cards (`st.container(border=True)`)
+targeted `[data-testid="stVerticalBlockBorderWrapper"]` — a selector that
+never matched anything in the Streamlit version this project actually runs
+(1.60). Confirmed via direct DOM inspection: that testid doesn't exist at
+all in this version; `border=True` applies the border straight to the
+shared `stVerticalBlock` element via an auto-generated emotion-cache class,
+indistinguishable by testid from any other vertical block on the page. This
+means the original hover effect had been silent dead code since it was
+written — CSS with no matching selector fails silently, no error, no visual
+difference to notice. Fixed properly rather than patched around: gave each
+of the three cards an explicit `key=` (`st.container(border=True,
+key="tf-card-rutina")` etc.), which Streamlit turns into a stable
+`st-key-<name>` CSS class specifically for this purpose — a documented hook
+that doesn't depend on internal, version-specific testids the way the
+original attempt did.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

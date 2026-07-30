@@ -248,13 +248,122 @@ def _inyectar_estilos() -> None:
         .tf-section-dieta {{ border-color: {COLOR_TEAL}; }}
         .tf-section-rutina h3, .tf-section-dieta h3 {{ margin: 0; }}
 
-        /* Bordered st.container() cards (routine/diet/approval) */
-        [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {{
-            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        /* Bordered st.container() cards (routine/diet/approval) — subtle
+        lift + glow on hover so the two-column layout feels tactile instead
+        of static. Targets the "st-key-*" class Streamlit generates from
+        st.container(key=...) (see the call sites) — the
+        "stVerticalBlockBorderWrapper" testid from older Streamlit versions
+        doesn't exist in this one; the border lands directly on the shared
+        stVerticalBlock element instead, which has no way to distinguish
+        "this one has a border" from any other vertical block via testid
+        alone. */
+        .st-key-tf-card-rutina, .st-key-tf-card-dieta, .st-key-tf-card-aprobacion {{
+            transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
+            border-radius: 14px !important;
+        }}
+        .st-key-tf-card-rutina:hover, .st-key-tf-card-dieta:hover, .st-key-tf-card-aprobacion:hover {{
+            border-color: rgba(5, 160, 129, 0.45);
+            box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
+            transform: translateY(-2px);
         }}
         [data-testid="stExpander"] {{
             border: 1px solid {COLOR_BORDER};
             border-radius: 12px;
+            transition: border-color 0.2s ease-out;
+        }}
+        [data-testid="stExpander"]:hover {{
+            border-color: rgba(5, 160, 129, 0.4);
+        }}
+
+        /* Pipeline stepper — mirrors the orchestrator's own state machine
+        (agents/orchestrator.py) and the approval/Gmail/Check-ins flow, so
+        the same visual language represents "what the AI pipeline did" and
+        "what the trainer still needs to do." */
+        .tf-stepper {{
+            display: flex;
+            align-items: flex-start;
+            margin: 0.75rem 0 1.5rem 0;
+            animation: tf-fade-in 0.4s ease-out;
+        }}
+        .tf-step {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            flex: 0 1 auto;
+        }}
+        .tf-step-dot {{
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            background: {COLOR_BG_ELEVATED};
+            border: 2px solid {COLOR_BORDER};
+            color: {COLOR_TEXT_MUTED};
+            transition: all 0.35s ease-out;
+            flex-shrink: 0;
+        }}
+        .tf-step-dot.tf-done {{
+            background: linear-gradient(135deg, {COLOR_TEAL} 0%, {COLOR_TEAL_BRIGHT} 100%);
+            border-color: {COLOR_TEAL};
+            color: #06251F;
+            box-shadow: 0 0 14px rgba(5, 160, 129, 0.55);
+        }}
+        .tf-step-dot.tf-warn {{
+            background: linear-gradient(135deg, {COLOR_ORANGE} 0%, #FDBA74 100%);
+            border-color: {COLOR_ORANGE};
+            color: #3A1B02;
+            box-shadow: 0 0 14px rgba(248, 128, 42, 0.55);
+        }}
+        .tf-step-label {{
+            font-size: 0.68rem;
+            color: {COLOR_TEXT_MUTED};
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            text-align: center;
+            white-space: nowrap;
+        }}
+        .tf-step.tf-done .tf-step-label, .tf-step.tf-warn .tf-step-label {{
+            color: {COLOR_TEXT_BRIGHT};
+        }}
+        .tf-step-line {{
+            flex: 1 1 auto;
+            height: 2px;
+            background: {COLOR_BORDER};
+            margin: 15px 0.4rem 0 0.4rem;
+            position: relative;
+            overflow: hidden;
+            min-width: 12px;
+        }}
+        .tf-step-line.tf-done {{
+            background: linear-gradient(90deg, {COLOR_TEAL} 0%, {COLOR_ORANGE} 100%);
+        }}
+
+        /* Exercise table — replaces the flat default st.table look with
+        something that reads as "the routine half" (warm orange accents). */
+        [data-testid="stTable"] table {{
+            border-collapse: separate;
+            border-spacing: 0;
+        }}
+        [data-testid="stTable"] thead th {{
+            background: rgba(248, 128, 42, 0.14) !important;
+            color: {COLOR_ORANGE} !important;
+            text-transform: uppercase;
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+        }}
+        [data-testid="stTable"] tbody tr:nth-child(even) td {{
+            background: rgba(255, 255, 255, 0.025);
+        }}
+        [data-testid="stTable"] tbody tr {{
+            transition: background 0.15s ease-out;
+        }}
+        [data-testid="stTable"] tbody tr:hover td {{
+            background: rgba(5, 160, 129, 0.10) !important;
         }}
 
         hr {{
@@ -265,25 +374,58 @@ def _inyectar_estilos() -> None:
             opacity: 0.5;
         }}
 
+        /* Primary buttons share the brand's teal->orange gradient — one
+        consistent "this is the main action" visual language across the
+        whole app (generate, approve, create draft, the segmented control's
+        selected pill...) instead of a flat theme color. */
         [data-testid="stBaseButton-primary"] {{
+            background: linear-gradient(135deg, {COLOR_TEAL} 0%, {COLOR_ORANGE} 100%);
+            border: none;
             border-radius: 10px;
-            font-weight: 600;
-            box-shadow: 0 0 0 rgba(5, 160, 129, 0);
-            transition: transform 0.05s ease-in-out, box-shadow 0.15s ease-in-out;
+            font-weight: 700;
+            color: #06120E;
+            box-shadow: 0 2px 12px rgba(5, 160, 129, 0.25);
+            transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, filter 0.15s ease-out;
         }}
         [data-testid="stBaseButton-primary"]:hover {{
-            transform: translateY(-1px);
-            box-shadow: 0 0 16px rgba(5, 160, 129, 0.55);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 26px rgba(248, 128, 42, 0.45);
+            filter: brightness(1.08);
+        }}
+        [data-testid="stBaseButton-primary"]:active {{
+            transform: translateY(0);
+            filter: brightness(0.96);
+        }}
+        [data-testid="stBaseButton-primary"] p {{
+            color: inherit;
+            font-weight: 700;
+        }}
+        [data-testid="stBaseButton-primary"]:disabled {{
+            background: {COLOR_BG_ELEVATED};
+            color: {COLOR_TEXT_MUTED};
+            box-shadow: none;
         }}
         [data-testid="stBaseButton-secondary"] {{
             border-radius: 10px;
             border-color: {COLOR_BORDER};
+            transition: border-color 0.15s ease-out, color 0.15s ease-out, transform 0.15s ease-out;
         }}
         [data-testid="stBaseButton-secondary"]:hover {{
             border-color: {COLOR_TEAL};
             color: {COLOR_TEAL_BRIGHT};
+            transform: translateY(-1px);
         }}
 
+        [data-testid="stMetric"] {{
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid {COLOR_BORDER};
+            border-radius: 10px;
+            padding: 0.6rem 0.8rem 0.4rem 0.8rem;
+            transition: border-color 0.2s ease-out;
+        }}
+        [data-testid="stMetric"]:hover {{
+            border-color: rgba(248, 128, 42, 0.4);
+        }}
         [data-testid="stMetricValue"] {{
             color: {COLOR_ORANGE};
             font-weight: 700;
@@ -295,13 +437,26 @@ def _inyectar_estilos() -> None:
             font-size: 0.75rem;
         }}
 
+        /* Alerts get a left accent bar + soft glow matching their meaning,
+        instead of Streamlit's flat default box. */
         [data-testid="stAlertContainer"] {{
             border-radius: 10px;
+            border-left: 4px solid {COLOR_BORDER};
+            transition: box-shadow 0.2s ease-out;
         }}
-
-        /* Segmented control (New Client / Example client) selected state */
-        [data-testid="stBaseButton-primary"] p {{
-            color: inherit;
+        [data-testid="stAlertContainer"]:has([data-testid="stAlertContentSuccess"]) {{
+            border-left-color: {COLOR_TEAL};
+            box-shadow: 0 0 20px rgba(5, 160, 129, 0.12);
+        }}
+        [data-testid="stAlertContainer"]:has([data-testid="stAlertContentWarning"]) {{
+            border-left-color: {COLOR_ORANGE};
+            box-shadow: 0 0 20px rgba(248, 128, 42, 0.12);
+        }}
+        [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {{
+            border-left-color: {COLOR_TEAL_BRIGHT};
+        }}
+        [data-testid="stAlertContainer"]:has([data-testid="stAlertContentError"]) {{
+            border-left-color: #F87171;
         }}
 
         ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
@@ -311,6 +466,33 @@ def _inyectar_estilos() -> None:
             border-radius: 8px;
         }}
         ::-webkit-scrollbar-thumb:hover {{ background: rgba(5, 160, 129, 0.7); }}
+
+        .tf-sidebar-tagline {{
+            color: {COLOR_TEXT_MUTED};
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 0.6rem 0 1.1rem 0;
+        }}
+        .tf-sidebar-tagline span {{ color: {COLOR_TEAL_BRIGHT}; }}
+
+        /* Segmented control (New Client / Example client): unselected pills
+        stay subtle so the gradient-filled selected one reads clearly as
+        "you are here," echoing the stepper's own filled/unfilled contrast. */
+        [data-testid="stButtonGroup"] [data-testid="stBaseButton-secondary"] {{
+            background: transparent;
+        }}
+
+        /* Small screens: the two-column routine/diet layout and the wide
+        hero title need to breathe differently on a phone. */
+        @media (max-width: 640px) {{
+            .tf-hero-title {{ font-size: 1.4rem; }}
+            .tf-hero img {{ width: 46px; height: 46px; }}
+            .tf-banner {{ border-radius: 10px; }}
+            .tf-step-label {{ font-size: 0.6rem; }}
+            .tf-step-dot {{ width: 26px; height: 26px; font-size: 0.7rem; }}
+        }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -324,6 +506,7 @@ TRANSLATIONS = {
     "en": {
         "app_title": "TrainFitter — Trainer's panel",
         "app_motto": '"Teach your body that your mind is in charge."',
+        "sidebar_tagline": "Train · <span>Nourish</span> · Evolve",
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
         "tab_new_intake": "📝 New Client",
@@ -381,6 +564,14 @@ TRANSLATIONS = {
         "plan_generated_status": "Plan generated",
         "plan_error_status": "Error generating the plan",
         "could_not_generate": "Could not generate the plan: {error}",
+        "step_routine": "Routine",
+        "step_diet": "Diet",
+        "step_validation": "Validation",
+        "step_ready": "Ready",
+        "step_ready_warn": "Enhanced review",
+        "mini_step_approve": "Approve",
+        "mini_step_email": "Email",
+        "mini_step_confirm": "Confirm",
         "enhanced_review_warning": "⚠️ **Enhanced review** — this case needs your attention before approving.",
         "no_review_reasons_success": (
             "✅ **No reasons for enhanced review.** It still needs your approval "
@@ -433,6 +624,7 @@ TRANSLATIONS = {
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
         "app_motto": '"Enseña a tu cuerpo que quien manda es tu mente."',
+        "sidebar_tagline": "Entrena · <span>Nutre</span> · Evoluciona",
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
         "tab_new_intake": "📝 Cliente nuevo",
@@ -490,6 +682,14 @@ TRANSLATIONS = {
         "plan_generated_status": "Plan generado",
         "plan_error_status": "Error al generar el plan",
         "could_not_generate": "No se pudo generar el plan: {error}",
+        "step_routine": "Rutina",
+        "step_diet": "Dieta",
+        "step_validation": "Validación",
+        "step_ready": "Listo",
+        "step_ready_warn": "Revisión reforzada",
+        "mini_step_approve": "Aprobar",
+        "mini_step_email": "Enviar",
+        "mini_step_confirm": "Confirmar",
         "enhanced_review_warning": "⚠️ **Revisión reforzada** — este caso necesita tu atención antes de aprobar.",
         "no_review_reasons_success": (
             "✅ **Sin motivos de revisión reforzada.** Aun así, sigue esperando tu aprobación "
@@ -856,6 +1056,29 @@ def _selector_cliente_ejemplo() -> dict | None:
 # Pipeline execution + result
 # ---------------------------------------------------------------------------
 
+def _render_stepper(pasos: list[tuple[str, bool]], advertencia: bool = False) -> None:
+    """Horizontal step-progress indicator. `pasos` is [(label, completed),
+    ...]; `advertencia` colors completed dots orange instead of teal (used
+    for the enhanced-review pipeline outcome). Reused for both the
+    orchestrator's own pipeline stages and the approve/email/confirm human
+    workflow — one visual language for "what the AI did" and "what's left
+    for the trainer to do."""
+    clase = "tf-warn" if advertencia else "tf-done"
+    nodos = []
+    for indice, (etiqueta, hecho) in enumerate(pasos):
+        if indice > 0:
+            clase_linea = clase if pasos[indice - 1][1] else ""
+            nodos.append(f'<div class="tf-step-line {clase_linea}"></div>')
+        clase_nodo = clase if hecho else ""
+        icono = "✓" if hecho else str(indice + 1)
+        nodos.append(
+            f'<div class="tf-step {clase_nodo}">'
+            f'<span class="tf-step-dot {clase_nodo}">{icono}</span>'
+            f'<span class="tf-step-label">{etiqueta}</span></div>'
+        )
+    st.markdown(f'<div class="tf-stepper">{"".join(nodos)}</div>', unsafe_allow_html=True)
+
+
 def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     with st.status(t("generating_status"), expanded=True) as status:
         def _al_transicionar(_cliente_id: str, nuevo_estado: str) -> None:
@@ -871,17 +1094,32 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
         st.error(t("could_not_generate").format(error=estado.error))
         return
 
+    es_revision_reforzada = estado.veredicto["veredicto"] == "revision_reforzada"
+    _render_stepper(
+        [
+            (t("step_routine"), "rutina_generada" in estado.historial),
+            (t("step_diet"), "dieta_generada" in estado.historial),
+            (t("step_validation"), "validado" in estado.historial),
+            (t("step_ready_warn") if es_revision_reforzada else t("step_ready"), estado.estado.startswith("pendiente_")),
+        ],
+        advertencia=es_revision_reforzada,
+    )
+
     st.divider()
     _mostrar_veredicto(estado.veredicto)
 
     col_rutina, col_dieta = st.columns(2)
-    with col_rutina, st.container(border=True):
+    # Explicit `key=` gives Streamlit a stable "st-key-*" CSS class to target
+    # (see _inyectar_estilos()) — the alternative, a data-testid on the
+    # border wrapper, doesn't exist in this Streamlit version (the border is
+    # applied directly to the shared stVerticalBlock element instead).
+    with col_rutina, st.container(border=True, key="tf-card-rutina"):
         _mostrar_rutina(estado.borrador_rutina)
-    with col_dieta, st.container(border=True):
+    with col_dieta, st.container(border=True, key="tf-card-dieta"):
         _mostrar_dieta(estado.borrador_dieta)
 
     st.divider()
-    with st.container(border=True):
+    with st.container(border=True, key="tf-card-aprobacion"):
         _panel_aprobacion(estado, guardar_en_notion=guardar_en_notion)
 
 
@@ -1045,7 +1283,19 @@ def _dialogo_aprobacion(estado, guardar_en_notion: bool) -> None:
 def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     perfil = estado.perfil_cliente
 
+    # Gmail is locked until this exact plan has been approved above — a
+    # trainer could otherwise create a real, addressed draft for a plan
+    # they never actually signed off on. Re-checked on every rerun (not
+    # just remembered from the click) via the same id(perfil) key so a
+    # freshly generated/regenerated plan starts locked again.
+    aprobado = st.session_state.get("aprobado_para") == id(perfil)
+
     st.markdown(t("approval_header"))
+    _render_stepper([
+        (t("mini_step_approve"), aprobado),
+        (t("mini_step_email"), st.session_state.get("gmail_hilo_para") == id(perfil)),
+        (t("mini_step_confirm"), st.session_state.get("checkin_registrado_para") == id(perfil)),
+    ])
 
     if APPROVAL_PASSWORD:
         if st.button(t("approve_button"), type="primary"):
@@ -1054,13 +1304,6 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             _dialogo_aprobacion(estado, guardar_en_notion)
     elif st.button(t("approve_button"), type="primary"):
         _ejecutar_aprobacion(estado, guardar_en_notion)
-
-    # Gmail is locked until this exact plan has been approved above — a
-    # trainer could otherwise create a real, addressed draft for a plan
-    # they never actually signed off on. Re-checked on every rerun (not
-    # just remembered from the click) via the same id(perfil) key so a
-    # freshly generated/regenerated plan starts locked again.
-    aprobado = st.session_state.get("aprobado_para") == id(perfil)
 
     # Read back from session_state (not shown directly at approval time) so
     # this survives the st.rerun() that closes the password dialog — see
@@ -1166,6 +1409,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
 with st.sidebar:
     if ICON_PATH.exists():
         st.image(str(ICON_PATH), width=120)
+    st.markdown(f'<p class="tf-sidebar-tagline">{t("sidebar_tagline")}</p>', unsafe_allow_html=True)
     lang_choice = st.radio(
         "🌐 Language / Idioma",
         ["en", "es"],
