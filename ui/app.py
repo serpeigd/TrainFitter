@@ -93,17 +93,21 @@ APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
-# Two distinct assets, both sourced from the same photo (assets/logo.jpg)
-# now: ICON_PATH is a square crop of just the glowing leaf+dumbbell mark
-# from that photo, background keyed to transparent (alpha from pixel
-# brightness, since the source background is near-black — see
-# docs/decisiones.md) so it sits on the app's own dark background instead
-# of a mismatched flat-color square. Used at ~30-120px (favicon, sidebar,
-# .tf-hero). BANNER_PATH is the full photo (JPEG since it's photographic
-# content — a PNG of the same image was ~9x heavier for no visible quality
-# gain at web sizes), cropped to a short strip via CSS for the cover banner.
+# Two purpose-built crops, both sourced from the project owner's own studio
+# logo shoot (assets/logo.jpg is the original, kept only as the source
+# archive — see docs/decisiones.md). ICON_PATH is a square crop of just the
+# glowing leaf+dumbbell mark (no wordmark), background keyed to transparent
+# (alpha from pixel brightness, since the source is shot on near-black) so
+# it sits on the app's own dark background instead of a mismatched
+# flat-color square. Used at ~30-120px (favicon, sidebar, .tf-hero).
+# BANNER_PATH is a separately hand-cropped wide frame (assets/Cropped.jpg)
+# that keeps the full mark + "TrainFitter" wordmark roughly centered in
+# frame — CSS still crops it further to a short strip for the cover banner
+# (see .tf-banner-wrap), but starting from a frame that's already centered
+# on the logo means less of it gets cut off than cropping the original
+# full-scene photo would.
 ICON_PATH = REPO_ROOT / "assets" / "icon.png"
-BANNER_PATH = REPO_ROOT / "assets" / "logo.jpg"
+BANNER_PATH = REPO_ROOT / "assets" / "Cropped.jpg"
 
 # Sampled from assets/icon.png (teal leaf, orange dumbbell) — see
 # .streamlit/config.toml for the same palette applied to Streamlit's own
@@ -236,7 +240,7 @@ def _inyectar_estilos() -> None:
             width: 100%;
             height: 100%;
             object-fit: cover !important;
-            object-position: center 31% !important;
+            object-position: center 48% !important;
             display: block;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
             animation: tf-fade-in 0.5s ease-out;
@@ -539,7 +543,13 @@ def _inyectar_estilos() -> None:
             > [data-testid="stElementContainer"]:last-child {{
             margin-top: auto;
         }}
-        [data-testid="stSidebarUserContent"] [data-testid="stImageContainer"] {{
+        /* Centering has to land on stFullScreenFrame, not stImageContainer:
+        stImageContainer shrink-wraps to the image's own rendered width
+        (120px), so a justify-content on it has nothing to center within.
+        stFullScreenFrame is the ancestor that actually spans the sidebar's
+        full column width — confirmed via live getBoundingClientRect() on
+        each link in the chain, not assumed from testid naming. */
+        [data-testid="stSidebarUserContent"] [data-testid="stFullScreenFrame"] {{
             display: flex;
             justify-content: center;
         }}
@@ -1596,10 +1606,11 @@ with st.sidebar:
 
 _inyectar_estilos()
 
-# Cover banner (assets/logo.jpg) — kept in its original Spanish tagline
-# regardless of the EN/ES toggle below: it's baked into the image itself,
-# not translatable text, a deliberate trade-off for the visual (see
-# docs/decisiones.md). Always rendered, no session_state involved — a
+# Cover banner (assets/Cropped.jpg) — the wordmark baked into the photo is
+# just "TrainFitter" (no language-specific copy), so unlike the old
+# logo.jpg crop there's no EN/ES mismatch to worry about here; the
+# translatable title/subtitle right below it in .tf-hero cover that.
+# Always rendered, no session_state involved — a
 # permanent compact strip (see .tf-banner-wrap's fixed height in
 # _inyectar_estilos()) rather than a one-time splash. Two animated
 # versions were tried and abandoned before this one: scroll-linked (broken

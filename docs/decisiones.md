@@ -1430,6 +1430,51 @@ locally at two representative box widths (~810px and ~1750px) and looking
 at the actual resulting crop before picking values, rather than adjusting
 blind and hoping.
 
+## Hand-prepared crops replace the auto-extracted icon and CSS-cropped banner
+
+The project owner shot and cropped two new source images externally rather
+than iterating further on the programmatic crop/alpha-key pipeline:
+`assets/icon.jpg` (the full mark+wordmark lockup on a clean black
+background) and `assets/Cropped.jpg` (a wide frame, hand-centered on the
+mark+wordmark, meant for the top banner). `assets/logo.jpg` stays in the
+repo as the original source archive, no longer referenced by the app.
+
+**Icon:** `icon.jpg` bundles the leaf+dumbbell mark with the "TrainFitter"
+wordmark and a Spanish tagline stacked below it — too much for a 30-120px
+favicon/sidebar mark, and the tagline duplicates the sidebar's own
+translatable `sidebar_tagline` text right underneath it. Isolated just the
+mark by scanning row-by-row for content (`max(R,G,B) > 30`) to find the
+gap between the mark and the wordmark (mark: rows 0-365; wordmark starts
+at row 373) rather than eyeballing a crop box, then composited that region
+onto a fresh 586x586 black square with even padding on all sides —
+necessary because the mark's glow tip touches the top edge of the source
+photo itself (row 0 already has ~19px of it), so centering by padding a
+blank canvas is the only way to get an evenly-centered result; cropping
+tighter to the existing content would still leave that lopsided top edge.
+Same alpha-key approach as before (threshold/ceiling 18-90 off the max RGB
+channel) re-applied on this new crop, saved back over `assets/icon.png` —
+the code path (`ICON_PATH`) didn't need to change.
+
+**Banner:** switched `BANNER_PATH` straight to `Cropped.jpg` — no
+extraction needed, it's already a deliberately-composed wide frame. Only
+change on the code side was retuning `.tf-banner`'s `object-position` from
+`center 31%` (tuned for the old `logo.jpg` full-scene photo) to `center
+48%`, since the logo sits roughly mid-frame in this new crop instead of in
+the upper third.
+
+**A real centering bug, not a design request:** the sidebar icon reported
+as "not centered" turned out to be a genuine CSS bug, not a preference —
+the existing rule centered `[data-testid="stImageContainer"]`, but that
+div shrink-wraps to the image's own rendered width (120px), so
+`justify-content: center` had nothing wider to center within. Found by
+walking the DOM chain from the `<img>` upward with
+`getBoundingClientRect()` on each ancestor: `stFullScreenFrame` is the
+first ancestor that actually spans the sidebar's real column width
+(258px), while everything between it and the image had shrunk to fit.
+Moving the centering rule to target `stFullScreenFrame` instead fixed it —
+confirmed by re-measuring the image's left/right gap against the sidebar
+edges post-fix (89.5px / 90.5px, i.e. centered within a rounding error).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

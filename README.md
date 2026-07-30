@@ -114,7 +114,7 @@ TrainFitter/
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + send-detection), Notion (Clients + Check-ins)
-├── assets/                          logo.jpg (banner), icon.png (favicon/sidebar mark)
+├── assets/                          Cropped.jpg (banner), icon.png (favicon/sidebar mark), logo.jpg (source archive)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies
 └── .gitignore
