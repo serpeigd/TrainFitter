@@ -1401,6 +1401,35 @@ expression only fails when actually executed), which is exactly why the
 local preview was reloaded and re-checked for the live error banner after
 every edit in this session, not just compiled.
 
+## The icon is now extracted from the photo, not a separate flat asset
+
+The project owner wanted the small icon (favicon, sidebar, `.tf-hero`) to
+come from the same glowing photo used for the cover banner, replacing the
+older flat-color `icon.png` — and separately, for the banner strip itself
+to show more of that mark (240px tall now, up from 200px, with
+`object-position` retuned to 31% from 38%).
+
+**Icon extraction, not a second AI generation:** cropped a 500x500 square
+directly out of `assets/logo.jpg` (bounds `335,0` to `835,500`) containing
+just the leaf+dumbbell mark, no wordmark — chosen by trial crops viewed
+directly rather than guessed coordinates, since a few attempts clipped
+either the dumbbell ends or caught the top of the "TrainFitter" text
+before landing on bounds that included neither. The source background
+there is near-black (confirmed by sampling corner pixels: RGB values
+1-37), which made a clean alpha extraction possible: alpha set from each
+pixel's max RGB channel with a threshold/ceiling curve (18-90), so true
+black becomes fully transparent while the neon glow's falloff stays
+smooth instead of a hard cutout edge. Verified by compositing the result
+onto the app's actual sidebar color (`#141F33`) before committing to it —
+it blends in cleanly, which the old flat-icon-in-a-white-square never did
+against a dark sidebar.
+
+The banner height/position change was tuned the same way as the original
+compact-strip crop: reproducing the exact `object-fit: cover` math in PIL
+locally at two representative box widths (~810px and ~1750px) and looking
+at the actual resulting crop before picking values, rather than adjusting
+blind and hoping.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

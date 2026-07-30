@@ -93,11 +93,15 @@ APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
-# Two distinct assets: ICON_PATH is the clean square mark (favicon, sidebar
-# — needs to read clearly at ~30-120px), BANNER_PATH is the wider "hero"
-# photo-style image (assets/logo.jpg, JPEG since it's photographic content —
-# a PNG of the same image was ~9x heavier for no visible quality gain at web
-# sizes) used as a big cover image, not as an icon anywhere.
+# Two distinct assets, both sourced from the same photo (assets/logo.jpg)
+# now: ICON_PATH is a square crop of just the glowing leaf+dumbbell mark
+# from that photo, background keyed to transparent (alpha from pixel
+# brightness, since the source background is near-black — see
+# docs/decisiones.md) so it sits on the app's own dark background instead
+# of a mismatched flat-color square. Used at ~30-120px (favicon, sidebar,
+# .tf-hero). BANNER_PATH is the full photo (JPEG since it's photographic
+# content — a PNG of the same image was ~9x heavier for no visible quality
+# gain at web sizes), cropped to a short strip via CSS for the cover banner.
 ICON_PATH = REPO_ROOT / "assets" / "icon.png"
 BANNER_PATH = REPO_ROOT / "assets" / "logo.jpg"
 
@@ -206,7 +210,7 @@ def _inyectar_estilos() -> None:
         background instead of ending on a hard edge. */
         .tf-banner-wrap {{
             position: relative;
-            height: 200px;
+            height: 240px;
             overflow: hidden;
             border-radius: 16px;
             margin-bottom: 1.25rem;
@@ -232,7 +236,7 @@ def _inyectar_estilos() -> None:
             width: 100%;
             height: 100%;
             object-fit: cover !important;
-            object-position: center 38% !important;
+            object-position: center 31% !important;
             display: block;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
             animation: tf-fade-in 0.5s ease-out;
@@ -606,7 +610,7 @@ def _inyectar_estilos() -> None:
         @media (max-width: 640px) {{
             .tf-hero-title {{ font-size: 1.4rem; }}
             .tf-hero img {{ width: 46px; height: 46px; }}
-            .tf-banner-wrap {{ border-radius: 10px; height: 130px; }}
+            .tf-banner-wrap {{ border-radius: 10px; height: 150px; }}
             .tf-step-label {{ font-size: 0.6rem; }}
             .tf-step-dot {{ width: 26px; height: 26px; font-size: 0.7rem; }}
         }}
