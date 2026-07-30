@@ -393,10 +393,6 @@ TRANSLATIONS = {
         "download_diet": "Download diet (JSON)",
         "approval_header": "### Trainer's approval",
         "approval_dialog_title": "Trainer's approval",
-        "approval_caption": (
-            "Marks the plan as reviewed within this session and saves a record to Notion "
-            "(if configured) — it's a checklist step, not a send action."
-        ),
         "approval_password_label": "Password (required to approve on this deployment)",
         "approval_password_wrong": "Incorrect password.",
         "approve_button": "✅ Approve and mark as ready to send",
@@ -502,10 +498,6 @@ TRANSLATIONS = {
         "download_diet": "Descargar dieta (JSON)",
         "approval_header": "### Aprobación del entrenador",
         "approval_dialog_title": "Aprobación del entrenador",
-        "approval_caption": (
-            "Marca el plan como revisado dentro de esta sesión y guarda un registro en Notion "
-            "(si está configurado) — es un paso de checklist, no un envío."
-        ),
         "approval_password_label": "Contraseña (necesaria para aprobar en este despliegue)",
         "approval_password_wrong": "Contraseña incorrecta.",
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
@@ -1017,7 +1009,6 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     perfil = estado.perfil_cliente
 
     st.markdown(t("approval_header"))
-    st.caption(t("approval_caption"))
 
     if APPROVAL_PASSWORD:
         if st.button(t("approve_button"), type="primary"):
