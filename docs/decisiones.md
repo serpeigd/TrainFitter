@@ -1265,6 +1265,39 @@ key="tf-card-rutina")` etc.), which Streamlit turns into a stable
 that doesn't depend on internal, version-specific testids the way the
 original attempt did.
 
+## A one-time entrance transition, and a sidebar that used its own empty space
+
+Two follow-up requests after seeing the visual pass live. First: the sidebar
+had the icon, tagline, and language toggle stacked at the top with a large
+unused gap below. Added a small bilingual "How it works" card (four bullets
+restating the pipeline) and a "View source on GitHub" footer, then used
+flexbox to pin that footer to the bottom instead of leaving it wherever it
+naturally fell. Found via live DOM inspection (not guessed) that this
+Streamlit version wraps the sidebar's actual content one level deeper than
+expected — `stSidebarUserContent` > an unnamed div > the real
+`stVerticalBlock` — so `display:flex` had to target that inner block
+specifically; applying it to `stSidebarUserContent` itself compiled fine but
+silently did nothing, since flex properties on a container with a single
+child (that inner wrapper) don't reach the grandchildren. Confirmed the fix
+by reading back the actual computed `margin-top` on the footer's container
+(110px, i.e. genuinely pushed down) rather than trusting that "it compiles"
+meant "it works" — the exact mistake the previous entry on this page was
+about, from a different selector.
+
+Second: a one-time entrance transition — the cover banner plays a
+"held, then slides up and away" reveal (CSS `max-height` keyframe animation
+on a wrapper, not the image itself, so the rounded corners and bottom
+margin collapse away with it instead of leaving a corner-less sliver at the
+end) the very first time a browser session loads the page, then is skipped
+entirely — not just visually hidden, not rendered at all — on every later
+rerun. Gated on a `st.session_state` flag rather than anything animation-
+timing-based, since Streamlit reruns the whole script on every interaction;
+without the flag, a large banner would otherwise re-render (and re-animate)
+on every single click, which is both the wrong UX (the reveal should mean
+"you're in now," not replay every time) and a real practical annoyance (a
+tall image re-pushing the actual panel down the page on every rerun once
+the trainer is mid-task).
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

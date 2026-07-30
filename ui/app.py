@@ -189,11 +189,26 @@ def _inyectar_estilos() -> None:
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }}
 
+        /* Wrapper (not the image itself) owns the radius/margin/overflow so
+        the entrance animation can collapse max-height down to 0 and take
+        the rounded corners and bottom margin with it, instead of leaving a
+        clipped, corner-less sliver behind right before it disappears. */
+        .tf-banner-wrap {{
+            overflow: hidden;
+            border-radius: 16px;
+            margin-bottom: 1.25rem;
+        }}
+        .tf-banner-wrap.tf-banner-intro {{
+            animation: tf-banner-reveal 2.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }}
+        @keyframes tf-banner-reveal {{
+            0% {{ max-height: 640px; opacity: 1; }}
+            55% {{ max-height: 640px; opacity: 1; }}
+            100% {{ max-height: 0; opacity: 0; margin-bottom: 0; }}
+        }}
         .tf-banner {{
             width: 100%;
-            border-radius: 16px;
             display: block;
-            margin-bottom: 1.25rem;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
             animation: tf-fade-in 0.5s ease-out;
         }}
@@ -477,6 +492,83 @@ def _inyectar_estilos() -> None:
         }}
         .tf-sidebar-tagline span {{ color: {COLOR_TEAL_BRIGHT}; }}
 
+        /* Sidebar layout: the icon/tagline/language block centered, an
+        "about" card filling the middle, and a footer pinned to the bottom
+        of the viewport via flex — instead of everything stacked at the top
+        with a large empty gap below, which is how this looked before.
+        Targets the direct-child chain confirmed via live DOM inspection
+        (stSidebarUserContent > an unnamed wrapper div > the actual
+        stVerticalBlock holding every sidebar element) rather than a bare
+        descendant selector, which would also match unrelated nested
+        vertical blocks several levels deeper inside individual widgets. */
+        [data-testid="stSidebarUserContent"] > div > [data-testid="stVerticalBlock"] {{
+            display: flex;
+            flex-direction: column;
+            min-height: 88vh;
+        }}
+        [data-testid="stSidebarUserContent"] > div > [data-testid="stVerticalBlock"]
+            > [data-testid="stElementContainer"]:last-child {{
+            margin-top: auto;
+        }}
+        [data-testid="stSidebarUserContent"] [data-testid="stImageContainer"] {{
+            display: flex;
+            justify-content: center;
+        }}
+        [data-testid="stSidebarUserContent"] [data-testid="stRadioGroup"] {{
+            justify-content: center;
+        }}
+
+        .tf-sidebar-about {{
+            margin: 0.4rem 0 1rem 0;
+            padding: 0.9rem 1.1rem;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid {COLOR_BORDER};
+            border-radius: 12px;
+        }}
+        .tf-sidebar-about-title {{
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: {COLOR_TEAL_BRIGHT};
+            margin: 0 0 0.6rem 0;
+            font-weight: 700;
+        }}
+        .tf-sidebar-about ul {{
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }}
+        .tf-sidebar-about li {{
+            font-size: 0.82rem;
+            color: {COLOR_TEXT_BRIGHT};
+        }}
+
+        .tf-sidebar-footer {{
+            padding-top: 1.5rem;
+            text-align: center;
+        }}
+        .tf-sidebar-github {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: {COLOR_TEXT_MUTED};
+            text-decoration: none;
+            padding: 0.45rem 0.9rem;
+            border: 1px solid {COLOR_BORDER};
+            border-radius: 999px;
+            transition: color 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+        }}
+        .tf-sidebar-github:hover {{
+            color: {COLOR_TEXT_BRIGHT};
+            border-color: {COLOR_TEAL};
+            box-shadow: 0 0 14px rgba(5, 160, 129, 0.3);
+        }}
+        .tf-sidebar-github svg {{ width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }}
+
         /* Segmented control (New Client / Example client): unselected pills
         stay subtle so the gradient-filled selected one reads clearly as
         "you are here," echoing the stepper's own filled/unfilled contrast. */
@@ -489,7 +581,7 @@ def _inyectar_estilos() -> None:
         @media (max-width: 640px) {{
             .tf-hero-title {{ font-size: 1.4rem; }}
             .tf-hero img {{ width: 46px; height: 46px; }}
-            .tf-banner {{ border-radius: 10px; }}
+            .tf-banner-wrap {{ border-radius: 10px; }}
             .tf-step-label {{ font-size: 0.6rem; }}
             .tf-step-dot {{ width: 26px; height: 26px; font-size: 0.7rem; }}
         }}
@@ -507,6 +599,12 @@ TRANSLATIONS = {
         "app_title": "TrainFitter — Trainer's panel",
         "app_motto": '"Teach your body that your mind is in charge."',
         "sidebar_tagline": "Train · <span>Nourish</span> · Evolve",
+        "sidebar_about_header": "How it works",
+        "sidebar_about_routine": "🏋️ Draft routine",
+        "sidebar_about_diet": "🍽️ Draft diet",
+        "sidebar_about_safety": "✅ Safety cross-checked",
+        "sidebar_about_approval": "✍️ You always approve",
+        "sidebar_footer_github": "View source on GitHub",
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
         "tab_new_intake": "📝 New Client",
@@ -625,6 +723,12 @@ TRANSLATIONS = {
         "app_title": "TrainFitter — Panel del entrenador",
         "app_motto": '"Enseña a tu cuerpo que quien manda es tu mente."',
         "sidebar_tagline": "Entrena · <span>Nutre</span> · Evoluciona",
+        "sidebar_about_header": "Cómo funciona",
+        "sidebar_about_routine": "🏋️ Rutina en borrador",
+        "sidebar_about_diet": "🍽️ Dieta en borrador",
+        "sidebar_about_safety": "✅ Revisado de seguridad",
+        "sidebar_about_approval": "✍️ Siempre lo apruebas tú",
+        "sidebar_footer_github": "Ver código en GitHub",
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
         "tab_new_intake": "📝 Cliente nuevo",
@@ -1409,7 +1513,15 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
 with st.sidebar:
     if ICON_PATH.exists():
         st.image(str(ICON_PATH), width=120)
-    st.markdown(f'<p class="tf-sidebar-tagline">{t("sidebar_tagline")}</p>', unsafe_allow_html=True)
+
+    # Reserves this slot in the visual order right here (between the icon
+    # and the language radio below), but is only filled in *after*
+    # st.session_state.lang is updated by the radio -- otherwise this
+    # tagline would render one rerun stale relative to everything below it,
+    # since a plain st.markdown() call here would read the *old* language
+    # value (the assignment happens later in the script on this same run).
+    tagline_slot = st.empty()
+
     lang_choice = st.radio(
         "🌐 Language / Idioma",
         ["en", "es"],
@@ -1419,19 +1531,61 @@ with st.sidebar:
         horizontal=True,
     )
     st.session_state.lang = lang_choice
+    tagline_slot.markdown(f'<p class="tf-sidebar-tagline">{t("sidebar_tagline")}</p>', unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div class="tf-sidebar-about">
+            <p class="tf-sidebar-about-title">{t("sidebar_about_header")}</p>
+            <ul>
+                <li>{t("sidebar_about_routine")}</li>
+                <li>{t("sidebar_about_diet")}</li>
+                <li>{t("sidebar_about_safety")}</li>
+                <li>{t("sidebar_about_approval")}</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""
+        <div class="tf-sidebar-footer">
+            <a class="tf-sidebar-github" href="https://github.com/serpeigd/TrainFitter" target="_blank" rel="noopener">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58
+                1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+                -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82
+                2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+                0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+                {t("sidebar_footer_github")}
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 _inyectar_estilos()
 
 # Cover banner (assets/logo.jpg) — kept in its original Spanish tagline
 # regardless of the EN/ES toggle below: it's baked into the image itself,
 # not translatable text, a deliberate trade-off for the visual (see
-# docs/decisiones.md).
-_banner_b64 = _banner_base64()
-if _banner_b64:
-    st.markdown(
-        f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter">',
-        unsafe_allow_html=True,
-    )
+# docs/decisiones.md). Shown once per session as an entrance transition —
+# it plays its slide-up-and-reveal animation on the very first script run,
+# then is skipped entirely on every later rerun (Streamlit reruns the whole
+# script on every interaction, so "just don't render it again" is what
+# keeps it from reappearing — and as a side effect, stops a large image
+# from pushing the actual panel down the page on every click once the
+# trainer is mid-task).
+if "intro_reproducida" not in st.session_state:
+    _banner_b64 = _banner_base64()
+    if _banner_b64:
+        st.markdown(
+            f'<div class="tf-banner-wrap tf-banner-intro">'
+            f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter"></div>',
+            unsafe_allow_html=True,
+        )
+    st.session_state["intro_reproducida"] = True
 
 _logo_b64 = _logo_base64()
 _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" alt="TrainFitter logo">' if _logo_b64 else ""
