@@ -1298,43 +1298,59 @@ on every single click, which is both the wrong UX (the reveal should mean
 tall image re-pushing the actual panel down the page on every rerun once
 the trainer is mid-task).
 
-## The entrance transition became scroll-driven, not time-driven
+## The scroll-driven entrance transition: tried, found broken via a real recording, reverted
 
 The project owner asked for the banner reveal to be manual — triggered by
-scrolling, reversible on scrolling back up, "pausing" wherever you stop —
-rather than a fixed-duration animation that plays once and is gone. Rebuilt
-on CSS scroll-driven animations (`animation-timeline: scroll(...)`,
-`animation-range`) instead of a `st.session_state` flag plus a timed
-keyframe: the collapse is now a direct, continuous function of scroll
-position, so scrolling down collapses it, scrolling up restores it, and
-stopping mid-scroll holds it at exactly that partial state — all for free,
-with zero JavaScript and zero Streamlit rerun involvement. This also
-simplified the Python side back down: the banner just renders unconditionally
-on every run again (it has to stay in the DOM for "scroll up brings it
-back" to be possible at all), and the one-shot `intro_reproducida` session
-flag from the previous version was removed as dead weight.
+scrolling, reversible on scrolling back up, "pausing" wherever you stop.
+Built on CSS scroll-driven animations (`animation-timeline: scroll(...)`,
+`animation-range`), confirming first that `[data-testid="stMain"]` (not
+the browser window) is the actual scroll container in this Streamlit
+version. Verification of the *mechanism* looked solid at the time:
+`CSS.supports('animation-timeline', 'scroll()')` was `true`, and
+`element.getAnimations()` showed a real, running `ScrollTimeline` attached
+to the banner both locally and against the live deployment. What couldn't
+be checked from here was the actual visual result against a real scroll
+gesture — this environment's browser-automation pane doesn't composite
+frames, so every attempt to observe the live collapse/reveal came back
+stale or simply never fired, a gap disclosed at the time rather than
+assumed away.
 
-Confirmed which element actually scrolls before writing the selector,
-rather than assuming the browser window does: `[data-testid="stMain"]` has
-`overflow-y: auto` with real overflow (scrollHeight >> clientHeight) in
-this Streamlit version, while `document.documentElement` doesn't scroll at
-all (scrollHeight == clientHeight). That's why the timeline uses
-`scroll(nearest block)`, not `scroll(root block)` — `root` would have
-silently attached to a scroller that never moves.
+**That gap turned out to be hiding a real, total failure**, found only
+once the project owner sent an actual screen recording of
+trainfitter.streamlit.app. Extracted frames (via OpenCV, no ffmpeg
+available in this environment) showed the banner never animating at all —
+scrolling past it just moved the whole static image out of view like any
+other page content, and scrolling back up showed nothing had ever
+collapsed in the first place. Root cause: **the public URL is served
+through an iframe** (Streamlit Cloud's own wrapper chrome around the app).
+A scroll-driven animation can only observe scroll within its own document;
+it has no way to reach across into a *parent* document's scroll position.
+Inside the iframe, `stMain` may not even be the thing that scrolls once
+real content height is involved — the outer wrapper page scrolls instead —
+so `scroll(nearest block)` had nothing valid to attach to. This is worth
+remembering generally: scroll-linked CSS effects are unreliable on any
+page Streamlit Cloud serves through that iframe, specifically because of
+the iframe, not as a general limitation of the CSS feature itself.
 
-**Verification has an honest gap, disclosed rather than papered over:**
-confirmed `CSS.supports('animation-timeline', 'scroll()')` is `true` and
-that `element.getAnimations()` reports a real, running `ScrollTimeline` on
-the banner — proof the browser accepted and is executing the CSS. Could
-*not* confirm the actual visual collapse/reveal against a real scroll
-gesture: this environment's browser-automation pane doesn't composite
-frames (confirmed by an explicit tool error to that effect), and scroll-
-driven animations are resolved on the compositor thread — `getComputedStyle`
-and even `requestAnimationFrame` callbacks reliably came back stale or never
-fired at all when probed here, regardless of technique tried. Unsupported
-browsers (Firefox, Safari, as of this writing) simply ignore the unknown
-`animation-timeline` property and render the banner as a static image —
-a safe default, not a broken one, if that gap ever matters in practice.
+**The same recording also caught a second, unrelated real bug**: the
+banner's "fully shown" `max-height` (640px) clipped the image — the
+"TrainFitter" wordmark baked into the bottom of the photo was cut off from
+the very first frame, before any animation even ran. `layout="wide"` has
+no max-width cap on `stMainBlockContainer` (`max-width` computes to
+`none`), so on a wide monitor the full-bleed banner (`width: 100%`) simply
+renders taller than a value chosen without checking that. Fixed by raising
+it to 2600px — comfortably above the banner's native 1200x801 aspect ratio
+stretched across even a very wide 4K-class monitor — and verified directly
+by resizing the local preview to 1920px and confirming the image's
+rendered height no longer exceeded the wrapper's.
+
+Reverted to the pre-scroll-driven design: a `st.session_state`-gated,
+fixed-duration CSS keyframe animation that plays once per browser session
+and is then skipped entirely (not just hidden) on later reruns. Plain
+`@keyframes` have none of the cross-document limitations scroll-timelines
+do, since the animation is entirely self-contained within the one document
+that renders it — the safer, more broadly-compatible choice once "scroll-
+linked" turned out to not be reliably achievable here at all.
 
 ## Free-only guardrail
 
