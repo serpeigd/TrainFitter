@@ -67,7 +67,7 @@ def _log_consola(cliente_id: str, nuevo_estado: str) -> None:
     print(f"  [{marca}] {cliente_id}: -> {nuevo_estado}")
 
 
-def ejecutar_pipeline(perfil_cliente: dict, motor: str = "reglas", on_transition=None) -> PipelineState:
+def ejecutar_pipeline(perfil_cliente: dict, motor: str = "reglas", on_transition=None, idioma: str = "en") -> PipelineState:
     """
     Runs the full pipeline on a client and returns the final state.
 
@@ -79,6 +79,9 @@ def ejecutar_pipeline(perfil_cliente: dict, motor: str = "reglas", on_transition
             console (the historical behavior of the run_*_demo.py scripts);
             the UI passes its own callback to update the screen instead of
             the terminal.
+        idioma: "en" (default) or "es", passed as-is to each agent — language
+            of the generated narrative text (see routine_agent/diet_agent/
+            validator_agent for exactly what this does and doesn't affect).
 
     Doesn't raise if an agent fails: it catches it, leaves the state as
     "error" with the detail, and returns the PipelineState so the caller can
@@ -93,15 +96,15 @@ def ejecutar_pipeline(perfil_cliente: dict, motor: str = "reglas", on_transition
         on_transition(cliente_id, nuevo_estado)
 
     try:
-        rutina = generar_borrador_rutina(perfil_cliente, motor=motor)
+        rutina = generar_borrador_rutina(perfil_cliente, motor=motor, idioma=idioma)
         estado.borrador_rutina = rutina.contenido
         avanzar("rutina_generada")
 
-        dieta = generar_borrador_dieta(perfil_cliente, motor=motor)
+        dieta = generar_borrador_dieta(perfil_cliente, motor=motor, idioma=idioma)
         estado.borrador_dieta = dieta.contenido
         avanzar("dieta_generada")
 
-        veredicto = validar_borradores(perfil_cliente, estado.borrador_rutina, estado.borrador_dieta)
+        veredicto = validar_borradores(perfil_cliente, estado.borrador_rutina, estado.borrador_dieta, idioma=idioma)
         estado.veredicto = veredicto
         avanzar("validado")
 

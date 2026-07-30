@@ -103,6 +103,19 @@ def test_all_normal_bloodwork_markers_do_not_force_review(perfil_base):
     assert veredicto["veredicto"] == "aprobado_automatico"
 
 
+def test_idioma_es_translates_motivos(perfil_base):
+    """The verdict logic itself must not change with idioma -- only the
+    language of the "motivos" strings shown to the trainer does."""
+    perfil_base["salud"]["lesiones"] = [
+        {"zona": "rodilla", "descripcion": "old ACL injury", "estado": "antigua_controlada", "activa_actualmente": False}
+    ]
+    rutina = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    dieta = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    veredicto = validar_borradores(perfil_base, rutina, dieta, idioma="es")
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("lesión" in motivo.lower() for motivo in veredicto["motivos"])
+
+
 def test_duplicate_reasons_are_not_repeated(perfil_base):
     """Both the routine and diet engines independently warn about a declared
     health condition using the exact same wording — the validator must

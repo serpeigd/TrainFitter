@@ -35,14 +35,23 @@ AJUSTE_CALORICO = {
 
 PORCENTAJE_GRASA_CALORIAS = 0.27
 
-# Display-only English label for the goal, used when building the
-# human-readable "resumen_enfoque" text (the schema value itself stays
-# in Spanish — see docs/decisiones.md).
+# Display-only label for the goal, used when building the human-readable
+# "resumen_enfoque" text (the schema value itself stays in Spanish — see
+# docs/decisiones.md). Bilingual since generar_borrador_dieta_reglas() now
+# accepts an `idioma` parameter for this narrative text.
 OBJETIVO_LABELS = {
-    "hipertrofia": "hypertrophy",
-    "perdida_grasa": "fat loss",
-    "recomposicion_corporal": "body recomposition",
-    "salud_general": "general health",
+    "en": {
+        "hipertrofia": "hypertrophy",
+        "perdida_grasa": "fat loss",
+        "recomposicion_corporal": "body recomposition",
+        "salud_general": "general health",
+    },
+    "es": {
+        "hipertrofia": "hipertrofia",
+        "perdida_grasa": "pérdida de grasa",
+        "recomposicion_corporal": "recomposición corporal",
+        "salud_general": "salud general",
+    },
 }
 
 
@@ -89,13 +98,35 @@ def _calcular_necesidades(perfil: dict) -> dict:
     }
 
 
-def _consejos_sinergias(perfil: dict) -> list[str]:
+def _consejos_sinergias(perfil: dict, idioma: str = "en") -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
+
+    if idioma == "es":
+        consejos = [
+            "Las vitaminas D, E, K y los omega-3 se absorben mejor si se toman con la comida "
+            "del día que tenga más grasa saludable (nunca en ayunas)."
+        ]
+        if tipo_dieta in {"vegetariana_ovolacto", "vegana"}:
+            consejos.append(
+                "La mayor parte de tu hierro viene de fuentes vegetales (no hemo), que se absorben "
+                "peor: combina lentejas/espinacas con una fuente de vitamina C en la misma comida "
+                "(pimiento rojo, limón, kiwi) — puede multiplicar la absorción de 3 a 6 veces."
+            )
+            consejos.append(
+                "Deja pasar al menos 1-2 horas entre el café o el té y tus comidas principales ricas "
+                "en hierro: los taninos reducen significativamente su absorción."
+            )
+        if tipo_dieta == "vegetariana_ovolacto":
+            consejos.append(
+                "Combinar legumbres con huevo o lácteos en la misma comida mejora cómo tu cuerpo "
+                "aprovecha el zinc y el hierro."
+            )
+        return consejos
+
     consejos = [
         "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's "
         "meal with the most healthy fat (never on an empty stomach)."
     ]
-
     if tipo_dieta in {"vegetariana_ovolacto", "vegana"}:
         consejos.append(
             "Most of your iron comes from plant sources (non-heme), which absorb less "
@@ -115,10 +146,36 @@ def _consejos_sinergias(perfil: dict) -> list[str]:
     return consejos
 
 
-def _generar_advertencias(perfil: dict) -> list[str]:
+def _generar_advertencias(perfil: dict, idioma: str = "en") -> list[str]:
     """Enhanced-review reasons from a nutritional standpoint (method §8)."""
     salud = perfil.get("salud", {})
     advertencias = []
+
+    if idioma == "es":
+        for alergia in salud.get("alergias_alimentarias", []):
+            advertencias.append(
+                f"Alergia alimentaria declarada: {alergia}. Confirma que está totalmente excluida "
+                "antes de enviarse — una alergia mal gestionada puede ser grave."
+            )
+        for condicion in salud.get("enfermedades_o_condiciones", []):
+            advertencias.append(f"Condición de salud declarada: {condicion}. Revisión reforzada antes de enviarse.")
+
+        embarazo = salud.get("embarazo_o_lactancia", {})
+        if embarazo.get("aplica"):
+            advertencias.append(
+                f"El/la cliente está embarazada o en periodo de lactancia ({embarazo.get('detalle', '')}). "
+                "Las necesidades nutricionales cambian; requiere ajuste y el visto bueno de un profesional."
+            )
+        for medicacion in salud.get("medicacion_habitual", []):
+            advertencias.append(f"Medicación habitual declarada: {medicacion}. Revisa posibles interacciones con la dieta.")
+
+        notas_analitica = salud.get("analitica_adjunta", {}).get("notas", "")
+        if notas_analitica and not salud.get("analitica_adjunta", {}).get("tiene"):
+            advertencias.append(
+                f"El cliente no ha adjuntado analítica, pero hay una nota relevante sin verificar: "
+                f"\"{notas_analitica}\" — pídela en el seguimiento para poder modular la dieta con datos reales."
+            )
+        return advertencias
 
     for alergia in salud.get("alergias_alimentarias", []):
         advertencias.append(
@@ -147,31 +204,59 @@ def _generar_advertencias(perfil: dict) -> list[str]:
     return advertencias
 
 
-def generar_borrador_dieta_reglas(perfil_cliente: dict) -> dict:
-    """Generates the full diet draft by applying the rule engine."""
+def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> dict:
+    """Generates the full diet draft by applying the rule engine.
+
+    Args:
+        perfil_cliente: dict with the same schema as examples/cliente_ejemplo_*.json.
+        idioma: "en" (default) or "es" — language of the narrative text
+            (resumen_enfoque, distribucion_comidas, mensaje_para_el_cliente,
+            consejos_sinergias, advertencias). Food NAMES in
+            fuentes_*_sugeridas are always the canonical English value
+            regardless of `idioma` — see food_bank.py's module docstring for
+            why (the validator's allergy cross-check depends on it).
+            ui/app.py translates food names for on-screen display
+            separately, via food_bank.nombre_mostrado().
+    """
     nombre = perfil_cliente["datos_basicos"]["nombre"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     comidas_al_dia = perfil_cliente.get("nutricion", {}).get("comidas_al_dia_preferidas", 4)
 
     necesidades = _calcular_necesidades(perfil_cliente)
 
-    resumen = (
-        f"Estimated {necesidades['calorias_objetivo_kcal']} kcal/day for "
-        f"{OBJETIVO_LABELS.get(objetivo, objetivo.replace('_', ' '))}, "
-        f"with {necesidades['macros']['proteina_g']} g of protein as the priority. It's a starting point "
-        "that gets adjusted based on real weight and energy over the first few weeks."
-    )
-
-    distribucion = (
-        f"Spread these calories across {comidas_al_dia} meals throughout the day, with protein present "
-        "in all of them. They don't need to be exactly equal — just fit your actual routine."
-    )
-
-    mensaje_para_el_cliente = (
-        f"Hi {nombre.split()[0]}, this is your draft diet. There's no forbidden food here: "
-        "it's about amounts and context. The idea is that you can keep this up in three months, not just "
-        "this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
-    )
+    if idioma == "es":
+        resumen = (
+            f"Estimación de {necesidades['calorias_objetivo_kcal']} kcal/día para "
+            f"{OBJETIVO_LABELS['es'].get(objetivo, objetivo.replace('_', ' '))}, "
+            f"con {necesidades['macros']['proteina_g']} g de proteína como prioridad. Es un punto de "
+            "partida que se ajusta según el peso y la energía reales durante las primeras semanas."
+        )
+        distribucion = (
+            f"Reparte estas calorías en {comidas_al_dia} comidas a lo largo del día, con proteína "
+            "presente en todas ellas. No hace falta que sean exactamente iguales — solo que encajen "
+            "en tu rutina real."
+        )
+        mensaje_para_el_cliente = (
+            f"Hola {nombre.split()[0]}, esta es tu dieta en borrador. Aquí no hay alimentos prohibidos: "
+            "se trata de cantidades y contexto. La idea es que puedas mantenerla durante tres meses, no "
+            "solo esta semana. Si algo no encaja en tu día a día, dímelo y lo cambiamos por algo equivalente."
+        )
+    else:
+        resumen = (
+            f"Estimated {necesidades['calorias_objetivo_kcal']} kcal/day for "
+            f"{OBJETIVO_LABELS['en'].get(objetivo, objetivo.replace('_', ' '))}, "
+            f"with {necesidades['macros']['proteina_g']} g of protein as the priority. It's a starting point "
+            "that gets adjusted based on real weight and energy over the first few weeks."
+        )
+        distribucion = (
+            f"Spread these calories across {comidas_al_dia} meals throughout the day, with protein present "
+            "in all of them. They don't need to be exactly equal — just fit your actual routine."
+        )
+        mensaje_para_el_cliente = (
+            f"Hi {nombre.split()[0]}, this is your draft diet. There's no forbidden food here: "
+            "it's about amounts and context. The idea is that you can keep this up in three months, not just "
+            "this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
+        )
 
     return {
         "resumen_enfoque": resumen,
@@ -182,7 +267,7 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict) -> dict:
         "fuentes_proteina_sugeridas": fuentes_proteina_para(perfil_cliente),
         "fuentes_carbohidrato_sugeridas": fuentes_carbohidrato_para(perfil_cliente),
         "fuentes_grasa_sugeridas": fuentes_grasa_para(perfil_cliente),
-        "consejos_sinergias": _consejos_sinergias(perfil_cliente),
-        "advertencias_revision_humana": _generar_advertencias(perfil_cliente),
+        "consejos_sinergias": _consejos_sinergias(perfil_cliente, idioma),
+        "advertencias_revision_humana": _generar_advertencias(perfil_cliente, idioma),
         "mensaje_para_el_cliente": mensaje_para_el_cliente,
     }

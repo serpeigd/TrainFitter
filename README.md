@@ -64,7 +64,9 @@ This repository is built phase by phase, as a learning project. Right now:
 - A **visual panel** (not just a terminal): upload or create a client intake, watch
   the plan get generated, review the routine and diet with tables and metrics, and
   approve — all from the browser. Dark theme by default, and a full **English/Spanish
-  toggle** for the interface (the generated plan itself is always in English).
+  toggle** — the generated plan's narrative text (messages, warmups, progression) now
+  follows it too; exercise/food names stay in their canonical form on purpose (see
+  `docs/decisiones.md`) so the validator's safety cross-check can't silently break.
 - Tested with two example cases: one straightforward, one with an injury and a
   vegetarian diet, to confirm the enhanced-review flag fires when it should.
 - An optional **bloodwork PDF** can be attached to the intake — out-of-range markers
@@ -92,8 +94,8 @@ This repository is built phase by phase, as a learning project. Right now:
   rules based on the method; an optional generative-AI layer (`motor="llm"`) is
   already designed and ready to switch on when it makes sense.
 - More personalized, less deterministic routine/diet generation for the free rule
-  engine (same input always produces the same plan today) — a real scoped-out
-  improvement, not started yet.
+  engine (same input always produces the same plan today) — a real design question,
+  not started yet.
 - An automatic inbox trigger (`main.py`) instead of manual intake via the panel.
 
 ## Repository structure

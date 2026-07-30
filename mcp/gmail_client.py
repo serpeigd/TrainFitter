@@ -85,9 +85,30 @@ def _validar_destinatario(destinatario: str) -> str:
     return destinatario
 
 
-def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict) -> str:
+def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en") -> str:
     """Plain-text email body summarizing the approved plan. Pure formatting —
-    no network, no auth, trivially unit-testable."""
+    no network, no auth, trivially unit-testable.
+
+    idioma only affects this template's own wrapper text (greeting, section
+    dividers, footer note) — borrador_rutina/borrador_dieta's own narrative
+    fields (mensaje_para_el_cliente, resumen_enfoque) were already generated
+    in whichever language the trainer had selected when the plan was
+    created (see rutina_reglas.py/dieta_reglas.py), so this just needs to
+    match that, not translate anything itself."""
+    if idioma == "es":
+        return (
+            f"Hola {nombre_cliente},\n\n"
+            f"{borrador_rutina['mensaje_para_el_cliente']}\n\n"
+            f"--- Rutina ---\n"
+            f"{borrador_rutina['resumen_enfoque']}\n\n"
+            f"{borrador_dieta['mensaje_para_el_cliente']}\n\n"
+            f"--- Dieta ---\n"
+            f"{borrador_dieta['resumen_enfoque']}\n"
+            f"Objetivo: {borrador_dieta['calorias_objetivo_kcal']} kcal/día, "
+            f"{borrador_dieta['macros']['proteina_g']} g de proteína.\n\n"
+            f"(Este es un borrador preparado por TrainFitter — revisado y enviado por tu entrenador/a, nunca de forma automática.)"
+        )
+
     return (
         f"Hi {nombre_cliente},\n\n"
         f"{borrador_rutina['mensaje_para_el_cliente']}\n\n"
@@ -157,9 +178,17 @@ def _obtener_credenciales():
     return credenciales
 
 
-def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict) -> dict:
+def crear_borrador(
+    destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
+) -> dict:
     """
     Creates a Gmail draft (never sends it) with the approved plan.
+
+    Args:
+        destinatario, nombre_cliente, borrador_rutina, borrador_dieta: same as before.
+        idioma: "en" (default) or "es" — language of this email's own
+            wrapper text (subject, greeting, section dividers); see
+            _construir_cuerpo_email()'s docstring.
 
     Returns:
         {"url": a gmail.com link to the created draft, "thread_id": the
@@ -171,10 +200,11 @@ def crear_borrador(destinatario: str, nombre_cliente: str, borrador_rutina: dict
         GmailClientError: invalid recipient, missing/expired credentials
             the user needs to re-authorize, or a Gmail API failure.
     """
+    asunto = f"Tu plan de TrainFitter — {nombre_cliente}" if idioma == "es" else f"Your plan from TrainFitter — {nombre_cliente}"
     cuerpo = _construir_mensaje_raw(
         destinatario,
-        asunto=f"Your plan from TrainFitter — {nombre_cliente}",
-        cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta),
+        asunto=asunto,
+        cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma),
     )
 
     # Resolved before importing googleapiclient: _obtener_credenciales()

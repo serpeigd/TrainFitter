@@ -25,10 +25,30 @@ from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, eti
 from perfil_utils import tags_lesiones
 
 
-def _motivos_desde_perfil(perfil: dict) -> list[str]:
+def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
     """Re-reads the raw profile, without relying on what routine/diet already flagged."""
     salud = perfil.get("salud", {})
     motivos = []
+
+    if idioma == "es":
+        if salud.get("lesiones"):
+            zonas = ", ".join(lesion.get("zona", "sin especificar") for lesion in salud["lesiones"])
+            motivos.append(f"El perfil declara {len(salud['lesiones'])} lesión(es): {zonas}.")
+        if salud.get("enfermedades_o_condiciones"):
+            motivos.append(
+                f"El perfil declara condición(es) de salud: {', '.join(salud['enfermedades_o_condiciones'])}."
+            )
+        if salud.get("embarazo_o_lactancia", {}).get("aplica"):
+            motivos.append("El perfil indica embarazo o periodo de lactancia.")
+        if salud.get("medicacion_habitual"):
+            motivos.append(f"El perfil declara medicación habitual: {', '.join(salud['medicacion_habitual'])}.")
+        for marcador in salud.get("analitica_adjunta", {}).get("marcadores", []):
+            if marcador.get("fuera_de_rango"):
+                motivos.append(
+                    f"Marcador de analítica fuera de rango: {marcador['nombre']} = {marcador['valor']} "
+                    f"{marcador['unidad']} (rango normal: {marcador['rango_normal']})."
+                )
+        return motivos
 
     if salud.get("lesiones"):
         zonas = ", ".join(lesion.get("zona", "not specified") for lesion in salud["lesiones"])
@@ -54,7 +74,7 @@ def _motivos_desde_perfil(perfil: dict) -> list[str]:
     return motivos
 
 
-def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict) -> list[str]:
+def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict, idioma: str = "en") -> list[str]:
     """Cross-checks every exercise in the draft against the declared injuries."""
     lesion_tags = tags_lesiones(perfil)
     if not lesion_tags:
@@ -69,14 +89,20 @@ def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict) -> list
                 continue  # exercise not in the bank (e.g. came from the LLM engine): can't be cross-checked
             conflicto = info["contraindicaciones"] & lesion_tags
             if conflicto:
-                motivos.append(
-                    f"Review needed! '{ejercicio['nombre']}' in '{sesion['dia']}' is contraindicated "
-                    f"for the declared injury ({', '.join(sorted(conflicto))})."
-                )
+                if idioma == "es":
+                    motivos.append(
+                        f"¡Revisión necesaria! '{ejercicio['nombre']}' en '{sesion['dia']}' está "
+                        f"contraindicado para la lesión declarada ({', '.join(sorted(conflicto))})."
+                    )
+                else:
+                    motivos.append(
+                        f"Review needed! '{ejercicio['nombre']}' in '{sesion['dia']}' is contraindicated "
+                        f"for the declared injury ({', '.join(sorted(conflicto))})."
+                    )
     return motivos
 
 
-def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict) -> list[str]:
+def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict, idioma: str = "en") -> list[str]:
     """Cross-checks every food suggested in the draft against declared allergies/intolerances."""
     excluidas = etiquetas_excluidas(perfil)
     if not excluidas:
@@ -94,26 +120,38 @@ def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict) -> list[s
         etiquetas = indice_alimentos.get(nombre_alimento, set())
         conflicto = etiquetas & excluidas
         if conflicto:
-            motivos.append(
-                f"Review needed! '{nombre_alimento}' in the diet draft might clash with a "
-                f"declared allergy/intolerance ({', '.join(sorted(conflicto))})."
-            )
+            if idioma == "es":
+                motivos.append(
+                    f"¡Revisión necesaria! '{nombre_alimento}' en la dieta en borrador podría chocar "
+                    f"con una alergia/intolerancia declarada ({', '.join(sorted(conflicto))})."
+                )
+            else:
+                motivos.append(
+                    f"Review needed! '{nombre_alimento}' in the diet draft might clash with a "
+                    f"declared allergy/intolerance ({', '.join(sorted(conflicto))})."
+                )
     return motivos
 
 
-def validar_borradores(perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict) -> dict:
+def validar_borradores(perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en") -> dict:
     """
     Issues the pipeline's final verdict.
+
+    Args:
+        perfil_cliente, borrador_rutina, borrador_dieta: same as before.
+        idioma: "en" (default) or "es" — language of the "motivos" reason
+            strings shown to the trainer. Purely a display-language choice;
+            the verdict logic itself is identical regardless of `idioma`.
 
     Returns:
         {"veredicto": "aprobado_automatico" | "revision_reforzada", "motivos": [...]}
     """
     motivos = []
-    motivos += _motivos_desde_perfil(perfil_cliente)
+    motivos += _motivos_desde_perfil(perfil_cliente, idioma)
     motivos += list(borrador_rutina.get("advertencias_revision_humana", []))
     motivos += list(borrador_dieta.get("advertencias_revision_humana", []))
-    motivos += _validar_rutina_contra_lesiones(perfil_cliente, borrador_rutina)
-    motivos += _validar_dieta_contra_alergias(perfil_cliente, borrador_dieta)
+    motivos += _validar_rutina_contra_lesiones(perfil_cliente, borrador_rutina, idioma)
+    motivos += _validar_dieta_contra_alergias(perfil_cliente, borrador_dieta, idioma)
 
     motivos_unicos = list(dict.fromkeys(motivos))  # dedup while keeping order
 

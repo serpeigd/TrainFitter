@@ -68,6 +68,19 @@ exercised against the real API. That's a real constraint that ruled out
 easier paths more than once (e.g. OCR services for the bloodwork parser),
 not a marketing line.
 
+## 7. A display-only translation layer, kept separate from a safety cross-check
+
+Making generated content follow the UI's EN/ES toggle looked like a simple
+find-and-replace at first. It isn't: `validator_agent.py` cross-checks a
+draft's exercise/food *names* against the client's declared injuries and
+allergies by exact string match. If those names changed language with the
+UI, that match would silently stop firing — a language preference quietly
+disabling a safety check. The fix keeps exercise/food `"nombre"` values
+canonical (English, always) and adds a separate, display-only
+`nombre_mostrado()` helper called exclusively from the UI's rendering code,
+never from generation or validation. An explicit test locks in that
+invariant so a future refactor can't reintroduce the bug by accident.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*

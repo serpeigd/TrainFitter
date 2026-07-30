@@ -65,6 +65,17 @@ def test_pipeline_never_sends_anything_automatically():
         assert estado.estado.startswith("pendiente_")
 
 
+def test_idioma_es_propagates_to_every_stage():
+    """ejecutar_pipeline()'s idioma param must reach routine, diet, AND the
+    validator's motivos -- a real regression risk since each is threaded
+    through separately (routine_agent, diet_agent, validator_agent)."""
+    perfil = _cargar_cliente(2)  # knee injury + lactose intolerance -> non-empty motivos
+    estado = ejecutar_pipeline(perfil, on_transition=lambda *_: None, idioma="es")
+    assert "Hola" in estado.borrador_rutina["mensaje_para_el_cliente"]
+    assert "Hola" in estado.borrador_dieta["mensaje_para_el_cliente"]
+    assert any("lesión" in motivo.lower() or "rodilla" in motivo.lower() for motivo in estado.veredicto["motivos"])
+
+
 def test_routine_agent_failure_lands_in_error_state_without_crashing(monkeypatch):
     """A RoutineAgentError (e.g. motor="llm" hitting a bad API key, a
     timeout, or a malformed model response) must be caught, not propagated —

@@ -126,6 +126,8 @@ sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
+from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
+from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
 from gmail_client import GmailClientError, crear_borrador, verificar_envio  # noqa: E402
 from notion_connector import (  # noqa: E402
     NotionClientError,
@@ -554,6 +556,7 @@ OPTION_LABELS = {
         "antigua_controlada": "Old, under control", "activa": "Active",
         "omnivora": "Omnivorous", "vegetariana_ovolacto": "Vegetarian", "vegana": "Vegan",
         "bajo": "Low", "medio": "Medium", "alto": "High",
+        "full_body": "full body", "upper_lower": "upper lower", "push_pull_legs": "push pull legs",
     },
     "es": {
         "mujer": "Mujer", "hombre": "Hombre",
@@ -567,6 +570,7 @@ OPTION_LABELS = {
         "antigua_controlada": "Antigua, controlada", "activa": "Activa",
         "omnivora": "Omnívora", "vegetariana_ovolacto": "Vegetariana", "vegana": "Vegana",
         "bajo": "Bajo", "medio": "Medio", "alto": "Alto",
+        "full_body": "cuerpo completo", "upper_lower": "torso-pierna", "push_pull_legs": "empuje-tracción-pierna",
     },
 }
 
@@ -857,7 +861,7 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
         def _al_transicionar(_cliente_id: str, nuevo_estado: str) -> None:
             status.write(f"✅ {ETIQUETAS_ESTADO[st.session_state.lang].get(nuevo_estado, nuevo_estado)}")
 
-        estado = ejecutar_pipeline(perfil, on_transition=_al_transicionar)
+        estado = ejecutar_pipeline(perfil, on_transition=_al_transicionar, idioma=st.session_state.lang)
         status.update(
             label=t("plan_generated_status") if not estado.error else t("plan_error_status"),
             state="error" if estado.error else "complete",
@@ -894,7 +898,7 @@ def _mostrar_rutina(rutina: dict) -> None:
     st.markdown(f'<div class="tf-section-rutina"><h3>{t("routine_header")}</h3></div>', unsafe_allow_html=True)
     st.caption(rutina["resumen_enfoque"])
     st.markdown(
-        f"{t('split_label')} {rutina['split'].replace('_', ' ')} · "
+        f"{t('split_label')} {opt(rutina['split'])} · "
         f"{t('days_week_label')} {rutina['dias_por_semana']} · "
         f"{t('duration_label')} {rutina['duracion_sesion_min']} min"
     )
@@ -904,7 +908,10 @@ def _mostrar_rutina(rutina: dict) -> None:
             st.caption(sesion["calentamiento"])
             filas = [
                 {
-                    t("col_exercise"): e["nombre"],
+                    # Exercise "nombre" stays canonical English in the underlying
+                    # dict (validator/JSON/email/Notion all rely on that — see
+                    # exercise_bank.py's docstring); translated here for display only.
+                    t("col_exercise"): ejercicio_mostrado(e["nombre"], st.session_state.lang),
                     t("col_sets"): e["series"],
                     t("col_reps"): e["repeticiones"],
                     t("col_rest"): f"{e['descanso_seg']}s",
@@ -940,10 +947,14 @@ def _mostrar_dieta(dieta: dict) -> None:
 
     st.caption(dieta["distribucion_comidas"])
 
+    # Food "nombre" values stay canonical English in the underlying dict
+    # (validator/JSON/email/Notion all rely on that — see food_bank.py's
+    # docstring); translated here for display only.
+    idioma = st.session_state.lang
     c1, c2, c3 = st.columns(3)
-    c1.markdown(t("protein_sources_label") + "\n".join(f"- {f}" for f in dieta["fuentes_proteina_sugeridas"]))
-    c2.markdown(t("carb_sources_label") + "\n".join(f"- {f}" for f in dieta["fuentes_carbohidrato_sugeridas"]))
-    c3.markdown(t("fat_sources_label") + "\n".join(f"- {f}" for f in dieta["fuentes_grasa_sugeridas"]))
+    c1.markdown(t("protein_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_proteina_sugeridas"]))
+    c2.markdown(t("carb_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_carbohidrato_sugeridas"]))
+    c3.markdown(t("fat_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_grasa_sugeridas"]))
 
     if dieta["consejos_sinergias"]:
         with st.expander(t("synergy_tips_header")):
@@ -1072,6 +1083,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 perfil["datos_basicos"]["nombre"],
                 estado.borrador_rutina,
                 estado.borrador_dieta,
+                idioma=st.session_state.lang,
             )
             st.success(t("draft_created_success").format(url=resultado_borrador["url"]))
             # Kept for the "check if sent" button below — same single-slot,

@@ -2,7 +2,7 @@
 and diet-type filtering (the same safety-critical concern as
 test_perfil_utils.py, on the nutrition side)."""
 
-from food_bank import etiquetas_excluidas, fuentes_proteina_para
+from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, etiquetas_excluidas, fuentes_proteina_para, nombre_mostrado
 
 
 def test_lactose_excluded_in_spanish(perfil_base):
@@ -55,3 +55,13 @@ def test_allergy_removes_suggested_source_even_if_diet_allows_it(perfil_base):
     fuentes = fuentes_proteina_para(perfil_base)
     assert "Eggs" not in fuentes
     assert "Chicken breast" in fuentes
+
+
+def test_every_food_has_a_spanish_display_name():
+    for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA:
+        assert alimento.get("nombre_es"), f"missing nombre_es for {alimento['nombre']!r}"
+
+
+def test_nombre_mostrado_returns_spanish_only_for_es():
+    assert nombre_mostrado("Chicken breast", "es") == "Pechuga de pollo"
+    assert nombre_mostrado("Chicken breast", "en") == "Chicken breast"

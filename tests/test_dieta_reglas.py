@@ -55,3 +55,24 @@ def test_meals_per_day_respected(perfil_base):
     perfil_base["nutricion"]["comidas_al_dia_preferidas"] = 5
     borrador = generar_borrador_dieta_reglas(perfil_base)
     assert borrador["comidas_al_dia"] == 5
+
+
+def test_idioma_es_translates_narrative_text_only(perfil_base):
+    """Same invariant as rutina_reglas.py's equivalent test: idioma="es"
+    translates the narrative text but food "nombre" values in
+    fuentes_*_sugeridas stay canonical English -- the validator's allergy
+    cross-check depends on it (see food_bank.py's module docstring)."""
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    borrador = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+
+    assert "Estimación de" in borrador["resumen_enfoque"]
+    assert "Reparte estas calorías" in borrador["distribucion_comidas"]
+    assert "Hola" in borrador["mensaje_para_el_cliente"]
+    assert any("hierro" in consejo.lower() for consejo in borrador["consejos_sinergias"])
+    assert "Lentils" in borrador["fuentes_proteina_sugeridas"]  # still canonical English
+
+
+def test_default_idioma_matches_explicit_english(perfil_base):
+    borrador_default = generar_borrador_dieta_reglas(perfil_base)
+    borrador_en = generar_borrador_dieta_reglas(perfil_base, idioma="en")
+    assert borrador_default == borrador_en

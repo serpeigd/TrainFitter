@@ -40,6 +40,29 @@ def test_email_body_includes_client_message_and_macros():
     assert "136 g protein" in cuerpo
 
 
+def test_email_body_wrapper_text_translates_for_spanish():
+    """idioma="es" only needs to translate this template's own wrapper text
+    (greeting, dividers, footer) -- the plan's own narrative fields are
+    already in whichever language they were generated in (see
+    rutina_reglas.py/dieta_reglas.py), so this test uses Spanish content for
+    those too, matching a real idioma="es" pipeline run."""
+    borrador_rutina = {
+        "mensaje_para_el_cliente": "Hola Ana, aquí tienes tu rutina.",
+        "resumen_enfoque": "Reparto 'torso-pierna' para nivel intermedio.",
+    }
+    borrador_dieta = {
+        "mensaje_para_el_cliente": "Hola Ana, aquí tienes tu dieta.",
+        "resumen_enfoque": "Estimación de 2125 kcal/día.",
+        "calorias_objetivo_kcal": 2125,
+        "macros": {"proteina_g": 136},
+    }
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, idioma="es")
+    assert cuerpo.startswith("Hola Ana,")
+    assert "--- Rutina ---" in cuerpo
+    assert "--- Dieta ---" in cuerpo
+    assert "136 g de proteína" in cuerpo
+
+
 def test_raw_message_is_valid_base64url_rfc2822():
     payload = _construir_mensaje_raw("client@example.com", "Your plan", "Body text here.")
     raw = payload["message"]["raw"]

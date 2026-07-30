@@ -1169,6 +1169,68 @@ differ, not just when the file is missing — still a no-op for a real local
 dev file (which will never happen to match a Cloud secret's content), but
 now self-healing on the deployment whenever the secret actually changes.
 
+## Generated plan content now follows the UI language, with one deliberate exception
+
+The project owner pointed out that switching the UI to Spanish translated
+every label and button but left the actual routine/diet content (exercise
+names, messages, warmups) in English — the scoping decision from earlier in
+this project ("generated content stays English regardless of UI language").
+Revisited and changed: `generar_borrador_rutina_reglas()`,
+`generar_borrador_dieta_reglas()`, and `validar_borradores()` all now accept
+an `idioma: str = "en"` parameter (threaded through `routine_agent.py`,
+`diet_agent.py`, `orchestrator.py`, and `gmail_client.py`'s email template),
+and `ui/app.py` passes `st.session_state.lang`. Default stays `"en"`,
+producing byte-identical output to before — verified with an explicit
+`test_default_idioma_matches_explicit_english` test in both rule-engine
+test files, so every existing test and CLI demo script sees zero behavior
+change.
+
+**Deliberate exception: exercise and food NAMES never change with
+`idioma`.** `rutina_reglas.py`/`dieta_reglas.py` select exercises/foods from
+`exercise_bank.py`/`food_bank.py` by their `"nombre"` value, and
+`validator_agent.py`'s safety cross-check (does this draft's exercise list
+avoid the client's declared injury? does the food list avoid their
+allergy?) matches against that exact same value. If `"nombre"` changed
+language based on the trainer's UI preference, the cross-check would
+silently stop matching — a real, easy-to-miss way to quietly disable a
+safety-critical check purely from a language toggle. Instead, both banks
+gained a `"nombre_es"` field (all ~70 exercises/foods) plus a
+`nombre_mostrado(nombre, idioma)` helper that's display-only, called
+exclusively from `ui/app.py`'s rendering functions — never from generation,
+validation, the JSON download, the Notion summary, or the Gmail email body.
+An explicit test in each bank (`test_idioma_es_translates_narrative_text_only`
+et al.) locks in that the canonical `"nombre"` stays English even when
+`idioma="es"` is passed, specifically to guard this invariant against a
+future accidental regression.
+
+**Side effect, accepted as correct, not just tolerated:** since the
+JSON download, the Notion summary, and the Gmail email body all read from
+the same `borrador_rutina`/`borrador_dieta` dicts the trainer generated,
+they now reflect whichever language the trainer's UI was set to at
+generation time — a Spanish-language session produces a Spanish JSON, a
+Spanish Notion record, and a Spanish email (except exercise/food names,
+which stay English by the invariant above). Considered scoping this only
+to the on-screen view and keeping everything else English always, but
+concluded the simpler, single-source design matches actual usage better:
+if a trainer is reviewing in Spanish, they're very likely about to email a
+Spanish-speaking client, and a mismatched-language download/email would be
+a stranger outcome than a consistent one.
+
+**Explicitly not attempted here:** on-the-fly machine translation of the
+English content at display/request time (e.g. `argos-translate`, a free
+offline NMT library — the only realistic option under the free-only
+guardrail, since Google Translate's API is paid and unofficial
+scraping libraries are both against Google's ToS and prone to breaking).
+Rejected for two reasons: (1) general-purpose NMT output for niche fitness
+terminology is inconsistent enough that it would need manual review anyway
+for a small, finite catalog (~70 items) — at which point hand-translating
+once is strictly less work than reviewing a translator's output every
+time; (2) this project's stated value proposition is a plan that "sounds
+like the trainer," and machine-translated client-facing messages risk
+reading stiffly enough to undermine exactly that. Hand-curated bilingual
+content was worth the one-time authoring cost specifically because this
+project's content vocabulary is small and stable, not the general case.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

@@ -20,7 +20,7 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (6 decisions, 1 page) — update it when a change adds
+  version of the same log (7 decisions, 1 page) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
 
 ## Architecture (see [`docs/arquitectura.md`](docs/arquitectura.md) for full detail)
@@ -84,9 +84,23 @@ new-client intakes, never the example-client demo path. On any deployment
 with `APP_APPROVAL_PASSWORD` set (env var / Streamlit secret, never
 hardcoded), approving requires that password via a popup (`st.dialog`), so
 the public demo can have both connectors active without a random visitor
-writing to the trainer's real accounts. Pending: automatic inbox trigger
-(`main.py`). CI (`.github/workflows/ci.yml`) runs the free rule-engine
-pipeline + test suite + lint end-to-end on every push — no secrets needed.
+writing to the trainer's real accounts. Generated routine/diet content
+(exercise/food names excepted — see below) now follows the UI's EN/ES
+toggle: `rutina_reglas.py`/`dieta_reglas.py`/`validator_agent.py` all take
+an `idioma` parameter, threaded through `routine_agent.py`/`diet_agent.py`/
+`orchestrator.py`/`gmail_client.py`, defaulting to `"en"` (byte-identical
+to pre-existing behavior). Exercise/food **names** are a deliberate
+exception — they stay canonical English in `exercise_bank.py`/
+`food_bank.py`'s `"nombre"` field regardless of `idioma`, since
+`validator_agent.py`'s safety cross-check (injuries vs. exercises,
+allergies vs. foods) matches against that exact value; a `nombre_es` field
+plus a display-only `nombre_mostrado()` helper (used only by `ui/app.py`,
+never by generation/validation) covers on-screen translation instead.
+Pending: automatic inbox trigger (`main.py`), and making the free rule
+engine's generation itself less deterministic/personalized (a bigger,
+not-yet-scoped design question — see `docs/decisiones.md`). CI
+(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test
+suite + lint end-to-end on every push — no secrets needed.
 
 ## Free-only guardrail
 

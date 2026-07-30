@@ -178,6 +178,7 @@ STARTING POINT, not a final prescription.
 def generar_borrador_rutina(
     perfil_cliente: dict,
     motor: str = "reglas",
+    idioma: str = "en",
     api_key: str | None = None,
     model: str = MODEL,
     timeout: float = 60.0,
@@ -189,6 +190,10 @@ def generar_borrador_rutina(
         perfil_cliente: dict with the same schema as examples/cliente_ejemplo_*.json.
         motor: "reglas" (default, free, deterministic) or "llm" (Anthropic
             API, requires ANTHROPIC_API_KEY).
+        idioma: "en" (default) or "es" — language of the narrative text
+            (resumen_enfoque, progresion, mensaje_para_el_cliente, etc; see
+            rutina_reglas.generar_borrador_rutina_reglas()'s docstring for
+            what this does and doesn't affect).
         api_key: only for motor="llm". If not passed, read from ANTHROPIC_API_KEY.
         model: only for motor="llm". Anthropic model string to use.
         timeout: only for motor="llm". Timeout in seconds for the call.
@@ -200,16 +205,17 @@ def generar_borrador_rutina(
         ValueError: if `motor` is neither "reglas" nor "llm".
     """
     if motor == "reglas":
-        contenido = generar_borrador_rutina_reglas(perfil_cliente)
+        contenido = generar_borrador_rutina_reglas(perfil_cliente, idioma=idioma)
         return RoutineDraft(cliente_id=perfil_cliente.get("id_cliente", "desconocido"), contenido=contenido)
     if motor != "llm":
         raise ValueError(f"motor must be 'reglas' or 'llm', not {motor!r}")
 
-    return _generar_borrador_rutina_llm(perfil_cliente, api_key=api_key, model=model, timeout=timeout)
+    return _generar_borrador_rutina_llm(perfil_cliente, idioma=idioma, api_key=api_key, model=model, timeout=timeout)
 
 
 def _generar_borrador_rutina_llm(
     perfil_cliente: dict,
+    idioma: str = "en",
     api_key: str | None = None,
     model: str = MODEL,
     timeout: float = 60.0,
@@ -226,6 +232,8 @@ def _generar_borrador_rutina_llm(
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
     system_prompt = _build_system_prompt()
+    if idioma == "es":
+        system_prompt += "\n\nWrite all user-facing text (resumen_enfoque, progresion, mensaje_para_el_cliente) in Spanish."
     perfil_json = json.dumps(perfil_cliente, ensure_ascii=False, indent=2)
 
     try:

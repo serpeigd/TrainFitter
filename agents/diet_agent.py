@@ -122,6 +122,7 @@ before it reaches the client. Everything you generate is a STARTING POINT.
 def generar_borrador_dieta(
     perfil_cliente: dict,
     motor: str = "reglas",
+    idioma: str = "en",
     api_key: str | None = None,
     model: str = MODEL,
     timeout: float = 60.0,
@@ -132,6 +133,9 @@ def generar_borrador_dieta(
     Args:
         perfil_cliente: dict with the same schema as examples/cliente_ejemplo_*.json.
         motor: "reglas" (default, free, deterministic) or "llm".
+        idioma: "en" (default) or "es" — language of the narrative text; see
+            dieta_reglas.generar_borrador_dieta_reglas()'s docstring for
+            what this does and doesn't affect.
         api_key, model, timeout: only for motor="llm".
 
     Raises:
@@ -141,16 +145,17 @@ def generar_borrador_dieta(
         ValueError: if `motor` is neither "reglas" nor "llm".
     """
     if motor == "reglas":
-        contenido = generar_borrador_dieta_reglas(perfil_cliente)
+        contenido = generar_borrador_dieta_reglas(perfil_cliente, idioma=idioma)
         return DietDraft(cliente_id=perfil_cliente.get("id_cliente", "desconocido"), contenido=contenido)
     if motor != "llm":
         raise ValueError(f"motor must be 'reglas' or 'llm', not {motor!r}")
 
-    return _generar_borrador_dieta_llm(perfil_cliente, api_key=api_key, model=model, timeout=timeout)
+    return _generar_borrador_dieta_llm(perfil_cliente, idioma=idioma, api_key=api_key, model=model, timeout=timeout)
 
 
 def _generar_borrador_dieta_llm(
     perfil_cliente: dict,
+    idioma: str = "en",
     api_key: str | None = None,
     model: str = MODEL,
     timeout: float = 60.0,
@@ -166,6 +171,8 @@ def _generar_borrador_dieta_llm(
 
     client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
     system_prompt = _build_system_prompt()
+    if idioma == "es":
+        system_prompt += "\n\nWrite all user-facing text (resumen_enfoque, distribucion_comidas, mensaje_para_el_cliente, consejos_sinergias) in Spanish."
     perfil_json = json.dumps(perfil_cliente, ensure_ascii=False, indent=2)
 
     try:

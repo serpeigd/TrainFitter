@@ -86,3 +86,34 @@ def test_summary_uses_english_display_labels(perfil_base):
     assert "beginner" in borrador["resumen_enfoque"]
     assert "fat loss" in borrador["resumen_enfoque"]
     assert "principiante" not in borrador["resumen_enfoque"]
+
+
+def test_idioma_es_translates_narrative_text_only(perfil_base):
+    """idioma="es" must translate the narrative text (resumen, day label,
+    warmup, progression, client message) but NEVER the exercise "nombre"
+    field -- the validator's safety cross-check (test_validator_agent.py)
+    depends on that field staying the canonical English value regardless of
+    UI language (see exercise_bank.py's module docstring)."""
+    perfil_base["experiencia"]["nivel"] = "principiante"
+    perfil_base["objetivo"]["principal"] = "perdida_grasa"
+    borrador = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+
+    assert "pérdida de grasa" in borrador["resumen_enfoque"]
+    assert "principiante" in borrador["resumen_enfoque"]
+    assert "beginner" not in borrador["resumen_enfoque"]
+    assert borrador["sesiones"][0]["dia"].startswith("Día ")
+    assert "Hola" in borrador["mensaje_para_el_cliente"]
+    assert "Sobrecarga progresiva" in borrador["progresion"]
+
+    for sesion in borrador["sesiones"]:
+        for ejercicio in sesion["ejercicios"]:
+            assert ejercicio["nombre"] in INDICE_EJERCICIOS  # still the canonical English key
+
+
+def test_default_idioma_matches_explicit_english(perfil_base):
+    """The default (no idioma passed) must produce byte-identical output to
+    idioma="en" explicitly -- existing callers (CLI demos, motor="llm"
+    comparisons) must see no behavior change from adding this parameter."""
+    borrador_default = generar_borrador_rutina_reglas(perfil_base)
+    borrador_en = generar_borrador_rutina_reglas(perfil_base, idioma="en")
+    assert borrador_default == borrador_en

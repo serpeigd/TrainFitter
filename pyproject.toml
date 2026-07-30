@@ -10,6 +10,9 @@ target-version = "py312"
 select = ["E", "F", "W", "I"]
 
 [tool.ruff.lint.per-file-ignores]
-# One exercise per line, deliberately dense/tabular — wrapping would hurt
-# readability more than a few over-length lines do.
+# One exercise/food per line, deliberately dense/tabular — wrapping would
+# hurt readability more than a few over-length lines do. food_bank.py
+# joined this list once bilingual "nombre_es" values were added alongside
+# each entry (see docs/decisiones.md).
 "agents/exercise_bank.py" = ["E501"]
+"agents/food_bank.py" = ["E501"]
