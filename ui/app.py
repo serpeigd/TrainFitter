@@ -402,10 +402,6 @@ TRANSLATIONS = {
         "approve_button": "✅ Approve and mark as ready to send",
         "approved_success": "Marked as approved at {time}.",
         "gmail_section_header": "### ✉️ Email the plan",
-        "gmail_section_caption": (
-            "Creates a **draft** in TrainFitter's Gmail account — nothing is sent until you "
-            "personally open it in Gmail and hit send."
-        ),
         "gmail_requires_approval": "Approve the plan above first — the Gmail draft unlocks once you do.",
         "client_email_label": "Client's email",
         "create_draft_button": "Create Gmail draft",
@@ -515,10 +511,6 @@ TRANSLATIONS = {
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
         "approved_success": "Marcado como aprobado a las {time}.",
         "gmail_section_header": "### ✉️ Enviar el plan por email",
-        "gmail_section_caption": (
-            "Crea un **borrador** en la cuenta de Gmail de TrainFitter — no se envía nada hasta "
-            "que tú lo abras en Gmail y le des a enviar."
-        ),
         "gmail_requires_approval": "Aprueba primero el plan de arriba — el borrador de Gmail se desbloquea al hacerlo.",
         "client_email_label": "Email del cliente",
         "create_draft_button": "Crear borrador en Gmail",
@@ -650,7 +642,7 @@ def _formulario_ficha_nueva() -> dict | None:
     c1, c2, c3 = st.columns(3)
     nombre = c1.text_input(t("full_name"), key="nombre")
     edad = c2.number_input(t("age"), min_value=14, max_value=100, value=30, key="edad")
-    clave_sexo, indice_sexo = _clave_selectbox("sexo", ["mujer", "hombre"], "mujer")
+    clave_sexo, indice_sexo = _clave_selectbox("sexo", ["mujer", "hombre"], "hombre")
     sexo = c3.selectbox(t("sex"), ["mujer", "hombre"], format_func=opt, index=indice_sexo, key=clave_sexo)
     c4, c5 = st.columns(2)
     peso_kg = c4.number_input(t("weight_kg"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="peso")
@@ -717,7 +709,7 @@ def _formulario_ficha_nueva() -> dict | None:
     c14, c15 = st.columns(2)
     restricciones_texto = c14.text_input(t("additional_restrictions"), key="restricciones")
     no_le_gustan_texto = c15.text_input(t("disliked_foods"), key="no_le_gustan")
-    comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=4, key="comidas")
+    comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=3, key="comidas")
     contexto_nutricion = st.text_area(t("nutrition_context"), key="contexto")
 
     st.subheader(t("sec_lifestyle"))
@@ -954,7 +946,16 @@ def _mostrar_dieta(dieta: dict) -> None:
 def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
     """The actual approval side-effects (unlock Gmail, save to Notion) —
     factored out so both the no-password path (direct button click) and the
-    password-dialog path (confirm inside the popup) run identical logic."""
+    password-dialog path (confirm inside the popup) run identical logic.
+
+    Results are written to session_state rather than shown directly here:
+    the password-dialog path calls st.rerun() right after this to close the
+    popup, which would otherwise wipe out any st.success()/st.caption() from
+    this same script run before the trainer ever saw it — a real bug found
+    while investigating a "Notion never saves" report, where a save that was
+    actually failing on the deployment did so completely silently. Reading
+    these back in _panel_aprobacion() on the next run makes the outcome
+    persist on the main page instead."""
     perfil = estado.perfil_cliente
 
     # Tracked in session_state (keyed by id(perfil), stable for this exact
@@ -962,7 +963,7 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
     # section stays unlocked across reruns after this click, not just
     # during the one rerun the click happened on.
     st.session_state["aprobado_para"] = id(perfil)
-    st.success(t("approved_success").format(time=datetime.now().strftime("%H:%M:%S")))
+    st.session_state["aprobado_hora"] = datetime.now().strftime("%H:%M:%S")
 
     # Saved on approval, not on generation: a trainer might regenerate a few
     # times while tweaking before settling on one — only the plan they
@@ -977,13 +978,14 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
             # page to backfill the client's email onto otherwise, since the
             # trainer usually hasn't typed it in yet at approval time.
             st.session_state["notion_pagina_id"] = resultado["id"]
-            st.caption(t("notion_saved_note").format(url=resultado["url"]))
+            st.session_state["notion_resultado_url"] = resultado["url"]
+            st.session_state["notion_error"] = None
         except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
             # Unlike the old silent auto-save, this is now a direct result
             # of a click the trainer just made — worth a visible (but
             # non-blocking) note instead of failing silently, so "why
             # didn't this show up in Notion" has an answer on screen.
-            st.caption(t("notion_error_note").format(error=str(exc)))
+            st.session_state["notion_error"] = str(exc)
 
 
 @st.dialog(t("approval_dialog_title"))
@@ -1032,8 +1034,17 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     # freshly generated/regenerated plan starts locked again.
     aprobado = st.session_state.get("aprobado_para") == id(perfil)
 
+    # Read back from session_state (not shown directly at approval time) so
+    # this survives the st.rerun() that closes the password dialog — see
+    # _ejecutar_aprobacion()'s docstring.
+    if aprobado:
+        st.success(t("approved_success").format(time=st.session_state.get("aprobado_hora", "")))
+        if guardar_en_notion and st.session_state.get("notion_guardado_para") == id(perfil):
+            st.caption(t("notion_saved_note").format(url=st.session_state.get("notion_resultado_url", "")))
+        elif guardar_en_notion and st.session_state.get("notion_error"):
+            st.caption(t("notion_error_note").format(error=st.session_state["notion_error"]))
+
     st.markdown(t("gmail_section_header"))
-    st.caption(t("gmail_section_caption"))
     if not aprobado:
         st.info(t("gmail_requires_approval"))
     email_cliente = st.text_input(t("client_email_label"), key="email_cliente", disabled=not aprobado)

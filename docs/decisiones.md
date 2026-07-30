@@ -1052,6 +1052,44 @@ all and seeing the exact traceback in the browser. Fixed by moving the
 entire secrets-reading block inside the `try`, not just the initial
 assignment.
 
+## Cloud packages, and a silent-failure bug in the approval dialog
+
+Two related issues surfaced once both connectors were meant to be live on
+the public demo. First, `requirements.txt` still had `notion-client` and
+the Gmail packages commented out — Streamlit Cloud never installed them,
+which is why the demo showed `No module named 'notion_client'` and later
+`No module named 'google.auth'` even after credentials were configured.
+Uncommented both blocks; Cloud reinstalls on the next push.
+
+Second, and more subtly: after that fix, Notion still appeared to save
+nothing on the deployment, with no visible error. Reproduced
+`guardar_registro_cliente()` directly against the real Notion API locally
+(same `.env` credentials) — it worked fine, ruling out the connector code
+or credentials as the cause. The actual bug was in `ui/app.py`'s approval
+flow: `_dialogo_aprobacion()` calls `st.rerun()` immediately after
+`_ejecutar_aprobacion()` to close the password popup, and that rerun wipes
+out any `st.success()`/`st.caption()` written during the same script run
+before the browser ever paints it — so a Notion save failing on the
+deployment (e.g. a secrets mismatch specific to Cloud) would do so with
+zero visible feedback. Fixed by moving the approval/Notion outcome into
+`st.session_state` (`aprobado_hora`, `notion_resultado_url`, `notion_error`)
+and rendering it from `_panel_aprobacion()` on the next run instead of at
+the moment it happens — the confirmation or error now survives the dialog's
+rerun and stays visible on the main page.
+
+Also while in this area: the "New Client" form's default sex is now
+`hombre` and default preferred meals is `3` (matching the trainer's actual
+typical case more often than the previous `mujer`/`4` defaults), and the
+Gmail section's explanatory caption ("Creates a **draft**... nothing is
+sent until...") was dropped as redundant — the same guarantee is already
+stated in the "Trainer's approval" caption right above it and in this
+project's docs.
+
+Deliberately deferred, not attempted here: fixing the remaining EN/ES
+toggle rough edges, and making generated routines/diets less generic/
+deterministic (more personalized to the individual intake). Both are real,
+scoped as future work.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
