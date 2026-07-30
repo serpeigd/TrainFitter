@@ -44,11 +44,20 @@ def _materializar_secretos_gmail() -> None:
     have to just to run locally). Bridges the two here, in the UI layer,
     instead of teaching gmail_client.py about Streamlit: if the JSON
     content is present under GMAIL_CREDENTIALS_JSON / GMAIL_TOKEN_JSON in
-    st.secrets, write it out to the paths gmail_client.py already reads —
-    but only if that file doesn't already exist, so a real local
-    credentials.json/token.json from running this on your own machine is
-    never clobbered by (typically absent, since this only matters on a
-    deployment) Streamlit secrets."""
+    st.secrets, write it out to the paths gmail_client.py already reads.
+
+    Writes only when the file is missing OR its content doesn't match the
+    secret — not unconditionally on every run. A real local
+    credentials.json/token.json from running this on your own machine stays
+    protected (its content will never happen to match a Cloud secret). But
+    a deployment's own on-disk copy, once written, must still update itself
+    when the secret changes later (e.g. re-authorizing Gmail for a new
+    OAuth scope) — Streamlit Cloud's container filesystem persists across a
+    secrets-only restart, so an earlier "only if missing" version of this
+    function left a stale token.json in place forever after the first
+    write, silently ignoring every subsequent secret update. Caught when
+    widening the Gmail scope: the new secret was saved correctly, but the
+    app kept using the old (now-insufficient) token from disk regardless."""
     # st.secrets doesn't raise on the attribute access itself when there's
     # no secrets.toml anywhere (plain local dev, the common case) -- it's
     # lazy, so the actual StreamlitSecretNotFoundError only fires on first
@@ -61,8 +70,11 @@ def _materializar_secretos_gmail() -> None:
             ("token.json", "GMAIL_TOKEN_JSON"),
         ):
             ruta = REPO_ROOT / nombre_archivo
-            if clave_secreto in secretos and not ruta.exists():
-                ruta.write_text(secretos[clave_secreto], encoding="utf-8")
+            if clave_secreto not in secretos:
+                continue
+            contenido_secreto = secretos[clave_secreto]
+            if not ruta.exists() or ruta.read_text(encoding="utf-8") != contenido_secreto:
+                ruta.write_text(contenido_secreto, encoding="utf-8")
     except Exception:
         return  # no secrets.toml at all -- nothing to bridge, nothing to do
 

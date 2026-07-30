@@ -1144,6 +1144,31 @@ secret). Not something this environment can do for the project owner: it
 has no interactive browser to complete a Google consent screen, same
 limitation hit when Gmail was first connected earlier in this project.
 
+## A stale secret bug that outlived three attempts to fix it
+
+The scope widening above kept failing on the live deployment with
+`RefreshError: invalid_scope: Bad Request` — even after the project owner
+correctly added `gmail.metadata` to the OAuth consent screen's Data Access,
+regenerated `token.json` locally, and pasted the fresh content into the
+`GMAIL_TOKEN_JSON` secret **twice**. The real bug was in
+`ui/app.py`'s `_materializar_secretos_gmail()`, written earlier when Gmail
+was first bridged onto Streamlit Cloud: it only ever wrote
+`credentials.json`/`token.json` from the secret **if the file didn't
+already exist**. That was correct for its original purpose (never clobber
+a real local dev file with a stray Cloud secret) but wrong for what a
+*deployment's own* copy needs — Streamlit Cloud's container filesystem
+persists across a secrets-only restart, so the very first `token.json`
+ever written stayed on disk untouched forever, silently ignoring every
+later secret update. Updating the secret looked like it should work and
+never once produced an error at save time, which is what made this
+particularly hard to diagnose from the outside — confirmed only by
+reproducing the same failure twice in a row despite two independent,
+correctly-executed re-authorizations. Fixed by comparing the secret's
+content against the file's current content and rewriting whenever they
+differ, not just when the file is missing — still a no-op for a real local
+dev file (which will never happen to match a Cloud secret's content), but
+now self-healing on the deployment whenever the secret actually changes.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would
