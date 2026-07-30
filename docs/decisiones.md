@@ -1352,6 +1352,55 @@ do, since the animation is entirely self-contained within the one document
 that renders it — the safer, more broadly-compatible choice once "scroll-
 linked" turned out to not be reliably achievable here at all.
 
+## The banner became a permanent compact strip, not a one-time splash
+
+Final iteration on the cover banner: the project owner's call, after
+seeing both animated versions, was simpler than either — keep it
+permanently at the top, but shrink it so it stops being a big, one-time
+event. Replaced the aspect-ratio-preserving full image with a fixed-height
+`.tf-banner-wrap` (200px desktop, 130px on the existing mobile breakpoint)
+and `object-fit: cover` on the image, cropping it to a short atmospheric
+strip instead of showing the whole photo. This also permanently closes the
+clipping bug from the two earlier attempts: a `height`-capped `cover` image
+can never render taller than its box, at any monitor width, unlike the
+`max-height` guessing-game those versions depended on. Doesn't need the
+"TrainFitter" wordmark/tagline baked into the photo to stay legible either
+— that identity is already rendered as real, translatable HTML in
+`.tf-hero` right below it — so the crop is free to just show plant/neon
+atmosphere; `object-position: center 38%` was chosen by literally
+reproducing the CSS `object-fit: cover` math in PIL locally and looking at
+the resulting crop before committing to it, at two different aspect
+ratios (a narrow ~810x200 box and a wide ~1750x200 one), rather than
+guessing a position and hoping.
+
+**A real bug this pass would have shipped if verification had stopped at
+the obvious check:** `getComputedStyle` on the image reported
+`object-fit: scale-down` instead of the `cover` actually declared in the
+stylesheet — dimensions matched expectations, box-shadow and every other
+property on the same element read back correctly, only `object-fit` was
+wrong, which is what made it worth chasing rather than shrugging off as
+another instance of this environment's already-documented
+`getComputedStyle` unreliability. Root cause, found by reading
+`document.styleSheets[].cssRules` (not just each `<style>` tag's
+`textContent`, which misses rules Streamlit inserts via `insertRule()`
+rather than as literal text): Streamlit's own emotion-generated CSS
+applies an `object-fit: scale-down` default to every `<img>` inside a
+markdown container, via a selector (one class + the `img` type) that's
+objectively more specific than `.tf-banner` alone — so it silently won the
+cascade regardless of source order. Fixed with `!important` on the two
+overridden properties specifically, the same pattern already used
+elsewhere in this file to override other Streamlit component defaults.
+
+Also hit, and worth noting since it slipped past `py_compile`: a genuine
+`NameError: name 'fit' is not defined` at runtime, from a code *comment*
+inside this same f-string that quoted literal CSS containing an unescaped
+`{ object-fit: ... }` — Python read it as an interpolation and tried to
+evaluate `object-fit` as a subtraction expression. `py_compile` doesn't
+catch this class of bug (an f-string with a syntactically valid but wrong
+expression only fails when actually executed), which is exactly why the
+local preview was reloaded and re-checked for the live error banner after
+every edit in this session, not just compiled.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

@@ -189,48 +189,50 @@ def _inyectar_estilos() -> None:
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
         }}
 
-        /* Wrapper (not the image itself) owns the radius/margin/overflow so
-        the entrance animation can collapse max-height down to 0 and take
-        the rounded corners and bottom margin with it, instead of leaving a
-        clipped, corner-less sliver behind right before it disappears.
-
-        Reverted from a scroll-linked version (animation-timeline:
-        scroll(...)): confirmed via a real screen recording that it never
-        activated at all on the public trainfitter.streamlit.app URL, which
-        Streamlit Cloud serves through an iframe — a scroll-driven
-        animation can only observe scroll within its OWN document, and
-        can't reach across into the parent page that actually scrolls, so
-        inside the iframe there was nothing for `scroll(nearest block)` to
-        attach to. Worth knowing if scroll-linked effects come up again:
-        they're unreliable specifically because of that iframe wrapper, not
-        a general CSS limitation.
-
-        The 640px max-height in the "fully shown" keyframe was also a real
-        bug, not just the animation being broken: `layout="wide"` has no
-        max-width cap on the content area (`stMainBlockContainer`'s
-        max-width computes to `none`), so on a wide monitor the banner
-        (width: 100%) renders taller than 640px and got clipped even before
-        any animation ran — confirmed in the same recording, the
-        "TrainFitter" wordmark baked into the bottom of the image was cut
-        off from the very first frame. 2600px comfortably covers the
-        banner's native 1200x801 aspect ratio stretched across even a very
-        wide 4K-class monitor; if actual rendered height is less (the
-        common case), max-height simply never binds. */
+        /* Cover banner: a permanent, compact strip rather than a full-size
+        splash — the project owner's call after two animated approaches
+        (scroll-linked, then a timed reveal) both turned out more trouble
+        than they were worth (see docs/decisiones.md for that history).
+        Fixed `height` + `object-fit: cover` crops the photo to a short
+        band instead of showing it at full aspect ratio, which is also
+        what keeps it from ever being able to clip again — unlike the
+        max-height approach this replaces, a `height`-capped `object-fit:
+        cover` image can never render taller than the box, at any monitor
+        width. Doesn't need to keep the "TrainFitter" wordmark/tagline
+        baked into the photo legible either: that identity is already
+        rendered as real, translatable HTML in .tf-hero right below it, so
+        this crop is free to just show an atmospheric slice of the scene.
+        A soft gradient fade at the bottom blends it into the page
+        background instead of ending on a hard edge. */
         .tf-banner-wrap {{
+            position: relative;
+            height: 200px;
             overflow: hidden;
             border-radius: 16px;
             margin-bottom: 1.25rem;
         }}
-        .tf-banner-wrap.tf-banner-intro {{
-            animation: tf-banner-reveal 2.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        .tf-banner-wrap::after {{
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 55%, rgba(11, 18, 32, 0.85) 100%);
+            pointer-events: none;
         }}
-        @keyframes tf-banner-reveal {{
-            0% {{ max-height: 2600px; opacity: 1; }}
-            55% {{ max-height: 2600px; opacity: 1; }}
-            100% {{ max-height: 0; opacity: 0; margin-bottom: 0; }}
-        }}
+        /* !important on the fit properties specifically: Streamlit's own
+        emotion-generated CSS applies "img" object-fit: scale-down rules
+        scoped to a markdown-container class to every <img> rendered via
+        st.markdown(unsafe_allow_html=True) — including this one — and
+        that compound selector (one class + one type) outranks .tf-banner
+        alone on specificity, so it silently won regardless of source
+        order. Confirmed by reading the actual CSSOM (matching rules don't
+        always show up searching <style> textContent — Streamlit inserts
+        some of its own via insertRule()), not by guessing from the
+        symptom. */
         .tf-banner {{
             width: 100%;
+            height: 100%;
+            object-fit: cover !important;
+            object-position: center 38% !important;
             display: block;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
             animation: tf-fade-in 0.5s ease-out;
@@ -604,7 +606,7 @@ def _inyectar_estilos() -> None:
         @media (max-width: 640px) {{
             .tf-hero-title {{ font-size: 1.4rem; }}
             .tf-hero img {{ width: 46px; height: 46px; }}
-            .tf-banner-wrap {{ border-radius: 10px; }}
+            .tf-banner-wrap {{ border-radius: 10px; height: 130px; }}
             .tf-step-label {{ font-size: 0.6rem; }}
             .tf-step-dot {{ width: 26px; height: 26px; font-size: 0.7rem; }}
         }}
@@ -1593,23 +1595,19 @@ _inyectar_estilos()
 # Cover banner (assets/logo.jpg) — kept in its original Spanish tagline
 # regardless of the EN/ES toggle below: it's baked into the image itself,
 # not translatable text, a deliberate trade-off for the visual (see
-# docs/decisiones.md). Shown once per session as an entrance transition —
-# plays its slide-up-and-reveal animation on the very first script run,
-# then is skipped entirely (not just visually hidden — not rendered at
-# all) on every later rerun, since Streamlit reruns the whole script on
-# every interaction and a plain CSS class would just replay the animation
-# on every click otherwise. See docs/decisiones.md for why this isn't
-# scroll-linked instead (tried, confirmed broken by the iframe Streamlit
-# Cloud serves the public URL through).
-if "intro_reproducida" not in st.session_state:
-    _banner_b64 = _banner_base64()
-    if _banner_b64:
-        st.markdown(
-            f'<div class="tf-banner-wrap tf-banner-intro">'
-            f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter"></div>',
-            unsafe_allow_html=True,
-        )
-    st.session_state["intro_reproducida"] = True
+# docs/decisiones.md). Always rendered, no session_state involved — a
+# permanent compact strip (see .tf-banner-wrap's fixed height in
+# _inyectar_estilos()) rather than a one-time splash. Two animated
+# versions were tried and abandoned before this one: scroll-linked (broken
+# by Streamlit Cloud's iframe) and a timed reveal-then-vanish (functional,
+# but the project owner preferred it just staying put, sized down instead).
+_banner_b64 = _banner_base64()
+if _banner_b64:
+    st.markdown(
+        f'<div class="tf-banner-wrap">'
+        f'<img class="tf-banner" src="data:image/jpeg;base64,{_banner_b64}" alt="TrainFitter"></div>',
+        unsafe_allow_html=True,
+    )
 
 _logo_b64 = _logo_base64()
 _logo_html = f'<img src="data:image/png;base64,{_logo_b64}" alt="TrainFitter logo">' if _logo_b64 else ""
