@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Check syntax of all modules
-        run: python -m py_compile agents/*.py ui/app.py
+        run: python -m py_compile agents/*.py mcp/*.py ui/app.py main.py
 
       - name: Lint (ruff)
         run: pip install ruff && ruff check .

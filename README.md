@@ -87,6 +87,12 @@ This repository is built phase by phase, as a learning project. Right now:
 - On the public demo, approving a plan (and unlocking Notion/Gmail) is gated
   behind a shared password, so a random visitor can't write to the trainer's
   real accounts just by clicking through.
+- An **automatic inbox trigger** (see [`main.py`](main.py)) scans the trainer's
+  Gmail inbox for adherence checklists clients send back once they've actually
+  started their plan — every draft now attaches one — and logs a summarized
+  check-in row per reply (days completed, notes, a rough adherence rating),
+  deduped so a scheduled re-scan never double-logs the same reply. Runs free
+  on a GitHub Actions cron ([`.github/workflows/inbox_trigger.yml`](.github/workflows/inbox_trigger.yml)).
 
 ## What it doesn't include yet
 
@@ -96,13 +102,13 @@ This repository is built phase by phase, as a learning project. Right now:
 - More personalized, less deterministic routine/diet generation for the free rule
   engine (same input always produces the same plan today) — a real design question,
   not started yet.
-- An automatic inbox trigger (`main.py`) instead of manual intake via the panel.
 
 ## Repository structure
 
 ```
 TrainFitter/
 ├── README.md                        This document
+├── main.py                          Automatic inbox trigger (adherence check-ins, run via cron)
 ├── docs/
 │   ├── metodo_entrenador.md         Trainer's methodology (knowledge base)
 │   ├── arquitectura.md              System design and flow
@@ -110,10 +116,11 @@ TrainFitter/
 │   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, and orchestrator
-├── tests/                           Pytest suite (rule engines, validator, orchestrator)
+├── agents/                          Routine, diet, validator, orchestrator, adherence parser
+├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
-├── mcp/                             Connectors: Gmail (draft + send-detection), Notion (Clients + Check-ins)
+├── mcp/                             Connectors: Gmail (draft + send/adherence-reply detection), Notion (Clients + Check-ins)
+├── .github/workflows/               CI (every push) and the inbox trigger's cron schedule
 ├── assets/                          Cropped.jpg (banner), icon.png (favicon/sidebar mark), logo.jpg (source archive)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies

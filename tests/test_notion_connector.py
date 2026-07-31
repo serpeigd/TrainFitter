@@ -9,11 +9,13 @@ docs/decisiones.md)."""
 import pytest
 from notion_connector import (
     NotionClientError,
+    _construir_propiedades_checkin,
     _construir_propiedades_pagina,
     _construir_resumen,
     _credenciales,
     actualizar_email_cliente,
     crear_registro_checkin,
+    existe_checkin_para_mensaje,
     marcar_email_enviado,
 )
 
@@ -124,6 +126,24 @@ def test_crear_registro_checkin_missing_credentials_raises(monkeypatch, tmp_path
         crear_registro_checkin("client@example.com", "Ana Test", "Plan sent", "2026-07-30")
 
 
+def test_checkin_properties_include_optional_rating_and_message_id():
+    propiedades = _construir_propiedades_checkin(
+        "client@example.com", "Ana Test", "Adherence check-in", "2026-07-30",
+        notas="Skipped one session.", valoracion="Medium", id_mensaje="msg-123",
+    )
+    assert propiedades["Type"]["select"]["name"] == "Adherence check-in"
+    assert propiedades["Adherence notes"]["rich_text"][0]["text"]["content"] == "Skipped one session."
+    assert propiedades["Adherence rating"]["select"]["name"] == "Medium"
+    assert propiedades["Source message ID"]["rich_text"][0]["text"]["content"] == "msg-123"
+
+
+def test_checkin_properties_omit_optional_fields_when_not_given():
+    propiedades = _construir_propiedades_checkin("client@example.com", "Ana Test", "Plan sent", "2026-07-30")
+    assert "Adherence notes" not in propiedades
+    assert "Adherence rating" not in propiedades
+    assert "Source message ID" not in propiedades
+
+
 def test_crear_registro_checkin_missing_checkins_database_id_raises(monkeypatch, tmp_path):
     """Same credentials-before-import ordering as every other network call in
     this module (see docs/decisiones.md's CI-caught bug): a set
@@ -138,3 +158,17 @@ def test_crear_registro_checkin_missing_checkins_database_id_raises(monkeypatch,
     monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
     with pytest.raises(NotionClientError):
         crear_registro_checkin("client@example.com", "Ana Test", "Plan sent", "2026-07-30")
+
+
+def test_existe_checkin_missing_credentials_raises(monkeypatch, tmp_path):
+    """Same credential-checking path as crear_registro_checkin() -- main.py
+    calls this first, before creating any new row, so it needs to fail the
+    same clean way when Notion isn't configured."""
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.delenv("NOTION_CHECKINS_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        existe_checkin_para_mensaje("msg-123")

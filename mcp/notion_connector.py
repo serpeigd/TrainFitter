@@ -52,10 +52,22 @@ stays simple and would still work if something outside Notion ever needed
 to match records later. This "Clients" database is the one master record
 per client (overwritten in place, e.g. Email/Email Sent); "Check-ins" is
 the history (one new row per interaction — a "Plan sent" row is created
-automatically by crear_registro_checkin() the moment a real send is
-detected, and the trainer can add further "Manual check-in" rows by hand
-for adherence notes over time). No relation property is set between the
-two databases; email is the only link.
+automatically the moment a real send is detected, an "Adherence check-in"
+row by main.py when a client's reply is parsed, and the trainer can add
+further "Manual check-in" rows by hand over time). No relation property is
+set between the two databases; email is the only link.
+
+DESIGN — "Source message ID" makes crear_registro_checkin() idempotent for
+main.py's use case: the Gmail inbox trigger (see main.py, mcp/gmail_client.py's
+buscar_respuestas_adherencia()) re-scans the whole inbox on every scheduled
+run rather than tracking "already seen" state in Gmail itself (see that
+module's docstring for why) — so it needs *something* to check before
+creating a duplicate row for a reply it already recorded last time. Storing
+the Gmail message ID here, and querying for it first via
+existe_checkin_para_mensaje(), does that without needing any new Gmail
+scope or a separate state file. Only main.py's automated "Adherence
+check-in" rows set it — the existing "Plan sent" (ui/app.py) and manual
+rows the trainer types in Notion directly have no message ID to attach.
 
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
@@ -66,8 +78,9 @@ Setup (one-time, free, done by the project owner — never by this code):
        Email (email)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
-       "Manual check-in"), Date (date), Adherence notes (text),
-       Adherence rating (select: Low/Medium/High), Next follow-up (date)
+       "Manual check-in" / "Adherence check-in"), Date (date),
+       Adherence notes (text), Adherence rating (select: Low/Medium/High),
+       Next follow-up (date), Source message ID (text)
   4. Share both databases with the integration (the "..." menu on each
      database page -> Connections -> add the integration by name).
   5. Set NOTION_API_KEY, NOTION_DATABASE_ID, and NOTION_CHECKINS_DATABASE_ID
@@ -251,7 +264,43 @@ def _checkins_database_id() -> str:
     return database_id
 
 
-def crear_registro_checkin(email: str, nombre_cliente: str, tipo: str, fecha: str, notas: str = "") -> dict:
+def _construir_propiedades_checkin(
+    email: str,
+    nombre_cliente: str,
+    tipo: str,
+    fecha: str,
+    notas: str = "",
+    valoracion: str | None = None,
+    id_mensaje: str | None = None,
+) -> dict:
+    """Builds the Notion page "properties" payload for a Check-ins row.
+    Pure function: no I/O, safe to unit test without any credentials —
+    same split as _construir_propiedades_pagina() for the Clients
+    database."""
+    propiedades = {
+        "Name": {"title": [{"text": {"content": f"{nombre_cliente} — {fecha}"}}]},
+        "Email": {"email": email},
+        "Type": {"select": {"name": tipo}},
+        "Date": {"date": {"start": fecha}},
+    }
+    if notas:
+        propiedades["Adherence notes"] = {"rich_text": [{"text": {"content": notas[:2000]}}]}
+    if valoracion:
+        propiedades["Adherence rating"] = {"select": {"name": valoracion}}
+    if id_mensaje:
+        propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}
+    return propiedades
+
+
+def crear_registro_checkin(
+    email: str,
+    nombre_cliente: str,
+    tipo: str,
+    fecha: str,
+    notas: str = "",
+    valoracion: str | None = None,
+    id_mensaje: str | None = None,
+) -> dict:
     """
     Adds one row to the "Check-ins" database — the append-only interaction
     history for a client, cross-referenced to the Clients database by email
@@ -261,11 +310,17 @@ def crear_registro_checkin(email: str, nombre_cliente: str, tipo: str, fecha: st
     Args:
         email: the client's email — the join key back to their Clients record.
         nombre_cliente: only used to build a readable title for the row.
-        tipo: "Plan sent" (this module's own convention — used by ui/app.py
-            right after verificar_envio() confirms a real send) or
+        tipo: "Plan sent" (used by ui/app.py right after verificar_envio()
+            confirms a real send), "Adherence check-in" (used by main.py
+            for a parsed reply — see agents/adherencia_parser.py), or
             "Manual check-in" (anything the trainer adds later by hand).
         fecha: ISO date string (YYYY-MM-DD) for the Date property.
         notas: optional adherence notes for this interaction.
+        valoracion: optional "Low"/"Medium"/"High" for the Adherence
+            rating select — see adherencia_parser.analizar_adherencia().
+        id_mensaje: optional Gmail message ID for the Source message ID
+            property — only main.py's automated rows set this; see the
+            module docstring for why it exists (idempotency, not identity).
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it}.
@@ -280,14 +335,7 @@ def crear_registro_checkin(email: str, nombre_cliente: str, tipo: str, fecha: st
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    propiedades = {
-        "Name": {"title": [{"text": {"content": f"{nombre_cliente} — {fecha}"}}]},
-        "Email": {"email": email},
-        "Type": {"select": {"name": tipo}},
-        "Date": {"date": {"start": fecha}},
-    }
-    if notas:
-        propiedades["Adherence notes"] = {"rich_text": [{"text": {"content": notas[:2000]}}]}
+    propiedades = _construir_propiedades_checkin(email, nombre_cliente, tipo, fecha, notas, valoracion, id_mensaje)
 
     try:
         cliente = Client(auth=api_key)
@@ -296,3 +344,39 @@ def crear_registro_checkin(email: str, nombre_cliente: str, tipo: str, fecha: st
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return {"id": pagina["id"], "url": pagina["url"]}
+
+
+def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
+    """
+    Checks whether a Check-ins row already exists for a given Gmail message
+    ID — main.py calls this before creating a new "Adherence check-in" row,
+    so a scheduled run that re-scans the whole inbox doesn't duplicate a
+    reply it already recorded on a previous run (see this module's
+    docstring for why dedup lives here instead of in Gmail).
+
+    Args:
+        id_mensaje: the Gmail message ID (see
+            mcp.gmail_client.buscar_respuestas_adherencia()).
+
+    Returns:
+        True if a row with this Source message ID already exists.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+    database_id = _checkins_database_id()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.databases.query(
+            database_id=database_id,
+            filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
+        )
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return len(resultado["results"]) > 0

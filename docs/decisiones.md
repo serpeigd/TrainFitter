@@ -1503,6 +1503,72 @@ Also added a colored glow (teal + a hint of orange, matching the
 only had a plain dark drop shadow — a flat shadow read as dull next to
 artwork that's actually meant to glow.
 
+## The automatic inbox trigger turned out to be about adherence, not intake
+
+`main.py` was tracked in this project's status notes for a while as "an
+automatic inbox trigger" with no further detail — read at face value, that
+sounded like automating the client-onboarding side (parsing a new client's
+intake straight from an email instead of the trainer typing it into the
+panel). When it came time to actually scope it, the real request turned
+out to be a different, arguably more valuable feature: **adherence
+follow-up** — after a plan is sent, the client replies later with what
+they actually did (sessions completed, diet followed, notes on what didn't
+work), and that should get logged automatically instead of relying on the
+trainer to remember to ask and write it down. Worth recording since the
+one-line status note was genuinely ambiguous even to the project owner in
+the moment — a reminder that "automatic inbox trigger" as a phrase alone
+doesn't specify *which* inbox behavior, and it's worth confirming before
+building rather than assuming the more obvious-sounding reading.
+
+**Sending something the client can actually mark up:** the plan email
+today is plain prose (see `_construir_cuerpo_email()`) — nothing in it
+invites a structured reply. `crear_borrador()` now always attaches a
+plain-text checklist (`_construir_checklist_adherencia()`, pure formatting,
+no I/O): one `[ ]`/`[x]` line per routine session, plus a couple of
+free-answer prompts for diet adherence, all wrapped in a plain-text
+attachment (chosen over putting the checklist in the email body itself,
+so the client has one concrete file to edit and reply with rather than
+reformatting inline text without corrupting it). The three anchors the
+parser needs (`[ROUTINE NOTES BELOW]`, `[DIET DAYS FOLLOWED, out of N]`,
+`[DIET NOTES BELOW]`) are deliberately emitted identically regardless of
+`idioma` — only the human sentence around each one is translated — the
+same principle already established for exercise/food names staying
+canonical English so `validator_agent.py`'s safety cross-check can't
+silently break when the UI language changes.
+
+**The Gmail scope had to grow for real, not just widen on paper:**
+reading a client's reply (body or attachment) is something `gmail.metadata`
+categorically cannot do — it only ever exposed labels and headers, by
+design (see the original Gmail connector decision). The only scope Gmail
+offers that can read message content is `gmail.readonly`, and there's no
+way to scope it down to "only TrainFitter's own threads" — a compromised
+token could read anything in that mailbox. Accepted deliberately, on the
+same dedicated account (`trainfitter.official@gmail.com`) used for nothing
+else, and flagged explicitly to the project owner as a real permission
+jump before writing any code, not folded in silently alongside the rest of
+the feature.
+
+**Dedup lives in Notion, not in Gmail:** the alternative — applying a
+Gmail label to mark a reply as "already processed" — would need
+`gmail.modify`, a scope this project doesn't otherwise need. Instead,
+`buscar_respuestas_adherencia()` returns every matching reply on every
+run (no state, no label), and a new `Source message ID` property on the
+Check-ins database plus `existe_checkin_para_mensaje()` lets `main.py`
+skip a reply it already logged last time. One extra Notion property
+(a one-time manual addition, same as the database setup already documented
+in `notion_connector.py`) instead of a broader Gmail permission.
+
+**Automation runs on GitHub Actions, not inside the Streamlit app:**
+Streamlit Cloud's free tier has no background-job or cron primitive — the
+app only runs while a browser tab is open against it. GitHub Actions'
+free tier does have a scheduler (`.github/workflows/inbox_trigger.yml`,
+once daily plus `workflow_dispatch` for an on-demand run), and it already
+had a working secrets-bridging pattern to copy from: the same
+`GMAIL_CREDENTIALS_JSON`/`GMAIL_TOKEN_JSON` secret *names* already used for
+Streamlit Cloud's `_materializar_secretos_gmail()` are reused here, just
+written to files directly in a workflow step instead of via Streamlit's
+`st.secrets`.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

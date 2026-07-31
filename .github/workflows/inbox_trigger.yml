@@ -1,0 +1,40 @@
+name: Inbox trigger
+
+# Scans the trainer's Gmail inbox for adherence check-ins clients have sent
+# back and logs them to Notion (see main.py). Runs on GitHub Actions' free
+# tier, on a schedule -- same "no paid service" guardrail as the rest of
+# this project (see CLAUDE.md). workflow_dispatch also allows running it
+# on demand from the Actions tab, e.g. right after re-authorizing Gmail.
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # credentials.json/token.json are gitignored on purpose (see
+      # mcp/gmail_client.py's module docstring) -- materialized here from
+      # repo secrets instead, same two secrets already used for Streamlit
+      # Cloud's equivalent bridge (see ui/app.py's _materializar_secretos_gmail()).
+      - name: Write Gmail credentials from secrets
+        run: |
+          printf '%s' '${{ secrets.GMAIL_CREDENTIALS_JSON }}' > credentials.json
+          printf '%s' '${{ secrets.GMAIL_TOKEN_JSON }}' > token.json
+
+      - name: Run the inbox trigger
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_CHECKINS_DATABASE_ID: ${{ secrets.NOTION_CHECKINS_DATABASE_ID }}
+        run: python main.py

@@ -77,7 +77,17 @@ calls `verificar_envio()`, and on a confirmed real send, ticks "Email
 Sent" on the Clients record (`marcar_email_enviado()`) and adds a
 "Plan sent" row to Check-ins (`crear_registro_checkin()`) — trainer-
 triggered, not a background job (stateless Streamlit app, no push
-infra). Notion-save and Gmail-draft-creation are gated behind the
+infra). `main.py` is a second, genuinely automated trigger: scheduled via
+`.github/workflows/inbox_trigger.yml` (GitHub Actions cron, free tier), it
+scans the inbox for adherence checklists clients send back after starting
+their plan (`crear_borrador()` now always attaches one —
+`agents/adherencia_parser.py` parses what comes back), and logs an
+"Adherence check-in" row per reply, deduped against Notion by Gmail
+message ID (`existe_checkin_para_mensaje()`) rather than a Gmail label —
+see `mcp/gmail_client.py`'s docstring for why. This is what pushed the
+Gmail scope from `gmail.metadata` to `gmail.readonly` (a real permission
+jump, deliberately accepted — see that same docstring). Notion-save and
+Gmail-draft-creation are gated behind the
 "Approve" button (Gmail stays disabled until that exact plan is approved;
 Notion saves on approval, not generation) — fires only for genuine
 new-client intakes, never the example-client demo path. On any deployment
@@ -96,11 +106,15 @@ exception — they stay canonical English in `exercise_bank.py`/
 allergies vs. foods) matches against that exact value; a `nombre_es` field
 plus a display-only `nombre_mostrado()` helper (used only by `ui/app.py`,
 never by generation/validation) covers on-screen translation instead.
-Pending: automatic inbox trigger (`main.py`), and making the free rule
-engine's generation itself less deterministic/personalized (a bigger,
-not-yet-scoped design question — see `docs/decisiones.md`). CI
-(`.github/workflows/ci.yml`) runs the free rule-engine pipeline + test
-suite + lint end-to-end on every push — no secrets needed.
+Pending: the user re-authorizing Gmail locally and on Streamlit Cloud/GitHub
+Actions for the new `gmail.readonly` scope (a one-time manual step only they
+can do — see `mcp/gmail_client.py`'s module docstring for the exact steps),
+and making the free rule engine's generation itself less
+deterministic/personalized (a bigger, not-yet-scoped design question — see
+`docs/decisiones.md`). CI (`.github/workflows/ci.yml`) runs the free
+rule-engine pipeline + test suite + lint end-to-end on every push — no
+secrets needed; `inbox_trigger.yml` (main.py's cron) is separate and does
+need secrets, so it isn't part of CI.
 
 ## Free-only guardrail
 
@@ -122,8 +136,10 @@ if the user explicitly opts in to spending money.
 | Orchestrator | `agents/orchestrator.py` |
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
 | Bloodwork parser | `agents/analytics_parser.py` |
-| Gmail connector (draft-only) | `mcp/gmail_client.py` |
-| Notion connector (auto-save) | `mcp/notion_connector.py` |
+| Adherence checklist parser | `agents/adherencia_parser.py` |
+| Gmail connector (draft + adherence-reply search) | `mcp/gmail_client.py` |
+| Notion connector (auto-save + check-ins) | `mcp/notion_connector.py` |
+| Automatic inbox trigger (cron) | `main.py`, `.github/workflows/inbox_trigger.yml` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |
 | Example clients/outputs | `examples/` |
