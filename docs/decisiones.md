@@ -1569,6 +1569,12 @@ Streamlit Cloud's `_materializar_secretos_gmail()` are reused here, just
 written to files directly in a workflow step instead of via Streamlit's
 `st.secrets`.
 
+## `databases.query()` was gone by the time this ran against the real workspace
+
+`existe_checkin_para_mensaje()` was first written against `cliente.databases.query(database_id=..., filter=...)` — the same call shape every other read in this codebase would suggest, and it matched what a quick look at `notion_connector.py`'s existing patterns implied. It doesn't exist anymore: the installed `notion-client` (3.1.0) raises `AttributeError: 'DatabasesEndpoint' object has no attribute 'query'`, because Notion's 2025-09-03 API introduced multi-source databases and moved querying entirely to a `data_sources` endpoint, which needs a *data source* ID, not a *database* ID (two different identifiers now, even for a database with only one source — confirmed by inspecting a real `databases.retrieve()` response for the Check-ins database, which returns `data_sources: [...]` and no top-level `properties` at all anymore).
+
+Caught by actually running the new code against the real, already-provisioned Notion workspace instead of trusting that it matched the pattern of surrounding functions — the exact same discipline this project already leans on for Gmail/CI-caught bugs elsewhere (see the credentials-before-import fix below, and the `object-fit: scale-down` CSS bug earlier in this log). Fixed by resolving `data_sources[0]["id"]` from `databases.retrieve()` first, then querying that. Page *creation* (`pages.create(parent={"database_id": ...})`, used everywhere else in this module) was deliberately left alone — Notion kept that specific shorthand working for backward compatibility on single-source databases, and it's pre-existing, already-live-tested code with no reported failure; changing it without a confirmed break would have been unnecessary scope creep on top of an unrelated fix.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

@@ -370,10 +370,20 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
+    # databases.query() was removed from the SDK once Notion's 2025-09-03
+    # API moved querying to the per-data-source endpoint (multi-source
+    # databases) -- database_id is still accepted as a page *parent* for
+    # backward compatibility (see crear_registro_checkin() above), but
+    # querying needs the actual data_source_id, resolved here via
+    # databases.retrieve(). Checked against a real workspace, not assumed
+    # from changelog text -- databases.query genuinely raises AttributeError
+    # on notion-client>=3.
     try:
         cliente = Client(auth=api_key)
-        resultado = cliente.databases.query(
-            database_id=database_id,
+        base_datos = cliente.databases.retrieve(database_id=database_id)
+        id_fuente_datos = base_datos["data_sources"][0]["id"]
+        resultado = cliente.data_sources.query(
+            data_source_id=id_fuente_datos,
             filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
         )
     except APIResponseError as exc:
