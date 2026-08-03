@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.jpg" alt="TrainFitter" width="100%">
+  <img src="assets/Cropped.jpg" alt="TrainFitter" width="100%">
 </p>
 
 # TrainFitter
