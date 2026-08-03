@@ -19,14 +19,14 @@
       "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Barbell bench press",
+          "nombre": "Push-ups (standard)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "High cable row (close grip)",
+          "nombre": "One-arm dumbbell row",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -40,7 +40,7 @@
           "notas": ""
         },
         {
-          "nombre": "Cable triceps pushdown (bar)",
+          "nombre": "Dumbbell skull crusher",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -66,7 +66,7 @@
       "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
       "ejercicios": [
         {
-          "nombre": "Barbell squat",
+          "nombre": "Goblet squat",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -87,14 +87,14 @@
           "notas": ""
         },
         {
-          "nombre": "Seated leg curl (machine)",
+          "nombre": "Machine hip adduction",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Front plank",
+          "nombre": "Cable Pallof press",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -115,21 +115,21 @@
       "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Lat pulldown",
+          "nombre": "Inverted row (bodyweight)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Incline dumbbell press",
+          "nombre": "Parallel bar dips",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Dumbbell lateral raise",
+          "nombre": "Machine reverse fly (rear delt)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -143,7 +143,7 @@
           "notas": ""
         },
         {
-          "nombre": "Dumbbell skull crusher",
+          "nombre": "Cable triceps pushdown (bar)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -170,21 +170,21 @@
           "notas": ""
         },
         {
-          "nombre": "Goblet squat",
+          "nombre": "Dumbbell lunges",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Standing machine calf raise",
+          "nombre": "Seated calf raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Cable crunch",
+          "nombre": "Hanging / lying leg raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -194,6 +194,6 @@
       "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
     }
   ],
-  "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
+  "progresion": "Think in terms of the rep range, not the weight on the bar. Add reps first; once you're maxing out every set for an exercise, then add a little weight and drop back to the bottom of the range. Sticking with the same routine week after week — not switching it up — is what makes the numbers move.",
   "mensaje_para_el_cliente": "Hi Marta, here's your first draft routine. Let's go step by step: technique first, weight later — your body learns before it forces. It doesn't need to be perfect the first week; what matters is that you can repeat it. If you have any questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
 }

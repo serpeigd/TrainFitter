@@ -81,6 +81,20 @@ canonical (English, always) and adds a separate, display-only
 never from generation or validation. An explicit test locks in that
 invariant so a future refactor can't reintroduce the bug by accident.
 
+## 8. Variety without an LLM: seeded, not random
+
+The free rule engines used to give two similar clients the exact same
+exercises and near-identical boilerplate messages — a real "template
+mill" problem, but neither an LLM (breaks the free-only guardrail) nor
+true randomness (undermines the "regenerate = same draft" trust the
+validator's own determinism principle depends on, and makes tests flaky)
+felt like the right fix. `agents/variacion.py` seeds a `random.Random`
+from each client's own `id_cliente`: the same client always regenerates
+the same plan, but different clients no longer collide. Zero new
+dependencies, zero cost — `random` is standard library — and the
+resulting variety is still fully assertable in tests (same client twice →
+equal; N distinct clients → more than one distinct result).
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*

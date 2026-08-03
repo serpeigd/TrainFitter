@@ -1,7 +1,7 @@
 """Tests for the routine rule engine (agents/rutina_reglas.py)."""
 
 from exercise_bank import EXERCISE_BANK
-from rutina_reglas import generar_borrador_rutina_reglas
+from rutina_reglas import MENSAJE_CLIENTE_RUTINA_VARIANTES, PROGRESION_VARIANTES, generar_borrador_rutina_reglas
 
 INDICE_EJERCICIOS = {e["nombre"]: e for e in EXERCISE_BANK}
 
@@ -102,8 +102,11 @@ def test_idioma_es_translates_narrative_text_only(perfil_base):
     assert "principiante" in borrador["resumen_enfoque"]
     assert "beginner" not in borrador["resumen_enfoque"]
     assert borrador["sesiones"][0]["dia"].startswith("Día ")
-    assert "Hola" in borrador["mensaje_para_el_cliente"]
-    assert "Sobrecarga progresiva" in borrador["progresion"]
+    assert borrador["mensaje_para_el_cliente"].startswith("Hola ")
+    # progresion is picked from a pool of equivalent Spanish phrasings (see
+    # variacion.py) -- check membership in that pool, not one exact legacy
+    # string, so this test doesn't depend on which variant got picked.
+    assert borrador["progresion"] in PROGRESION_VARIANTES["es"]
 
     for sesion in borrador["sesiones"]:
         for ejercicio in sesion["ejercicios"]:
@@ -117,3 +120,53 @@ def test_default_idioma_matches_explicit_english(perfil_base):
     borrador_default = generar_borrador_rutina_reglas(perfil_base)
     borrador_en = generar_borrador_rutina_reglas(perfil_base, idioma="en")
     assert borrador_default == borrador_en
+
+
+def test_regenerating_the_same_client_is_stable(perfil_base):
+    """Same id_cliente -> same exercise picks and same narrative phrasing
+    every time (seeded by id_cliente, see variacion.py) -- regenerating a
+    client's plan should never surprise the trainer with a different draft."""
+    borrador_1 = generar_borrador_rutina_reglas(perfil_base)
+    borrador_2 = generar_borrador_rutina_reglas(perfil_base)
+    assert borrador_1 == borrador_2
+
+
+def test_different_clients_get_varied_narrative_text(perfil_base):
+    """Clients with an otherwise-identical profile shouldn't all read
+    byte-identical boilerplate -- the whole point of seeding by id_cliente
+    (see docs/decisiones.md). Only 4 variants exist, so two individual IDs
+    can coincidentally land on the same one (1-in-4 chance) -- sample
+    enough distinct IDs that the pool's actual size shows up, instead of
+    asserting inequality between two arbitrary picks."""
+    progresiones = set()
+    for i in range(15):
+        perfil_base["id_cliente"] = f"cliente_variedad_{i}"
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        assert borrador["progresion"] in PROGRESION_VARIANTES["en"]
+        progresiones.add(borrador["progresion"])
+    assert len(progresiones) > 1
+
+
+def test_client_message_greeting_stays_fixed_around_the_varied_body(perfil_base):
+    """The "Hi {name}, " greeting is prepended outside the variant pool
+    (see rutina_reglas.py) -- every variant must still produce a message
+    starting with it, regardless of which body text got picked."""
+    for id_cliente in ("cliente_a", "cliente_b", "cliente_c", "cliente_d", "cliente_e"):
+        perfil_base["id_cliente"] = id_cliente
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        assert borrador["mensaje_para_el_cliente"].startswith("Hi Test, ")
+        cuerpo = borrador["mensaje_para_el_cliente"].removeprefix("Hi Test, ")
+        assert cuerpo in MENSAJE_CLIENTE_RUTINA_VARIANTES["en"]
+
+
+def test_different_clients_can_get_different_exercises(perfil_base):
+    """Exercise selection is shuffled per client too (see
+    rng_para_cliente() usage in rutina_reglas.py) -- sample enough distinct
+    client IDs that at least one pair disagrees on the first day's first
+    exercise, ruling out a shuffle that's accidentally a no-op."""
+    primeros_ejercicios = set()
+    for i in range(15):
+        perfil_base["id_cliente"] = f"cliente_variedad_{i}"
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        primeros_ejercicios.add(borrador["sesiones"][0]["ejercicios"][0]["nombre"])
+    assert len(primeros_ejercicios) > 1

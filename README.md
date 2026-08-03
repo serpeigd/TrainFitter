@@ -80,6 +80,12 @@ This repository is built phase by phase, as a learning project. Right now:
   persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
   — a lightweight CRM outside the browser session, which otherwise forgets
   everything on refresh. Example-client demo runs are deliberately excluded.
+- The free rule engine is no longer a template mill: exercise picks and the
+  narrative text (progression notes, client messages, meal-timing guidance)
+  are chosen per client from a seeded pool of equivalent, on-voice phrasings
+  (see [`agents/variacion.py`](agents/variacion.py)) — two similar clients no
+  longer get byte-identical drafts, while regenerating the *same* client
+  still reproduces the same plan every time.
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a
@@ -97,11 +103,9 @@ This repository is built phase by phase, as a learning project. Right now:
 ## What it doesn't include yet
 
 - Richer, more nuanced generative-AI writing — today's draft comes from deterministic
-  rules based on the method; an optional generative-AI layer (`motor="llm"`) is
-  already designed and ready to switch on when it makes sense.
-- More personalized, less deterministic routine/diet generation for the free rule
-  engine (same input always produces the same plan today) — a real design question,
-  not started yet.
+  rules based on the method plus seeded per-client variety (see above); an optional
+  generative-AI layer (`motor="llm"`) is already designed and ready to switch on when
+  it makes sense.
 
 ## Repository structure
 
@@ -116,7 +120,7 @@ TrainFitter/
 │   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, orchestrator, adherence parser
+├── agents/                          Routine, diet, validator, orchestrator, adherence parser, seeded variety
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + send/adherence-reply detection), Notion (Clients + Check-ins)

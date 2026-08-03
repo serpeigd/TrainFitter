@@ -36,28 +36,28 @@
           "notas": ""
         },
         {
-          "nombre": "High cable row (close grip)",
+          "nombre": "Pull-ups (assisted if needed)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Seated leg curl (machine)",
+          "nombre": "Lying leg curl (machine)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Dumbbell lateral raise",
+          "nombre": "Machine reverse fly (rear delt)",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Front plank",
+          "nombre": "Cable Pallof press",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -86,7 +86,7 @@
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Parallel bar dips",
+          "nombre": "Push-ups (standard)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -100,21 +100,21 @@
           "notas": ""
         },
         {
-          "nombre": "Lying leg curl (machine)",
+          "nombre": "Single-leg glute bridge",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Machine reverse fly (rear delt)",
+          "nombre": "Dumbbell front raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Cable crunch",
+          "nombre": "Front plank",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -143,35 +143,35 @@
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Push-ups (standard)",
+          "nombre": "Parallel bar dips",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Pull-ups (assisted if needed)",
+          "nombre": "High cable row (close grip)",
           "series": 4,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Single-leg glute bridge",
+          "nombre": "Machine hip adduction",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
-          "nombre": "Dumbbell front raise",
+          "nombre": "Dumbbell lateral raise",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Hanging / lying leg raise",
+          "nombre": "Cable crunch",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -181,6 +181,6 @@
       "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
     }
   ],
-  "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
-  "mensaje_para_el_cliente": "Hi Javier, here's your first draft routine. Let's go step by step: technique first, weight later — your body learns before it forces. It doesn't need to be perfect the first week; what matters is that you can repeat it. If you have any questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
+  "progresion": "Think in terms of the rep range, not the weight on the bar. Add reps first; once you're maxing out every set for an exercise, then add a little weight and drop back to the bottom of the range. Sticking with the same routine week after week — not switching it up — is what makes the numbers move.",
+  "mensaje_para_el_cliente": "Hi Javier, here's your first draft routine. Take it one session at a time: learn the movement, then load it up — in that order. You don't need to nail it this week, just be able to repeat it. And if anything hurts rather than just feeling like effort, tell me right away so we can adjust."
 }

@@ -33,8 +33,9 @@ Client intake JSON → routine_agent + diet_agent (motor="reglas"|"llm", same ou
 ```
 
 - **Two interchangeable engines** per generation agent: `"reglas"` (default,
-  free, deterministic, no API key) vs `"llm"` (optional, `ANTHROPIC_API_KEY`,
-  Claude tool-use forced output). Same output schema either way.
+  free, no API key, deterministic *per client* — see `agents/variacion.py`)
+  vs `"llm"` (optional, `ANTHROPIC_API_KEY`, Claude tool-use forced output).
+  Same output schema either way.
 - **Validator is deliberately never LLM** — deterministic safety gate,
   defense-in-depth (cross-checks against `exercise_bank.py`/`food_bank.py`,
   doesn't trust upstream agents' self-reported flags).
@@ -65,9 +66,10 @@ enforced by the `gmail.compose` OAuth scope, not just by convention),
 **live-tested end-to-end** with a real OAuth-authorized account
 (`trainfitter.official@gmail.com`); recipient is typed in the approval
 panel, not part of the intake schema. Also exposes `verificar_envio()`
-(needs the added `gmail.metadata` scope — labels/headers only, never the
-message body) to check on demand whether a draft's thread now contains a
-sent message. `mcp/notion_connector.py` saves a summarized record
+to check on demand whether a draft's thread now contains a sent message
+(originally needed only `gmail.metadata` — labels/headers only; see below
+for why the scope later grew to `gmail.readonly`). `mcp/notion_connector.py`
+saves a summarized record
 (name/date/goal/level/verdict/summary) to a "Clients" Notion database, and
 backfills the client's email onto that record once a Gmail draft is
 created for them (`actualizar_email_cliente()`). A second "Check-ins"
@@ -105,16 +107,19 @@ exception — they stay canonical English in `exercise_bank.py`/
 `validator_agent.py`'s safety cross-check (injuries vs. exercises,
 allergies vs. foods) matches against that exact value; a `nombre_es` field
 plus a display-only `nombre_mostrado()` helper (used only by `ui/app.py`,
-never by generation/validation) covers on-screen translation instead.
-Pending: the user re-authorizing Gmail locally and on Streamlit Cloud/GitHub
-Actions for the new `gmail.readonly` scope (a one-time manual step only they
-can do — see `mcp/gmail_client.py`'s module docstring for the exact steps),
-and making the free rule engine's generation itself less
-deterministic/personalized (a bigger, not-yet-scoped design question — see
+never by generation/validation) covers on-screen translation instead. The
+free rule engines (`rutina_reglas.py`/`dieta_reglas.py`) are no longer a
+template mill: `agents/variacion.py` seeds a `random.Random` from each
+client's `id_cliente` so exercise picks and narrative-text phrasing
+(`progresion`, `mensaje_para_el_cliente`, `distribucion_comidas`) vary
+across different clients while staying perfectly stable if the *same*
+client's plan is regenerated — free, no LLM, no new dependency (see
 `docs/decisiones.md`). CI (`.github/workflows/ci.yml`) runs the free
 rule-engine pipeline + test suite + lint end-to-end on every push — no
 secrets needed; `inbox_trigger.yml` (main.py's cron) is separate and does
-need secrets, so it isn't part of CI.
+need secrets, so it isn't part of CI. Gmail re-authorization (both locally
+and on Streamlit Cloud/GitHub Actions, for the `gmail.readonly` scope) has
+already been done by the project owner.
 
 ## Free-only guardrail
 
@@ -132,6 +137,7 @@ if the user explicitly opts in to spending money.
 |---|---|
 | Routine rule engine | `agents/rutina_reglas.py` |
 | Diet rule engine | `agents/dieta_reglas.py` |
+| Per-client seeded variety (exercise picks, phrasing) | `agents/variacion.py` |
 | Validator | `agents/validator_agent.py` |
 | Orchestrator | `agents/orchestrator.py` |
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |

@@ -6,12 +6,18 @@ sinergias_nutrientes.md) into code: caloric needs calculation, protein by
 goal, flexible dieting by diet type/allergies, and absorption-synergy tips
 when applicable (e.g. vegetarian diet -> iron + vitamin C).
 
-Same as rutina_reglas.py: 100% deterministic, free, same output schema an
-equivalent LLM engine would use (see ENTREGAR_BORRADOR_DIETA_TOOL in
-diet_agent.py).
+Same as rutina_reglas.py: free, no LLM, same output schema an equivalent
+LLM engine would use (see ENTREGAR_BORRADOR_DIETA_TOOL in diet_agent.py).
+Deterministic *per client* (see variacion.py) rather than 100%
+deterministic outright — the numeric macros are always a direct
+calculation from the client's own data, but the narrative phrasing
+(distribucion_comidas, mensaje_para_el_cliente) is picked from a few
+equivalent variants seeded by id_cliente, so two different clients no
+longer read identical boilerplate — see docs/decisiones.md.
 """
 
 from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para
+from variacion import elegir_variante, rng_para_cliente
 
 # g of protein per kg of body weight, by goal (docs/base_conocimiento/nutricion.md,
 # in turn backed by Morton et al. 2018 and the ISSN's 2017 position stand: muscle
@@ -52,6 +58,79 @@ OBJETIVO_LABELS = {
         "recomposicion_corporal": "recomposición corporal",
         "salud_general": "salud general",
     },
+}
+
+# Equivalent phrasings picked per client via variacion.elegir_variante() —
+# same reasoning as rutina_reglas.py's PROGRESION_VARIANTES: every variant
+# says the same thing (flexible, no forbidden foods, built for the long
+# run) in the trainer's voice, just worded differently so different
+# clients don't read byte-identical text. {comidas_al_dia} is filled in
+# after picking. See docs/decisiones.md.
+DISTRIBUCION_VARIANTES = {
+    "en": [
+        "Spread these calories across {n} meals throughout the day, with protein present in "
+        "all of them. They don't need to be exactly equal — just fit your actual routine.",
+        "Split this total across {n} meals a day, making sure protein shows up in each one. "
+        "The exact split matters less than it fitting around your actual schedule.",
+        "Break this down into {n} meals over the day, protein in every one of them. Don't "
+        "stress about splitting the calories evenly — build it around your real routine, not "
+        "the other way around.",
+        "Divide this across {n} meals, each one with some protein in it. How you split it is "
+        "flexible — the only thing that matters is that it actually fits your day.",
+    ],
+    "es": [
+        "Reparte estas calorías en {n} comidas a lo largo del día, con proteína presente en "
+        "todas ellas. No hace falta que sean exactamente iguales — solo que encajen en tu "
+        "rutina real.",
+        "Divide este total en {n} comidas al día, asegurándote de que la proteína aparezca en "
+        "cada una. El reparto exacto importa menos que encajar de verdad en tu horario real.",
+        "Distribúyelo en {n} comidas durante el día, con proteína en todas ellas. No te agobies "
+        "por repartir las calorías a partes iguales — que se adapte a tu rutina real, no al "
+        "revés.",
+        "Reparte esto en {n} comidas, cada una con algo de proteína. Cómo lo dividas es "
+        "flexible — lo único que importa es que encaje de verdad en tu día.",
+    ],
+}
+
+# Same idea for the closing client message: the greeting ("Hi {name}, " /
+# "Hola {name}, ") stays fixed and is prepended separately, so every
+# variant here starts lowercase, mid-sentence.
+MENSAJE_CLIENTE_DIETA_VARIANTES = {
+    "en": [
+        "this is your draft diet. There's no forbidden food here: it's about amounts and "
+        "context. The idea is that you can keep this up in three months, not just this week. "
+        "If something doesn't fit your day-to-day, tell me and we'll swap it for something "
+        "equivalent.",
+        "this is your first draft diet. Nothing on here is off-limits — it's a question of how "
+        "much and how often, not what. This needs to still work for you in three months, not "
+        "just this week, so if anything doesn't fit your routine, tell me and we'll find an "
+        "equivalent swap.",
+        "here's your draft diet. No food is banned in this approach — amounts and context do "
+        "the work. Judge it by whether you could still be doing this in three months, not "
+        "whether it's perfect today. Anything that clashes with your day-to-day, let me know "
+        "and we'll trade it for something equivalent.",
+        "this is your diet draft. Think amounts and context, not forbidden foods — nothing here "
+        "is off the table. What matters is whether it holds up three months from now, not just "
+        "this week. If something doesn't fit your life, say so and we'll swap it for an "
+        "equivalent.",
+    ],
+    "es": [
+        "esta es tu dieta en borrador. Aquí no hay alimentos prohibidos: se trata de cantidades "
+        "y contexto. La idea es que puedas mantenerla durante tres meses, no solo esta semana. "
+        "Si algo no encaja en tu día a día, dímelo y lo cambiamos por algo equivalente.",
+        "esta es tu primer borrador de dieta. Aquí nada está prohibido — es cuestión de cuánto "
+        "y con qué frecuencia, no de qué. Tiene que seguir funcionándote dentro de tres meses, "
+        "no solo esta semana, así que si algo no encaja en tu rutina, dímelo y buscamos un "
+        "cambio equivalente.",
+        "aquí tienes tu dieta en borrador. En este enfoque no se prohíbe ningún alimento — lo "
+        "importante son las cantidades y el contexto. Júzgala por si podrías seguir así dentro "
+        "de tres meses, no por si es perfecta hoy. Cualquier cosa que choque con tu día a día, "
+        "dímelo y la cambiamos por algo equivalente.",
+        "esta es tu dieta en borrador. Piensa en cantidades y contexto, no en alimentos "
+        "prohibidos — aquí no se descarta nada. Lo que importa es si aguanta dentro de tres "
+        "meses, no si es perfecta hoy. Si algo no encaja en tu vida, dímelo y lo cambiamos por "
+        "algo equivalente.",
+    ],
 }
 
 
@@ -224,6 +303,14 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
 
     necesidades = _calcular_necesidades(perfil_cliente)
 
+    # Same client -> same picks every time (seeded by id_cliente); a
+    # different client with an otherwise-similar profile gets a different,
+    # but equally on-voice, phrasing. Separate namespace from
+    # rutina_reglas.py's own RNGs so the two engines' picks never correlate.
+    rng_texto = rng_para_cliente(perfil_cliente, "dieta:texto")
+    distribucion = elegir_variante(rng_texto, DISTRIBUCION_VARIANTES[idioma]).format(n=comidas_al_dia)
+    cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_DIETA_VARIANTES[idioma])
+
     if idioma == "es":
         resumen = (
             f"Estimación de {necesidades['calorias_objetivo_kcal']} kcal/día para "
@@ -231,16 +318,7 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             f"con {necesidades['macros']['proteina_g']} g de proteína como prioridad. Es un punto de "
             "partida que se ajusta según el peso y la energía reales durante las primeras semanas."
         )
-        distribucion = (
-            f"Reparte estas calorías en {comidas_al_dia} comidas a lo largo del día, con proteína "
-            "presente en todas ellas. No hace falta que sean exactamente iguales — solo que encajen "
-            "en tu rutina real."
-        )
-        mensaje_para_el_cliente = (
-            f"Hola {nombre.split()[0]}, esta es tu dieta en borrador. Aquí no hay alimentos prohibidos: "
-            "se trata de cantidades y contexto. La idea es que puedas mantenerla durante tres meses, no "
-            "solo esta semana. Si algo no encaja en tu día a día, dímelo y lo cambiamos por algo equivalente."
-        )
+        mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
         resumen = (
             f"Estimated {necesidades['calorias_objetivo_kcal']} kcal/day for "
@@ -248,15 +326,7 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             f"with {necesidades['macros']['proteina_g']} g of protein as the priority. It's a starting point "
             "that gets adjusted based on real weight and energy over the first few weeks."
         )
-        distribucion = (
-            f"Spread these calories across {comidas_al_dia} meals throughout the day, with protein present "
-            "in all of them. They don't need to be exactly equal — just fit your actual routine."
-        )
-        mensaje_para_el_cliente = (
-            f"Hi {nombre.split()[0]}, this is your draft diet. There's no forbidden food here: "
-            "it's about amounts and context. The idea is that you can keep this up in three months, not just "
-            "this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
-        )
+        mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 
     return {
         "resumen_enfoque": resumen,

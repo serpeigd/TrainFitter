@@ -16,6 +16,7 @@ from collections import defaultdict
 
 from exercise_bank import EXERCISE_BANK
 from perfil_utils import tags_lesiones
+from variacion import elegir_variante, rng_para_cliente
 
 # Sets/rest per exercise type, per docs/base_conocimiento/entrenamiento.md.
 PARAMETROS_POR_TIPO = {
@@ -125,6 +126,94 @@ CALENTAMIENTO_POR_DIA = {
     },
 }
 
+# Equivalent phrasings of the same guidance (progressive overload; technique
+# first, weight later; tell me if something actually hurts) — picked per
+# client via variacion.elegir_variante() instead of always using the first
+# one, so different clients don't all read byte-identical boilerplate. Every
+# variant says the same thing in the trainer's documented voice (see
+# docs/metodo_entrenador.md): adherence and safety before raw progress,
+# plain and pedagogical, never a rigid rule. See docs/decisiones.md.
+PROGRESION_VARIANTES = {
+    "en": [
+        "Progressive overload: each session, try to add one more rep while keeping good "
+        "technique. Once you hit the top of the range on every set of an exercise, add a "
+        "little weight and go back to the bottom of the range. No changing the routine every "
+        "week — sticking with the same scheme is what actually drives progress.",
+        "The rule is simple: chase one more rep before you chase more weight. Once every set "
+        "of an exercise hits the top of its range with good technique, add a bit of load and "
+        "start back at the bottom. Swapping exercises every week feels productive but isn't — "
+        "repeating the same scheme long enough is what actually builds progress.",
+        "Progress here means small, boring, repeatable steps: one extra rep, same weight, same "
+        "technique. Only once you're topping out every set of an exercise do you add load and "
+        "reset to the bottom of the range. Resist the urge to change things up constantly — "
+        "consistency on the same movements is the actual driver.",
+        "Think in terms of the rep range, not the weight on the bar. Add reps first; once "
+        "you're maxing out every set for an exercise, then add a little weight and drop back to "
+        "the bottom of the range. Sticking with the same routine week after week — not "
+        "switching it up — is what makes the numbers move.",
+    ],
+    "es": [
+        "Sobrecarga progresiva: en cada sesión, intenta añadir una repetición más manteniendo "
+        "buena técnica. Cuando llegues al máximo del rango en todas las series de un ejercicio, "
+        "añade un poco de peso y vuelve al mínimo del rango. No cambies la rutina cada semana "
+        "— mantener el mismo esquema es lo que realmente impulsa el progreso.",
+        "La regla es sencilla: primero persigue una repetición más, después más peso. Cuando "
+        "todas las series de un ejercicio lleguen al máximo del rango con buena técnica, añade "
+        "algo de carga y vuelve a empezar por el mínimo. Cambiar de ejercicios cada semana "
+        "parece productivo, pero no lo es — repetir el mismo esquema el tiempo suficiente es lo "
+        "que de verdad genera progreso.",
+        "Aquí el progreso son pasos pequeños, aburridos y repetibles: una repetición más, mismo "
+        "peso, misma técnica. Solo cuando agotes el rango en todas las series de un ejercicio "
+        "añades carga y reinicias desde el mínimo. Resiste la tentación de cambiarlo todo "
+        "constantemente — la constancia sobre los mismos movimientos es lo que realmente empuja.",
+        "Piensa en el rango de repeticiones, no en el peso de la barra. Primero suma "
+        "repeticiones; cuando agotes el rango en todas las series de un ejercicio, añade algo de "
+        "peso y vuelve al mínimo. Mantener la misma rutina semana tras semana — no cambiarla — "
+        "es lo que mueve los números.",
+    ],
+}
+
+# Same idea for the closing client message: the greeting ("Hi {name}, " /
+# "Hola {name}, ") stays fixed and is prepended separately, so every
+# variant here starts lowercase, mid-sentence.
+MENSAJE_CLIENTE_RUTINA_VARIANTES = {
+    "en": [
+        "here's your first draft routine. Let's go step by step: technique first, weight later "
+        "— your body learns before it forces. It doesn't need to be perfect the first week; "
+        "what matters is that you can repeat it. If you have any questions, or if something "
+        "hurts (not just feels tough), let me know and we'll adjust it.",
+        "here's your first draft routine. Nothing here is set in stone — think of it as a "
+        "starting point we'll shape together. The first week is about learning the movements, "
+        "not chasing weight; if something feels off, especially any real pain rather than just "
+        "effort, tell me and we'll change it.",
+        "here's your first routine draft. Go easy on yourself the first couple of sessions — "
+        "getting the technique right matters far more than the number on the plates right now. "
+        "Any questions, or anything that actually hurts rather than just feels hard, come to me "
+        "and we'll sort it out.",
+        "here's your first draft routine. Take it one session at a time: learn the movement, "
+        "then load it up — in that order. You don't need to nail it this week, just be able to "
+        "repeat it. And if anything hurts rather than just feeling like effort, tell me right "
+        "away so we can adjust.",
+    ],
+    "es": [
+        "aquí tienes el primer borrador de tu rutina. Vamos paso a paso: primero la técnica, "
+        "después el peso — tu cuerpo aprende antes de forzar. No tiene que salir perfecta la "
+        "primera semana; lo importante es que puedas repetirla. Si tienes alguna duda, o si "
+        "algo te duele (no solo cuesta), dímelo y lo ajustamos.",
+        "aquí tienes el primer borrador de tu rutina. Nada de esto es definitivo — piénsalo "
+        "como un punto de partida que iremos ajustando juntos. La primera semana es para "
+        "aprender los movimientos, no para perseguir peso; si algo no te cuadra, sobre todo si "
+        "es dolor de verdad y no solo esfuerzo, dímelo y lo cambiamos.",
+        "aquí tienes tu primer borrador de rutina. Ve con calma las primeras sesiones: ahora "
+        "mismo importa mucho más la técnica que el peso en el disco. Cualquier duda, o "
+        "cualquier cosa que te duela de verdad y no solo cueste, cuéntamelo y lo solucionamos.",
+        "aquí tienes el primer borrador de tu rutina. Tómatelo sesión a sesión: primero "
+        "aprende el movimiento, luego cárgalo — en ese orden. No hace falta que te salga "
+        "perfecta esta semana, solo que puedas repetirla. Y si algo te duele de verdad, no "
+        "solo cuesta, dímelo cuanto antes para ajustarlo.",
+    ],
+}
+
 
 def _material_cliente(perfil: dict) -> set[str]:
     material = set(perfil.get("disponibilidad", {}).get("material_disponible", []))
@@ -221,17 +310,32 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     lesion_tags = tags_lesiones(perfil_cliente)
     split, secuencia_dias = _elegir_split_y_secuencia(disponibilidad["dias_por_semana"])
 
+    # Candidates for a given (grupo, tipo) slot are shuffled once per client
+    # (seeded by id_cliente, so it's the same shuffle every time this same
+    # client's plan is regenerated) and cached here — two clients with
+    # identical material/injuries no longer land on the same exercise every
+    # time just because it happened to be first in exercise_bank.py, while
+    # the existing rotation counter below still cycles through that
+    # client's own shuffled order across repeated slots in the same plan
+    # (e.g. Push/Pull/Legs needing "pecho" twice). See docs/decisiones.md.
+    rng_ejercicios = rng_para_cliente(perfil_cliente, "rutina:ejercicios")
+    candidatos_por_slot: dict[tuple, list[dict]] = {}
     contador_rotacion: dict[tuple, int] = defaultdict(int)
     sesiones = []
     for indice, tipo_dia in enumerate(secuencia_dias, start=1):
         ejercicios = []
         for grupo, tipo in PLANTILLAS_DIA[tipo_dia]:
-            candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags)
+            clave = (grupo, tipo)
+            if clave not in candidatos_por_slot:
+                candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags)
+                rng_ejercicios.shuffle(candidatos)
+                candidatos_por_slot[clave] = candidatos
+            candidatos = candidatos_por_slot[clave]
             if not candidatos:
                 continue  # no equipment/safe options for this slot: skip it instead of failing
-            rotacion = contador_rotacion[(grupo, tipo)]
+            rotacion = contador_rotacion[clave]
             ejercicio = candidatos[rotacion % len(candidatos)]
-            contador_rotacion[(grupo, tipo)] += 1
+            contador_rotacion[clave] += 1
 
             parametros = PARAMETROS_POR_TIPO[tipo]
             notas = ""
@@ -290,6 +394,14 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             "cardio_opcional": cardio_label if indice == len(secuencia_dias) else "",
         })
 
+    # Same client -> same picks every time (seeded by id_cliente); a
+    # different client with an otherwise-similar profile gets a different,
+    # but equally on-voice, phrasing. Separate namespace from the
+    # exercise-selection RNG above so picking one doesn't shift the other.
+    rng_texto = rng_para_cliente(perfil_cliente, "rutina:texto")
+    progresion = elegir_variante(rng_texto, PROGRESION_VARIANTES[idioma])
+    cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_RUTINA_VARIANTES[idioma])
+
     if idioma == "es":
         resumen = (
             f"Reparto '{SPLIT_LABELS['es'].get(split, split)}' para nivel {NIVEL_LABELS['es'].get(nivel, nivel)}, "
@@ -303,19 +415,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
         else:
             resumen += "."
 
-        progresion = (
-            "Sobrecarga progresiva: en cada sesión, intenta añadir una repetición más manteniendo "
-            "buena técnica. Cuando llegues al máximo del rango en todas las series de un ejercicio, "
-            "añade un poco de peso y vuelve al mínimo del rango. No cambies la rutina cada semana "
-            "— mantener el mismo esquema es lo que realmente impulsa el progreso."
-        )
-
-        mensaje_para_el_cliente = (
-            f"Hola {nombre.split()[0]}, aquí tienes el primer borrador de tu rutina. Vamos paso a "
-            "paso: primero la técnica, después el peso — tu cuerpo aprende antes de forzar. No tiene "
-            "que salir perfecta la primera semana; lo importante es que puedas repetirla. Si tienes "
-            "alguna duda, o si algo te duele (no solo cuesta), dímelo y lo ajustamos."
-        )
+        mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
         resumen = (
             f"'{SPLIT_LABELS['en'].get(split, split.replace('_', ' '))}' split for "
@@ -330,19 +430,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
         else:
             resumen += "."
 
-        progresion = (
-            "Progressive overload: each session, try to add one more rep while keeping good "
-            "technique. Once you hit the top of the range on every set of an exercise, add a "
-            "little weight and go back to the bottom of the range. No changing the routine every "
-            "week — sticking with the same scheme is what actually drives progress."
-        )
-
-        mensaje_para_el_cliente = (
-            f"Hi {nombre.split()[0]}, here's your first draft routine. Let's go step by step: "
-            "technique first, weight later — your body learns before it forces. It doesn't need "
-            "to be perfect the first week; what matters is that you can repeat it. If you have any "
-            "questions, or if something hurts (not just feels tough), let me know and we'll adjust it."
-        )
+        mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 
     return {
         "resumen_enfoque": resumen,

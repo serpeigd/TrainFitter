@@ -45,5 +45,5 @@
   "advertencias_revision_humana": [
     "The client hasn't attached bloodwork, but there's a relevant unverified note: \"Client mentions feeling tired frequently lately. Hasn't provided bloodwork yet; still need to ask for it at follow-up.\" — ask for it at follow-up so the diet can be modulated with real data."
   ],
-  "mensaje_para_el_cliente": "Hi Javier, this is your draft diet. There's no forbidden food here: it's about amounts and context. The idea is that you can keep this up in three months, not just this week. If something doesn't fit your day-to-day, tell me and we'll swap it for something equivalent."
+  "mensaje_para_el_cliente": "Hi Javier, here's your draft diet. No food is banned in this approach — amounts and context do the work. Judge it by whether you could still be doing this in three months, not whether it's perfect today. Anything that clashes with your day-to-day, let me know and we'll trade it for something equivalent."
 }
