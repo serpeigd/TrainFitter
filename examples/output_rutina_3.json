@@ -1,0 +1,184 @@
+{
+  "cliente_id": "cliente_003",
+  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward general health. Exercises selected based on the client's available equipment.",
+  "nivel_asumido": "principiante",
+  "split": "full_body",
+  "dias_por_semana": 3,
+  "duracion_sesion_min": 40,
+  "advertencias_revision_humana": [],
+  "sesiones": [
+    {
+      "dia": "Day 1 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "ejercicios": [
+        {
+          "nombre": "Dumbbell lunges",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Incline dumbbell press",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Pull-ups (assisted if needed)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Single-leg glute bridge",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Dumbbell front raise",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Hanging / lying leg raise",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Day 2 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "ejercicios": [
+        {
+          "nombre": "Low step-up with dumbbells",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Parallel bar dips",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Inverted row (bodyweight)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Single-leg glute bridge",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Dumbbell lateral raise",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Front plank",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": ""
+    },
+    {
+      "dia": "Day 3 — Full Body",
+      "grupos_musculares": [
+        "core",
+        "espalda",
+        "hombro",
+        "pecho",
+        "pierna_cuadriceps",
+        "pierna_isquios_gluteo"
+      ],
+      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "ejercicios": [
+        {
+          "nombre": "Goblet squat",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Push-ups (standard)",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "One-arm dumbbell row",
+          "series": 4,
+          "repeticiones": "5-8",
+          "descanso_seg": 150,
+          "notas": ""
+        },
+        {
+          "nombre": "Single-leg glute bridge",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Dumbbell front raise",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        },
+        {
+          "nombre": "Hanging / lying leg raise",
+          "series": 3,
+          "repeticiones": "10-15",
+          "descanso_seg": 60,
+          "notas": ""
+        }
+      ],
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
+    }
+  ],
+  "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
+  "mensaje_para_el_cliente": "Hi Ana, here's your first routine draft. Go easy on yourself the first couple of sessions — getting the technique right matters far more than the number on the plates right now. Any questions, or anything that actually hurts rather than just feels hard, come to me and we'll sort it out."
+}

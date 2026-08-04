@@ -1,10 +1,9 @@
 """Tests for mcp/gmail_client.py's pure logic (message building, recipient
 validation, MIME-tree attachment collection) — no network, no OAuth, no
-credentials needed. crear_borrador() itself (the part that actually talks
-to the Gmail API) is intentionally not covered here: it requires a real,
-authorized Gmail account, same reasoning as motor="llm" never being
-exercised against the real Anthropic API in this suite (see
-docs/decisiones.md)."""
+credentials needed. The network-touching functions themselves
+(crear_borrador(), verificar_envio(), buscar_respuestas_adherencia()) are
+covered separately in test_gmail_client_network.py, against a mocked
+googleapiclient service rather than a real, authorized Gmail account."""
 
 import base64
 from email import message_from_bytes

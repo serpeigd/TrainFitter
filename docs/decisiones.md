@@ -1609,6 +1609,18 @@ The adherence check-in loop (see the earlier entry on `main.py`) shipped with a 
 
 **Also in this pass:** removed a "📋 Saved to Notion — open it" caption from the approval panel (`ui/app.py`) at the project owner's request, including the now-dead `notion_resultado_url` session-state assignment and both translation-dict entries behind it, rather than leaving unreachable code and unused keys in place.
 
+## A third example client caught a real bug: vegans were being offered fish
+
+Adding `examples/cliente_ejemplo_3.json` (Ana, vegan, tree nut allergy, general-health goal — a genuinely new combination the first two example clients didn't cover) and looking at her actual generated diet turned up a real correctness bug: `fuentes_grasa_para()` suggested "Oily fish (EPA/DHA)" as a fat source despite `tipo_dieta` being `"vegana"`.
+
+**Root cause:** `FUENTES_CARBOHIDRATO` and `FUENTES_GRASA` in `food_bank.py` never had a `tipos_dieta` key at all — only `FUENTES_PROTEINA` did, and only `fuentes_proteina_para()` filtered by it. `fuentes_carbohidrato_para()`/`fuentes_grasa_para()` filtered allergies/intolerances but silently skipped diet-type filtering entirely. Existing test coverage (`test_vegan_diet_filters_out_animal_protein`) only ever exercised the protein path, so this had no test pinning it down either way.
+
+**Why this stayed hidden:** every existing example client is either omnivorous (client 1) or vegetarian without hitting this specific case in a way that got inspected closely (client 2 — vegetarian — *did* have the bug in its own generated output the whole time, `output_dieta_2.json` was quietly suggesting fish, but nobody had looked at that specific field). It took building a genuinely new client profile and actually reading its output — not just its verdict — to notice.
+
+**Fix:** added `tipos_dieta` to every entry in `FUENTES_CARBOHIDRATO`/`FUENTES_GRASA` (all universally compatible today except "Oily fish", which is now `{"omnivora"}` only) and made both filter functions check it, mirroring `fuentes_proteina_para()`. Declared explicitly on every entry rather than defaulting missing `tipos_dieta` to "always allowed" — an explicit fact that's checked (`test_every_food_declares_which_diets_allow_it`) beats an implicit assumption that silently stops being true the next time someone adds a non-universal entry. Regenerating the example outputs confirmed the fix: `output_dieta_2.json`'s (real, committed) fat-source list lost "Oily fish" as a side effect, `output_dieta_3.json` never had it.
+
+**The adherence loop, shown end to end for the first time:** `examples/checklist_relleno_3.pdf` is Ana's checklist filled in the same way the test suite simulates a client filling it (`pypdf.PdfWriter.update_page_form_field_values()` — what a real PDF viewer produces, driven programmatically instead of by clicking), and `examples/output_checkin_3.json` is what `leer_checklist_pdf()` + `resumir_adherencia()` extract from it — the exact shape that would land in Notion's Check-ins database. Neither of the first two example clients had adherence-loop artifacts at all; anyone browsing the repo previously had to read code to understand what that loop actually produces.
+
 ## Free-only guardrail
 
 Reconfirmed while planning next steps: the **only** piece of this project that would

@@ -1,0 +1,45 @@
+{
+  "cliente_id": "cliente_003",
+  "resumen_enfoque": "Estimated 1836 kcal/day for general health, with 85 g of protein as the priority. It's a starting point that gets adjusted based on real weight and energy over the first few weeks.",
+  "calorias_objetivo_kcal": 1836,
+  "macros": {
+    "proteina_g": 85,
+    "grasa_g": 55,
+    "carbohidratos_g": 250
+  },
+  "comidas_al_dia": 4,
+  "distribucion_comidas": "Break this down into 4 meals over the day, protein in every one of them. Don't stress about splitting the calories evenly — build it around your real routine, not the other way around.",
+  "fuentes_proteina_sugeridas": [
+    "Lentils",
+    "Chickpeas",
+    "Tofu",
+    "Tempeh",
+    "Edamame",
+    "Seitan",
+    "Pea protein (powder)"
+  ],
+  "fuentes_carbohidrato_sugeridas": [
+    "Rice",
+    "Oats",
+    "Potato / sweet potato",
+    "Whole wheat bread",
+    "Whole wheat pasta",
+    "Quinoa",
+    "Legumes (also a carb source)",
+    "Assorted fruit"
+  ],
+  "fuentes_grasa_sugeridas": [
+    "Extra virgin olive oil",
+    "Avocado",
+    "Seeds (chia, flax)"
+  ],
+  "consejos_sinergias": [
+    "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach).",
+    "Most of your iron comes from plant sources (non-heme), which absorb less well: combine lentils/spinach with a vitamin C source in the same meal (red pepper, lemon, kiwi) — it can multiply absorption 3-6x.",
+    "Keep coffee or tea at least 1-2 hours away from your main iron-rich meals: tannins significantly reduce iron absorption."
+  ],
+  "advertencias_revision_humana": [
+    "Declared food allergy: tree nut allergy (walnuts, almonds) — carries an EpiPen. Confirm it's fully excluded before sending — a poorly managed allergy can be serious."
+  ],
+  "mensaje_para_el_cliente": "Hi Ana, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent."
+}

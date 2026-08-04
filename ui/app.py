@@ -142,6 +142,7 @@ from notion_connector import (  # noqa: E402
     actualizar_email_cliente,
     crear_registro_checkin,
     guardar_registro_cliente,
+    historial_checkins,
     marcar_email_enviado,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
@@ -759,6 +760,9 @@ TRANSLATIONS = {
         "checkin_confirmed_send": "✅ Confirmed sent — logged in Check-ins.",
         "checkin_not_sent_yet": "Still just a draft in Gmail — not sent yet.",
         "checkin_error": "Could not check send status: {error}",
+        "adherence_history_header": "📈 Adherence history",
+        "adherence_history_empty": "No check-ins logged for this email yet.",
+        "adherence_history_error": "Could not load adherence history: {error}",
     },
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
@@ -882,6 +886,9 @@ TRANSLATIONS = {
         "checkin_confirmed_send": "✅ Confirmado como enviado — registrado en Check-ins.",
         "checkin_not_sent_yet": "Sigue siendo solo un borrador en Gmail — aún no se ha enviado.",
         "checkin_error": "No se pudo comprobar el envío: {error}",
+        "adherence_history_header": "📈 Historial de adherencia",
+        "adherence_history_empty": "Todavía no hay check-ins registrados para este email.",
+        "adherence_history_error": "No se pudo cargar el historial de adherencia: {error}",
     },
 }
 
@@ -1541,6 +1548,27 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                         st.error(t("checkin_error").format(error=str(exc)))
                 else:
                     st.success(t("checkin_confirmed_send"))
+
+    # Independent of the Gmail draft state above: once an email is typed
+    # in, the trainer can check what *this* client has already reported
+    # over time, not just what happens with the plan just generated (a
+    # returning client's history matters even when today's session is
+    # about a brand new draft for them). Best-effort, same pattern as
+    # every other optional Notion read/write in this panel.
+    if email_cliente:
+        with st.expander(t("adherence_history_header")):
+            try:
+                historial = historial_checkins(email_cliente)
+            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                st.caption(t("adherence_history_error").format(error=str(exc)))
+            else:
+                if not historial:
+                    st.caption(t("adherence_history_empty"))
+                for fila in historial:
+                    etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
+                    st.markdown(f"**{fila['fecha'] or '?'}** · {fila['tipo'] or '?'}{etiqueta_valoracion}")
+                    if fila["notas"]:
+                        st.caption(fila["notas"])
 
 
 # ---------------------------------------------------------------------------

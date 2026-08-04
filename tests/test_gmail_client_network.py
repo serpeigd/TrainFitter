@@ -1,0 +1,216 @@
+"""Tests for mcp/gmail_client.py's network-touching functions
+(crear_borrador, verificar_envio, buscar_respuestas_adherencia), using a
+mocked googleapiclient service -- no real credentials, no real network,
+but real coverage of the request-building and response-handling logic
+that tests/test_gmail_client.py's pure-logic-only tests don't reach.
+_obtener_credenciales() is monkeypatched to skip the real OAuth flow
+entirely; everything downstream of it (message building, PDF generation,
+response parsing) runs for real against the mock."""
+
+import base64
+from email import message_from_bytes
+from unittest.mock import MagicMock
+
+import gmail_client
+import pytest
+from gmail_client import GmailClientError
+from googleapiclient.errors import HttpError
+
+
+class _FakeResp:
+    def __init__(self, status):
+        self.status = status
+        self.reason = "error"
+
+
+def _mock_service(monkeypatch):
+    """Patches googleapiclient.discovery.build to return a MagicMock
+    service (so a test can configure exactly what each chained call
+    returns) and _obtener_credenciales to skip the real OAuth flow."""
+    monkeypatch.setattr(gmail_client, "_obtener_credenciales", lambda: object())
+    servicio = MagicMock()
+    monkeypatch.setattr("googleapiclient.discovery.build", lambda *a, **k: servicio)
+    return servicio
+
+
+@pytest.fixture
+def borrador_rutina():
+    return {
+        "sesiones": [{"dia": "Day 1 — Upper A"}, {"dia": "Day 2 — Lower A"}],
+        "mensaje_para_el_cliente": "Hi Ana, here's your routine.",
+    }
+
+
+@pytest.fixture
+def borrador_dieta():
+    return {
+        "calorias_objetivo_kcal": 2000,
+        "macros": {"proteina_g": 120, "grasa_g": 60, "carbohidratos_g": 200},
+        "mensaje_para_el_cliente": "Hi Ana, here's your diet.",
+        "distribucion_comidas": "Spread across 4 meals.",
+        "fuentes_proteina_sugeridas": ["Chicken breast"],
+        "fuentes_carbohidrato_sugeridas": ["Rice"],
+        "fuentes_grasa_sugeridas": ["Olive oil"],
+        "consejos_sinergias": [],
+    }
+
+
+# --- crear_borrador() -------------------------------------------------------
+
+
+def test_crear_borrador_returns_url_and_thread_id(monkeypatch, borrador_rutina, borrador_dieta):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.drafts.return_value.create.return_value.execute.return_value = {
+        "message": {"id": "draft-1", "threadId": "thread-1"}
+    }
+    resultado = gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+    assert resultado == {"url": "https://mail.google.com/mail/u/0/#drafts/draft-1", "thread_id": "thread-1"}
+
+
+def test_crear_borrador_sends_two_pdf_attachments(monkeypatch, borrador_rutina, borrador_dieta):
+    """Confirms the actual request body crear_borrador() builds really
+    does carry two PDF attachments -- exercises the full path from
+    generar_pdf_dieta()/generar_pdf_checklist() through
+    _construir_mensaje_raw() to what would be sent to the real API."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.drafts.return_value.create.return_value.execute.return_value = {
+        "message": {"id": "draft-1", "threadId": "thread-1"}
+    }
+    gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+    _args, kwargs = servicio.users.return_value.drafts.return_value.create.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    partes = mensaje.get_payload()
+    nombres_adjuntos = {p.get_filename() for p in partes[1:]}
+    assert nombres_adjuntos == {"diet-plan.pdf", "adherence-checklist.pdf"}
+    assert all(p.get_content_type() == "application/pdf" for p in partes[1:])
+
+
+def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_dieta):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.drafts.return_value.create.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+
+# --- verificar_envio() -------------------------------------------------------
+
+
+def test_verificar_envio_true_when_sent_label_present(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.threads.return_value.get.return_value.execute.return_value = {
+        "messages": [{"labelIds": ["INBOX"]}, {"labelIds": ["SENT"]}]
+    }
+    assert gmail_client.verificar_envio("thread-1") is True
+
+
+def test_verificar_envio_false_when_no_sent_label(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.threads.return_value.get.return_value.execute.return_value = {
+        "messages": [{"labelIds": ["DRAFT"]}]
+    }
+    assert gmail_client.verificar_envio("thread-1") is False
+
+
+def test_verificar_envio_false_on_404_not_found(monkeypatch):
+    """A deleted thread shouldn't raise -- verificar_envio() treats "not
+    found" as "not sent yet", not an error."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.threads.return_value.get.return_value.execute.side_effect = HttpError(
+        _FakeResp(404), b"not found"
+    )
+    assert gmail_client.verificar_envio("thread-1") is False
+
+
+def test_verificar_envio_wraps_other_http_errors(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.threads.return_value.get.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.verificar_envio("thread-1")
+
+
+# --- buscar_respuestas_adherencia() -----------------------------------------
+
+
+def _mensaje_gmail(headers, mimetype="multipart/mixed", parts=None, internal_date="1753900800000"):
+    return {
+        "id": "msg-1",
+        "threadId": "thread-1",
+        "internalDate": internal_date,
+        "payload": {"headers": headers, "mimeType": mimetype, "parts": parts or []},
+    }
+
+
+def test_buscar_respuestas_adherencia_finds_a_genuine_reply(monkeypatch):
+    from pdf_generador import generar_pdf_checklist
+
+    checklist_pdf = generar_pdf_checklist(
+        {"sesiones": [{"dia": "Day 1"}]}, {"calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}, "Ana",
+    )
+    adjunto_b64 = base64.urlsafe_b64encode(checklist_pdf).decode("ascii")
+
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[
+            {"name": "From", "value": "Ana <ana@example.com>"},
+            {"name": "In-Reply-To", "value": "<original@mail.gmail.com>"},
+        ],
+        parts=[{"filename": "adherence-checklist.pdf", "mimeType": "application/pdf", "body": {"data": adjunto_b64}}],
+    )
+
+    respuestas = gmail_client.buscar_respuestas_adherencia()
+    assert len(respuestas) == 1
+    assert respuestas[0]["remitente"] == "ana@example.com"
+    assert respuestas[0]["id_mensaje"] == "msg-1"
+    assert respuestas[0]["id_hilo"] == "thread-1"
+    assert respuestas[0]["contenido"] == checklist_pdf
+
+
+def test_buscar_respuestas_adherencia_skips_the_original_non_reply_message(monkeypatch):
+    """A message with no In-Reply-To header is the trainer's own original
+    plan email, not a reply -- must never be misread as adherence data
+    (this is the exact bug found live-testing with a self-sent email --
+    see docs/decisiones.md)."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[{"name": "From", "value": "trainer@example.com"}],
+        mimetype="text/plain",
+    )
+    assert gmail_client.buscar_respuestas_adherencia() == []
+
+
+def test_buscar_respuestas_adherencia_skips_replies_with_no_checklist_pdf(monkeypatch):
+    """A genuine reply with no attachment at all (or an unrelated one)
+    has nothing parseable in it."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[
+            {"name": "From", "value": "ana@example.com"},
+            {"name": "In-Reply-To", "value": "<original@mail.gmail.com>"},
+        ],
+        mimetype="text/plain",
+    )
+    assert gmail_client.buscar_respuestas_adherencia() == []
+
+
+def test_buscar_respuestas_adherencia_wraps_http_error(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.buscar_respuestas_adherencia()

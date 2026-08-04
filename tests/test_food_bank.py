@@ -2,7 +2,16 @@
 and diet-type filtering (the same safety-critical concern as
 test_perfil_utils.py, on the nutrition side)."""
 
-from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, etiquetas_excluidas, fuentes_proteina_para, nombre_mostrado
+from food_bank import (
+    FUENTES_CARBOHIDRATO,
+    FUENTES_GRASA,
+    FUENTES_PROTEINA,
+    etiquetas_excluidas,
+    fuentes_carbohidrato_para,
+    fuentes_grasa_para,
+    fuentes_proteina_para,
+    nombre_mostrado,
+)
 
 
 def test_lactose_excluded_in_spanish(perfil_base):
@@ -49,6 +58,44 @@ def test_vegan_diet_filters_out_animal_protein(perfil_base):
     assert "Lentils" in fuentes
 
 
+def test_vegan_diet_filters_fish_out_of_fat_sources(perfil_base):
+    """Regression test: fuentes_grasa_para() had no diet-type filter at
+    all until this was fixed -- a vegan/vegetarian client's diet draft was
+    suggesting "Oily fish (EPA/DHA)" as a fat source. Found by building a
+    real vegan example client and looking at its actual output, not by
+    reading the code (see docs/decisiones.md)."""
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    fuentes = fuentes_grasa_para(perfil_base)
+    assert "Oily fish (EPA/DHA)" not in fuentes
+    assert "Avocado" in fuentes
+
+    perfil_base["nutricion"]["tipo_dieta"] = "vegetariana_ovolacto"
+    fuentes = fuentes_grasa_para(perfil_base)
+    assert "Oily fish (EPA/DHA)" not in fuentes
+
+
+def test_omnivore_diet_still_includes_fish_as_a_fat_source(perfil_base):
+    perfil_base["nutricion"]["tipo_dieta"] = "omnivora"
+    assert "Oily fish (EPA/DHA)" in fuentes_grasa_para(perfil_base)
+
+
+def test_carbohydrate_sources_available_to_every_diet_type(perfil_base):
+    """Every current carb source happens to be vegan-compatible, but the
+    filter should still apply tipos_dieta -- not just skip it -- so a
+    future non-compatible entry gets caught automatically."""
+    for tipo in ("omnivora", "vegetariana_ovolacto", "vegana"):
+        perfil_base["nutricion"]["tipo_dieta"] = tipo
+        assert "Rice" in fuentes_carbohidrato_para(perfil_base)
+
+
+def test_nut_allergy_removes_nuts_from_fat_sources_regardless_of_diet(perfil_base):
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    perfil_base["salud"]["alergias_alimentarias"] = ["tree nut allergy"]
+    fuentes = fuentes_grasa_para(perfil_base)
+    assert "Nuts (walnuts, almonds)" not in fuentes
+    assert "Seeds (chia, flax)" in fuentes
+
+
 def test_allergy_removes_suggested_source_even_if_diet_allows_it(perfil_base):
     perfil_base["nutricion"]["tipo_dieta"] = "omnivora"
     perfil_base["salud"]["alergias_alimentarias"] = ["egg allergy"]
@@ -60,6 +107,16 @@ def test_allergy_removes_suggested_source_even_if_diet_allows_it(perfil_base):
 def test_every_food_has_a_spanish_display_name():
     for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA:
         assert alimento.get("nombre_es"), f"missing nombre_es for {alimento['nombre']!r}"
+
+
+def test_every_food_declares_which_diets_allow_it():
+    """Locks in the invariant the "Oily fish" bug violated: every entry
+    across all three banks must declare tipos_dieta explicitly, not rely
+    on an implicit "always allowed" default that lets an
+    animal-product-containing entry slip through fuentes_carbohidrato_para()/
+    fuentes_grasa_para()'s filter unchecked."""
+    for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA:
+        assert alimento.get("tipos_dieta"), f"missing tipos_dieta for {alimento['nombre']!r}"
 
 
 def test_nombre_mostrado_returns_spanish_only_for_es():

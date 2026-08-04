@@ -1,10 +1,9 @@
 """Tests for mcp/notion_connector.py's pure logic (page-properties building,
-credential validation) — no network, no real Notion workspace needed.
-guardar_registro_cliente() itself (the part that actually talks to the
-Notion API) is intentionally not covered here: it requires a real, shared
-database, same reasoning as motor="llm" and the Gmail draft creation never
-being exercised against their real APIs in this suite (see
-docs/decisiones.md)."""
+credential validation) — no network, no real Notion workspace needed. The
+network-touching functions themselves (guardar_registro_cliente(),
+crear_registro_checkin(), historial_checkins(), etc.) are covered
+separately in test_notion_connector_network.py, against a mocked
+notion_client.Client rather than a real, shared workspace."""
 
 import pytest
 from notion_connector import (
@@ -13,9 +12,11 @@ from notion_connector import (
     _construir_propiedades_pagina,
     _construir_resumen,
     _credenciales,
+    _fila_checkin_desde_pagina,
     actualizar_email_cliente,
     crear_registro_checkin,
     existe_checkin_para_mensaje,
+    historial_checkins,
     marcar_email_enviado,
 )
 
@@ -172,3 +173,50 @@ def test_existe_checkin_missing_credentials_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
     with pytest.raises(NotionClientError):
         existe_checkin_para_mensaje("msg-123")
+
+
+def test_historial_checkins_missing_credentials_raises(monkeypatch, tmp_path):
+    """Same credential-checking path -- ui/app.py's adherence history
+    expander needs to fail the same clean way when Notion isn't
+    configured, not raise an unrelated import error."""
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.delenv("NOTION_CHECKINS_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        historial_checkins("client@example.com")
+
+
+def test_fila_checkin_extracts_expected_fields():
+    pagina = {
+        "properties": {
+            "Date": {"date": {"start": "2026-07-28"}},
+            "Type": {"select": {"name": "Adherence check-in"}},
+            "Adherence rating": {"select": {"name": "Medium"}},
+            "Adherence notes": {"rich_text": [{"plain_text": "Skipped day 4. "}, {"plain_text": "Struggled with diet."}]},
+        }
+    }
+    fila = _fila_checkin_desde_pagina(pagina)
+    assert fila == {
+        "fecha": "2026-07-28",
+        "tipo": "Adherence check-in",
+        "valoracion": "Medium",
+        "notas": "Skipped day 4. Struggled with diet.",
+    }
+
+
+def test_fila_checkin_handles_missing_optional_properties():
+    """A "Plan sent" row (see crear_registro_checkin()) never sets
+    Adherence rating/notes -- reading it back shouldn't raise just because
+    those properties are absent (Notion omits unset select/rich_text
+    properties entirely rather than returning them as null)."""
+    pagina = {
+        "properties": {
+            "Date": {"date": {"start": "2026-07-20"}},
+            "Type": {"select": {"name": "Plan sent"}},
+        }
+    }
+    fila = _fila_checkin_desde_pagina(pagina)
+    assert fila == {"fecha": "2026-07-20", "tipo": "Plan sent", "valoracion": None, "notas": ""}

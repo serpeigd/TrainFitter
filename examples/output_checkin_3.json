@@ -1,0 +1,16 @@
+{
+  "datos_extraidos": {
+    "dias_rutina_completados": 2,
+    "dias_rutina_totales": 3,
+    "notas_rutina": "Missed the last session, work got busy. Everything else felt good, no pain.",
+    "dias_dieta_seguidos": 6,
+    "dias_dieta_totales": 7,
+    "notas_dieta": "Pretty easy to stick to since I already cook most of my meals. One night out where I did not track much.",
+    "valoracion": "Medium"
+  },
+  "fila_checkin_notion": {
+    "tipo": "Adherence check-in",
+    "notas": "Routine: 2/3 sessions completed. Routine notes: Missed the last session, work got busy. Everything else felt good, no pain. Diet: 6/7 days followed. Diet notes: Pretty easy to stick to since I already cook most of my meals. One night out where I did not track much.",
+    "valoracion": "Medium"
+  }
+}

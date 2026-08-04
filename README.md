@@ -67,8 +67,12 @@ This repository is built phase by phase, as a learning project. Right now:
   toggle** — the generated plan's narrative text (messages, warmups, progression) now
   follows it too; exercise/food names stay in their canonical form on purpose (see
   `docs/decisiones.md`) so the validator's safety cross-check can't silently break.
-- Tested with two example cases: one straightforward, one with an injury and a
-  vegetarian diet, to confirm the enhanced-review flag fires when it should.
+- Tested with three example cases: one straightforward, one with an injury and a
+  vegetarian diet, and one vegan client with a food allergy, to confirm the
+  enhanced-review flag fires when it should. The third one also ships the full
+  adherence loop's artifacts (a filled-in checklist PDF and the resulting
+  Check-in data) so the loop is visible without having to read code to
+  understand what it produces.
 - An optional **bloodwork PDF** can be attached to the intake — out-of-range markers
   are extracted (best-effort, bilingual) and automatically force enhanced review,
   same defense-in-depth pattern as injuries and allergies
@@ -92,7 +96,10 @@ This repository is built phase by phase, as a learning project. Right now:
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a
-  confirmed send, ticks it off and logs the check-in automatically.
+  confirmed send, ticks it off and logs the check-in automatically. That history
+  is also visible directly in the panel itself (an "Adherence history" section
+  next to the Gmail controls) — no need to open Notion just to see how a
+  returning client has been doing.
 - On the public demo, approving a plan (and unlocking Notion/Gmail) is gated
   behind a shared password, so a random visitor can't write to the trainer's
   real accounts just by clicking through.
@@ -163,8 +170,8 @@ The default pipeline is pure standard Python, no API key or account needed:
 python agents/run_pipeline_demo.py
 ```
 
-This runs the full pipeline (routine → diet → validator) on the two example clients
-and prints the state trail and final result to the terminal.
+This runs the full pipeline (routine → diet → validator) on the three example
+clients and prints the state trail and final result to the terminal.
 
 You can also run each piece separately:
 ```bash

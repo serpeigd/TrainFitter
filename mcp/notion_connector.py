@@ -355,6 +355,23 @@ def crear_registro_checkin(
     return {"id": pagina["id"], "url": pagina["url"]}
 
 
+def _id_fuente_datos(cliente, database_id: str) -> str:
+    """Resolves (and caches, see _CACHE_FUENTE_DATOS) the data_source_id a
+    database_id maps to -- databases.query() was removed from the SDK once
+    Notion's 2025-09-03 API moved querying to the per-data-source endpoint
+    (multi-source databases); database_id is still accepted as a page
+    *parent* for backward compatibility (see crear_registro_checkin()), but
+    querying needs the actual data_source_id. Checked against a real
+    workspace, not assumed from changelog text -- databases.query()
+    genuinely raises AttributeError on notion-client>=3. Shared by
+    existe_checkin_para_mensaje() and historial_checkins() so the fix
+    (and the cache) only lives in one place."""
+    if database_id not in _CACHE_FUENTE_DATOS:
+        base_datos = cliente.databases.retrieve(database_id=database_id)
+        _CACHE_FUENTE_DATOS[database_id] = base_datos["data_sources"][0]["id"]
+    return _CACHE_FUENTE_DATOS[database_id]
+
+
 def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     """
     Checks whether a Check-ins row already exists for a given Gmail message
@@ -379,25 +396,63 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    # databases.query() was removed from the SDK once Notion's 2025-09-03
-    # API moved querying to the per-data-source endpoint (multi-source
-    # databases) -- database_id is still accepted as a page *parent* for
-    # backward compatibility (see crear_registro_checkin() above), but
-    # querying needs the actual data_source_id, resolved via
-    # databases.retrieve() and cached in _CACHE_FUENTE_DATOS (see its own
-    # comment). Checked against a real workspace, not assumed from
-    # changelog text -- databases.query genuinely raises AttributeError on
-    # notion-client>=3.
     try:
         cliente = Client(auth=api_key)
-        if database_id not in _CACHE_FUENTE_DATOS:
-            base_datos = cliente.databases.retrieve(database_id=database_id)
-            _CACHE_FUENTE_DATOS[database_id] = base_datos["data_sources"][0]["id"]
         resultado = cliente.data_sources.query(
-            data_source_id=_CACHE_FUENTE_DATOS[database_id],
+            data_source_id=_id_fuente_datos(cliente, database_id),
             filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
         )
     except APIResponseError as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return len(resultado["results"]) > 0
+
+
+def _fila_checkin_desde_pagina(pagina: dict) -> dict:
+    """Extracts the fields ui/app.py's adherence history view needs from a
+    raw Check-ins page object. Pure function: no I/O, safe to unit test
+    with a hand-built page dict instead of a real API response."""
+    propiedades = pagina["properties"]
+    fecha = (propiedades.get("Date", {}).get("date") or {}).get("start")
+    tipo = (propiedades.get("Type", {}).get("select") or {}).get("name")
+    valoracion = (propiedades.get("Adherence rating", {}).get("select") or {}).get("name")
+    notas = "".join(t["plain_text"] for t in propiedades.get("Adherence notes", {}).get("rich_text", []))
+    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "notas": notas}
+
+
+def historial_checkins(email: str) -> list[dict]:
+    """
+    Returns every Check-ins row for a client, most recent first — lets
+    ui/app.py show adherence history directly in the trainer's panel
+    instead of that data only ever being visible inside Notion itself.
+
+    Args:
+        email: the client's email — same join key crear_registro_checkin()
+            uses (a plain property match, not a Notion relation — see this
+            module's docstring for why).
+
+    Returns:
+        A list of {"fecha", "tipo", "valoracion", "notas"} dicts, most
+        recent first. Empty list if the client has no check-ins yet (not
+        an error — a brand-new client legitimately has none).
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+    database_id = _checkins_database_id()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            filter={"property": "Email", "email": {"equals": email}},
+            sorts=[{"property": "Date", "direction": "descending"}],
+        )
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return [_fila_checkin_desde_pagina(pagina) for pagina in resultado["results"]]

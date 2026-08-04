@@ -18,28 +18,36 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+
+      # One install for everything below: lint (ruff) and the test suite's
+      # mocked network tests (google-api-python-client, notion-client) and
+      # PDF round-trip tests (reportlab, pypdf) all need real packages
+      # installed now, not just the free rule engine's stdlib-only path --
+      # requirements.txt already lists every one of them, so installing it
+      # once here instead of hand-picking a subset can't drift out of sync
+      # with what the suite actually imports again.
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Check syntax of all modules
         run: python -m py_compile agents/*.py mcp/*.py ui/app.py main.py
 
       - name: Lint (ruff)
-        run: pip install ruff && ruff check .
+        run: ruff check .
 
       - name: Validate example client schemas
         run: |
           python -c "
           import json
-          for n in (1, 2):
+          for n in (1, 2, 3):
               json.load(open(f'examples/cliente_ejemplo_{n}.json', encoding='utf-8'))
-          print('Valid JSON: both example clients')
+          print('Valid JSON: all example clients')
           "
 
       - name: Run the full pipeline (rule engine, no API key)
         working-directory: agents
         run: python run_pipeline_demo.py
-
-      - name: Install test dependencies
-        run: pip install pytest pdfplumber
 
       - name: Run the test suite
         run: python -m pytest tests/ -v

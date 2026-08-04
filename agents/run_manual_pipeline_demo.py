@@ -50,7 +50,7 @@ def procesar_cliente(numero: int) -> None:
 
 
 def main() -> None:
-    for numero in (1, 2):
+    for numero in (1, 2, 3):
         procesar_cliente(numero)
 
 

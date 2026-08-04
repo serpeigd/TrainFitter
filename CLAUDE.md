@@ -88,7 +88,10 @@ the form field values back out of a reply — a fillable PDF form replaced
 an earlier plain-text-attachment design; see `docs/decisiones.md`), and
 logs an "Adherence check-in" row per reply, deduped against Notion by
 Gmail message ID (`existe_checkin_para_mensaje()`) rather than a Gmail
-label — see `mcp/gmail_client.py`'s docstring for why. This is what pushed
+label — see `mcp/gmail_client.py`'s docstring for why. That history is
+also readable directly from `ui/app.py` (`notion_connector.historial_checkins()`,
+an "Adherence history" expander next to the Gmail controls) — previously
+only ever visible by opening Notion itself. This is what pushed
 the Gmail scope from `gmail.metadata` to `gmail.readonly` (a real
 permission jump, deliberately accepted — see that same docstring).
 Notion-save and Gmail-draft-creation are gated behind the

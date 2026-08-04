@@ -1,0 +1,57 @@
+{
+  "id_cliente": "cliente_003",
+  "fecha_admision": "2026-03-05",
+  "datos_basicos": {
+    "nombre": "Ana Torres",
+    "edad": 29,
+    "sexo": "mujer",
+    "peso_kg": 61,
+    "altura_cm": 165
+  },
+  "objetivo": {
+    "principal": "salud_general",
+    "en_sus_palabras": "I don't have a specific aesthetic goal right now — I just want to feel stronger, sleep better, and have more energy day to day. I've never really followed a training program before."
+  },
+  "experiencia": {
+    "nivel": "principiante",
+    "anios_entrenando": 0,
+    "detalle": "No structured training history, only occasional yoga classes over the years."
+  },
+  "disponibilidad": {
+    "dias_por_semana": 3,
+    "minutos_por_sesion": 40,
+    "lugar_entreno": "casa_con_material",
+    "material_disponible": ["mancuernas", "bancos"]
+  },
+  "salud": {
+    "lesiones": [],
+    "enfermedades_o_condiciones": [],
+    "embarazo_o_lactancia": {
+      "aplica": false,
+      "detalle": ""
+    },
+    "medicacion_habitual": [],
+    "alergias_alimentarias": ["tree nut allergy (walnuts, almonds) — carries an EpiPen"],
+    "intolerancias_alimentarias": [],
+    "analitica_adjunta": {
+      "tiene": false,
+      "archivo": null,
+      "fecha": null,
+      "notas": ""
+    }
+  },
+  "nutricion": {
+    "tipo_dieta": "vegana",
+    "restricciones": ["no animal products"],
+    "alimentos_que_no_le_gustan": ["mushrooms"],
+    "comidas_al_dia_preferidas": 4,
+    "contexto": "Vegan for 4 years, cooks most of her own meals and is comfortable in the kitchen. Works from home, so timing meals around training is flexible."
+  },
+  "estilo_de_vida": {
+    "horas_sueno_promedio": 7,
+    "nivel_estres_percibido": "medio",
+    "tipo_trabajo": "remote desk job, mostly sedentary",
+    "pasos_diarios_aprox": 5500
+  },
+  "notas_libres": "First time working with a trainer. A bit nervous about starting but motivated — mentioned she'd like check-ins along the way to know if she's doing it right."
+}
