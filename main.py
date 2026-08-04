@@ -1,13 +1,14 @@
 """
-Automatic inbox trigger: scans the trainer's Gmail inbox for adherence
-checklists clients have sent back after actually starting their plan (see
-mcp/gmail_client.py's buscar_respuestas_adherencia()), parses each one
-(agents/adherencia_parser.py), and logs a new "Adherence check-in" row in
-Notion's Check-ins database for every reply not already recorded — skipping
-duplicates by Gmail message ID (mcp/notion_connector.py's
-existe_checkin_para_mensaje()). See both modules' docstrings for the full
-design rationale (why gmail.readonly, why dedup lives in Notion rather than
-a Gmail label).
+Automatic inbox trigger: scans the trainer's Gmail inbox for filled-in
+checklist PDFs clients have sent back after actually starting their plan
+(see mcp/gmail_client.py's buscar_respuestas_adherencia()), reads each
+one's form fields (agents/pdf_generador.py's leer_checklist_pdf()), and
+logs a new "Adherence check-in" row in Notion's Check-ins database for
+every reply not already recorded — skipping duplicates by Gmail message ID
+(mcp/notion_connector.py's existe_checkin_para_mensaje()). See these
+modules' docstrings for the full design rationale (why gmail.readonly, why
+a fillable PDF instead of plain text, why dedup lives in Notion rather
+than a Gmail label).
 
 Meant to run on a schedule via GitHub Actions
 (.github/workflows/inbox_trigger.yml), free of charge — same spirit as the
@@ -25,9 +26,10 @@ REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT / "agents"))
 sys.path.insert(0, str(REPO_ROOT / "mcp"))
 
-from adherencia_parser import analizar_adherencia, resumir_adherencia  # noqa: E402
+from adherencia_parser import resumir_adherencia  # noqa: E402
 from gmail_client import GmailClientError, buscar_respuestas_adherencia  # noqa: E402
 from notion_connector import NotionClientError, crear_registro_checkin, existe_checkin_para_mensaje  # noqa: E402
+from pdf_generador import leer_checklist_pdf  # noqa: E402
 
 
 def main() -> None:
@@ -48,7 +50,7 @@ def main() -> None:
             print(f"Notion error checking {respuesta['id_mensaje']}: {exc}")
             continue
 
-        datos = analizar_adherencia(respuesta["contenido"])
+        datos = leer_checklist_pdf(respuesta["contenido"])
         if datos["valoracion"] is None:
             print(f"Skipping {respuesta['id_mensaje']} from {respuesta['remitente']}: nothing parseable in it.")
             continue

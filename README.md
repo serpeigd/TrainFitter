@@ -75,7 +75,10 @@ This repository is built phase by phase, as a learning project. Right now:
   (see [`agents/analytics_parser.py`](agents/analytics_parser.py)).
 - A real **Gmail draft** can be created for the approved plan — never sent
   automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
-  the trainer reviews and sends it themselves from their own Gmail.
+  the trainer reviews and sends it themselves from their own Gmail. The draft
+  carries a brief note plus two generated PDFs (see
+  [`agents/pdf_generador.py`](agents/pdf_generador.py)): the diet plan, and a
+  fillable check-in form for the routine.
 - Every real new-client plan is automatically **saved to Notion** as a
   persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
   — a lightweight CRM outside the browser session, which otherwise forgets
@@ -94,11 +97,12 @@ This repository is built phase by phase, as a learning project. Right now:
   behind a shared password, so a random visitor can't write to the trainer's
   real accounts just by clicking through.
 - An **automatic inbox trigger** (see [`main.py`](main.py)) scans the trainer's
-  Gmail inbox for adherence checklists clients send back once they've actually
-  started their plan — every draft now attaches one — and logs a summarized
-  check-in row per reply (days completed, notes, a rough adherence rating),
-  deduped so a scheduled re-scan never double-logs the same reply. Runs free
-  on a GitHub Actions cron ([`.github/workflows/inbox_trigger.yml`](.github/workflows/inbox_trigger.yml)).
+  Gmail inbox for a filled-in checklist PDF clients send back once they've
+  actually started their plan, reads its form field values, and logs a
+  summarized check-in row per reply (days completed, notes, a rough adherence
+  rating), deduped so a scheduled re-scan never double-logs the same reply.
+  Runs free on a GitHub Actions cron
+  ([`.github/workflows/inbox_trigger.yml`](.github/workflows/inbox_trigger.yml)).
 
 ## What it doesn't include yet
 
@@ -120,7 +124,7 @@ TrainFitter/
 │   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, orchestrator, adherence parser, seeded variety
+├── agents/                          Routine, diet, validator, orchestrator, PDF generation, seeded variety
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + send/adherence-reply detection), Notion (Clients + Check-ins)

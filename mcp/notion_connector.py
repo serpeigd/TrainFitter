@@ -93,6 +93,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# database_id -> data_source_id, populated lazily by
+# _id_fuente_datos_checkins() below. A database's data source doesn't
+# change during a process's lifetime, so caching it here avoids an extra
+# databases.retrieve() call on every single existe_checkin_para_mensaje()
+# check — main.py calls that once per candidate reply found in the inbox,
+# so on a busy run this is the difference between one lookup and one per
+# reply.
+_CACHE_FUENTE_DATOS: dict[str, str] = {}
+
 # Display-only English labels for schema values that stay in Spanish
 # internally (see docs/decisiones.md) — same convention as ui/app.py's
 # OPTION_LABELS, kept local here since this is the only other place that
@@ -317,7 +326,7 @@ def crear_registro_checkin(
         fecha: ISO date string (YYYY-MM-DD) for the Date property.
         notas: optional adherence notes for this interaction.
         valoracion: optional "Low"/"Medium"/"High" for the Adherence
-            rating select — see adherencia_parser.analizar_adherencia().
+            rating select — see pdf_generador.leer_checklist_pdf().
         id_mensaje: optional Gmail message ID for the Source message ID
             property — only main.py's automated rows set this; see the
             module docstring for why it exists (idempotency, not identity).
@@ -374,16 +383,18 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     # API moved querying to the per-data-source endpoint (multi-source
     # databases) -- database_id is still accepted as a page *parent* for
     # backward compatibility (see crear_registro_checkin() above), but
-    # querying needs the actual data_source_id, resolved here via
-    # databases.retrieve(). Checked against a real workspace, not assumed
-    # from changelog text -- databases.query genuinely raises AttributeError
-    # on notion-client>=3.
+    # querying needs the actual data_source_id, resolved via
+    # databases.retrieve() and cached in _CACHE_FUENTE_DATOS (see its own
+    # comment). Checked against a real workspace, not assumed from
+    # changelog text -- databases.query genuinely raises AttributeError on
+    # notion-client>=3.
     try:
         cliente = Client(auth=api_key)
-        base_datos = cliente.databases.retrieve(database_id=database_id)
-        id_fuente_datos = base_datos["data_sources"][0]["id"]
+        if database_id not in _CACHE_FUENTE_DATOS:
+            base_datos = cliente.databases.retrieve(database_id=database_id)
+            _CACHE_FUENTE_DATOS[database_id] = base_datos["data_sources"][0]["id"]
         resultado = cliente.data_sources.query(
-            data_source_id=id_fuente_datos,
+            data_source_id=_CACHE_FUENTE_DATOS[database_id],
             filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
         )
     except APIResponseError as exc:

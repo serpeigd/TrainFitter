@@ -10,6 +10,13 @@ on:
     - cron: "0 8 * * *"
   workflow_dispatch:
 
+# Least privilege: this job never writes to the repo itself (no push, no
+# comments, no releases) -- it only ever talks to Gmail/Notion via the
+# secrets below, so the auto-generated GITHUB_TOKEN only needs read access
+# to check the code out, nothing else.
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -19,6 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -27,10 +35,19 @@ jobs:
       # mcp/gmail_client.py's module docstring) -- materialized here from
       # repo secrets instead, same two secrets already used for Streamlit
       # Cloud's equivalent bridge (see ui/app.py's _materializar_secretos_gmail()).
+      # Passed through env: rather than interpolated directly into the
+      # run: script -- GitHub's own security hardening guidance: a secret
+      # substituted straight into shell text is executed as script, not
+      # treated as inert data, so a value containing shell metacharacters
+      # could inject commands. Referencing it as a shell variable instead
+      # keeps it as plain data no matter what it contains.
       - name: Write Gmail credentials from secrets
+        env:
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
         run: |
-          printf '%s' '${{ secrets.GMAIL_CREDENTIALS_JSON }}' > credentials.json
-          printf '%s' '${{ secrets.GMAIL_TOKEN_JSON }}' > token.json
+          printf '%s' "$GMAIL_CREDENTIALS_JSON" > credentials.json
+          printf '%s' "$GMAIL_TOKEN_JSON" > token.json
 
       - name: Run the inbox trigger
         env:

@@ -754,7 +754,6 @@ TRANSLATIONS = {
         "create_draft_button": "Create Gmail draft",
         "draft_created_success": "Draft created — [open it in Gmail]({url}).",
         "draft_error": "Could not create the draft: {error}",
-        "notion_saved_note": "📋 Saved to Notion — [open it]({url}).",
         "notion_error_note": "📋 Not saved to Notion: {error}",
         "check_send_status_button": "Check if it was sent",
         "checkin_confirmed_send": "✅ Confirmed sent — logged in Check-ins.",
@@ -878,7 +877,6 @@ TRANSLATIONS = {
         "create_draft_button": "Crear borrador en Gmail",
         "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
         "draft_error": "No se pudo crear el borrador: {error}",
-        "notion_saved_note": "📋 Guardado en Notion — [ábrelo]({url}).",
         "notion_error_note": "📋 No se guardó en Notion: {error}",
         "check_send_status_button": "Comprobar si se envió",
         "checkin_confirmed_send": "✅ Confirmado como enviado — registrado en Check-ins.",
@@ -1391,7 +1389,6 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
             # page to backfill the client's email onto otherwise, since the
             # trainer usually hasn't typed it in yet at approval time.
             st.session_state["notion_pagina_id"] = resultado["id"]
-            st.session_state["notion_resultado_url"] = resultado["url"]
             st.session_state["notion_error"] = None
         except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
             # Unlike the old silent auto-save, this is now a direct result
@@ -1456,9 +1453,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     # _ejecutar_aprobacion()'s docstring.
     if aprobado:
         st.success(t("approved_success").format(time=st.session_state.get("aprobado_hora", "")))
-        if guardar_en_notion and st.session_state.get("notion_guardado_para") == id(perfil):
-            st.caption(t("notion_saved_note").format(url=st.session_state.get("notion_resultado_url", "")))
-        elif guardar_en_notion and st.session_state.get("notion_error"):
+        if guardar_en_notion and st.session_state.get("notion_error"):
             st.caption(t("notion_error_note").format(error=st.session_state["notion_error"]))
 
     st.markdown(t("gmail_section_header"))

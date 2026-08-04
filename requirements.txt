@@ -31,6 +31,14 @@ google-api-python-client>=2.150.0
 google-auth-httplib2>=0.2.0
 google-auth-oauthlib>=1.2.0
 
+# Generación/lectura de PDF — agents/pdf_generador.py: el PDF de dieta y el
+# checklist rellenable adjuntos al email (ver mcp/gmail_client.py). reportlab
+# los genera (incluye los campos de formulario del checklist); pypdf lee de
+# vuelta los valores rellenados por el cliente. Ambos gratis, sin API, sin
+# dependencias de sistema:
+reportlab>=4.2.0
+pypdf>=5.0.0
+
 # Tests (opcional) — solo si quieres ejecutar la suite en tests/. Gratis,
 # no llama a ninguna API:
 pytest>=8.0.0
