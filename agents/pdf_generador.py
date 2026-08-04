@@ -85,12 +85,11 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
     Returns:
         The PDF file's raw bytes.
     """
+    from food_bank import nombre_mostrado
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
     from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
-
-    from food_bank import nombre_mostrado
 
     estilos = getSampleStyleSheet()
     estilo_titulo = ParagraphStyle("Titulo", parent=estilos["Title"], spaceAfter=6)

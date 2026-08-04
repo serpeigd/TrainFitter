@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 import httpx
 import notion_connector
 import pytest
-from notion_connector import NotionClientError
 from notion_client.errors import APIErrorCode, APIResponseError
+from notion_connector import NotionClientError
 
 
 def _api_error(message="error"):
