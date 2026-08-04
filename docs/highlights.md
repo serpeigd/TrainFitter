@@ -95,6 +95,25 @@ dependencies, zero cost — `random` is standard library — and the
 resulting variety is still fully assertable in tests (same client twice →
 equal; N distinct clients → more than one distinct result).
 
+## 9. A structured form beats free text for safety-critical intake, and a real test gap got written down instead of hidden
+
+Automating new-client intake (a prospect emails back a filled PDF, the
+pipeline runs unattended) touches the exact fields `validator_agent.py`
+exists to defend — injuries, allergies, pregnancy. Free-text parsing (even
+via an LLM, which the free-only guardrail rules out anyway) means trusting
+a parser's coverage on safety-critical data; a fillable PDF form
+(`agents/pdf_intake.py`) only ever produces a fixed, known set of field
+names, so reading it back is never inference, just a lookup. Separately,
+one function in this feature (`buscar_intakes_nuevos()`) couldn't be
+proven end-to-end against a real inbox — Gmail's API rejects injecting a
+synthetic incoming message under the deliberately narrow `gmail.compose`
+scope (403, `Insufficient Permission`; that scope can create drafts, not
+insert arbitrary mail). Rather than widen the scope just to make one test
+more realistic, that gap is disclosed directly in `decisiones.md` and
+covered instead by mocked-network tests plus real-credentials coverage of
+every other moving part — the same standard applied to every claim this
+project makes about what its test suite actually proves.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*

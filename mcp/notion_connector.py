@@ -75,7 +75,7 @@ Setup (one-time, free, done by the project owner — never by this code):
   2. In Notion, create a "Clients" database with these exact properties:
        Name (title), Date (date), Goal (select), Level (select),
        Verdict (select), Summary (text), Email Sent (checkbox),
-       Email (email)
+       Email (email), Source message ID (text)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
@@ -137,16 +137,23 @@ def _construir_resumen(borrador_rutina: dict, borrador_dieta: dict) -> str:
 
 
 def _construir_propiedades_pagina(
-    perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict
+    perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict, id_mensaje: str | None = None,
 ) -> dict:
     """Builds the Notion page "properties" payload matching the database
     schema documented in this module's docstring. Pure function: no I/O,
-    safe to unit test without any credentials."""
+    safe to unit test without any credentials.
+
+    id_mensaje: optional Gmail message ID, set only when main.py's
+    automated intake trigger creates this record (see
+    mcp.gmail_client.buscar_intakes_nuevos()) -- lets
+    existe_cliente_para_mensaje() dedupe a re-scanned inbox the same way
+    Check-ins already does for adherence replies. A trainer approving a
+    plan manually through ui/app.py never sets this."""
     datos = perfil_cliente["datos_basicos"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     nivel = perfil_cliente["experiencia"]["nivel"]
 
-    return {
+    propiedades = {
         "Name": {"title": [{"text": {"content": datos["nombre"]}}]},
         "Date": {"date": {"start": perfil_cliente.get("fecha_admision")}},
         "Goal": {"select": {"name": OBJETIVO_LABELS.get(objetivo, objetivo)}},
@@ -155,6 +162,9 @@ def _construir_propiedades_pagina(
         "Summary": {"rich_text": [{"text": {"content": _construir_resumen(borrador_rutina, borrador_dieta)}}]},
         "Email Sent": {"checkbox": False},
     }
+    if id_mensaje:
+        propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}
+    return propiedades
 
 
 def _credenciales() -> tuple[str, str]:
@@ -175,11 +185,19 @@ def _credenciales() -> tuple[str, str]:
 
 
 def guardar_registro_cliente(
-    perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict
+    perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict, id_mensaje: str | None = None,
 ) -> dict:
     """
     Saves a summarized record of this client's plan as a new page in the
     trainer's Notion database.
+
+    Args:
+        perfil_cliente, borrador_rutina, borrador_dieta, veredicto: same as before.
+        id_mensaje: optional Gmail message ID — only main.py's automated
+            intake trigger sets this (see
+            mcp.gmail_client.buscar_intakes_nuevos()); ui/app.py's manual
+            approval flow never does. See
+            _construir_propiedades_pagina()'s docstring for why it exists.
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it}. The ID
@@ -200,7 +218,7 @@ def guardar_registro_cliente(
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto)
+    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto, id_mensaje)
 
     try:
         cliente = Client(auth=api_key)
@@ -392,6 +410,42 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     """
     api_key, _ = _credenciales()
     database_id = _checkins_database_id()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
+        )
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return len(resultado["results"]) > 0
+
+
+def existe_cliente_para_mensaje(id_mensaje: str) -> bool:
+    """
+    Checks whether a Clients row already exists for a given Gmail message
+    ID — main.py's automated intake trigger calls this before running the
+    pipeline and creating a new record, so a scheduled run that re-scans
+    the whole inbox doesn't process the same intake submission twice.
+    Same dedup pattern as existe_checkin_para_mensaje(), against the
+    Clients database instead of Check-ins.
+
+    Args:
+        id_mensaje: the Gmail message ID (see
+            mcp.gmail_client.buscar_intakes_nuevos()).
+
+    Returns:
+        True if a row with this Source message ID already exists.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, database_id = _credenciales()
 
     from notion_client import Client
     from notion_client.errors import APIResponseError

@@ -50,6 +50,19 @@ def test_guardar_registro_cliente_returns_id_and_url(monkeypatch, perfil_base):
     assert kwargs["parent"] == {"database_id": "fake-database-id"}
 
 
+def test_guardar_registro_cliente_sets_source_message_id_for_automated_intakes(monkeypatch, perfil_base):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.create.return_value = {"id": "page-1", "url": "https://notion.so/page-1"}
+    borrador_rutina = {"resumen_enfoque": "..."}
+    borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    notion_connector.guardar_registro_cliente(perfil_base, borrador_rutina, borrador_dieta, veredicto, id_mensaje="msg-1")
+
+    _args, kwargs = cliente.pages.create.call_args
+    assert kwargs["properties"]["Source message ID"]["rich_text"][0]["text"]["content"] == "msg-1"
+
+
 def test_guardar_registro_cliente_wraps_api_error(monkeypatch, perfil_base):
     cliente = _mock_client(monkeypatch)
     cliente.pages.create.side_effect = _api_error()
@@ -137,6 +150,52 @@ def test_existe_checkin_wraps_api_error(monkeypatch):
     cliente.databases.retrieve.side_effect = _api_error()
     with pytest.raises(NotionClientError):
         notion_connector.existe_checkin_para_mensaje("msg-1")
+
+
+def test_existe_cliente_true_when_a_result_is_found(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": [{"id": "page-1"}]}
+
+    assert notion_connector.existe_cliente_para_mensaje("msg-1") is True
+    cliente.data_sources.query.assert_called_once_with(
+        data_source_id="ds-clients",
+        filter={"property": "Source message ID", "rich_text": {"equals": "msg-1"}},
+    )
+
+
+def test_existe_cliente_false_when_no_results(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}
+
+    assert notion_connector.existe_cliente_para_mensaje("msg-1") is False
+
+
+def test_existe_cliente_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.existe_cliente_para_mensaje("msg-1")
+
+
+def test_data_source_id_cache_is_separate_per_database(monkeypatch):
+    """Clients and Check-ins are two different databases -- caching the
+    data source id for one must not be reused for the other, even though
+    both go through the same _id_fuente_datos() helper."""
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = [
+        {"data_sources": [{"id": "ds-clients"}]},
+        {"data_sources": [{"id": "ds-checkins"}]},
+    ]
+    cliente.data_sources.query.return_value = {"results": []}
+
+    notion_connector.existe_cliente_para_mensaje("msg-1")
+    notion_connector.existe_checkin_para_mensaje("msg-1")
+
+    assert cliente.databases.retrieve.call_count == 2
+    llamadas = [kwargs["data_source_id"] for _args, kwargs in cliente.data_sources.query.call_args_list]
+    assert llamadas == ["ds-clients", "ds-checkins"]
 
 
 def test_data_source_id_is_cached_across_calls(monkeypatch):

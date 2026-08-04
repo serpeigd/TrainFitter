@@ -1,14 +1,30 @@
 """
-Automatic inbox trigger: scans the trainer's Gmail inbox for filled-in
-checklist PDFs clients have sent back after actually starting their plan
-(see mcp/gmail_client.py's buscar_respuestas_adherencia()), reads each
-one's form fields (agents/pdf_generador.py's leer_checklist_pdf()), and
-logs a new "Adherence check-in" row in Notion's Check-ins database for
-every reply not already recorded — skipping duplicates by Gmail message ID
-(mcp/notion_connector.py's existe_checkin_para_mensaje()). See these
-modules' docstrings for the full design rationale (why gmail.readonly, why
-a fillable PDF instead of plain text, why dedup lives in Notion rather
-than a Gmail label).
+Automatic inbox trigger, two independent jobs in one scheduled run:
+
+1. Adherence check-ins: scans the inbox for filled-in checklist PDFs
+   clients have sent back after actually starting their plan (see
+   mcp/gmail_client.py's buscar_respuestas_adherencia()), reads each
+   one's form fields (agents/pdf_generador.py's leer_checklist_pdf()),
+   and logs a new "Adherence check-in" row in Notion's Check-ins
+   database for every reply not already recorded.
+
+2. New-client intakes: scans the inbox for filled-in intake PDFs a
+   prospective client has emailed back (see mcp/gmail_client.py's
+   buscar_intakes_nuevos()), runs the full pipeline on each one
+   (agents/orchestrator.py's ejecutar_pipeline()) — no trainer typing
+   required — and saves a summary record to Notion's Clients database.
+   This never creates a Gmail draft or sends anything: the trainer still
+   reviews and approves every plan through ui/app.py exactly as before,
+   just by uploading the same intake PDF there (a file_uploader alongside
+   the manual form) instead of retyping it. This record is purely an
+   early heads-up so the trainer knows a submission is waiting without
+   checking email.
+
+Both jobs dedupe by Gmail message ID against Notion (Check-ins/Clients'
+own "Source message ID" property) rather than marking anything as read in
+Gmail — see mcp/gmail_client.py's docstring for why. See these modules'
+docstrings for the full design rationale (why gmail.readonly, why a
+fillable PDF instead of plain text or free-form parsing).
 
 Meant to run on a schedule via GitHub Actions
 (.github/workflows/inbox_trigger.yml), free of charge — same spirit as the
@@ -27,19 +43,26 @@ sys.path.insert(0, str(REPO_ROOT / "agents"))
 sys.path.insert(0, str(REPO_ROOT / "mcp"))
 
 from adherencia_parser import resumir_adherencia  # noqa: E402
-from gmail_client import GmailClientError, buscar_respuestas_adherencia  # noqa: E402
-from notion_connector import NotionClientError, crear_registro_checkin, existe_checkin_para_mensaje  # noqa: E402
+from gmail_client import GmailClientError, buscar_intakes_nuevos, buscar_respuestas_adherencia  # noqa: E402
+from notion_connector import (  # noqa: E402
+    NotionClientError,
+    crear_registro_checkin,
+    existe_checkin_para_mensaje,
+    existe_cliente_para_mensaje,
+    guardar_registro_cliente,
+)
+from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import leer_checklist_pdf  # noqa: E402
 
 
-def main() -> None:
+def procesar_adherencia() -> None:
     try:
         respuestas = buscar_respuestas_adherencia()
     except GmailClientError as exc:
-        print(f"Gmail error: {exc}")
+        print(f"Gmail error (adherence): {exc}")
         return
 
-    print(f"Found {len(respuestas)} candidate repl{'y' if len(respuestas) == 1 else 'ies'} in the inbox.")
+    print(f"Found {len(respuestas)} candidate adherence repl{'y' if len(respuestas) == 1 else 'ies'} in the inbox.")
 
     nuevos_registros = 0
     for respuesta in respuestas:
@@ -76,7 +99,60 @@ def main() -> None:
         nuevos_registros += 1
         print(f"Logged adherence check-in for {respuesta['remitente']} ({datos['valoracion']}): {registro['url']}")
 
-    print(f"Done. {nuevos_registros} new check-in(s) logged.")
+    print(f"Adherence: {nuevos_registros} new check-in(s) logged.")
+
+
+def procesar_intakes_nuevos() -> None:
+    try:
+        intakes = buscar_intakes_nuevos()
+    except GmailClientError as exc:
+        print(f"Gmail error (intakes): {exc}")
+        return
+
+    print(f"Found {len(intakes)} candidate new intake{'s' if len(intakes) != 1 else ''} in the inbox.")
+
+    nuevos_registros = 0
+    for intake in intakes:
+        try:
+            if existe_cliente_para_mensaje(intake["id_mensaje"]):
+                continue
+        except NotionClientError as exc:
+            print(f"Notion error checking {intake['id_mensaje']}: {exc}")
+            continue
+
+        perfil = intake["perfil"]
+        # id_cliente/fecha_admision aren't in the PDF -- leer_intake_pdf()
+        # deliberately leaves them for the caller (see its docstring).
+        # Derived from the message itself, not invented, so re-running
+        # this against the same email always assigns the same id.
+        perfil["id_cliente"] = f"auto_{intake['id_mensaje'][:12]}"
+        perfil["fecha_admision"] = intake["fecha"]
+
+        estado = ejecutar_pipeline(perfil)
+        if estado.error:
+            print(f"Pipeline error for {intake['id_mensaje']} ({perfil['datos_basicos']['nombre']!r}): {estado.error}")
+            continue
+
+        try:
+            registro = guardar_registro_cliente(
+                perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto, id_mensaje=intake["id_mensaje"],
+            )
+        except NotionClientError as exc:
+            print(f"Notion error saving {intake['id_mensaje']}: {exc}")
+            continue
+
+        nuevos_registros += 1
+        print(
+            f"Logged new intake for {perfil['datos_basicos']['nombre']} "
+            f"({estado.veredicto['veredicto']}): {registro['url']}"
+        )
+
+    print(f"Intakes: {nuevos_registros} new client(s) processed.")
+
+
+def main() -> None:
+    procesar_adherencia()
+    procesar_intakes_nuevos()
 
 
 if __name__ == "__main__":

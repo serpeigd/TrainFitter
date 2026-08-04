@@ -146,6 +146,7 @@ from notion_connector import (  # noqa: E402
     marcar_email_enviado,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
+from pdf_intake import es_intake_pdf, leer_intake_pdf  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
@@ -651,6 +652,15 @@ TRANSLATIONS = {
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
         "tab_new_intake": "📝 New Client",
+        "intake_pdf_upload_header": "📤 Upload a filled intake PDF (skip the form below)",
+        "intake_pdf_upload_caption": (
+            "If the client emailed back a filled-in intake form, upload it here instead of retyping everything."
+        ),
+        "intake_pdf_upload_label": "Filled intake PDF",
+        "intake_pdf_upload_invalid": "This doesn't look like a TrainFitter intake PDF.",
+        "intake_pdf_upload_empty": "The name field is empty — looks like a blank template, not a filled-in form.",
+        "intake_pdf_upload_loaded": "Loaded intake for **{nombre}**.",
+        "intake_pdf_upload_confirm": "Use this data and generate the plan",
         "sec_basic_info": "1. Basic info",
         "full_name": "Full name",
         "age": "Age",
@@ -777,6 +787,16 @@ TRANSLATIONS = {
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
         "tab_new_intake": "📝 Cliente nuevo",
+        "intake_pdf_upload_header": "📤 Subir una ficha PDF rellenada (te saltas el formulario de abajo)",
+        "intake_pdf_upload_caption": (
+            "Si el cliente respondió por email con la ficha de admisión rellenada, súbela aquí en vez de "
+            "volver a escribirlo todo."
+        ),
+        "intake_pdf_upload_label": "PDF de ficha rellenado",
+        "intake_pdf_upload_invalid": "Esto no parece un PDF de ficha de TrainFitter.",
+        "intake_pdf_upload_empty": "El campo de nombre está vacío — parece una plantilla en blanco, no una ficha rellenada.",
+        "intake_pdf_upload_loaded": "Ficha cargada para **{nombre}**.",
+        "intake_pdf_upload_confirm": "Usar estos datos y generar el plan",
         "sec_basic_info": "1. Datos básicos",
         "full_name": "Nombre completo",
         "age": "Edad",
@@ -998,6 +1018,44 @@ def _clave_multiselect(nombre_base: str, por_defecto: list[str]) -> tuple[str, l
     if clave_widget in st.session_state:
         st.session_state[clave_valor] = st.session_state[clave_widget]
     return clave_widget, st.session_state.get(clave_valor, por_defecto)
+
+
+# ---------------------------------------------------------------------------
+# Building the profile from an uploaded, already-filled intake PDF
+# ---------------------------------------------------------------------------
+
+def _cargar_ficha_desde_pdf() -> dict | None:
+    """Alternative to _formulario_ficha_nueva(): lets the trainer load a
+    filled agents/pdf_intake.py form (e.g. one a prospect emailed back)
+    instead of retyping the whole intake by hand. Same id_cliente/
+    fecha_admision convention as the manual form below, and the same
+    "only return once the trainer explicitly confirms" pattern -- so a
+    stale upload left in the widget doesn't silently regenerate a plan
+    on every unrelated rerun of this page."""
+    with st.expander(t("intake_pdf_upload_header")):
+        st.caption(t("intake_pdf_upload_caption"))
+        pdf_subido = st.file_uploader(t("intake_pdf_upload_label"), type=["pdf"], key="intake_pdf_subido")
+        if pdf_subido is None:
+            return None
+
+        contenido_pdf = pdf_subido.getvalue()
+        if not es_intake_pdf(contenido_pdf):
+            st.error(t("intake_pdf_upload_invalid"))
+            return None
+
+        perfil = leer_intake_pdf(contenido_pdf)
+        nombre = perfil["datos_basicos"]["nombre"]
+        if not nombre:
+            st.warning(t("intake_pdf_upload_empty"))
+            return None
+
+        perfil["id_cliente"] = f"cliente_ui_{_slug(nombre)}"
+        perfil["fecha_admision"] = datetime.now(timezone.utc).date().isoformat()
+
+        st.success(t("intake_pdf_upload_loaded").format(nombre=nombre))
+        if not st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_pdf"):
+            return None
+        return perfil
 
 
 # ---------------------------------------------------------------------------
@@ -1686,7 +1744,9 @@ seccion_activa = st.segmented_control(
 # tagged with "ultimo_origen" — otherwise it would stay visible after
 # switching to the other section, which has nothing to do with it.
 if seccion_activa == "nueva":
-    perfil_nuevo = _formulario_ficha_nueva()
+    perfil_nuevo = _cargar_ficha_desde_pdf()
+    if perfil_nuevo is None:
+        perfil_nuevo = _formulario_ficha_nueva()
     if perfil_nuevo is not None:
         st.session_state["ultimo_perfil"] = perfil_nuevo
         st.session_state["ultimo_origen"] = "nueva"

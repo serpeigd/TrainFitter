@@ -124,7 +124,31 @@ rule-engine pipeline + test suite + lint end-to-end on every push — no
 secrets needed; `inbox_trigger.yml` (main.py's cron) is separate and does
 need secrets, so it isn't part of CI. Gmail re-authorization (both locally
 and on Streamlit Cloud/GitHub Actions, for the `gmail.readonly` scope) has
-already been done by the project owner.
+already been done by the project owner. `agents/pdf_intake.py` generates a
+fillable **intake** PDF (`examples/blank_intake_form.pdf` is the shipped
+blank artifact, mirroring the checklist PDF's own example) and reads a
+filled-in one back into a full `perfil_cliente` dict — same fillable-form
+safety-critical-data reasoning as the adherence checklist, with the
+schema's free-form `lesiones` list deliberately flattened to one
+checkbox + one text field (a real, documented simplification; see
+`docs/decisiones.md`). `main.py`'s `procesar_intakes_nuevos()` job
+(`mcp/gmail_client.py`'s `buscar_intakes_nuevos()`) scans the inbox for a
+filled-in intake PDF a prospect emailed back, runs the real pipeline on
+it, and logs a heads-up record to Notion's Clients database (deduped by
+Gmail message ID via `notion_connector.existe_cliente_para_mensaje()`,
+same pattern as the adherence check-ins) — it never creates a Gmail draft
+or sends anything, preserving the human-in-the-loop guarantee. `ui/app.py`
+also accepts that same filled-in intake PDF directly: a file uploader in
+the "New Client" section (`_cargar_ficha_desde_pdf()`) lets the trainer
+skip retyping a client's answers and feed the parsed profile into the
+exact same review/approve flow as a manually typed intake. One piece of
+this feature couldn't be verified against a real inbox end-to-end —
+`buscar_intakes_nuevos()`'s Gmail search/parse mechanics are covered by
+mocked-network tests instead, since injecting a synthetic incoming
+message via `messages().insert()` needs a broader scope than the
+project's deliberately narrow `gmail.compose` grants (403 Insufficient
+Permission) — a genuine, disclosed testing limitation, not a gap papered
+over.
 
 ## Free-only guardrail
 
@@ -148,10 +172,11 @@ if the user explicitly opts in to spending money.
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
 | Bloodwork parser | `agents/analytics_parser.py` |
 | Diet/checklist PDF generation + reading | `agents/pdf_generador.py` |
+| Intake PDF generation + reading | `agents/pdf_intake.py` |
 | Adherence summary formatting (rating, Notion text) | `agents/adherencia_parser.py` |
-| Gmail connector (draft + adherence-reply search) | `mcp/gmail_client.py` |
+| Gmail connector (draft + adherence-reply/new-intake search) | `mcp/gmail_client.py` |
 | Notion connector (auto-save + check-ins) | `mcp/notion_connector.py` |
-| Automatic inbox trigger (cron) | `main.py`, `.github/workflows/inbox_trigger.yml` |
+| Automatic inbox trigger (cron; adherence + new intakes) | `main.py`, `.github/workflows/inbox_trigger.yml` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |
 | Example clients/outputs | `examples/` |

@@ -103,13 +103,24 @@ This repository is built phase by phase, as a learning project. Right now:
 - On the public demo, approving a plan (and unlocking Notion/Gmail) is gated
   behind a shared password, so a random visitor can't write to the trainer's
   real accounts just by clicking through.
-- An **automatic inbox trigger** (see [`main.py`](main.py)) scans the trainer's
-  Gmail inbox for a filled-in checklist PDF clients send back once they've
-  actually started their plan, reads its form field values, and logs a
-  summarized check-in row per reply (days completed, notes, a rough adherence
-  rating), deduped so a scheduled re-scan never double-logs the same reply.
-  Runs free on a GitHub Actions cron
+- An **automatic inbox trigger** (see [`main.py`](main.py)) runs two independent
+  jobs on a schedule: it scans the trainer's Gmail inbox for a filled-in
+  checklist PDF clients send back once they've actually started their plan,
+  reads its form field values, and logs a summarized check-in row per reply
+  (days completed, notes, a rough adherence rating); and it scans for a
+  filled-in **intake** PDF a prospective client emailed back, runs the full
+  pipeline on it, and logs a heads-up record to Notion — no trainer typing
+  required, though the trainer still reviews and approves the plan exactly as
+  before. Both jobs dedupe by Gmail message ID so a scheduled re-scan never
+  double-logs the same reply. Runs free on a GitHub Actions cron
   ([`.github/workflows/inbox_trigger.yml`](.github/workflows/inbox_trigger.yml)).
+- The panel also accepts that same filled-in **intake PDF** directly: instead
+  of retyping a client's answers by hand, the trainer can upload the PDF a
+  prospect sent back (see [`agents/pdf_intake.py`](agents/pdf_intake.py)) and
+  review/approve it through the exact same flow as a manually typed intake.
+  The blank form itself is a real, committed artifact
+  ([`examples/blank_intake_form.pdf`](examples/blank_intake_form.pdf)) — what
+  the trainer actually shares with a prospect to get the loop started.
 
 ## What it doesn't include yet
 
@@ -123,7 +134,7 @@ This repository is built phase by phase, as a learning project. Right now:
 ```
 TrainFitter/
 ├── README.md                        This document
-├── main.py                          Automatic inbox trigger (adherence check-ins, run via cron)
+├── main.py                          Automatic inbox trigger (adherence check-ins + new-client intakes, run via cron)
 ├── docs/
 │   ├── metodo_entrenador.md         Trainer's methodology (knowledge base)
 │   ├── arquitectura.md              System design and flow
@@ -131,7 +142,7 @@ TrainFitter/
 │   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, orchestrator, PDF generation, seeded variety
+├── agents/                          Routine, diet, validator, orchestrator, PDF generation (+ intake form), seeded variety
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + send/adherence-reply detection), Notion (Clients + Check-ins)

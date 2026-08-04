@@ -79,6 +79,20 @@ def test_enhanced_review_verdict_label(perfil_base, borrador_rutina, borrador_di
     assert propiedades["Verdict"]["select"]["name"] == "Enhanced review"
 
 
+def test_page_properties_include_source_message_id_only_for_automated_intakes(
+    perfil_base, borrador_rutina, borrador_dieta
+):
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    propiedades_manual = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert "Source message ID" not in propiedades_manual
+
+    propiedades_auto = _construir_propiedades_pagina(
+        perfil_base, borrador_rutina, borrador_dieta, veredicto, id_mensaje="msg-123",
+    )
+    assert propiedades_auto["Source message ID"]["rich_text"][0]["text"]["content"] == "msg-123"
+
+
 def test_missing_credentials_raises_clear_error(monkeypatch, tmp_path):
     import notion_connector
 

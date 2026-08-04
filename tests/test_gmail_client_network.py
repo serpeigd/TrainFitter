@@ -214,3 +214,92 @@ def test_buscar_respuestas_adherencia_wraps_http_error(monkeypatch):
     )
     with pytest.raises(GmailClientError):
         gmail_client.buscar_respuestas_adherencia()
+
+
+# --- buscar_intakes_nuevos() -------------------------------------------------
+
+
+def _pdf_intake_relleno(nombre_cliente: str = "Laura Fernandez") -> bytes:
+    """Builds a real, filled intake PDF (reportlab to write, pypdf to
+    fill) -- used as realistic attachment content in these mocked-Gmail
+    tests, same approach test_gmail_client_network.py already uses for
+    checklist PDFs."""
+    import io
+
+    from pdf_intake import CAMPO_NOMBRE, CAMPO_OBJETIVO, generar_pdf_intake
+    from pypdf import PdfWriter
+
+    vacio = generar_pdf_intake(idioma="en")
+    writer = PdfWriter()
+    writer.append(io.BytesIO(vacio))
+    for pagina in writer.pages:
+        writer.update_page_form_field_values(
+            pagina, {CAMPO_NOMBRE: nombre_cliente, CAMPO_OBJETIVO: "salud_general"}, auto_regenerate=False,
+        )
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+def test_buscar_intakes_nuevos_finds_a_genuine_submission(monkeypatch):
+    intake_pdf = _pdf_intake_relleno()
+    adjunto_b64 = base64.urlsafe_b64encode(intake_pdf).decode("ascii")
+
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[{"name": "From", "value": "Laura <laura@example.com>"}],
+        parts=[{"filename": "trainfitter-intake-form.pdf", "mimeType": "application/pdf", "body": {"data": adjunto_b64}}],
+    )
+
+    intakes = gmail_client.buscar_intakes_nuevos()
+    assert len(intakes) == 1
+    assert intakes[0]["remitente"] == "laura@example.com"
+    assert intakes[0]["id_mensaje"] == "msg-1"
+    assert intakes[0]["perfil"]["datos_basicos"]["nombre"] == "Laura Fernandez"
+    assert intakes[0]["perfil"]["objetivo"]["principal"] == "salud_general"
+
+
+def test_buscar_intakes_nuevos_skips_a_blank_template(monkeypatch):
+    """A blank intake form has all our expected form fields (so
+    es_intake_pdf() matches) but no name -- e.g. the trainer's own copy
+    sitting in Sent after emailing it to a prospect. Must never be
+    mistaken for a genuine submission."""
+    from pdf_intake import generar_pdf_intake
+
+    blank_pdf = generar_pdf_intake(idioma="en")
+    adjunto_b64 = base64.urlsafe_b64encode(blank_pdf).decode("ascii")
+
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[{"name": "From", "value": "trainer@example.com"}],
+        parts=[{"filename": "trainfitter-intake-form.pdf", "mimeType": "application/pdf", "body": {"data": adjunto_b64}}],
+    )
+
+    assert gmail_client.buscar_intakes_nuevos() == []
+
+
+def test_buscar_intakes_nuevos_skips_messages_with_no_intake_pdf(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[{"name": "From", "value": "someone@example.com"}],
+        mimetype="text/plain",
+    )
+    assert gmail_client.buscar_intakes_nuevos() == []
+
+
+def test_buscar_intakes_nuevos_wraps_http_error(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.buscar_intakes_nuevos()
