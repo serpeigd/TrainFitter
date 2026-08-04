@@ -20,6 +20,7 @@ notes derived from the trainer's source material.
 | [sinergias_nutrientes.md](sinergias_nutrientes.md) | Absorption, synergies, and interference | `Sinergias_Absorcion_Nutrientes.pdf` |
 | [estilo_vida_longevidad.md](estilo_vida_longevidad.md) | Sleep, steps, Zone 2, habits | `Routine_Healthy.pdf`, `Routine_Anti_Aging.pdf` + Sleep Foundation (verified Jul 2026) |
 | [seguridad_poblaciones_especiales.md](seguridad_poblaciones_especiales.md) | Pregnancy (ACOG), red flags (ACSM), knee/ACL rehab | New research (verified Jul 2026) — backs `validator_agent.py` |
+| [adherencia_y_cambio_de_conducta.md](adherencia_y_cambio_de_conducta.md) | Self-monitoring + human follow-up, tracking frequency, habit formation | New research (verified Aug 2026) — backs the method's #1 priority and `agents/adherencia_parser.py`/`agents/pdf_generador.py` |
 
 ## Source material (local, NOT version-controlled — `AA_files_Training/`)
 Kept out of version control because it contains the trainer's personal material.

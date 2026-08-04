@@ -9,7 +9,10 @@ DESIGN — the rating is a simple heuristic, not a judgment: `valoracion`
 looks only at the completion ratios and is meant purely to give the
 trainer a quick sort/filter signal in Notion — it never influences
 anything else. The trainer's own read of the free-text notes always
-matters more than this number.
+matters more than this number. See
+docs/base_conocimiento/adherencia_y_cambio_de_conducta.md: this whole
+loop exists because self-monitoring's real value shows up in what a
+*human* does with it afterward, not in the number itself.
 
 Note: this module used to also parse a plain-text, tag-anchored checklist
 (the client's reply was a .txt attachment). That format was replaced by a

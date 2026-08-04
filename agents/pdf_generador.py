@@ -35,6 +35,14 @@ it replaced, main.py's downstream Notion row records "X/Y sessions
 completed", not a per-day breakdown -- so each checkbox field is just
 named session_1..session_N with no day label encoded in the field name
 itself (the printed label next to it is what the client actually reads).
+
+DESIGN — deliberately short, one page, fillable in under a minute: not
+just a UX nicety. See
+docs/base_conocimiento/adherencia_y_cambio_de_conducta.md — the research
+on dietary self-monitoring ties tracking *frequency* (not time spent per
+session) to real outcomes, so minimizing friction here directly serves
+the actual goal: a client who can fill this in quickly is more likely to
+send it back every time a check-in is due.
 """
 
 import io
