@@ -30,24 +30,38 @@ enforces scope at the API call, not just locally — so re-running the OAuth
 consent flow (deleting token.json first) is required once, both locally
 and on any deployment.
 
-DESIGN — gmail.send is a deliberate, narrow, single exception to
-"never sends automatically": enviar_enlace_portal() sends a real message
-(via messages().send(), not drafts().create()) containing nothing but a
-signed magic link (see agents/portal_tokens.py) to the client portal —
-never plan content, never anything the trainer hasn't already approved.
-This is a real, considered trade-off against the draft-only principle
-above, made explicitly by the project owner (not a default), because a
-magic link is only useful if it actually reaches the client's inbox — a
-draft the trainer would have to open and manually forward defeats the
-point of a self-serve portal. The blast radius is kept as small as this
-scope allows: enviar_enlace_portal() is the *only* function in this
-module that calls messages().send() rather than drafts().create() or a
-read-only endpoint, it's only ever reachable from one explicit button in
-ui/app.py's approval panel (gated the same way draft creation already is
-— behind an approved plan, and behind APP_APPROVAL_PASSWORD on the public
-demo), and the email body it sends is a fixed, code-defined template with
-exactly one variable slot (the link itself) — never free text a trainer
-or client could inject content into.
+DESIGN — gmail.send is a deliberate, narrow exception to "never sends
+automatically", scoped to exactly two functions, both sending TO the
+trainer's own side of the relationship, never unsolicited content TO a
+client: enviar_enlace_portal() sends a real message (via messages().send(),
+not drafts().create()) containing nothing but a signed magic link (see
+agents/portal_tokens.py) to the client portal — never plan content, never
+anything the trainer hasn't already approved. This is a real, considered
+trade-off against the draft-only principle above, made explicitly by the
+project owner (not a default), because a magic link is only useful if it
+actually reaches the client's inbox — a draft the trainer would have to
+open and manually forward defeats the point of a self-serve portal. The
+blast radius is kept as small as this scope allows: it's the only one of
+the two send-capable functions reachable from a client-facing action, and
+that action is gated behind one explicit button in ui/app.py's approval
+panel (gated the same way draft creation already is — behind an approved
+plan, and behind APP_APPROVAL_PASSWORD on the public demo), sending a
+fixed, code-defined template with exactly one variable slot (the link
+itself) — never free text a trainer or client could inject content into.
+
+DESIGN — enviar_notificacion_checkin() is the second (and, as of now,
+last) function allowed to call messages().send(): unlike
+enviar_enlace_portal(), this one is genuinely automatic (fired the moment
+a client submits the portal's own check-in form, no button click at
+all) — but it mails the *trainer's own* inbox (TRAINER_NOTIFICATION_EMAIL,
+see ui/app.py), never a client, so it can't violate "TrainFitter never
+contacts a client on its own" no matter how it fires. Best-effort by
+design: a failure here (missing config, expired credentials, an API
+error) must never block the actual check-in from being saved to Notion —
+ui/app.py swallows exceptions from this call the same way it already does
+for actualizar_email_cliente()/marcar_email_enviado(), since a trainer
+notification email is a convenience layered on top of the real record,
+not the record itself.
 
 DESIGN — pure logic separated from network/auth: _construir_mensaje_raw()
 and _construir_cuerpo_email() are plain functions with no I/O, fully unit
@@ -425,6 +439,78 @@ def enviar_enlace_portal(destinatario: str, nombre_cliente: str, url_portal: str
         # unlike drafts().create(), it isn't wrapped in an outer "message"
         # key. _construir_mensaje_raw() builds the drafts() shape (shared
         # with crear_borrador()), so that one key is unwrapped here.
+        servicio.users().messages().send(userId="me", body=cuerpo["message"]).execute()
+    except HttpError as exc:
+        raise GmailClientError(f"Gmail API error: {exc}") from exc
+
+
+def _construir_cuerpo_notificacion_checkin(nombre_cliente: str, resumen: str, sugerencia: str, idioma: str = "en") -> str:
+    """Pure formatting, no I/O. resumen/sugerencia are already-formatted
+    strings (from agents/adherencia_parser.py's resumir_adherencia()/
+    sugerencia_seguimiento()) -- this function only wraps them in a short
+    email, it doesn't reimplement that formatting."""
+    if idioma == "es":
+        return (
+            f"{nombre_cliente} acaba de enviar un check-in desde el portal de cliente:\n\n"
+            f"{resumen}\n\n"
+            f"Siguiente paso sugerido: {sugerencia}\n\n"
+            f"(Notificación automática del portal de TrainFitter.)"
+        )
+    return (
+        f"{nombre_cliente} just submitted a check-in via the client portal:\n\n"
+        f"{resumen}\n\n"
+        f"Suggested next step: {sugerencia}\n\n"
+        f"(Automatic notification from the TrainFitter client portal.)"
+    )
+
+
+def enviar_notificacion_checkin(
+    destinatario: str, nombre_cliente: str, datos_checkin: dict, valoracion: str | None, idioma: str = "en",
+) -> None:
+    """
+    Actually SENDS (not drafts) a short email to the TRAINER's own inbox
+    the moment a client submits a check-in via the portal -- see the
+    module docstring's DESIGN note on why this is the second (and only
+    other) function allowed to call messages().send(), and why mailing
+    the trainer specifically keeps it outside the "never contacts a
+    client automatically" guarantee.
+
+    Args:
+        destinatario: the trainer's own notification address
+            (TRAINER_NOTIFICATION_EMAIL, see ui/app.py) -- never the
+            client's.
+        nombre_cliente: whose check-in this is.
+        datos_checkin, valoracion: same shape leer_checklist_pdf()
+            produces / main.py's adherence loop already uses -- formatted
+            here via agents/adherencia_parser.py's resumir_adherencia()/
+            sugerencia_seguimiento(), not reimplemented.
+        idioma: "en" (default) or "es".
+
+    Raises:
+        GmailClientError: invalid recipient, missing/expired credentials,
+            or a Gmail API failure. ui/app.py is expected to catch this
+            and swallow it (best-effort) rather than let a notification
+            failure block the actual Notion check-in from being saved.
+    """
+    from adherencia_parser import resumir_adherencia, sugerencia_seguimiento
+
+    resumen = resumir_adherencia(datos_checkin)
+    sugerencia = sugerencia_seguimiento(valoracion)
+    asunto = (
+        f"Nuevo check-in: {nombre_cliente}" if idioma == "es" else f"New check-in: {nombre_cliente}"
+    )
+    cuerpo = _construir_mensaje_raw(
+        destinatario, asunto=asunto,
+        cuerpo_texto=_construir_cuerpo_notificacion_checkin(nombre_cliente, resumen, sugerencia, idioma),
+    )
+
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    try:
+        servicio = build("gmail", "v1", credentials=credenciales)
         servicio.users().messages().send(userId="me", body=cuerpo["message"]).execute()
     except HttpError as exc:
         raise GmailClientError(f"Gmail API error: {exc}") from exc

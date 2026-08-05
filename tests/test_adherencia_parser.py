@@ -6,7 +6,7 @@ agents/pdf_generador.py). Reading structured data out of a reply is now
 tested in tests/test_pdf_generador.py; this file only covers what's left
 here: the rating heuristic and the summary formatter."""
 
-from adherencia_parser import resumir_adherencia, valoracion_desde_ratios
+from adherencia_parser import resumir_adherencia, sugerencia_seguimiento, valoracion_desde_ratios
 
 
 def test_valoracion_high_for_strong_adherence():
@@ -75,3 +75,25 @@ def test_summary_shows_question_mark_when_diet_answer_left_blank():
 def test_summary_is_truncated_to_notion_rich_text_limit():
     resumen = resumir_adherencia(_datos(notas_rutina="x" * 3000))
     assert len(resumen) == 2000
+
+
+def test_sugerencia_for_each_valoracion_is_distinct_and_non_empty():
+    """Locks in that every branch is reachable and gives a real,
+    distinguishable suggestion -- not just that the function returns
+    *some* string for each input."""
+    sugerencias = {v: sugerencia_seguimiento(v) for v in ["High", "Medium", "Low", None]}
+    assert len(set(sugerencias.values())) == 4
+    assert all(sugerencias.values())
+
+
+def test_sugerencia_high_points_toward_progression():
+    assert "progression" in sugerencia_seguimiento("High").lower()
+
+
+def test_sugerencia_low_points_toward_simplifying_not_pushing():
+    """Matches this loop's own evidence base (Lally et al. 2010, see
+    docs/base_conocimiento/adherencia_y_cambio_de_conducta.md): low
+    adherence is a signal to address a barrier, not a failure to punish
+    with more volume."""
+    sugerencia = sugerencia_seguimiento("Low").lower()
+    assert "simplify" in sugerencia or "barrier" in sugerencia

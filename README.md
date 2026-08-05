@@ -125,12 +125,17 @@ This repository is built phase by phase, as a learning project. Right now:
   client a private link to view a summary of their plan and log a check-in
   directly — no PDF round-trip needed. Links are signed, stateless, and
   self-expiring (see [`agents/portal_tokens.py`](agents/portal_tokens.py)), so
-  no separate database of issued links is needed. This is the one place in the
-  whole project where Gmail actually **sends** a real email instead of only
-  creating a draft — a deliberate, narrow exception (one function, one gated
-  button, a fixed one-variable template — see
-  [`docs/decisiones.md`](docs/decisiones.md)) to the "never sends
-  automatically" guarantee everywhere else in this project.
+  no separate database of issued links is needed. Sessions completed can
+  exceed what was planned (an explicit "I trained more than planned" checkbox
+  covers a genuine extra session); diet days followed can't exceed the check-in
+  period, since that bound is definitional rather than a target. The moment a
+  client submits a check-in, the trainer's own inbox gets an automatic summary
+  plus a short, rule-based suggested next step — this is one of only two
+  places in the whole project where Gmail actually **sends** a real email
+  instead of only creating a draft, and both send to the trainer's side of the
+  relationship, never to a client without review — a deliberate, narrow
+  exception (see [`docs/decisiones.md`](docs/decisiones.md)) to the "never
+  sends automatically" guarantee everywhere else in this project.
 
 ## What it doesn't include yet
 

@@ -39,6 +39,25 @@ def valoracion_desde_ratios(ratios: list[float]) -> str | None:
     return "Low"
 
 
+def sugerencia_seguimiento(valoracion: str | None) -> str:
+    """A short, rule-based "what to consider next" line for the trainer --
+    used by ui/app.py's portal check-in notification email
+    (see mcp/gmail_client.py's enviar_notificacion_checkin()). Same
+    heuristic spirit as valoracion_desde_ratios(): a quick, deterministic
+    signal to prompt the trainer's own judgment, never a replacement for
+    it -- see docs/base_conocimiento/adherencia_y_cambio_de_conducta.md,
+    the same evidence already backing this whole check-in loop's design
+    (Lally et al. 2010 on a missed day not being a failure state is why
+    "Low" reads as "worth a conversation", not "the client failed")."""
+    if valoracion == "High":
+        return "Adherence looks strong -- a good moment to consider a small progression next cycle."
+    if valoracion == "Medium":
+        return "Decent adherence, but worth a quick check-in to see what's getting in the way before adding difficulty."
+    if valoracion == "Low":
+        return "Adherence is low -- treat this as a signal to simplify the plan or address a real barrier, not to push progress."
+    return "Not enough data in this check-in to gauge adherence -- consider following up directly."
+
+
 def resumir_adherencia(datos: dict) -> str:
     """Turns leer_checklist_pdf()'s structured output into the short plain-
     text summary main.py saves as a Check-ins "Adherence notes" property.

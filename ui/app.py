@@ -96,6 +96,14 @@ APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
 # var / Streamlit secret on any real deployment, same pattern as every
 # other optional secret here.
 PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:8501")
+# Optional -- the trainer's own inbox, notified automatically the moment a
+# client submits a portal check-in (see gmail_client.py's DESIGN note on
+# enviar_notificacion_checkin(): the one other function allowed to
+# actually send, safe to fire without a button because it always mails
+# the trainer, never a client). Unset means the notification is simply
+# skipped, same "degrades to off" convention as every other optional
+# secret here.
+TRAINER_NOTIFICATION_EMAIL = os.environ.get("TRAINER_NOTIFICATION_EMAIL")
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
@@ -143,7 +151,13 @@ from adherencia_parser import resumir_adherencia, valoracion_desde_ratios  # noq
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
-from gmail_client import GmailClientError, crear_borrador, enviar_enlace_portal, verificar_envio  # noqa: E402
+from gmail_client import (  # noqa: E402
+    GmailClientError,
+    crear_borrador,
+    enviar_enlace_portal,
+    enviar_notificacion_checkin,
+    verificar_envio,
+)
 from notion_connector import (  # noqa: E402
     NotionClientError,
     actualizar_email_cliente,
@@ -799,6 +813,7 @@ TRANSLATIONS = {
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
         "portal_routine_completed_label": "Sessions completed",
         "portal_routine_total_label": "Sessions planned this week",
+        "portal_routine_more_than_planned_label": "I trained more than planned",
         "portal_routine_notes_label": "Anything about your routine (optional)",
         "portal_diet_completed_label": "Days you followed the diet",
         "portal_diet_total_label": "Out of how many days",
@@ -958,6 +973,7 @@ TRANSLATIONS = {
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
         "portal_routine_completed_label": "Sesiones completadas",
         "portal_routine_total_label": "Sesiones previstas esta semana",
+        "portal_routine_more_than_planned_label": "Entrené más de lo planeado",
         "portal_routine_notes_label": "Algo sobre tu rutina (opcional)",
         "portal_diet_completed_label": "Días que has seguido la dieta",
         "portal_diet_total_label": "De cuántos días",
@@ -1739,24 +1755,49 @@ def _vista_portal_cliente(token: str) -> None:
     st.subheader(t("portal_checkin_header"))
     st.caption(t("portal_checkin_intro"))
 
-    # A real st.form here, unlike _formulario_ficha_nueva() above: this
-    # form has no conditional fields that need an immediate rerun to
-    # reveal, so a single "submit everything at once" click is the
-    # simpler, more client-friendly choice.
-    with st.form("portal_checkin_form"):
-        c1, c2 = st.columns(2)
-        completados_rutina = c1.number_input(t("portal_routine_completed_label"), min_value=0, max_value=14, value=0)
-        totales_rutina = c2.number_input(t("portal_routine_total_label"), min_value=1, max_value=14, value=3)
-        notas_rutina = st.text_area(t("portal_routine_notes_label"))
+    # Standalone widgets, not st.form -- unlike the reasoning written here
+    # before: "completed" needs to react live to whatever the client just
+    # set "total" to (diet days followed can't exceed the check-in
+    # period), and a form doesn't rerun until submit, so that clamp
+    # wouldn't take effect until after the fact. Same trade-off
+    # _formulario_ficha_nueva() already makes above, for the same reason.
+    # Each "total" widget is read before its matching "completed" widget
+    # in code (regardless of which column it visually renders into) so
+    # its current value is available to set the completed widget's
+    # max_value on this same rerun.
+    # Sessions completed is deliberately NOT capped at "planned" the way
+    # diet days is below -- a client can genuinely train more than the
+    # plan called for (an extra session), unlike "days I followed the
+    # diet" which can't exceed the days actually in the check-in period.
+    # The checkbox is an explicit, discoverable way to say "yes, really
+    # more than planned" rather than silently allowing any number by
+    # default, which would make a typo too easy to enter unnoticed.
+    # Rendered (and its value read) before the columns below, since
+    # completados_rutina's own max_value depends on it.
+    mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
 
-        c3, c4 = st.columns(2)
-        seguidos_dieta = c3.number_input(
-            t("portal_diet_completed_label"), min_value=0, max_value=DIAS_SEMANA_DIETA, value=0,
-        )
-        totales_dieta = c4.number_input(t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA)
-        notas_dieta = st.text_area(t("portal_diet_notes_label"))
+    c1, c2 = st.columns(2)
+    totales_rutina = c2.number_input(
+        t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
+    )
+    max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
+    completados_rutina = c1.number_input(
+        t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
+        key="portal_completados_rutina",
+    )
+    notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
 
-        enviado = st.form_submit_button(t("portal_submit_button"), type="primary")
+    c3, c4 = st.columns(2)
+    totales_dieta = c4.number_input(
+        t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
+    )
+    seguidos_dieta = c3.number_input(
+        t("portal_diet_completed_label"), min_value=0, max_value=int(totales_dieta), value=0,
+        key="portal_seguidos_dieta",
+    )
+    notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
+
+    enviado = st.button(t("portal_submit_button"), type="primary")
 
     if not enviado:
         return
@@ -1779,15 +1820,28 @@ def _vista_portal_cliente(token: str) -> None:
     if datos["dias_dieta_totales"]:
         ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
 
+    valoracion = valoracion_desde_ratios(ratios)
     try:
         crear_registro_checkin(
             carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
-            notas=resumir_adherencia(datos), valoracion=valoracion_desde_ratios(ratios),
+            notas=resumir_adherencia(datos), valoracion=valoracion,
         )
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_submit_error").format(error=str(exc)))
-    else:
-        st.success(t("portal_submit_success"))
+        return
+
+    st.success(t("portal_submit_success"))
+
+    # Best-effort, same spirit as actualizar_email_cliente()/
+    # marcar_email_enviado() elsewhere in this file: the trainer
+    # notification is a convenience on top of the real record (the
+    # Notion row just saved above), never a reason to make the client's
+    # own submission look like it failed if this part doesn't work.
+    if TRAINER_NOTIFICATION_EMAIL:
+        try:
+            enviar_notificacion_checkin(TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, idioma=st.session_state.lang)
+        except (GmailClientError, ImportError, ModuleNotFoundError):
+            pass
 
 
 # ---------------------------------------------------------------------------

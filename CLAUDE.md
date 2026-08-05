@@ -168,14 +168,35 @@ built (not assumed under the broader "build everything" instruction) and
 contained to exactly one function
 (`gmail_client.enviar_enlace_portal()`), one gated button, and a fixed
 one-variable-slot email template; see `docs/decisiones.md` for the full
-reasoning. **Still pending before the portal works for real:** the
-project owner needs to re-authorize Gmail once (same as every prior
-scope change) so `token.json` actually carries `gmail.send`, both locally
-and on any deployment that will use it, and set a real
-`PORTAL_SECRET_KEY`/`PORTAL_BASE_URL` (see `.env.example`) — this session
-could not perform either (interactive OAuth consent, and sending a real
-test email, both require the project owner's own action/explicit
-in-the-moment go-ahead).
+reasoning. The project owner has since re-authorized Gmail locally
+(confirmed via a real, read-only `getProfile()` call — `token.json` now
+carries `gmail.send`) and set a real `PORTAL_SECRET_KEY` — verified
+end-to-end against the project owner's own real Notion record and a real
+sent email. Live-testing it surfaced two check-in-form corrections, both
+shipped the same day: the completed/total number inputs switched from
+`st.form` to standalone widgets (same reasoning as
+`_formulario_ficha_nueva()`) so "completed" can react live and never
+exceed "total"; and that cap turned out to only be correct for diet days
+(a hard, definitional bound) — routine sessions genuinely can exceed the
+plan (an extra session), so that field instead gained an explicit
+"I trained more than planned" checkbox that raises its ceiling, rather
+than either blocking a real value or silently allowing any number. Both
+totals now default to 7 (a full week). A second new function,
+`gmail_client.enviar_notificacion_checkin()`, is the only other place
+that calls `messages().send()`: the moment a client submits a portal
+check-in, it mails a summary plus a rule-based suggested next step (new
+`agents/adherencia_parser.py` function `sugerencia_seguimiento()`,
+grounded in the same evidence backing this whole loop) to the trainer's
+own inbox (`TRAINER_NOTIFICATION_EMAIL`, optional, unset = skipped) —
+genuinely automatic, but never a client-facing send, so it doesn't touch
+the "never contacts a client automatically" guarantee; best-effort,
+wired so its failure can never block the actual Notion check-in from
+being saved. **Still pending, if the portal is ever used from the public
+deployment:** the Streamlit Cloud secrets (`GMAIL_TOKEN_JSON`,
+`PORTAL_SECRET_KEY`, `PORTAL_BASE_URL`, optionally
+`TRAINER_NOTIFICATION_EMAIL`) need the same values set there — this
+session provided them to the project owner to paste in but has no access
+to that dashboard itself.
 
 ## Free-only guardrail
 
@@ -201,7 +222,7 @@ if the user explicitly opts in to spending money.
 | Diet/checklist PDF generation + reading | `agents/pdf_generador.py` |
 | Intake PDF generation + reading | `agents/pdf_intake.py` |
 | Client portal magic-link tokens (signed, stateless) | `agents/portal_tokens.py` |
-| Adherence summary formatting (rating, Notion text) | `agents/adherencia_parser.py` |
+| Adherence summary formatting (rating, Notion text, suggested next step) | `agents/adherencia_parser.py` |
 | Gmail connector (draft + portal-link send + adherence-reply/new-intake search) | `mcp/gmail_client.py` |
 | Notion connector (auto-save + check-ins) | `mcp/notion_connector.py` |
 | Automatic inbox trigger (cron; adherence + new intakes) | `main.py`, `.github/workflows/inbox_trigger.yml` |

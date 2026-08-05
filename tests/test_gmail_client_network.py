@@ -100,10 +100,11 @@ def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_
 
 
 def test_enviar_enlace_portal_sends_not_drafts(monkeypatch):
-    """The one function in this module that must call messages().send()
-    rather than drafts().create() -- see the module docstring's DESIGN
-    note on gmail.send. Getting this wrong would mean a "portal link"
-    email quietly sits as an unsent draft again, defeating the point."""
+    """One of only two functions in this module allowed to call
+    messages().send() rather than drafts().create() -- see the module
+    docstring's DESIGN notes on gmail.send. Getting this wrong would mean
+    a "portal link" email quietly sits as an unsent draft again, defeating
+    the point."""
     servicio = _mock_service(monkeypatch)
     servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
 
@@ -129,6 +130,53 @@ def test_enviar_enlace_portal_wraps_http_error(monkeypatch):
     )
     with pytest.raises(GmailClientError):
         gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://example.com/?portal_token=abc.def")
+
+
+# --- enviar_notificacion_checkin() -------------------------------------------
+
+
+@pytest.fixture
+def datos_checkin():
+    return {
+        "dias_rutina_completados": 5,
+        "dias_rutina_totales": 3,
+        "notas_rutina": "Felt great, added an extra session.",
+        "dias_dieta_seguidos": 6,
+        "dias_dieta_totales": 7,
+        "notas_dieta": "",
+    }
+
+
+def test_enviar_notificacion_checkin_sends_not_drafts(monkeypatch, datos_checkin):
+    """The other of the two functions allowed to call messages().send()
+    -- this one mails the trainer's own inbox, never a client, which is
+    exactly why it's allowed to fire automatically with no button (see
+    the module docstring's DESIGN note)."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    gmail_client.enviar_notificacion_checkin("trainer@example.com", "Ana", datos_checkin, "High")
+
+    servicio.users.return_value.messages.return_value.send.assert_called_once()
+    servicio.users.return_value.drafts.return_value.create.assert_not_called()
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    assert mensaje["to"] == "trainer@example.com"
+    assert "Ana" in mensaje["subject"]
+    cuerpo_texto = mensaje.get_payload(decode=True).decode("utf-8")
+    assert "5/3 sessions completed" in cuerpo_texto
+    assert "progression" in cuerpo_texto.lower()  # sugerencia_seguimiento("High")
+
+
+def test_enviar_notificacion_checkin_wraps_http_error(monkeypatch, datos_checkin):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.enviar_notificacion_checkin("trainer@example.com", "Ana", datos_checkin, "High")
 
 
 # --- verificar_envio() -------------------------------------------------------

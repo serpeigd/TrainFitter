@@ -13,6 +13,7 @@ from gmail_client import (
     SCOPES,
     GmailClientError,
     _construir_cuerpo_email,
+    _construir_cuerpo_notificacion_checkin,
     _construir_cuerpo_portal,
     _construir_mensaje_raw,
     _extraer_checklist_pdf,
@@ -105,6 +106,24 @@ def test_portal_email_body_wrapper_text_translates_for_spanish():
     cuerpo = _construir_cuerpo_portal("Ana", "https://example.com/?portal_token=abc.def", idioma="es")
     assert cuerpo.startswith("Hola Ana,")
     assert "https://example.com/?portal_token=abc.def" in cuerpo
+
+
+def test_checkin_notification_body_includes_summary_and_suggestion():
+    """This is the *trainer's* notification, not the client's -- it should
+    carry the client's name plus whatever resumir_adherencia()/
+    sugerencia_seguimiento() already produced, not reimplement either."""
+    cuerpo = _construir_cuerpo_notificacion_checkin(
+        "Ana", "Routine: 5/3 sessions completed.", "Adherence looks strong -- consider a small progression.",
+    )
+    assert "Ana" in cuerpo
+    assert "Routine: 5/3 sessions completed." in cuerpo
+    assert "Adherence looks strong -- consider a small progression." in cuerpo
+
+
+def test_checkin_notification_body_translates_for_spanish():
+    cuerpo = _construir_cuerpo_notificacion_checkin("Ana", "Rutina: 5/3.", "Sugerencia.", idioma="es")
+    assert "check-in desde el portal de cliente" in cuerpo
+    assert "Rutina: 5/3." in cuerpo
 
 
 def test_raw_message_is_valid_base64url_rfc2822():
