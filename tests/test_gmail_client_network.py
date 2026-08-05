@@ -96,6 +96,41 @@ def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_
         gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
 
 
+# --- enviar_enlace_portal() --------------------------------------------------
+
+
+def test_enviar_enlace_portal_sends_not_drafts(monkeypatch):
+    """The one function in this module that must call messages().send()
+    rather than drafts().create() -- see the module docstring's DESIGN
+    note on gmail.send. Getting this wrong would mean a "portal link"
+    email quietly sits as an unsent draft again, defeating the point."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://trainfitter.streamlit.app/?portal_token=abc.def")
+
+    servicio.users.return_value.messages.return_value.send.assert_called_once()
+    servicio.users.return_value.drafts.return_value.create.assert_not_called()
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    # send()'s body is {"raw": ...} directly -- not wrapped in an outer
+    # "message" key the way drafts().create()'s is.
+    assert "raw" in kwargs["body"]
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    assert mensaje["to"] == "client@example.com"
+    assert "portal_token=abc.def" in mensaje.get_payload(decode=True).decode("utf-8")
+
+
+def test_enviar_enlace_portal_wraps_http_error(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://example.com/?portal_token=abc.def")
+
+
 # --- verificar_envio() -------------------------------------------------------
 
 

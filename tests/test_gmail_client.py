@@ -10,8 +10,10 @@ from email import message_from_bytes
 
 import pytest
 from gmail_client import (
+    SCOPES,
     GmailClientError,
     _construir_cuerpo_email,
+    _construir_cuerpo_portal,
     _construir_mensaje_raw,
     _extraer_checklist_pdf,
     _extraer_remitente,
@@ -79,6 +81,30 @@ def test_email_body_wrapper_text_translates_for_spanish():
     assert cuerpo.startswith("Hola Ana,")
     assert "aquí tienes tu rutina" in cuerpo
     assert "responde a este email" in cuerpo.lower()
+
+
+def test_scopes_include_send_for_the_portal_link_exception():
+    """gmail.send is the one deliberate exception to draft-only (see the
+    module docstring's DESIGN note) -- locks in that it's actually
+    requested, since without it enviar_enlace_portal() would fail with a
+    confusing 403 instead of the clear "needs re-authorization" story."""
+    assert "https://www.googleapis.com/auth/gmail.send" in SCOPES
+
+
+def test_portal_email_body_contains_only_the_link_as_variable_content():
+    """The one function in this module allowed to actually send (see the
+    module docstring) uses a fixed template with exactly one variable
+    slot -- the link itself, never free text a trainer or client could
+    inject content into."""
+    cuerpo = _construir_cuerpo_portal("Ana", "https://trainfitter.streamlit.app/?portal_token=abc.def")
+    assert "https://trainfitter.streamlit.app/?portal_token=abc.def" in cuerpo
+    assert "Ana" in cuerpo
+
+
+def test_portal_email_body_wrapper_text_translates_for_spanish():
+    cuerpo = _construir_cuerpo_portal("Ana", "https://example.com/?portal_token=abc.def", idioma="es")
+    assert cuerpo.startswith("Hola Ana,")
+    assert "https://example.com/?portal_token=abc.def" in cuerpo
 
 
 def test_raw_message_is_valid_base64url_rfc2822():

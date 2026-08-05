@@ -13,11 +13,13 @@ from notion_connector import (
     _construir_resumen,
     _credenciales,
     _fila_checkin_desde_pagina,
+    _fila_registro_cliente_desde_pagina,
     actualizar_email_cliente,
     crear_registro_checkin,
     existe_checkin_para_mensaje,
     historial_checkins,
     marcar_email_enviado,
+    obtener_registro_cliente,
 )
 
 
@@ -201,6 +203,37 @@ def test_historial_checkins_missing_credentials_raises(monkeypatch, tmp_path):
     monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
     with pytest.raises(NotionClientError):
         historial_checkins("client@example.com")
+
+
+def test_obtener_registro_cliente_missing_credentials_raises(monkeypatch, tmp_path):
+    """Same credential-checking path as every other network call in this
+    module -- the portal view needs to fail the same clean way when
+    Notion isn't configured, not raise an unrelated import error."""
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        obtener_registro_cliente("some-page-id")
+
+
+def test_fila_registro_cliente_extracts_expected_fields():
+    pagina = {
+        "properties": {
+            "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+            "Summary": {"rich_text": [{"plain_text": "Routine: full body. "}, {"plain_text": "Diet: 2000 kcal."}]},
+            "Verdict": {"select": {"name": "Auto-approved"}},
+            "Date": {"date": {"start": "2026-08-01"}},
+        }
+    }
+    fila = _fila_registro_cliente_desde_pagina(pagina)
+    assert fila == {
+        "nombre": "Laura Fernandez",
+        "resumen": "Routine: full body. Diet: 2000 kcal.",
+        "veredicto": "Auto-approved",
+        "fecha": "2026-08-01",
+    }
 
 
 def test_fila_checkin_extracts_expected_fields():

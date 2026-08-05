@@ -90,6 +90,12 @@ _materializar_secretos_gmail()
 # against, matching how every other optional credential in this project
 # degrades to "off" rather than "broken" when not configured.
 APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
+# Needed to build a full, clickable portal URL (generar_token_portal() only
+# returns the token itself) -- defaults to local dev's own address; set to
+# the real deployed URL (e.g. https://trainfitter.streamlit.app) via env
+# var / Streamlit secret on any real deployment, same pattern as every
+# other optional secret here.
+PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:8501")
 AGENTS_DIR = REPO_ROOT / "agents"
 MCP_DIR = REPO_ROOT / "mcp"
 EXAMPLES_DIR = REPO_ROOT / "examples"
@@ -133,10 +139,11 @@ COLOR_TEXT_MUTED = "#94A3B8"
 sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
+from adherencia_parser import resumir_adherencia, valoracion_desde_ratios  # noqa: E402
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
-from gmail_client import GmailClientError, crear_borrador, verificar_envio  # noqa: E402
+from gmail_client import GmailClientError, crear_borrador, enviar_enlace_portal, verificar_envio  # noqa: E402
 from notion_connector import (  # noqa: E402
     NotionClientError,
     actualizar_email_cliente,
@@ -144,9 +151,12 @@ from notion_connector import (  # noqa: E402
     guardar_registro_cliente,
     historial_checkins,
     marcar_email_enviado,
+    obtener_registro_cliente,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
+from pdf_generador import DIAS_SEMANA_DIETA  # noqa: E402
 from pdf_intake import es_intake_pdf, leer_intake_pdf  # noqa: E402
+from portal_tokens import PortalTokenError, generar_token_portal, verificar_token_portal  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
@@ -773,6 +783,29 @@ TRANSLATIONS = {
         "adherence_history_header": "📈 Adherence history",
         "adherence_history_empty": "No check-ins logged for this email yet.",
         "adherence_history_error": "Could not load adherence history: {error}",
+        "portal_section_header": "### 🔗 Client portal",
+        "portal_section_caption": (
+            "Sends a real email (not a draft) with a private link where the client can see a plan summary "
+            "and log their own check-ins — no PDF back-and-forth needed."
+        ),
+        "send_portal_link_button": "Send portal link",
+        "portal_link_sent_success": "✅ Portal link sent.",
+        "portal_link_error": "Could not send the portal link: {error}",
+        "portal_invalid_link": "This portal link isn't valid or has expired: {error}",
+        "portal_load_error": "Could not load your plan: {error}",
+        "portal_welcome": "Hi {nombre} 👋",
+        "portal_since_label": "Client since {fecha}",
+        "portal_checkin_header": "How's it going?",
+        "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
+        "portal_routine_completed_label": "Sessions completed",
+        "portal_routine_total_label": "Sessions planned this week",
+        "portal_routine_notes_label": "Anything about your routine (optional)",
+        "portal_diet_completed_label": "Days you followed the diet",
+        "portal_diet_total_label": "Out of how many days",
+        "portal_diet_notes_label": "Anything about your diet (optional)",
+        "portal_submit_button": "Send check-in",
+        "portal_submit_success": "✅ Thanks — your trainer will see this.",
+        "portal_submit_error": "Could not send your check-in: {error}",
     },
     "es": {
         "app_title": "TrainFitter — Panel del entrenador",
@@ -909,6 +942,29 @@ TRANSLATIONS = {
         "adherence_history_header": "📈 Historial de adherencia",
         "adherence_history_empty": "Todavía no hay check-ins registrados para este email.",
         "adherence_history_error": "No se pudo cargar el historial de adherencia: {error}",
+        "portal_section_header": "### 🔗 Portal del cliente",
+        "portal_section_caption": (
+            "Envía un email real (no un borrador) con un enlace privado donde el cliente puede ver un resumen "
+            "de su plan y registrar sus propios check-ins — sin ida y vuelta de PDFs."
+        ),
+        "send_portal_link_button": "Enviar enlace del portal",
+        "portal_link_sent_success": "✅ Enlace del portal enviado.",
+        "portal_link_error": "No se pudo enviar el enlace del portal: {error}",
+        "portal_invalid_link": "Este enlace del portal no es válido o ha caducado: {error}",
+        "portal_load_error": "No se pudo cargar tu plan: {error}",
+        "portal_welcome": "Hola {nombre} 👋",
+        "portal_since_label": "Cliente desde {fecha}",
+        "portal_checkin_header": "¿Cómo va todo?",
+        "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
+        "portal_routine_completed_label": "Sesiones completadas",
+        "portal_routine_total_label": "Sesiones previstas esta semana",
+        "portal_routine_notes_label": "Algo sobre tu rutina (opcional)",
+        "portal_diet_completed_label": "Días que has seguido la dieta",
+        "portal_diet_total_label": "De cuántos días",
+        "portal_diet_notes_label": "Algo sobre tu dieta (opcional)",
+        "portal_submit_button": "Enviar check-in",
+        "portal_submit_success": "✅ Gracias — tu entrenador/a lo verá.",
+        "portal_submit_error": "No se pudo enviar tu check-in: {error}",
     },
 }
 
@@ -1607,6 +1663,28 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 else:
                     st.success(t("checkin_confirmed_send"))
 
+    # Client portal: sends a real email (gmail.send, the one deliberate
+    # exception to draft-only -- see gmail_client.py's module docstring)
+    # with a magic link the client can follow to view a plan summary and
+    # submit their own check-ins, without a PDF at all. Needs a Notion
+    # page to point at (the portal reads obtener_registro_cliente() by
+    # page ID), so it's only offered once *this* plan has actually been
+    # saved there -- same owner-check pattern as everything else in this
+    # function that depends on notion_pagina_id.
+    if st.session_state.get("notion_guardado_para") == id(perfil):
+        st.markdown(t("portal_section_header"))
+        st.caption(t("portal_section_caption"))
+        if st.button(t("send_portal_link_button"), disabled=not (aprobado and email_cliente)):
+            try:
+                token = generar_token_portal(email_cliente, st.session_state["notion_pagina_id"])
+                url_portal = f"{PORTAL_BASE_URL}?portal_token={token}"
+                enviar_enlace_portal(
+                    email_cliente, perfil["datos_basicos"]["nombre"], url_portal, idioma=st.session_state.lang,
+                )
+                st.success(t("portal_link_sent_success"))
+            except (GmailClientError, PortalTokenError, ImportError, ModuleNotFoundError) as exc:
+                st.error(t("portal_link_error").format(error=str(exc)))
+
     # Independent of the Gmail draft state above: once an email is typed
     # in, the trainer can check what *this* client has already reported
     # over time, not just what happens with the plan just generated (a
@@ -1629,9 +1707,102 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                         st.caption(fila["notas"])
 
 
+def _vista_portal_cliente(token: str) -> None:
+    """The entire page for a client who followed their own magic link
+    (?portal_token=..., see agents/portal_tokens.py) -- rendered instead
+    of the trainer's whole panel (sidebar, New Client/Example Client
+    sections, approval password gate) when that query param is present.
+    A client here never sees any of that; this function is a dead end,
+    not a sub-section of the trainer's page."""
+    st.title("TrainFitter")
+
+    try:
+        carga = verificar_token_portal(token)
+    except PortalTokenError as exc:
+        st.error(t("portal_invalid_link").format(error=str(exc)))
+        return
+
+    try:
+        registro = obtener_registro_cliente(carga["pagina"])
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.error(t("portal_load_error").format(error=str(exc)))
+        return
+
+    nombre = registro["nombre"] or carga["email"]
+    st.header(t("portal_welcome").format(nombre=nombre))
+    if registro["fecha"]:
+        st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
+    if registro["resumen"]:
+        st.markdown(registro["resumen"])
+
+    st.divider()
+    st.subheader(t("portal_checkin_header"))
+    st.caption(t("portal_checkin_intro"))
+
+    # A real st.form here, unlike _formulario_ficha_nueva() above: this
+    # form has no conditional fields that need an immediate rerun to
+    # reveal, so a single "submit everything at once" click is the
+    # simpler, more client-friendly choice.
+    with st.form("portal_checkin_form"):
+        c1, c2 = st.columns(2)
+        completados_rutina = c1.number_input(t("portal_routine_completed_label"), min_value=0, max_value=14, value=0)
+        totales_rutina = c2.number_input(t("portal_routine_total_label"), min_value=1, max_value=14, value=3)
+        notas_rutina = st.text_area(t("portal_routine_notes_label"))
+
+        c3, c4 = st.columns(2)
+        seguidos_dieta = c3.number_input(
+            t("portal_diet_completed_label"), min_value=0, max_value=DIAS_SEMANA_DIETA, value=0,
+        )
+        totales_dieta = c4.number_input(t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA)
+        notas_dieta = st.text_area(t("portal_diet_notes_label"))
+
+        enviado = st.form_submit_button(t("portal_submit_button"), type="primary")
+
+    if not enviado:
+        return
+
+    # Same data shape leer_checklist_pdf() produces (see
+    # agents/pdf_generador.py) -- reuses resumir_adherencia()/
+    # valoracion_desde_ratios() rather than reimplementing that
+    # formatting a second time for this second submission channel.
+    datos = {
+        "dias_rutina_completados": int(completados_rutina),
+        "dias_rutina_totales": int(totales_rutina),
+        "notas_rutina": notas_rutina.strip(),
+        "dias_dieta_seguidos": int(seguidos_dieta),
+        "dias_dieta_totales": int(totales_dieta),
+        "notas_dieta": notas_dieta.strip(),
+    }
+    ratios = []
+    if datos["dias_rutina_totales"]:
+        ratios.append(datos["dias_rutina_completados"] / datos["dias_rutina_totales"])
+    if datos["dias_dieta_totales"]:
+        ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
+
+    try:
+        crear_registro_checkin(
+            carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
+            notas=resumir_adherencia(datos), valoracion=valoracion_desde_ratios(ratios),
+        )
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.error(t("portal_submit_error").format(error=str(exc)))
+    else:
+        st.success(t("portal_submit_success"))
+
+
 # ---------------------------------------------------------------------------
 # Page
 # ---------------------------------------------------------------------------
+
+# A client following their own magic link gets ONLY this view -- never the
+# trainer's sidebar, New Client/Example Client sections, or anything
+# behind APP_APPROVAL_PASSWORD. Checked before any of that renders, not
+# nested inside it, so there's no path where a client's browser ever
+# builds the trainer-facing DOM at all.
+_token_portal = st.query_params.get("portal_token")
+if _token_portal:
+    _vista_portal_cliente(_token_portal)
+    st.stop()
 
 with st.sidebar:
     if ICON_PATH.exists():

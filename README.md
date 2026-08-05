@@ -121,6 +121,16 @@ This repository is built phase by phase, as a learning project. Right now:
   The blank form itself is a real, committed artifact
   ([`examples/blank_intake_form.pdf`](examples/blank_intake_form.pdf)) — what
   the trainer actually shares with a prospect to get the loop started.
+- A **client-facing portal** (magic link, no password): the trainer can send a
+  client a private link to view a summary of their plan and log a check-in
+  directly — no PDF round-trip needed. Links are signed, stateless, and
+  self-expiring (see [`agents/portal_tokens.py`](agents/portal_tokens.py)), so
+  no separate database of issued links is needed. This is the one place in the
+  whole project where Gmail actually **sends** a real email instead of only
+  creating a draft — a deliberate, narrow exception (one function, one gated
+  button, a fixed one-variable template — see
+  [`docs/decisiones.md`](docs/decisiones.md)) to the "never sends
+  automatically" guarantee everywhere else in this project.
 
 ## What it doesn't include yet
 
@@ -142,10 +152,10 @@ TrainFitter/
 │   └── highlights.md                1-page cheat sheet of the best design decisions
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, orchestrator, PDF generation (+ intake form), seeded variety
+├── agents/                          Routine, diet, validator, orchestrator, PDF generation (+ intake form), seeded variety, portal tokens
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
-├── mcp/                             Connectors: Gmail (draft + send/adherence-reply detection), Notion (Clients + Check-ins)
+├── mcp/                             Connectors: Gmail (draft + portal-link send + adherence-reply/intake detection), Notion (Clients + Check-ins)
 ├── .github/workflows/               CI (every push) and the inbox trigger's cron schedule
 ├── assets/                          Cropped.jpg (banner), icon.png (favicon/sidebar mark), logo.jpg (source archive)
 ├── examples/                        Example clients and sample outputs

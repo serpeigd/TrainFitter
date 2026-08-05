@@ -69,6 +69,15 @@ scope or a separate state file. Only main.py's automated "Adherence
 check-in" rows set it — the existing "Plan sent" (ui/app.py) and manual
 rows the trainer types in Notion directly have no message ID to attach.
 
+DESIGN — obtener_registro_cliente() feeds the client portal, without a
+second copy of the plan anywhere: a client following their own magic link
+(see agents/portal_tokens.py) needs to see "your plan" somewhere. Rather
+than inventing a new place to persist the full generated routine/diet,
+this just reads back the same summarized Clients record
+guardar_registro_cliente() already saves — no schema change, no new
+Notion database, and the portal's view is bounded by exactly what the
+trainer's own panel already shows in its Notion-backed sections.
+
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
      copy its "Internal Integration Secret".
@@ -273,6 +282,58 @@ def marcar_email_enviado(pagina_id: str) -> None:
         cliente.pages.update(page_id=pagina_id, properties={"Email Sent": {"checkbox": True}})
     except APIResponseError as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
+def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
+    """Extracts the fields the client portal needs to show from a raw
+    Clients page object. Pure function: no I/O, safe to unit test with a
+    hand-built page dict instead of a real API response -- same pattern as
+    _fila_checkin_desde_pagina() below."""
+    propiedades = pagina["properties"]
+    nombre = "".join(t["plain_text"] for t in propiedades.get("Name", {}).get("title", []))
+    resumen = "".join(t["plain_text"] for t in propiedades.get("Summary", {}).get("rich_text", []))
+    veredicto = (propiedades.get("Verdict", {}).get("select") or {}).get("name")
+    fecha = (propiedades.get("Date", {}).get("date") or {}).get("start")
+    return {"nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha}
+
+
+def obtener_registro_cliente(pagina_id: str) -> dict:
+    """
+    Reads back a Clients record's client-facing fields -- what the portal
+    (a client following their own magic link, see agents/portal_tokens.py)
+    shows as "your plan". Deliberately only reads what's already saved by
+    guardar_registro_cliente() (name, the routine+diet summary, the
+    verdict, the admission date): the portal doesn't need a second,
+    separate copy of the full generated routine/diet to exist anywhere,
+    it reuses the same summarized record the trainer's own panel already
+    relies on (see this module's docstring on "Summary"'s 2000-char
+    truncated content).
+
+    Args:
+        pagina_id: the Notion page ID returned by guardar_registro_cliente()
+            (embedded in the magic link's signed payload, not typed by
+            the client).
+
+    Returns:
+        {"nombre", "resumen", "veredicto", "fecha"}.
+
+    Raises:
+        NotionClientError: missing credentials, the page doesn't exist
+            (e.g. a stale link to a record that got deleted), or another
+            Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+    except APIResponseError as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return _fila_registro_cliente_desde_pagina(pagina)
 
 
 def _checkins_database_id() -> str:

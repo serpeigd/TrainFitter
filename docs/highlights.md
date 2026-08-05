@@ -114,6 +114,25 @@ covered instead by mocked-network tests plus real-credentials coverage of
 every other moving part — the same standard applied to every claim this
 project makes about what its test suite actually proves.
 
+## 10. The one deliberate exception to "never sends automatically" — asked, not assumed
+
+The client portal's magic link only works if it actually reaches the
+client's inbox, which meant widening Gmail's scope from `gmail.compose`
+to `gmail.send` — a real trade-off against #3 above, this project's
+single most load-bearing safety property. Rather than deciding that
+unilaterally under a broad "build everything" instruction, it was put to
+the project owner directly as a real choice (widen the scope, or route
+just this one email through a separate service and leave Gmail
+untouched). They chose widening it. What stayed non-negotiable: the blast
+radius is contained to exactly one function
+(`gmail_client.enviar_enlace_portal()`) that's the only caller of
+`messages().send()` anywhere in the codebase — locked in by a test that
+asserts `drafts().create()` was specifically *not* called — reachable
+from one gated button, sending a fixed template with exactly one variable
+slot. Escalating a scope is easy to do quietly; this one is on the
+record, with the reasoning, because "the code CAN'T send" (see #3) is a
+guarantee worth being honest about the moment it stops being absolute.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*

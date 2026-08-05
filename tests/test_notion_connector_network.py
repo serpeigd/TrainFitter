@@ -216,6 +216,38 @@ def test_data_source_id_is_cached_across_calls(monkeypatch):
     assert cliente.data_sources.query.call_count == 2
 
 
+# --- obtener_registro_cliente() ---------------------------------------------
+
+
+def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {
+        "properties": {
+            "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+            "Summary": {"rich_text": [{"plain_text": "Routine: full body."}]},
+            "Verdict": {"select": {"name": "Auto-approved"}},
+            "Date": {"date": {"start": "2026-08-01"}},
+        }
+    }
+
+    registro = notion_connector.obtener_registro_cliente("page-1")
+
+    assert registro == {
+        "nombre": "Laura Fernandez",
+        "resumen": "Routine: full body.",
+        "veredicto": "Auto-approved",
+        "fecha": "2026-08-01",
+    }
+    cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
+
+
+def test_obtener_registro_cliente_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.obtener_registro_cliente("page-1")
+
+
 # --- historial_checkins() ---------------------------------------------------
 
 

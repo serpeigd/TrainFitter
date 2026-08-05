@@ -148,7 +148,34 @@ mocked-network tests instead, since injecting a synthetic incoming
 message via `messages().insert()` needs a broader scope than the
 project's deliberately narrow `gmail.compose` grants (403 Insufficient
 Permission) — a genuine, disclosed testing limitation, not a gap papered
-over.
+over. A client-facing **portal** (magic link, no password) lets a client
+view a summary of their plan and log a check-in directly —
+`agents/portal_tokens.py` issues stateless, signed, self-expiring links
+(HMAC-SHA256, standard library only, no token database); `ui/app.py`
+renders a client-only view instead of the whole trainer panel when a
+valid `?portal_token=...` query param is present
+(`_vista_portal_cliente()`); the portal's own check-in form reuses
+`agents/adherencia_parser.py`'s existing `resumir_adherencia()`/
+`valoracion_desde_ratios()` and `notion_connector.crear_registro_checkin()`
+rather than a parallel implementation; and `notion_connector.
+obtener_registro_cliente()` reads back the same summarized Clients record
+`guardar_registro_cliente()` already saves — no new Notion database, no
+second copy of the full plan persisted anywhere. Sending the link for
+real required widening Gmail's scope to `gmail.send` — the one
+deliberate, narrow exception to this project's "never sends
+automatically" guarantee, confirmed with the project owner before being
+built (not assumed under the broader "build everything" instruction) and
+contained to exactly one function
+(`gmail_client.enviar_enlace_portal()`), one gated button, and a fixed
+one-variable-slot email template; see `docs/decisiones.md` for the full
+reasoning. **Still pending before the portal works for real:** the
+project owner needs to re-authorize Gmail once (same as every prior
+scope change) so `token.json` actually carries `gmail.send`, both locally
+and on any deployment that will use it, and set a real
+`PORTAL_SECRET_KEY`/`PORTAL_BASE_URL` (see `.env.example`) — this session
+could not perform either (interactive OAuth consent, and sending a real
+test email, both require the project owner's own action/explicit
+in-the-moment go-ahead).
 
 ## Free-only guardrail
 
@@ -173,8 +200,9 @@ if the user explicitly opts in to spending money.
 | Bloodwork parser | `agents/analytics_parser.py` |
 | Diet/checklist PDF generation + reading | `agents/pdf_generador.py` |
 | Intake PDF generation + reading | `agents/pdf_intake.py` |
+| Client portal magic-link tokens (signed, stateless) | `agents/portal_tokens.py` |
 | Adherence summary formatting (rating, Notion text) | `agents/adherencia_parser.py` |
-| Gmail connector (draft + adherence-reply/new-intake search) | `mcp/gmail_client.py` |
+| Gmail connector (draft + portal-link send + adherence-reply/new-intake search) | `mcp/gmail_client.py` |
 | Notion connector (auto-save + check-ins) | `mcp/notion_connector.py` |
 | Automatic inbox trigger (cron; adherence + new intakes) | `main.py`, `.github/workflows/inbox_trigger.yml` |
 | Streamlit UI | `ui/app.py` |

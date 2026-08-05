@@ -30,6 +30,25 @@ enforces scope at the API call, not just locally — so re-running the OAuth
 consent flow (deleting token.json first) is required once, both locally
 and on any deployment.
 
+DESIGN — gmail.send is a deliberate, narrow, single exception to
+"never sends automatically": enviar_enlace_portal() sends a real message
+(via messages().send(), not drafts().create()) containing nothing but a
+signed magic link (see agents/portal_tokens.py) to the client portal —
+never plan content, never anything the trainer hasn't already approved.
+This is a real, considered trade-off against the draft-only principle
+above, made explicitly by the project owner (not a default), because a
+magic link is only useful if it actually reaches the client's inbox — a
+draft the trainer would have to open and manually forward defeats the
+point of a self-serve portal. The blast radius is kept as small as this
+scope allows: enviar_enlace_portal() is the *only* function in this
+module that calls messages().send() rather than drafts().create() or a
+read-only endpoint, it's only ever reachable from one explicit button in
+ui/app.py's approval panel (gated the same way draft creation already is
+— behind an approved plan, and behind APP_APPROVAL_PASSWORD on the public
+demo), and the email body it sends is a fixed, code-defined template with
+exactly one variable slot (the link itself) — never free text a trainer
+or client could inject content into.
+
 DESIGN — pure logic separated from network/auth: _construir_mensaje_raw()
 and _construir_cuerpo_email() are plain functions with no I/O, fully unit
 tested without any credentials. Only crear_borrador() and verificar_envio()
@@ -115,9 +134,13 @@ RUTA_TOKEN = REPO_ROOT / "token.json"
 # docstring). gmail.readonly: read the inbox to find a client's adherence
 # reply and its attachment — the narrowest scope Gmail offers that can
 # actually see a message body/attachment, not just labels/headers.
+# gmail.send: the one deliberate exception to "never sends automatically"
+# — enviar_enlace_portal() actually sends (see its own docstring for why,
+# and the guardrails around when it's allowed to fire).
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 # Shared between crear_borrador() (builds the subject) and
@@ -329,6 +352,82 @@ def crear_borrador(
         "url": f"https://mail.google.com/mail/u/0/#drafts/{borrador['message']['id']}",
         "thread_id": borrador["message"]["threadId"],
     }
+
+
+ASUNTO_PORTAL_EN = "Your TrainFitter client portal link"
+ASUNTO_PORTAL_ES = "Tu enlace al portal de TrainFitter"
+
+
+def _construir_cuerpo_portal(nombre_cliente: str, url_portal: str, idioma: str = "en") -> str:
+    """Fixed, code-defined template with exactly one variable slot (the
+    link itself) -- see the module docstring's DESIGN note on gmail.send
+    for why that matters specifically for this one function. Pure
+    formatting, no I/O, trivially unit-testable."""
+    if idioma == "es":
+        return (
+            f"Hola {nombre_cliente},\n\n"
+            f"Aquí tienes tu enlace personal al portal de TrainFitter, donde "
+            f"puedes ver un resumen de tu plan y registrar cómo te va:\n\n"
+            f"{url_portal}\n\n"
+            f"Este enlace es solo tuyo — no lo compartas. Caduca pasados unos "
+            f"días; si deja de funcionar, pídele a tu entrenador/a uno nuevo.\n\n"
+            f"(Este correo lo ha enviado tu entrenador/a a propósito, pulsando "
+            f"un botón — TrainFitter nunca escribe ni envía nada por su cuenta.)"
+        )
+    return (
+        f"Hi {nombre_cliente},\n\n"
+        f"Here's your personal link to the TrainFitter client portal, where "
+        f"you can see a summary of your plan and log how it's going:\n\n"
+        f"{url_portal}\n\n"
+        f"This link is just for you — please don't share it. It expires "
+        f"after a few days; ask your trainer for a new one if it stops "
+        f"working.\n\n"
+        f"(Your trainer sent this on purpose, by clicking a button — "
+        f"TrainFitter never writes or sends anything on its own.)"
+    )
+
+
+def enviar_enlace_portal(destinatario: str, nombre_cliente: str, url_portal: str, idioma: str = "en") -> None:
+    """
+    Actually SENDS (not drafts) a short email containing only the client
+    portal's magic link. See the module docstring's DESIGN note on
+    gmail.send for why this one function is allowed to do what nothing
+    else in this module does, and what keeps it narrow.
+
+    Args:
+        destinatario: the client's email.
+        nombre_cliente: used only for the greeting.
+        url_portal: the full, already-built portal URL (see
+            agents/portal_tokens.py + ui/app.py for how it's assembled).
+        idioma: "en" (default) or "es" — this email's own wrapper text.
+
+    Raises:
+        GmailClientError: invalid recipient, missing/expired credentials
+            (including a token.json still scoped under the old
+            gmail.compose/gmail.readonly-only list -- re-authorizing is
+            required once after gmail.send was added, same as every prior
+            scope change; see the module docstring's Setup section), or a
+            Gmail API failure.
+    """
+    asunto = ASUNTO_PORTAL_ES if idioma == "es" else ASUNTO_PORTAL_EN
+    cuerpo = _construir_mensaje_raw(
+        destinatario, asunto=asunto, cuerpo_texto=_construir_cuerpo_portal(nombre_cliente, url_portal, idioma),
+    )
+
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    try:
+        servicio = build("gmail", "v1", credentials=credenciales)
+        # messages().send()'s body is the {"raw": ...} envelope directly --
+        # unlike drafts().create(), it isn't wrapped in an outer "message"
+        # key. _construir_mensaje_raw() builds the drafts() shape (shared
+        # with crear_borrador()), so that one key is unwrapped here.
+        servicio.users().messages().send(userId="me", body=cuerpo["message"]).execute()
+    except HttpError as exc:
+        raise GmailClientError(f"Gmail API error: {exc}") from exc
 
 
 def verificar_envio(id_hilo: str) -> bool:
