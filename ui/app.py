@@ -729,6 +729,7 @@ TRANSLATIONS = {
         "allergies": "Food allergies (comma-separated)",
         "intolerances": "Food intolerances (comma-separated)",
         "bloodwork_upload": "Bloodwork (PDF, optional)",
+        "bloodwork_kept_on_file": "📋 Keeping the bloodwork markers already on file (from {fecha}) — upload a new PDF only to replace them.",
         "sec_nutrition": "6. Nutrition",
         "diet_type": "Diet type",
         "additional_restrictions": "Additional restrictions (comma-separated)",
@@ -822,6 +823,7 @@ TRANSLATIONS = {
         "portal_load_error": "Could not load your plan: {error}",
         "portal_welcome": "Hi {nombre} 👋",
         "portal_since_label": "Client since {fecha}",
+        "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
         "portal_routine_section_title": "🏋️ Routine",
@@ -905,6 +907,7 @@ TRANSLATIONS = {
         "allergies": "Alergias alimentarias (separadas por coma)",
         "intolerances": "Intolerancias alimentarias (separadas por coma)",
         "bloodwork_upload": "Analítica de sangre (PDF, opcional)",
+        "bloodwork_kept_on_file": "📋 Se mantienen los marcadores de la analítica ya guardada (de {fecha}) — sube un PDF nuevo solo para sustituirlos.",
         "sec_nutrition": "6. Alimentación",
         "diet_type": "Tipo de dieta",
         "additional_restrictions": "Restricciones adicionales (coma)",
@@ -998,6 +1001,7 @@ TRANSLATIONS = {
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_welcome": "Hola {nombre} 👋",
         "portal_since_label": "Cliente desde {fecha}",
+        "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
         "portal_routine_section_title": "🏋️ Rutina",
@@ -1174,12 +1178,16 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
     only caller. Pure function, no Streamlit calls, easy to unit test
     independent of any live app.
 
-    One real limitation: analitica_pdf (the bloodwork upload) has no
-    Streamlit API for pre-seeding a file_uploader with a file -- a
-    revision doesn't re-attach whatever bloodwork PDF the original intake
-    might have carried. Not fixable without inventing a place to persist
-    that PDF's raw bytes too, which nothing in this codebase does anywhere
-    else for the intake side."""
+    One real limitation, worked around rather than left broken:
+    analitica_pdf (the bloodwork upload) has no Streamlit API for
+    pre-seeding a file_uploader with a file, so a revision can't re-attach
+    the original PDF -- but it doesn't need to. The already-extracted
+    markers (salud.analitica_adjunta) are mapped here too, under
+    "analitica_previa", which _formulario_ficha_nueva() falls back to
+    when no new PDF is uploaded -- no re-analysis, no silently losing a
+    known deficiency just because the trainer didn't re-upload the same
+    file. A genuinely new bloodwork PDF uploaded during a revision still
+    takes priority and replaces it."""
     datos = perfil["datos_basicos"]
     objetivo = perfil["objetivo"]
     experiencia = perfil["experiencia"]
@@ -1226,6 +1234,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "pasos": estilo.get("pasos_diarios_aprox", 6000),
         "tipo_trabajo": estilo.get("tipo_trabajo", ""),
         "notas_libres": perfil.get("notas_libres", ""),
+        "analitica_previa": salud.get("analitica_adjunta"),
     }
 
 
@@ -1303,6 +1312,14 @@ def _formulario_ficha_nueva() -> dict | None:
     intolerancias_texto = c13.text_input(t("intolerances"), key="intolerancias")
 
     analitica_pdf = st.file_uploader(t("bloodwork_upload"), type=["pdf"], key="analitica")
+    # A "Revise client" load (see _cargar_ficha_para_revisar()) pre-seeds
+    # analitica_previa with whatever markers were already extracted and
+    # saved for this client -- no re-upload, no re-analysis needed just to
+    # regenerate a plan with everything else the same. Only surfaced when
+    # relevant: a brand-new intake never has this key set.
+    analitica_previa = st.session_state.get("analitica_previa")
+    if analitica_previa and analitica_previa.get("tiene") and analitica_pdf is None:
+        st.caption(t("bloodwork_kept_on_file").format(fecha=analitica_previa.get("fecha") or "?"))
 
     st.subheader(t("sec_nutrition"))
     tipos_dieta = ["omnivora", "vegetariana_ovolacto", "vegana"]
@@ -1336,9 +1353,26 @@ def _formulario_ficha_nueva() -> dict | None:
         return None
 
     ahora = datetime.now(timezone.utc)
-    marcadores_analitica = (
-        analizar_pdf_analitica(analitica_pdf.getvalue())["marcadores"] if analitica_pdf is not None else []
-    )
+    if analitica_pdf is not None:
+        # A new upload always wins -- e.g. a follow-up blood test during a
+        # revision is meant to supersede whatever was on file before.
+        analitica_adjunta = {
+            "tiene": True,
+            "archivo": analitica_pdf.name,
+            "fecha": ahora.date().isoformat(),
+            "notas": "",
+            "marcadores": analizar_pdf_analitica(analitica_pdf.getvalue())["marcadores"],
+        }
+    else:
+        # No new upload this submission -- carry forward whatever was
+        # already extracted and saved for this client (see
+        # _cargar_ficha_para_revisar()/_campos_formulario_desde_perfil())
+        # rather than silently discarding it just because file_uploader
+        # can't be pre-seeded with a file. A brand-new client with no
+        # bloodwork on file gets the same empty default as before.
+        analitica_adjunta = st.session_state.get("analitica_previa") or {
+            "tiene": False, "archivo": None, "fecha": None, "notas": "", "marcadores": [],
+        }
     perfil = {
         "id_cliente": f"cliente_ui_{_slug(nombre)}",
         "fecha_admision": ahora.date().isoformat(),
@@ -1375,13 +1409,7 @@ def _formulario_ficha_nueva() -> dict | None:
             "medicacion_habitual": _lista_desde_texto(medicacion_texto),
             "alergias_alimentarias": _lista_desde_texto(alergias_texto),
             "intolerancias_alimentarias": _lista_desde_texto(intolerancias_texto),
-            "analitica_adjunta": {
-                "tiene": analitica_pdf is not None,
-                "archivo": analitica_pdf.name if analitica_pdf is not None else None,
-                "fecha": ahora.date().isoformat() if analitica_pdf is not None else None,
-                "notas": "",
-                "marcadores": marcadores_analitica,
-            },
+            "analitica_adjunta": analitica_adjunta,
         },
         "nutricion": {
             "tipo_dieta": tipo_dieta,
@@ -1719,6 +1747,30 @@ def _dialogo_aprobacion(estado, guardar_en_notion: bool) -> None:
         st.rerun()
 
 
+def _render_historial_checkins(email: str) -> None:
+    """Renders a client's Check-ins history (most recent first, with
+    rating/weight/notes) -- shared by the trainer's own "Adherence
+    history" expander in _panel_aprobacion() and the client portal's own
+    history view in _vista_portal_cliente() below, so the row-formatting
+    logic (and the "how it degrades on error" behavior) only lives in one
+    place. Best-effort: a Notion failure shows a caption, never crashes
+    whichever page called this."""
+    try:
+        historial = historial_checkins(email)
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.caption(t("adherence_history_error").format(error=str(exc)))
+        return
+
+    if not historial:
+        st.caption(t("adherence_history_empty"))
+    for fila in historial:
+        etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
+        etiqueta_peso = f" · {fila['peso_kg']} kg" if fila.get("peso_kg") is not None else ""
+        st.markdown(f"**{fila['fecha'] or '?'}** · {fila['tipo'] or '?'}{etiqueta_valoracion}{etiqueta_peso}")
+        if fila["notas"]:
+            st.caption(fila["notas"])
+
+
 def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     perfil = estado.perfil_cliente
 
@@ -1868,19 +1920,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     # every other optional Notion read/write in this panel.
     if email_cliente:
         with st.expander(t("adherence_history_header")):
-            try:
-                historial = historial_checkins(email_cliente)
-            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                st.caption(t("adherence_history_error").format(error=str(exc)))
-            else:
-                if not historial:
-                    st.caption(t("adherence_history_empty"))
-                for fila in historial:
-                    etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
-                    etiqueta_peso = f" · {fila['peso_kg']} kg" if fila.get("peso_kg") is not None else ""
-                    st.markdown(f"**{fila['fecha'] or '?'}** · {fila['tipo'] or '?'}{etiqueta_valoracion}{etiqueta_peso}")
-                    if fila["notas"]:
-                        st.caption(fila["notas"])
+            _render_historial_checkins(email_cliente)
 
 
 def _vista_portal_cliente(token: str) -> None:
@@ -1910,6 +1950,13 @@ def _vista_portal_cliente(token: str) -> None:
         st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
     if registro["resumen"]:
         st.markdown(registro["resumen"])
+
+    # Same row-formatting logic the trainer's own panel already uses (see
+    # _render_historial_checkins()) -- a client only ever sees their own
+    # history (carga["email"] comes from the signed token, never typed in),
+    # same best-effort degrade-on-error behavior as everywhere else here.
+    with st.expander(t("portal_history_header")):
+        _render_historial_checkins(carga["email"])
 
     st.divider()
     st.subheader(t("portal_checkin_header"))

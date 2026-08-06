@@ -146,7 +146,13 @@ This repository is built phase by phase, as a learning project. Right now:
   deliberate architecture change: Notion now stores each client's complete
   profile (chunked across a `rich_text` property), not just a summary — a
   trade-off the project owner chose explicitly after seeing the lighter
-  alternative (see [`docs/decisiones.md`](docs/decisiones.md)).
+  alternative (see [`docs/decisiones.md`](docs/decisiones.md)). A previously
+  uploaded bloodwork PDF doesn't need re-uploading on a revision either —
+  the markers already extracted from it are kept and still feed the same
+  safety check, verified live against a real out-of-range marker.
+- The client portal also shows a client their own check-in history, not
+  just today's — the same view the trainer already has, scoped to that
+  client's own signed link so there's no way to see anyone else's data.
 
 ## What it doesn't include yet
 

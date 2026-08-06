@@ -240,7 +240,21 @@ but nothing let that number go anywhere until now. The portal's check-in
 form gained an optional weight field (`"Weight (kg)"` on Check-ins),
 shown in the trainer's existing adherence-history view and mentioned in
 the trainer notification email — reusing all three existing surfaces,
-no new ones.
+no new ones. Two follow-ups shipped the same day, both requested
+directly: the disclosed "Revise client" bloodwork gap is closed not by
+re-attaching the original PDF (still not possible) but by not needing to
+— `_campos_formulario_desde_perfil()` now also pre-seeds
+`analitica_previa`, and `_formulario_ficha_nueva()` falls back to the
+already-extracted markers already living inside "Full Profile (JSON)"
+when no new PDF is uploaded, with a caption making that explicit; a real
+uploaded PDF still takes priority and replaces them outright. Verified
+live that a carried-forward out-of-range marker still triggers
+`revision_reforzada`, exactly as a freshly-parsed one would. And the
+client portal now shows a client their own check-in history
+(`_render_historial_checkins()`, pulled out of `_panel_aprobacion()` and
+shared with `_vista_portal_cliente()` rather than duplicated) — scoped by
+the signed token's own email, never something a client could type in to
+see someone else's data.
 
 ## Free-only guardrail
 
