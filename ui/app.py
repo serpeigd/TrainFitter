@@ -811,6 +811,8 @@ TRANSLATIONS = {
         "portal_since_label": "Client since {fecha}",
         "portal_checkin_header": "How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
+        "portal_routine_section_title": "🏋️ Routine",
+        "portal_diet_section_title": "🍽️ Diet",
         "portal_routine_completed_label": "Sessions completed",
         "portal_routine_total_label": "Sessions planned this week",
         "portal_routine_more_than_planned_label": "I trained more than planned",
@@ -971,6 +973,8 @@ TRANSLATIONS = {
         "portal_since_label": "Cliente desde {fecha}",
         "portal_checkin_header": "¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
+        "portal_routine_section_title": "🏋️ Rutina",
+        "portal_diet_section_title": "🍽️ Dieta",
         "portal_routine_completed_label": "Sesiones completadas",
         "portal_routine_total_label": "Sesiones previstas esta semana",
         "portal_routine_more_than_planned_label": "Entrené más de lo planeado",
@@ -1755,16 +1759,22 @@ def _vista_portal_cliente(token: str) -> None:
     st.subheader(t("portal_checkin_header"))
     st.caption(t("portal_checkin_intro"))
 
-    # Standalone widgets, not st.form -- unlike the reasoning written here
-    # before: "completed" needs to react live to whatever the client just
-    # set "total" to (diet days followed can't exceed the check-in
-    # period), and a form doesn't rerun until submit, so that clamp
-    # wouldn't take effect until after the fact. Same trade-off
-    # _formulario_ficha_nueva() already makes above, for the same reason.
-    # Each "total" widget is read before its matching "completed" widget
-    # in code (regardless of which column it visually renders into) so
-    # its current value is available to set the completed widget's
-    # max_value on this same rerun.
+    # Standalone widgets, not st.form -- "completed" needs to react live
+    # to whatever the client just set "total" to, and a form doesn't
+    # rerun until submit, so that clamp wouldn't take effect until after
+    # the fact. Same trade-off _formulario_ficha_nueva() already makes
+    # above, for the same reason. Each "total"/checkbox widget is placed
+    # -- and its value read -- BEFORE its matching "completed" widget, in
+    # both code and visual order this time (no more side-by-side columns,
+    # which read backwards: "completed" appeared before "total" was even
+    # set). Sliders instead of bare number boxes -- a visual fill showing
+    # where "completed" sits relative to "total" reads faster than two
+    # unrelated-looking number fields, and st.progress() below adds an
+    # explicit fraction for the same reason.
+    st.markdown(f"**{t('portal_routine_section_title')}**")
+    totales_rutina = st.slider(
+        t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
+    )
     # Sessions completed is deliberately NOT capped at "planned" the way
     # diet days is below -- a client can genuinely train more than the
     # plan called for (an extra session), unlike "days I followed the
@@ -1772,29 +1782,30 @@ def _vista_portal_cliente(token: str) -> None:
     # The checkbox is an explicit, discoverable way to say "yes, really
     # more than planned" rather than silently allowing any number by
     # default, which would make a typo too easy to enter unnoticed.
-    # Rendered (and its value read) before the columns below, since
-    # completados_rutina's own max_value depends on it.
     mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
-
-    c1, c2 = st.columns(2)
-    totales_rutina = c2.number_input(
-        t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
-    )
     max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
-    completados_rutina = c1.number_input(
+    completados_rutina = st.slider(
         t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
         key="portal_completados_rutina",
     )
+    st.progress(
+        min(completados_rutina / totales_rutina, 1.0), text=f"{completados_rutina}/{totales_rutina}",
+    )
     notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
 
-    c3, c4 = st.columns(2)
-    totales_dieta = c4.number_input(
+    st.markdown(f"**{t('portal_diet_section_title')}**")
+    totales_dieta = st.slider(
         t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
     )
-    seguidos_dieta = c3.number_input(
+    # Diet days followed, unlike sessions above, IS hard-capped at the
+    # total -- a real, definitional bound (you can't follow a diet for
+    # more days than exist in the check-in period), not a target a client
+    # might exceed. No override checkbox here on purpose.
+    seguidos_dieta = st.slider(
         t("portal_diet_completed_label"), min_value=0, max_value=int(totales_dieta), value=0,
         key="portal_seguidos_dieta",
     )
+    st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
     notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
 
     enviado = st.button(t("portal_submit_button"), type="primary")

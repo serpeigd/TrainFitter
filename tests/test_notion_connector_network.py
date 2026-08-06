@@ -18,6 +18,17 @@ def _api_error(message="error"):
     )
 
 
+def _connection_error():
+    """A transport-level failure (DNS, connection reset, timeout) -- never
+    reaches the point of getting an HTTP status code back, so it's an
+    httpx.HTTPError, NOT an APIResponseError. Reproduced live (a real
+    ConnectError) while testing the client portal, which crashed the
+    whole Streamlit app with a raw traceback instead of a clean error --
+    every Notion network call in this module needs to catch this class
+    too, not just APIResponseError."""
+    return httpx.ConnectError("connection reset")
+
+
 def _mock_client(monkeypatch):
     """Sets real-looking Notion env vars (never touches an actual
     workspace -- notion_client.Client itself is replaced below) and
@@ -66,6 +77,20 @@ def test_guardar_registro_cliente_sets_source_message_id_for_automated_intakes(m
 def test_guardar_registro_cliente_wraps_api_error(monkeypatch, perfil_base):
     cliente = _mock_client(monkeypatch)
     cliente.pages.create.side_effect = _api_error()
+    borrador_rutina = {"resumen_enfoque": "..."}
+    borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    with pytest.raises(NotionClientError):
+        notion_connector.guardar_registro_cliente(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+
+def test_guardar_registro_cliente_wraps_connection_error(monkeypatch, perfil_base):
+    """A transport-level failure, not an API error response -- see
+    _connection_error()'s docstring for why this is a separate case from
+    the one above."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.create.side_effect = _connection_error()
     borrador_rutina = {"resumen_enfoque": "..."}
     borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
     veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
@@ -244,6 +269,17 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
 def test_obtener_registro_cliente_wraps_api_error(monkeypatch):
     cliente = _mock_client(monkeypatch)
     cliente.pages.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.obtener_registro_cliente("page-1")
+
+
+def test_obtener_registro_cliente_wraps_connection_error(monkeypatch):
+    """Regression test for a real crash: a live portal session hit a raw
+    httpx.ConnectError here, which propagated past this function's
+    except-APIResponseError-only clause and crashed the whole Streamlit
+    app with a traceback instead of showing portal_load_error."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.side_effect = _connection_error()
     with pytest.raises(NotionClientError):
         notion_connector.obtener_registro_cliente("page-1")
 

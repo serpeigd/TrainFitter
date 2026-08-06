@@ -224,6 +224,7 @@ def guardar_registro_cliente(
     # that happens to fire first just because of statement order.
     api_key, database_id = _credenciales()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
@@ -232,7 +233,7 @@ def guardar_registro_cliente(
     try:
         cliente = Client(auth=api_key)
         pagina = cliente.pages.create(parent={"database_id": database_id}, properties=propiedades)
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return {"id": pagina["id"], "url": pagina["url"]}
@@ -253,13 +254,14 @@ def actualizar_email_cliente(pagina_id: str, email: str) -> None:
     # mask the clearer "missing credentials" error.
     api_key, _ = _credenciales()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
     try:
         cliente = Client(auth=api_key)
         cliente.pages.update(page_id=pagina_id, properties={"Email": {"email": email}})
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
@@ -274,13 +276,14 @@ def marcar_email_enviado(pagina_id: str) -> None:
     """
     api_key, _ = _credenciales()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
     try:
         cliente = Client(auth=api_key)
         cliente.pages.update(page_id=pagina_id, properties={"Email Sent": {"checkbox": True}})
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
@@ -324,13 +327,14 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
     """
     api_key, _ = _credenciales()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
     try:
         cliente = Client(auth=api_key)
         pagina = cliente.pages.retrieve(page_id=pagina_id)
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return _fila_registro_cliente_desde_pagina(pagina)
@@ -420,6 +424,7 @@ def crear_registro_checkin(
     api_key, _ = _credenciales()
     database_id = _checkins_database_id()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
@@ -428,7 +433,7 @@ def crear_registro_checkin(
     try:
         cliente = Client(auth=api_key)
         pagina = cliente.pages.create(parent={"database_id": database_id}, properties=propiedades)
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return {"id": pagina["id"], "url": pagina["url"]}
@@ -472,6 +477,7 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
     api_key, _ = _credenciales()
     database_id = _checkins_database_id()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
@@ -481,7 +487,7 @@ def existe_checkin_para_mensaje(id_mensaje: str) -> bool:
             data_source_id=_id_fuente_datos(cliente, database_id),
             filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
         )
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return len(resultado["results"]) > 0
@@ -508,6 +514,7 @@ def existe_cliente_para_mensaje(id_mensaje: str) -> bool:
     """
     api_key, database_id = _credenciales()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
@@ -517,7 +524,7 @@ def existe_cliente_para_mensaje(id_mensaje: str) -> bool:
             data_source_id=_id_fuente_datos(cliente, database_id),
             filter={"property": "Source message ID", "rich_text": {"equals": id_mensaje}},
         )
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return len(resultado["results"]) > 0
@@ -557,6 +564,7 @@ def historial_checkins(email: str) -> list[dict]:
     api_key, _ = _credenciales()
     database_id = _checkins_database_id()
 
+    from httpx import HTTPError
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
@@ -567,7 +575,7 @@ def historial_checkins(email: str) -> list[dict]:
             filter={"property": "Email", "email": {"equals": email}},
             sorts=[{"property": "Date", "direction": "descending"}],
         )
-    except APIResponseError as exc:
+    except (APIResponseError, HTTPError) as exc:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return [_fila_checkin_desde_pagina(pagina) for pagina in resultado["results"]]
