@@ -191,12 +191,56 @@ own inbox (`TRAINER_NOTIFICATION_EMAIL`, optional, unset = skipped) —
 genuinely automatic, but never a client-facing send, so it doesn't touch
 the "never contacts a client automatically" guarantee; best-effort,
 wired so its failure can never block the actual Notion check-in from
-being saved. **Still pending, if the portal is ever used from the public
-deployment:** the Streamlit Cloud secrets (`GMAIL_TOKEN_JSON`,
-`PORTAL_SECRET_KEY`, `PORTAL_BASE_URL`, optionally
-`TRAINER_NOTIFICATION_EMAIL`) need the same values set there — this
-session provided them to the project owner to paste in but has no access
-to that dashboard itself.
+being saved. The project owner has since pasted the matching secrets
+(`GMAIL_TOKEN_JSON`, `PORTAL_SECRET_KEY`, `PORTAL_BASE_URL`,
+`NOTION_CHECKINS_DATABASE_ID`) into Streamlit Cloud and confirmed the
+public demo works end to end. Two portal check-in UX fixes shipped the
+same day, both caught by live-testing against the real Notion record:
+"completed" now reacts live to "total" (needed standalone widgets, not
+`st.form`), and sessions-completed no longer hard-caps at planned (a
+client can genuinely train more than scheduled — an "I trained more than
+planned" checkbox raises the ceiling instead; diet days keeps its hard
+cap, since that bound is definitional). A Notion connection-error crash
+was also found and fixed the same day: every network-touching function
+in `mcp/notion_connector.py` now catches `httpx.HTTPError` alongside
+`notion_client`'s `APIResponseError` — a transport-level failure (DNS,
+timeout, connection reset) was previously propagating uncaught and
+crashing the whole Streamlit app.
+
+The Clients Notion database now also stores each client's complete
+`perfil_cliente` (`"Full Profile (JSON)"`, chunked across `rich_text`
+blocks — `agents/pdf_intake.py`-style form data at Notion's 2000-char
+block limit) — a real, deliberate reversal of `obtener_registro_cliente()`'s
+original "no second copy of the plan anywhere" design, chosen explicitly
+by the project owner (not assumed) once the two options were scoped out.
+This powers a new **"Revise client"** section in `ui/app.py`
+(`_cargar_ficha_para_revisar()`): the trainer looks up a past client by
+email (`notion_connector.buscar_cliente_por_email()`), the exact same
+`_formulario_ficha_nueva()` form used for new intakes opens pre-filled
+with their saved data (`_campos_formulario_desde_perfil()` pre-seeds
+`st.session_state` — the standard Streamlit pattern, no changes to that
+form itself), and re-approving calls `actualizar_registro_cliente()`
+(`pages.update()`, not `pages.create()`) so the same Clients record gets
+corrected in place rather than duplicated — matching the "one master
+record per client" principle `notion_connector.py`'s docstring already
+states for Email/Email Sent. Verified against the real workspace: a
+generated plan round-tripped through save → look-up-by-email exactly
+byte for byte, then a revision (changed weight, regenerated) updated the
+same page ID rather than creating a new one — then confirmed again
+through an actual browser session (load → the form visibly pre-filled
+with the loaded client's real weight/goal/level). One real, disclosed
+gap: bloodwork PDFs can't be pre-loaded into a revision (`file_uploader`
+has no Streamlit API for that), so a revision doesn't re-attach the
+original intake's bloodwork.
+
+This also finally gave the trainer's own claim about weight a real
+mechanism: `dieta_reglas.py`'s generated message has always said the
+plan "gets adjusted based on real weight ... over the first few weeks",
+but nothing let that number go anywhere until now. The portal's check-in
+form gained an optional weight field (`"Weight (kg)"` on Check-ins),
+shown in the trainer's existing adherence-history view and mentioned in
+the trainer notification email — reusing all three existing surfaces,
+no new ones.
 
 ## Free-only guardrail
 

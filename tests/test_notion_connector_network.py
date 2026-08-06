@@ -3,6 +3,7 @@ mocked notion_client.Client -- no real credentials, no real workspace, but
 real coverage of the request-building and response-handling logic that
 tests/test_notion_connector.py's pure-logic-only tests don't reach."""
 
+import json
 from unittest.mock import MagicMock
 
 import httpx
@@ -16,6 +17,15 @@ def _api_error(message="error"):
     return APIResponseError(
         code=APIErrorCode.InternalServerError, status=500, message=message, headers=httpx.Headers({}), raw_body_text="{}",
     )
+
+
+def _propiedad_perfil_respuesta(perfil: dict) -> dict:
+    """Builds a "Full Profile (JSON)" property shaped like a real API
+    response (plain_text blocks), from a perfil_cliente dict -- used by
+    obtener_perfil_completo()/buscar_cliente_por_email() tests below to
+    simulate a page that actually has a saved profile."""
+    texto = json.dumps(perfil)
+    return {"rich_text": [{"plain_text": texto[i:i + 1900]} for i in range(0, len(texto), 1900)] or [{"plain_text": ""}]}
 
 
 def _connection_error():
@@ -99,6 +109,57 @@ def test_guardar_registro_cliente_wraps_connection_error(monkeypatch, perfil_bas
         notion_connector.guardar_registro_cliente(perfil_base, borrador_rutina, borrador_dieta, veredicto)
 
 
+# --- actualizar_registro_cliente() ------------------------------------------
+
+
+def test_actualizar_registro_cliente_updates_not_creates(monkeypatch, perfil_base):
+    """A revision must call pages.update() on the existing page, never
+    pages.create() -- otherwise "revising" a client would silently
+    duplicate their record instead of correcting it (see this module's
+    docstring on why Clients stays one master record per client)."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.update.return_value = {"id": "page-1", "url": "https://notion.so/page-1"}
+    borrador_rutina = {"resumen_enfoque": "..."}
+    borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    resultado = notion_connector.actualizar_registro_cliente(
+        "page-1", perfil_base, borrador_rutina, borrador_dieta, veredicto,
+    )
+
+    assert resultado == {"id": "page-1", "url": "https://notion.so/page-1"}
+    cliente.pages.update.assert_called_once()
+    cliente.pages.create.assert_not_called()
+    _args, kwargs = cliente.pages.update.call_args
+    assert kwargs["page_id"] == "page-1"
+
+
+def test_actualizar_registro_cliente_does_not_reset_email_sent(monkeypatch, perfil_base):
+    """See the function's own docstring: revising a client shouldn't undo
+    an already-confirmed real send."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.update.return_value = {"id": "page-1", "url": "https://notion.so/page-1"}
+    borrador_rutina = {"resumen_enfoque": "..."}
+    borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    notion_connector.actualizar_registro_cliente("page-1", perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+    _args, kwargs = cliente.pages.update.call_args
+    assert "Email Sent" not in kwargs["properties"]
+
+
+def test_actualizar_registro_cliente_wraps_api_error(monkeypatch, perfil_base):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.update.side_effect = _api_error()
+    borrador_rutina = {"resumen_enfoque": "..."}
+    borrador_dieta = {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+
+    with pytest.raises(NotionClientError):
+        notion_connector.actualizar_registro_cliente("page-1", perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+
 # --- actualizar_email_cliente() / marcar_email_enviado() -------------------
 
 
@@ -145,6 +206,18 @@ def test_crear_registro_checkin_wraps_api_error(monkeypatch):
     cliente.pages.create.side_effect = _api_error()
     with pytest.raises(NotionClientError):
         notion_connector.crear_registro_checkin("client@example.com", "Ana", "Plan sent", "2026-07-30")
+
+
+def test_crear_registro_checkin_passes_weight_through(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.create.return_value = {"id": "checkin-1", "url": "https://notion.so/checkin-1"}
+
+    notion_connector.crear_registro_checkin(
+        "client@example.com", "Ana", "Adherence check-in", "2026-07-30", peso_kg=71.5,
+    )
+
+    _args, kwargs = cliente.pages.create.call_args
+    assert kwargs["properties"]["Weight (kg)"]["number"] == 71.5
 
 
 # --- existe_checkin_para_mensaje() / _id_fuente_datos() caching ------------
@@ -284,6 +357,65 @@ def test_obtener_registro_cliente_wraps_connection_error(monkeypatch):
         notion_connector.obtener_registro_cliente("page-1")
 
 
+# --- obtener_perfil_completo() / buscar_cliente_por_email() ----------------
+
+
+def test_obtener_perfil_completo_returns_the_saved_profile(monkeypatch, perfil_base):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {"properties": {"Full Profile (JSON)": _propiedad_perfil_respuesta(perfil_base)}}
+
+    perfil = notion_connector.obtener_perfil_completo("page-1")
+
+    assert perfil == perfil_base
+    cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
+
+
+def test_obtener_perfil_completo_raises_on_a_record_with_no_saved_profile(monkeypatch):
+    """An older record, saved before this property existed -- can't be
+    revised, but shouldn't crash the trainer's panel either."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {"properties": {}}
+    with pytest.raises(NotionClientError):
+        notion_connector.obtener_perfil_completo("page-1")
+
+
+def test_obtener_perfil_completo_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.obtener_perfil_completo("page-1")
+
+
+def test_buscar_cliente_por_email_returns_the_most_recent_match(monkeypatch, perfil_base):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [{"id": "page-1", "properties": {"Full Profile (JSON)": _propiedad_perfil_respuesta(perfil_base)}}]
+    }
+
+    registro = notion_connector.buscar_cliente_por_email("client@example.com")
+
+    assert registro == {"id": "page-1", "perfil": perfil_base}
+    _args, kwargs = cliente.data_sources.query.call_args
+    assert kwargs["filter"] == {"property": "Email", "email": {"equals": "client@example.com"}}
+    assert kwargs["sorts"] == [{"property": "Date", "direction": "descending"}]
+
+
+def test_buscar_cliente_por_email_returns_none_when_no_match(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}
+
+    assert notion_connector.buscar_cliente_por_email("nobody@example.com") is None
+
+
+def test_buscar_cliente_por_email_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.buscar_cliente_por_email("client@example.com")
+
+
 # --- historial_checkins() ---------------------------------------------------
 
 
@@ -306,7 +438,10 @@ def test_historial_checkins_returns_rows_most_recent_first(monkeypatch):
     historial = notion_connector.historial_checkins("client@example.com")
 
     assert historial == [
-        {"fecha": "2026-07-28", "tipo": "Adherence check-in", "valoracion": "Medium", "notas": "Skipped one session."}
+        {
+            "fecha": "2026-07-28", "tipo": "Adherence check-in", "valoracion": "Medium",
+            "notas": "Skipped one session.", "peso_kg": None,
+        }
     ]
     cliente.data_sources.query.assert_called_once_with(
         data_source_id="ds-1",

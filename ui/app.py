@@ -161,6 +161,8 @@ from gmail_client import (  # noqa: E402
 from notion_connector import (  # noqa: E402
     NotionClientError,
     actualizar_email_cliente,
+    actualizar_registro_cliente,
+    buscar_cliente_por_email,
     crear_registro_checkin,
     guardar_registro_cliente,
     historial_checkins,
@@ -676,6 +678,17 @@ TRANSLATIONS = {
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Example client",
         "tab_new_intake": "📝 New Client",
+        "tab_revise_client": "🔄 Revise client",
+        "revise_client_header": "🔎 Load an existing client to revise",
+        "revise_client_caption": (
+            "Find a past client by email, edit anything below, and regenerate their plan — "
+            "updates their existing record instead of creating a new one."
+        ),
+        "revise_client_email_label": "Client's email",
+        "revise_client_load_button": "Load",
+        "revise_client_error": "Could not look up this client: {error}",
+        "revise_client_not_found": "No client found with that email.",
+        "revise_client_loaded": "Loaded **{nombre}** — edit anything below and regenerate.",
         "intake_pdf_upload_header": "📤 Upload a filled intake PDF (skip the form below)",
         "intake_pdf_upload_caption": (
             "If the client emailed back a filled-in intake form, upload it here instead of retyping everything."
@@ -820,6 +833,9 @@ TRANSLATIONS = {
         "portal_diet_completed_label": "Days you followed the diet",
         "portal_diet_total_label": "Out of how many days",
         "portal_diet_notes_label": "Anything about your diet (optional)",
+        "portal_weight_section_title": "📏 Weight (optional)",
+        "portal_share_weight_label": "Share your current weight",
+        "portal_weight_label": "Current weight (kg)",
         "portal_submit_button": "Send check-in",
         "portal_submit_success": "✅ Thanks — your trainer will see this.",
         "portal_submit_error": "Could not send your check-in: {error}",
@@ -837,6 +853,17 @@ TRANSLATIONS = {
         "lang_picker_label": "🌐 Language / Idioma",
         "tab_example": "📋 Cliente de ejemplo",
         "tab_new_intake": "📝 Cliente nuevo",
+        "tab_revise_client": "🔄 Revisar cliente",
+        "revise_client_header": "🔎 Cargar un cliente existente para revisar",
+        "revise_client_caption": (
+            "Busca un cliente anterior por email, edita lo que necesites y regenera su plan — "
+            "actualiza su registro existente en vez de crear uno nuevo."
+        ),
+        "revise_client_email_label": "Email del cliente",
+        "revise_client_load_button": "Cargar",
+        "revise_client_error": "No se pudo buscar a este cliente: {error}",
+        "revise_client_not_found": "No se ha encontrado ningún cliente con ese email.",
+        "revise_client_loaded": "Cargado **{nombre}** — edita lo que necesites y regenera.",
         "intake_pdf_upload_header": "📤 Subir una ficha PDF rellenada (te saltas el formulario de abajo)",
         "intake_pdf_upload_caption": (
             "Si el cliente respondió por email con la ficha de admisión rellenada, súbela aquí en vez de "
@@ -982,6 +1009,9 @@ TRANSLATIONS = {
         "portal_diet_completed_label": "Días que has seguido la dieta",
         "portal_diet_total_label": "De cuántos días",
         "portal_diet_notes_label": "Algo sobre tu dieta (opcional)",
+        "portal_weight_section_title": "📏 Peso (opcional)",
+        "portal_share_weight_label": "Comparte tu peso actual",
+        "portal_weight_label": "Peso actual (kg)",
         "portal_submit_button": "Enviar check-in",
         "portal_submit_success": "✅ Gracias — tu entrenador/a lo verá.",
         "portal_submit_error": "No se pudo enviar tu check-in: {error}",
@@ -1132,6 +1162,71 @@ def _cargar_ficha_desde_pdf() -> dict | None:
         if not st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_pdf"):
             return None
         return perfil
+
+
+def _campos_formulario_desde_perfil(perfil: dict) -> dict:
+    """Maps a full perfil_cliente dict (as loaded from Notion's "Full
+    Profile (JSON)" via notion_connector.buscar_cliente_por_email()) to
+    the exact session_state keys _formulario_ficha_nueva()'s widgets
+    read. Pre-seeding session_state with this mapping's output BEFORE
+    that form renders is the standard Streamlit pattern for a
+    programmatic default value -- see _cargar_ficha_para_revisar(), the
+    only caller. Pure function, no Streamlit calls, easy to unit test
+    independent of any live app.
+
+    One real limitation: analitica_pdf (the bloodwork upload) has no
+    Streamlit API for pre-seeding a file_uploader with a file -- a
+    revision doesn't re-attach whatever bloodwork PDF the original intake
+    might have carried. Not fixable without inventing a place to persist
+    that PDF's raw bytes too, which nothing in this codebase does anywhere
+    else for the intake side."""
+    datos = perfil["datos_basicos"]
+    objetivo = perfil["objetivo"]
+    experiencia = perfil["experiencia"]
+    disponibilidad = perfil["disponibilidad"]
+    salud = perfil["salud"]
+    nutricion = perfil["nutricion"]
+    estilo = perfil["estilo_de_vida"]
+    lesiones = salud.get("lesiones") or []
+    primera_lesion = lesiones[0] if lesiones else {}
+    embarazo = salud.get("embarazo_o_lactancia") or {}
+
+    return {
+        "nombre": datos["nombre"],
+        "edad": datos["edad"],
+        "sexo_valor": datos["sexo"],
+        "peso": datos["peso_kg"],
+        "altura": datos["altura_cm"],
+        "objetivo_valor": objetivo["principal"],
+        "en_sus_palabras": objetivo.get("en_sus_palabras", ""),
+        "nivel_valor": experiencia["nivel"],
+        "anios": experiencia.get("anios_entrenando", 0.5),
+        "detalle_experiencia": experiencia.get("detalle", ""),
+        "dias": disponibilidad["dias_por_semana"],
+        "minutos": disponibilidad["minutos_por_sesion"],
+        "lugar_entreno_valor": disponibilidad["lugar_entreno"],
+        "material_valor": disponibilidad.get("material_disponible", []),
+        "tiene_lesion": bool(lesiones),
+        "zona_lesion": primera_lesion.get("zona", ""),
+        "descripcion_lesion": primera_lesion.get("descripcion", ""),
+        "estado_lesion_valor": "activa" if primera_lesion.get("activa_actualmente") else "antigua_controlada",
+        "enfermedades": ", ".join(salud.get("enfermedades_o_condiciones", [])),
+        "medicacion": ", ".join(salud.get("medicacion_habitual", [])),
+        "embarazo": bool(embarazo.get("aplica")),
+        "detalle_embarazo": embarazo.get("detalle", ""),
+        "alergias": ", ".join(salud.get("alergias_alimentarias", [])),
+        "intolerancias": ", ".join(salud.get("intolerancias_alimentarias", [])),
+        "tipo_dieta_valor": nutricion["tipo_dieta"],
+        "restricciones": ", ".join(nutricion.get("restricciones", [])),
+        "no_le_gustan": ", ".join(nutricion.get("alimentos_que_no_le_gustan", [])),
+        "comidas": nutricion.get("comidas_al_dia_preferidas", 3),
+        "contexto": nutricion.get("contexto", ""),
+        "sueno": estilo.get("horas_sueno_promedio", 7.0),
+        "estres_valor": estilo.get("nivel_estres_percibido", "medio"),
+        "pasos": estilo.get("pasos_diarios_aprox", 6000),
+        "tipo_trabajo": estilo.get("tipo_trabajo", ""),
+        "notas_libres": perfil.get("notas_libres", ""),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1304,6 +1399,53 @@ def _formulario_ficha_nueva() -> dict | None:
         "notas_libres": notas_libres.strip(),
     }
     return perfil
+
+
+# ---------------------------------------------------------------------------
+# Building the profile for the "Revise client" flow
+# ---------------------------------------------------------------------------
+
+def _cargar_ficha_para_revisar() -> dict | None:
+    """A third front door into _formulario_ficha_nueva() (alongside the
+    blank form and the PDF-upload path above): instead of starting from
+    scratch, the trainer looks up an existing client by email
+    (buscar_cliente_por_email(), which reads back the full profile
+    guardar_registro_cliente()/actualizar_registro_cliente() now persist
+    -- see docs/decisiones.md for why that's a real, requested schema
+    change) and edits/regenerates from there. Reuses
+    _formulario_ficha_nueva() completely unmodified: loading a profile
+    just pre-seeds the same session_state keys those widgets already
+    read (_campos_formulario_desde_perfil()), the standard Streamlit
+    pattern for a programmatic default value -- st.rerun() right after
+    guarantees the form's own widgets are instantiated fresh against
+    that pre-seeded state, rather than relying on same-run ordering.
+
+    Sets st.session_state["revisar_pagina_id"] on a successful load --
+    read by the dispatch block below to correlate the eventual submitted
+    profile back to the record to UPDATE rather than create."""
+    with st.expander(t("revise_client_header")):
+        st.caption(t("revise_client_caption"))
+        email_buscar = st.text_input(t("revise_client_email_label"), key="revisar_email")
+        if email_buscar and st.button(t("revise_client_load_button"), key="revisar_cargar"):
+            try:
+                registro = buscar_cliente_por_email(email_buscar.strip())
+            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                st.error(t("revise_client_error").format(error=str(exc)))
+                registro = None
+
+            if registro is None:
+                st.warning(t("revise_client_not_found"))
+            else:
+                for clave, valor in _campos_formulario_desde_perfil(registro["perfil"]).items():
+                    st.session_state[clave] = valor
+                st.session_state["revisar_pagina_id"] = registro["id"]
+                st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
+                st.rerun()
+
+        if st.session_state.get("revisar_cargado_nombre"):
+            st.success(t("revise_client_loaded").format(nombre=st.session_state["revisar_cargado_nombre"]))
+
+    return _formulario_ficha_nueva()
 
 
 # ---------------------------------------------------------------------------
@@ -1523,8 +1665,21 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
     # double-click creating two rows for the same approval the same way the
     # old auto-save guarded against duplicate reruns.
     if guardar_en_notion and st.session_state.get("notion_guardado_para") != id(perfil):
+        # A profile submitted through the "Revise client" section updates
+        # that same existing page instead of creating a new one — see
+        # actualizar_registro_cliente()'s docstring on why Clients stays
+        # one master record per client even for a revision.
+        es_revision = st.session_state.get("revisar_perfil_id") == id(perfil)
         try:
-            resultado = guardar_registro_cliente(perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto)
+            if es_revision:
+                resultado = actualizar_registro_cliente(
+                    st.session_state["revisar_pagina_id"], perfil, estado.borrador_rutina, estado.borrador_dieta,
+                    estado.veredicto,
+                )
+            else:
+                resultado = guardar_registro_cliente(
+                    perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto,
+                )
             st.session_state["notion_guardado_para"] = id(perfil)
             # Kept for the Gmail section below: it can't know the Notion
             # page to backfill the client's email onto otherwise, since the
@@ -1722,7 +1877,8 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                     st.caption(t("adherence_history_empty"))
                 for fila in historial:
                     etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
-                    st.markdown(f"**{fila['fecha'] or '?'}** · {fila['tipo'] or '?'}{etiqueta_valoracion}")
+                    etiqueta_peso = f" · {fila['peso_kg']} kg" if fila.get("peso_kg") is not None else ""
+                    st.markdown(f"**{fila['fecha'] or '?'}** · {fila['tipo'] or '?'}{etiqueta_valoracion}{etiqueta_peso}")
                     if fila["notas"]:
                         st.caption(fila["notas"])
 
@@ -1808,6 +1964,22 @@ def _vista_portal_cliente(token: str) -> None:
     st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
     notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
 
+    # Optional, checkbox-gated like every other "share something extra"
+    # field in this project (the injury/pregnancy detail fields in
+    # _formulario_ficha_nueva()) -- closes a real loop the rule engines
+    # already claim exists: dieta_reglas.py's own generated message tells
+    # the client the plan "gets adjusted based on real weight ... over the
+    # first few weeks", but until this field existed there was no path for
+    # that number to ever reach anywhere (see mcp/notion_connector.py's
+    # docstring on "Weight (kg)").
+    st.markdown(f"**{t('portal_weight_section_title')}**")
+    compartir_peso = st.checkbox(t("portal_share_weight_label"), key="portal_compartir_peso")
+    peso_actual = None
+    if compartir_peso:
+        peso_actual = st.number_input(
+            t("portal_weight_label"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="portal_peso_actual",
+        )
+
     enviado = st.button(t("portal_submit_button"), type="primary")
 
     if not enviado:
@@ -1831,11 +2003,12 @@ def _vista_portal_cliente(token: str) -> None:
     if datos["dias_dieta_totales"]:
         ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
 
+    peso_kg = float(peso_actual) if compartir_peso else None
     valoracion = valoracion_desde_ratios(ratios)
     try:
         crear_registro_checkin(
             carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
-            notas=resumir_adherencia(datos), valoracion=valoracion,
+            notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
         )
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_submit_error").format(error=str(exc)))
@@ -1850,7 +2023,9 @@ def _vista_portal_cliente(token: str) -> None:
     # own submission look like it failed if this part doesn't work.
     if TRAINER_NOTIFICATION_EMAIL:
         try:
-            enviar_notificacion_checkin(TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, idioma=st.session_state.lang)
+            enviar_notificacion_checkin(
+                TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
+            )
         except (GmailClientError, ImportError, ModuleNotFoundError):
             pass
 
@@ -1966,11 +2141,13 @@ st.markdown(
 # while building this. st.segmented_control's value is decoupled from its
 # displayed text (format_func), exactly like the selectboxes elsewhere in
 # this file, so the active section survives a language switch untouched.
-SECCIONES = ["nueva", "ejemplo"]  # "New Client" first, per the trainer's workflow
+SECCIONES = ["nueva", "revisar", "ejemplo"]  # "New Client" first, per the trainer's workflow
 seccion_activa = st.segmented_control(
     "navigation",
     SECCIONES,
-    format_func=lambda k: t("tab_new_intake") if k == "nueva" else t("tab_example"),
+    format_func=lambda k: {
+        "nueva": t("tab_new_intake"), "revisar": t("tab_revise_client"), "ejemplo": t("tab_example"),
+    }[k],
     default="nueva",
     key="seccion_activa",
     label_visibility="collapsed",
@@ -1991,6 +2168,22 @@ if seccion_activa == "nueva":
         # the example-client demo below — a public-demo visitor clicking
         # through the sample clients shouldn't clutter the trainer's actual
         # Notion database.
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
+
+elif seccion_activa == "revisar":
+    perfil_revisado = _cargar_ficha_para_revisar()
+    if perfil_revisado is not None:
+        st.session_state["ultimo_perfil"] = perfil_revisado
+        st.session_state["ultimo_origen"] = "revisar"
+        # Correlates THIS exact submission to the Clients page being
+        # revised -- id() is stable for this specific dict object across
+        # reruns once stored in ultimo_perfil (same pattern
+        # notion_guardado_para/aprobado_para etc. already use below), and
+        # is captured at the one moment this dict is actually created, so
+        # it can't be confused with a different profile that happens to
+        # be submitted later in the same session.
+        st.session_state["revisar_perfil_id"] = id(perfil_revisado)
+    if st.session_state.get("ultimo_origen") == "revisar":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "ejemplo":

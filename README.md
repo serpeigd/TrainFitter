@@ -135,7 +135,18 @@ This repository is built phase by phase, as a learning project. Right now:
   instead of only creating a draft, and both send to the trainer's side of the
   relationship, never to a client without review — a deliberate, narrow
   exception (see [`docs/decisiones.md`](docs/decisiones.md)) to the "never
-  sends automatically" guarantee everywhere else in this project.
+  sends automatically" guarantee everywhere else in this project. The
+  check-in form can also log the client's current weight (optional) — closing
+  a loop the generated plan itself already promised ("adjusted based on real
+  weight ... over the first few weeks") but had no mechanism for until now.
+- A **"Revise client"** section lets the trainer look up a past client by
+  email and reopen their exact intake form, pre-filled with everything they
+  originally entered, to edit and regenerate — approving updates that same
+  Notion record in place rather than creating a duplicate. This is a real,
+  deliberate architecture change: Notion now stores each client's complete
+  profile (chunked across a `rich_text` property), not just a summary — a
+  trade-off the project owner chose explicitly after seeing the lighter
+  alternative (see [`docs/decisiones.md`](docs/decisiones.md)).
 
 ## What it doesn't include yet
 

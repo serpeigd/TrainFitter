@@ -444,28 +444,44 @@ def enviar_enlace_portal(destinatario: str, nombre_cliente: str, url_portal: str
         raise GmailClientError(f"Gmail API error: {exc}") from exc
 
 
-def _construir_cuerpo_notificacion_checkin(nombre_cliente: str, resumen: str, sugerencia: str, idioma: str = "en") -> str:
+def _construir_cuerpo_notificacion_checkin(
+    nombre_cliente: str, resumen: str, sugerencia: str, peso_kg: float | None = None, idioma: str = "en",
+) -> str:
     """Pure formatting, no I/O. resumen/sugerencia are already-formatted
     strings (from agents/adherencia_parser.py's resumir_adherencia()/
     sugerencia_seguimiento()) -- this function only wraps them in a short
-    email, it doesn't reimplement that formatting."""
+    email, it doesn't reimplement that formatting. peso_kg, when the
+    client chose to share it, is the one piece of data this email adds on
+    top of what resumir_adherencia() already covers -- see
+    mcp/notion_connector.py's docstring on why "Weight (kg)" exists."""
+    linea_peso = ""
+    if peso_kg is not None:
+        linea_peso = f"Peso actual: {peso_kg} kg\n\n" if idioma == "es" else f"Current weight: {peso_kg} kg\n\n"
+
     if idioma == "es":
         return (
             f"{nombre_cliente} acaba de enviar un check-in desde el portal de cliente:\n\n"
             f"{resumen}\n\n"
+            f"{linea_peso}"
             f"Siguiente paso sugerido: {sugerencia}\n\n"
             f"(Notificación automática del portal de TrainFitter.)"
         )
     return (
         f"{nombre_cliente} just submitted a check-in via the client portal:\n\n"
         f"{resumen}\n\n"
+        f"{linea_peso}"
         f"Suggested next step: {sugerencia}\n\n"
         f"(Automatic notification from the TrainFitter client portal.)"
     )
 
 
 def enviar_notificacion_checkin(
-    destinatario: str, nombre_cliente: str, datos_checkin: dict, valoracion: str | None, idioma: str = "en",
+    destinatario: str,
+    nombre_cliente: str,
+    datos_checkin: dict,
+    valoracion: str | None,
+    peso_kg: float | None = None,
+    idioma: str = "en",
 ) -> None:
     """
     Actually SENDS (not drafts) a short email to the TRAINER's own inbox
@@ -484,6 +500,8 @@ def enviar_notificacion_checkin(
             produces / main.py's adherence loop already uses -- formatted
             here via agents/adherencia_parser.py's resumir_adherencia()/
             sugerencia_seguimiento(), not reimplemented.
+        peso_kg: optional current weight, when the client chose to share
+            it in the portal's check-in form.
         idioma: "en" (default) or "es".
 
     Raises:
@@ -501,7 +519,7 @@ def enviar_notificacion_checkin(
     )
     cuerpo = _construir_mensaje_raw(
         destinatario, asunto=asunto,
-        cuerpo_texto=_construir_cuerpo_notificacion_checkin(nombre_cliente, resumen, sugerencia, idioma),
+        cuerpo_texto=_construir_cuerpo_notificacion_checkin(nombre_cliente, resumen, sugerencia, peso_kg, idioma),
     )
 
     credenciales = _obtener_credenciales()

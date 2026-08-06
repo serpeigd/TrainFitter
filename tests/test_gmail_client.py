@@ -126,6 +126,19 @@ def test_checkin_notification_body_translates_for_spanish():
     assert "Rutina: 5/3." in cuerpo
 
 
+def test_checkin_notification_body_includes_weight_when_given():
+    """peso_kg is the one piece of data this email adds on top of what
+    resumir_adherencia() already covers -- see
+    mcp/notion_connector.py's docstring on why "Weight (kg)" exists."""
+    cuerpo = _construir_cuerpo_notificacion_checkin("Ana", "Routine: 5/3.", "Suggestion.", peso_kg=71.5)
+    assert "71.5 kg" in cuerpo
+
+
+def test_checkin_notification_body_omits_weight_when_not_given():
+    cuerpo = _construir_cuerpo_notificacion_checkin("Ana", "Routine: 5/3.", "Suggestion.")
+    assert "kg" not in cuerpo
+
+
 def test_raw_message_is_valid_base64url_rfc2822():
     payload = _construir_mensaje_raw("client@example.com", "Your plan", "Body text here.")
     raw = payload["message"]["raw"]

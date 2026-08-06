@@ -5,6 +5,8 @@ crear_registro_checkin(), historial_checkins(), etc.) are covered
 separately in test_notion_connector_network.py, against a mocked
 notion_client.Client rather than a real, shared workspace."""
 
+import json
+
 import pytest
 from notion_connector import (
     NotionClientError,
@@ -12,13 +14,18 @@ from notion_connector import (
     _construir_propiedades_pagina,
     _construir_resumen,
     _credenciales,
+    _dividir_bloques_notion,
     _fila_checkin_desde_pagina,
     _fila_registro_cliente_desde_pagina,
+    _unir_bloques_notion,
     actualizar_email_cliente,
+    actualizar_registro_cliente,
+    buscar_cliente_por_email,
     crear_registro_checkin,
     existe_checkin_para_mensaje,
     historial_checkins,
     marcar_email_enviado,
+    obtener_perfil_completo,
     obtener_registro_cliente,
 )
 
@@ -63,7 +70,7 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
 
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
 
-    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent"}
+    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent", "Full Profile (JSON)"}
     assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
     assert propiedades["Date"]["date"]["start"] == "2026-01-15"
     assert propiedades["Goal"]["select"]["name"] == "Hypertrophy"
@@ -73,6 +80,46 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
     # flag the trainer ticks themselves in Notion after actually sending the
     # Gmail draft (see the module docstring for why this isn't automated).
     assert propiedades["Email Sent"]["checkbox"] is False
+
+
+def test_page_properties_full_profile_round_trips_through_json(perfil_base, borrador_rutina, borrador_dieta):
+    """The whole point of "Full Profile (JSON)" -- see
+    ui/app.py's "Revise client" section -- is getting perfil_cliente back
+    out exactly as it went in. Simulates the request -> real API response
+    shape change (_unir_bloques_notion() reads "plain_text", a request
+    body has "text" -- see that function's docstring)."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+    propiedad_respuesta = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    guardado = json.loads(_unir_bloques_notion(propiedad_respuesta))
+    assert guardado == perfil_base
+
+
+def test_dividir_bloques_notion_splits_long_text_under_the_block_limit():
+    texto = "x" * 5000
+    bloques = _dividir_bloques_notion(texto)
+    assert all(len(b["text"]["content"]) <= 2000 for b in bloques)
+    assert "".join(b["text"]["content"] for b in bloques) == texto
+
+
+def test_dividir_bloques_notion_handles_empty_string():
+    assert _dividir_bloques_notion("") == [{"text": {"content": ""}}]
+
+
+def test_unir_bloques_notion_round_trips_with_dividir(perfil_base):
+    """Round-trips through the shape a real API response uses
+    ("plain_text") rather than the shape a request body uses ("text") --
+    _dividir_bloques_notion() builds a request body, so this simulates
+    what Notion would hand back for it."""
+    texto_original = json.dumps(perfil_base)
+    bloques_peticion = _dividir_bloques_notion(texto_original)
+    propiedad_respuesta = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in bloques_peticion]
+    }
+    assert _unir_bloques_notion(propiedad_respuesta) == texto_original
 
 
 def test_enhanced_review_verdict_label(perfil_base, borrador_rutina, borrador_dieta):
@@ -132,6 +179,40 @@ def test_marcar_email_enviado_missing_credentials_raises(monkeypatch, tmp_path):
         marcar_email_enviado("some-page-id")
 
 
+def test_actualizar_registro_cliente_missing_credentials_raises(monkeypatch, tmp_path, perfil_base):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    with pytest.raises(NotionClientError):
+        actualizar_registro_cliente(
+            "some-page-id", perfil_base, {"resumen_enfoque": "..."},
+            {"resumen_enfoque": "...", "calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}, veredicto,
+        )
+
+
+def test_obtener_perfil_completo_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        obtener_perfil_completo("some-page-id")
+
+
+def test_buscar_cliente_por_email_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        buscar_cliente_por_email("client@example.com")
+
+
 def test_crear_registro_checkin_missing_credentials_raises(monkeypatch, tmp_path):
     import notion_connector
 
@@ -159,6 +240,26 @@ def test_checkin_properties_omit_optional_fields_when_not_given():
     assert "Adherence notes" not in propiedades
     assert "Adherence rating" not in propiedades
     assert "Source message ID" not in propiedades
+    assert "Weight (kg)" not in propiedades
+
+
+def test_checkin_properties_include_weight_when_given():
+    """Only the portal's check-in form ever sets peso_kg -- see this
+    module's docstring on why "Weight (kg)" exists at all."""
+    propiedades = _construir_propiedades_checkin(
+        "client@example.com", "Ana Test", "Adherence check-in", "2026-07-30", peso_kg=71.5,
+    )
+    assert propiedades["Weight (kg)"]["number"] == 71.5
+
+
+def test_checkin_properties_weight_of_zero_is_not_treated_as_missing():
+    """0.0 is a real (if unlikely) weight, not "not provided" -- only
+    None should be treated as absent, guarding against a `if peso_kg:`
+    bug that would silently drop a falsy-but-real value."""
+    propiedades = _construir_propiedades_checkin(
+        "client@example.com", "Ana Test", "Adherence check-in", "2026-07-30", peso_kg=0.0,
+    )
+    assert propiedades["Weight (kg)"]["number"] == 0.0
 
 
 def test_crear_registro_checkin_missing_checkins_database_id_raises(monkeypatch, tmp_path):
@@ -243,6 +344,7 @@ def test_fila_checkin_extracts_expected_fields():
             "Type": {"select": {"name": "Adherence check-in"}},
             "Adherence rating": {"select": {"name": "Medium"}},
             "Adherence notes": {"rich_text": [{"plain_text": "Skipped day 4. "}, {"plain_text": "Struggled with diet."}]},
+            "Weight (kg)": {"number": 71.5},
         }
     }
     fila = _fila_checkin_desde_pagina(pagina)
@@ -251,6 +353,7 @@ def test_fila_checkin_extracts_expected_fields():
         "tipo": "Adherence check-in",
         "valoracion": "Medium",
         "notas": "Skipped day 4. Struggled with diet.",
+        "peso_kg": 71.5,
     }
 
 
@@ -266,4 +369,4 @@ def test_fila_checkin_handles_missing_optional_properties():
         }
     }
     fila = _fila_checkin_desde_pagina(pagina)
-    assert fila == {"fecha": "2026-07-20", "tipo": "Plan sent", "valoracion": None, "notas": ""}
+    assert fila == {"fecha": "2026-07-20", "tipo": "Plan sent", "valoracion": None, "notas": "", "peso_kg": None}

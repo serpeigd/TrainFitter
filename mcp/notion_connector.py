@@ -69,14 +69,49 @@ scope or a separate state file. Only main.py's automated "Adherence
 check-in" rows set it — the existing "Plan sent" (ui/app.py) and manual
 rows the trainer types in Notion directly have no message ID to attach.
 
-DESIGN — obtener_registro_cliente() feeds the client portal, without a
-second copy of the plan anywhere: a client following their own magic link
-(see agents/portal_tokens.py) needs to see "your plan" somewhere. Rather
-than inventing a new place to persist the full generated routine/diet,
-this just reads back the same summarized Clients record
-guardar_registro_cliente() already saves — no schema change, no new
-Notion database, and the portal's view is bounded by exactly what the
-trainer's own panel already shows in its Notion-backed sections.
+DESIGN — obtener_registro_cliente() feeds the client portal without
+needing the full profile: a client following their own magic link (see
+agents/portal_tokens.py) only ever needs to see a short "your plan"
+summary, so it reads back the same summarized fields
+guardar_registro_cliente() already saved for the trainer's own panel —
+nothing client-facing reads "Full Profile (JSON)" (below), and it never
+will. That's a deliberately narrower read than what's now actually stored
+(see the next note).
+
+DESIGN — "Full Profile (JSON)" makes a client genuinely revisable, at
+the cost of a real, requested trade-off: every Clients record now also
+carries the complete perfil_cliente as a chunked rich_text property
+(see _dividir_bloques_notion()/_unir_bloques_notion() — a single 2000-
+char rich_text block isn't enough for a full profile, so it's split
+across several and reassembled on read). This reverses this module's
+original "no second copy of the plan anywhere" stance from when the
+client portal was first built — deliberately, on the project owner's own
+explicit choice between the lighter option (just log weight, retype a
+fresh intake by hand to regenerate) and this one (persist enough to
+actually reload and edit an existing client). obtener_perfil_completo()
+and buscar_cliente_por_email() are trainer-only — reachable from
+ui/app.py's "Revise client" section, never from the client portal, which
+still only ever reads the summarized fields above.
+
+DESIGN — actualizar_registro_cliente() updates the existing page in
+place rather than creating a new one: the "one master record per client"
+principle stated below (Check-ins is the append-only history; Clients is
+not) applies just as much to a revision as it does to Email/Email Sent —
+revising a client's plan corrects that same record, it doesn't create a
+second one alongside it. It deliberately leaves "Email Sent" untouched
+(unlike guardar_registro_cliente(), which always initializes it to
+False) — revising a client doesn't undo what the trainer already
+confirmed about the original plan's send status.
+
+DESIGN — "Weight (kg)" on Check-ins closes a loop the rule engines
+already claimed existed: dieta_reglas.py's own generated message tells
+the client their plan "gets adjusted based on real weight and energy
+over the first few weeks" — but until this property existed, there was
+no path for that real weight to ever reach anywhere. The portal's
+check-in form (ui/app.py) can now log it optionally alongside the usual
+adherence numbers, visible in the same "Adherence history" view the
+trainer already has, and included in the trainer notification email
+(see mcp/gmail_client.py's enviar_notificacion_checkin()).
 
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
@@ -84,12 +119,13 @@ Setup (one-time, free, done by the project owner — never by this code):
   2. In Notion, create a "Clients" database with these exact properties:
        Name (title), Date (date), Goal (select), Level (select),
        Verdict (select), Summary (text), Email Sent (checkbox),
-       Email (email), Source message ID (text)
+       Email (email), Source message ID (text),
+       Full Profile (JSON) (text)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
        Adherence notes (text), Adherence rating (select: Low/Medium/High),
-       Next follow-up (date), Source message ID (text)
+       Next follow-up (date), Source message ID (text), Weight (kg) (number)
   4. Share both databases with the integration (the "..." menu on each
      database page -> Connections -> add the integration by name).
   5. Set NOTION_API_KEY, NOTION_DATABASE_ID, and NOTION_CHECKINS_DATABASE_ID
@@ -97,6 +133,7 @@ Setup (one-time, free, done by the project owner — never by this code):
      32-character ID in that database's URL.
 """
 
+import json
 import os
 from pathlib import Path
 
@@ -145,6 +182,34 @@ def _construir_resumen(borrador_rutina: dict, borrador_dieta: dict) -> str:
     return resumen[:2000]
 
 
+LIMITE_BLOQUE_NOTION = 1900  # headroom under the API's real 2000-char-per-rich_text-block limit
+
+
+def _dividir_bloques_notion(texto: str) -> list[dict]:
+    """Splits a long string into Notion rich_text blocks, each safely
+    under the API's 2000-char-per-block limit -- needed for "Full Profile
+    (JSON)" below, which routinely exceeds that in a single block. Pure
+    function, no I/O. Always returns at least one block (an empty one for
+    empty input), matching the shape every other rich_text property in
+    this module already uses."""
+    if not texto:
+        return [{"text": {"content": ""}}]
+    return [
+        {"text": {"content": texto[i:i + LIMITE_BLOQUE_NOTION]}}
+        for i in range(0, len(texto), LIMITE_BLOQUE_NOTION)
+    ]
+
+
+def _unir_bloques_notion(propiedad: dict) -> str:
+    """Reassembles a chunked rich_text property back into one string --
+    the inverse of _dividir_bloques_notion(). Pure function, no I/O.
+    Reads "plain_text" (what a real API response carries), not "text"
+    (what a request body carries) -- the two are asymmetric, same as
+    every other rich_text reader already in this module
+    (_fila_checkin_desde_pagina() etc.)."""
+    return "".join(bloque["plain_text"] for bloque in propiedad.get("rich_text", []))
+
+
 def _construir_propiedades_pagina(
     perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict, id_mensaje: str | None = None,
 ) -> dict:
@@ -170,6 +235,9 @@ def _construir_propiedades_pagina(
         "Verdict": {"select": {"name": VEREDICTO_LABELS.get(veredicto["veredicto"], veredicto["veredicto"])}},
         "Summary": {"rich_text": [{"text": {"content": _construir_resumen(borrador_rutina, borrador_dieta)}}]},
         "Email Sent": {"checkbox": False},
+        "Full Profile (JSON)": {
+            "rich_text": _dividir_bloques_notion(json.dumps(perfil_cliente, ensure_ascii=False))
+        },
     }
     if id_mensaje:
         propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}
@@ -287,6 +355,49 @@ def marcar_email_enviado(pagina_id: str) -> None:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
+def actualizar_registro_cliente(
+    pagina_id: str, perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict,
+) -> dict:
+    """
+    Overwrites an existing Clients record in place with a revised plan --
+    used when the trainer edits and re-approves a client loaded via
+    buscar_cliente_por_email() (see ui/app.py's "Revise client" section),
+    instead of guardar_registro_cliente() creating a brand-new row. See
+    this module's docstring for why a revision updates the same record
+    rather than duplicating it.
+
+    Deliberately does NOT reset "Email Sent" to False, unlike a fresh
+    guardar_registro_cliente() call -- revising a client doesn't undo
+    whatever the trainer already confirmed about the original plan's
+    send status.
+
+    Returns:
+        {"id": the page's Notion ID, "url": a notion.so link to it} --
+        same shape as guardar_registro_cliente(), so callers (e.g. the
+        Gmail-draft email backfill in ui/app.py) don't need to know which
+        one ran.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto)
+    del propiedades["Email Sent"]
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.update(page_id=pagina_id, properties=propiedades)
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return {"id": pagina["id"], "url": pagina["url"]}
+
+
 def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
     """Extracts the fields the client portal needs to show from a raw
     Clients page object. Pure function: no I/O, safe to unit test with a
@@ -340,6 +451,105 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
     return _fila_registro_cliente_desde_pagina(pagina)
 
 
+def obtener_perfil_completo(pagina_id: str) -> dict:
+    """
+    Reads back a Clients record's FULL perfil_cliente -- trainer-only
+    (see ui/app.py's "Revise client" section), never exposed to the
+    client portal (obtener_registro_cliente() above stays deliberately
+    limited to the client-facing summary fields; this function's result
+    is never sent anywhere near a client). Lets the trainer load an
+    existing client's complete intake to edit and regenerate, instead of
+    retyping it from scratch.
+
+    Args:
+        pagina_id: the Notion page ID to load.
+
+    Returns:
+        The perfil_cliente dict exactly as originally saved by
+        guardar_registro_cliente()/actualizar_registro_cliente().
+
+    Raises:
+        NotionClientError: missing credentials, the page doesn't exist,
+            it predates this property existing (an older record with no
+            "Full Profile (JSON)" saved), the saved JSON is corrupt, or
+            another Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return _perfil_desde_propiedades(pagina["properties"])
+
+
+def _perfil_desde_propiedades(propiedades: dict) -> dict:
+    """Shared by obtener_perfil_completo() and buscar_cliente_por_email()
+    -- both need to reassemble and parse the same "Full Profile (JSON)"
+    property, just starting from a page fetched two different ways
+    (retrieve vs. query). Pure function, no I/O."""
+    texto = _unir_bloques_notion(propiedades.get("Full Profile (JSON)", {}))
+    if not texto:
+        raise NotionClientError(
+            "This record has no saved profile to revise (it predates the 'Full Profile (JSON)' property)."
+        )
+    try:
+        return json.loads(texto)
+    except ValueError as exc:
+        raise NotionClientError(f"Could not parse the saved profile: {exc}") from exc
+
+
+def buscar_cliente_por_email(email: str) -> dict | None:
+    """
+    Finds a client's most recent Clients record by email -- ui/app.py's
+    "Revise client" section uses this to locate a record to load and
+    (later, on re-approval) update, since the trainer only has the
+    client's email handy, not a Notion page ID.
+
+    Args:
+        email: the client's email (the "Email" property, same join key
+            historial_checkins()/crear_registro_checkin() already use).
+
+    Returns:
+        {"id": the page's Notion ID, "perfil": the full perfil_cliente
+        dict} for the most recently admitted matching record, or None if
+        no record has this email.
+
+    Raises:
+        NotionClientError: missing credentials, a matching record was
+            found but has no saved profile (see
+            _perfil_desde_propiedades()), or another Notion API failure.
+    """
+    api_key, database_id = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            filter={"property": "Email", "email": {"equals": email}},
+            sorts=[{"property": "Date", "direction": "descending"}],
+            page_size=1,
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    if not resultado["results"]:
+        return None
+
+    pagina = resultado["results"][0]
+    return {"id": pagina["id"], "perfil": _perfil_desde_propiedades(pagina["properties"])}
+
+
 def _checkins_database_id() -> str:
     try:  # dotenv is optional, same convention as _credenciales()
         from dotenv import load_dotenv
@@ -364,11 +574,16 @@ def _construir_propiedades_checkin(
     notas: str = "",
     valoracion: str | None = None,
     id_mensaje: str | None = None,
+    peso_kg: float | None = None,
 ) -> dict:
     """Builds the Notion page "properties" payload for a Check-ins row.
     Pure function: no I/O, safe to unit test without any credentials —
     same split as _construir_propiedades_pagina() for the Clients
-    database."""
+    database.
+
+    peso_kg: optional -- only the client portal's check-in form
+    (ui/app.py) ever sets this, when the client chose to share it; see
+    this module's docstring on why "Weight (kg)" exists at all."""
     propiedades = {
         "Name": {"title": [{"text": {"content": f"{nombre_cliente} — {fecha}"}}]},
         "Email": {"email": email},
@@ -381,6 +596,8 @@ def _construir_propiedades_checkin(
         propiedades["Adherence rating"] = {"select": {"name": valoracion}}
     if id_mensaje:
         propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}
+    if peso_kg is not None:
+        propiedades["Weight (kg)"] = {"number": peso_kg}
     return propiedades
 
 
@@ -392,6 +609,7 @@ def crear_registro_checkin(
     notas: str = "",
     valoracion: str | None = None,
     id_mensaje: str | None = None,
+    peso_kg: float | None = None,
 ) -> dict:
     """
     Adds one row to the "Check-ins" database — the append-only interaction
@@ -413,6 +631,8 @@ def crear_registro_checkin(
         id_mensaje: optional Gmail message ID for the Source message ID
             property — only main.py's automated rows set this; see the
             module docstring for why it exists (idempotency, not identity).
+        peso_kg: optional current weight in kg — only the portal's
+            check-in form sets this, when the client chose to share it.
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it}.
@@ -428,7 +648,9 @@ def crear_registro_checkin(
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    propiedades = _construir_propiedades_checkin(email, nombre_cliente, tipo, fecha, notas, valoracion, id_mensaje)
+    propiedades = _construir_propiedades_checkin(
+        email, nombre_cliente, tipo, fecha, notas, valoracion, id_mensaje, peso_kg,
+    )
 
     try:
         cliente = Client(auth=api_key)
@@ -539,7 +761,8 @@ def _fila_checkin_desde_pagina(pagina: dict) -> dict:
     tipo = (propiedades.get("Type", {}).get("select") or {}).get("name")
     valoracion = (propiedades.get("Adherence rating", {}).get("select") or {}).get("name")
     notas = "".join(t["plain_text"] for t in propiedades.get("Adherence notes", {}).get("rich_text", []))
-    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "notas": notas}
+    peso_kg = (propiedades.get("Weight (kg)") or {}).get("number")
+    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "notas": notas, "peso_kg": peso_kg}
 
 
 def historial_checkins(email: str) -> list[dict]:
@@ -554,9 +777,11 @@ def historial_checkins(email: str) -> list[dict]:
             module's docstring for why).
 
     Returns:
-        A list of {"fecha", "tipo", "valoracion", "notas"} dicts, most
-        recent first. Empty list if the client has no check-ins yet (not
-        an error — a brand-new client legitimately has none).
+        A list of {"fecha", "tipo", "valoracion", "notas", "peso_kg"}
+        dicts, most recent first (peso_kg is None on any row where the
+        client didn't share it — only some portal check-ins ever set it).
+        Empty list if the client has no check-ins yet (not an error — a
+        brand-new client legitimately has none).
 
     Raises:
         NotionClientError: missing credentials, or a Notion API failure.
