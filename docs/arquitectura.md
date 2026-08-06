@@ -1,10 +1,16 @@
 # TrainFitter Architecture
 
-> **Status: full pipeline (Phases 0-4) + trainer's panel (Phase 5-lite).**
-> Gmail and Notion are both connected, including a second Notion "Check-ins"
-> database that logs a client's interaction history once a real Gmail send
-> is confirmed. The automatic `inbox/` trigger is still missing. The final
-> version aimed at a technical reader arrives in Phase 7.
+> **Status: full pipeline (Phases 0-4) + trainer's panel (Phase 5-lite) + automation (Phase 6).**
+> Gmail and Notion are both connected: a "Clients" database (now storing each
+> client's complete profile, not just a summary — see "Revise client" below)
+> and a second "Check-ins" database that logs a client's interaction history
+> (adherence replies, portal check-ins, confirmed Gmail sends). The automatic
+> `main.py` inbox trigger (adherence check-ins + new-client intakes, run via
+> a free GitHub Actions cron) is done — see `.github/workflows/inbox_trigger.yml`.
+> A client-facing portal (magic link, no password) and a "Revise client" flow
+> for the trainer are also done. See `README.md`'s "What it includes right
+> now" for the full, up-to-date feature list; this document stays focused on
+> *how* the pieces fit together.
 >
 > Note on naming: internal Python identifiers, dict/JSON keys, and literal state
 > values (e.g. `perfil_cliente`, `revision_reforzada`, `generar_borrador_rutina()`)
@@ -67,6 +73,12 @@ gate should be deterministic and auditable, not a model's "opinion" — see
                                 ▼
               Notion "Email Sent" ticked + a row added to "Check-ins"
 ```
+
+From there, two independent paths feed new "Check-ins" rows over time: the
+client replies with a filled-in checklist PDF (picked up by `main.py`'s
+scheduled inbox scan), or the client uses their portal magic link to log a
+check-in directly (see "Automation loop" below) — both funnel through the
+same `agents/adherencia_parser.py` summary logic either way.
 
 ## Orchestrator state diagram (real, `agents/orchestrator.py`)
 
@@ -146,6 +158,50 @@ got the chance to reveal the "injury area" field in time. With standalone widget
 immediately. The cost is somewhat more frequent re-rendering, which is irrelevant for
 a pipeline as fast as the rule engine.
 
+## Automation loop: intake without retyping, plans without a second visit
+
+Three pieces close the loop between "a plan was approved" and "the trainer knows
+how it's going," without adding a second entry point the pipeline doesn't already
+understand:
+
+- **Intake PDF (`agents/pdf_intake.py`):** a fillable PDF mirrors
+  `admission/ficha_cliente_template.md`. A prospect fills it in and emails it
+  back; `leer_intake_pdf()` reads it into the exact same `perfil_cliente` dict
+  a manually typed form produces — same fillable-form-over-free-text reasoning
+  as the checklist below (a fixed, known set of field names is a lookup, not
+  parsing). The trainer can also drop this same file straight into `ui/app.py`
+  (`_cargar_ficha_desde_pdf()`) instead of retyping a client's answers.
+- **`main.py` (automatic inbox trigger, run via `.github/workflows/inbox_trigger.yml`'s
+  free GitHub Actions cron):** two independent, deduped-by-Gmail-message-ID jobs —
+  `procesar_adherencia()` scans for a filled-in checklist PDF and logs a
+  "Check-ins" row (days completed, notes, adherence rating), and
+  `procesar_intakes_nuevos()` scans for a filled-in intake PDF, runs the real
+  pipeline on it, and logs a heads-up record to "Clients." Neither job ever
+  creates a Gmail draft or sends anything — the trainer still reviews and
+  approves every plan through `ui/app.py`, same as a manually typed intake.
+- **Client portal (magic link, `agents/portal_tokens.py` + `ui/app.py`'s
+  `_vista_portal_cliente()`):** a signed, stateless, self-expiring token
+  (HMAC-SHA256, standard library only — no token database) in a
+  `?portal_token=...` query param renders a client-only view instead of the
+  trainer's panel, letting a client see a summary of their plan and log a
+  check-in (sessions/diet days completed, notes, optional weight) directly —
+  no PDF round-trip needed. This is also the one deliberate, narrow exception
+  to "never sends automatically": reaching the client's inbox with the link
+  itself needed Gmail's `gmail.send` scope, contained to exactly one function
+  (`gmail_client.enviar_enlace_portal()`) — see `docs/decisiones.md` for the
+  full reasoning and the test that locks in the blast radius.
+- **"Revise client" (`ui/app.py`'s `_cargar_ficha_para_revisar()`):** the
+  trainer looks up a past client by email
+  (`notion_connector.buscar_cliente_por_email()`), and the same intake form
+  reopens pre-filled with their saved profile — Notion's "Clients" database
+  now stores each client's complete `perfil_cliente` (chunked across
+  `rich_text` blocks), not just a summary, a deliberate reversal chosen by
+  the project owner once the trade-off was scoped out (see
+  `docs/decisiones.md`). Re-approving calls `actualizar_registro_cliente()`
+  (`pages.update()`, not `pages.create()`), so the same record is corrected
+  in place. One disclosed gap: a revision can't re-attach the original
+  intake's bloodwork PDF (`st.file_uploader` has no API to pre-seed a file).
+
 ## Components
 
 | Component | File | Phase | Status |
@@ -164,8 +220,12 @@ a pipeline as fast as the rule engine.
 | Trainer's panel (UI) | `ui/app.py` | 5-lite | **Done** |
 | Bloodwork parser | `agents/analytics_parser.py` | 5+ | **Done** |
 | Notion connector (Clients + Check-ins) | `mcp/notion_connector.py` | 5 | **Done** |
-| Gmail connector (draft + send-detection) | `mcp/gmail_client.py` | 5 | **Done** |
-| Automatic trigger | `main.py` + `inbox/` | 6 | Pending |
+| Gmail connector (draft + portal-link/notification send + adherence-reply/intake search) | `mcp/gmail_client.py` | 5 | **Done** |
+| Intake PDF generation + reading | `agents/pdf_intake.py` | 6 | **Done** |
+| Automatic inbox trigger (adherence + new intakes, GitHub Actions cron) | `main.py`, `.github/workflows/inbox_trigger.yml` | 6 | **Done** |
+| Client portal (magic link, signed/stateless tokens) | `agents/portal_tokens.py`, `ui/app.py`'s `_vista_portal_cliente()` | 6 | **Done** |
+| Adherence summary + suggested next step | `agents/adherencia_parser.py` | 6 | **Done** |
+| "Revise client" flow (reload + edit + re-approve) | `ui/app.py`'s `_cargar_ficha_para_revisar()`, `notion_connector.actualizar_registro_cliente()` | 6 | **Done** |
 
 ## Clinical personalization layer (active modulation)
 

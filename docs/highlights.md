@@ -133,6 +133,24 @@ slot. Escalating a scope is easy to do quietly; this one is on the
 record, with the reasoning, because "the code CAN'T send" (see #3) is a
 guarantee worth being honest about the moment it stops being absolute.
 
+## 11. Reversing a documented design decision — again asked, not assumed
+
+`notion_connector.py`'s "Clients" record originally stored only a summary,
+by deliberate design ("no second copy of the plan anywhere"). Letting the
+trainer reload and revise a past client's plan meant reversing that: the
+record now also carries the client's complete `perfil_cliente`, chunked
+across `rich_text` blocks to fit Notion's 2000-character-per-block limit.
+**Why it matters:** this is the second time in this project a hard-to-reverse
+architectural call (the first was widening Gmail's scope to `gmail.send`,
+#10 above) was put to the project owner as an explicit choice rather than
+decided unilaterally under a broad "build everything" instruction — and the
+same pattern held: verified end-to-end against the real workspace (a saved
+profile round-tripped byte-for-byte, a revision updated the same page ID
+instead of creating a duplicate), with the one resulting gap (a revision
+can't re-attach the original intake's bloodwork PDF — `st.file_uploader`
+has no API to pre-seed a file) disclosed in the code rather than left as a
+silent surprise.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*
