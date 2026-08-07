@@ -20,8 +20,19 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (7 decisions, 1 page) — update it when a change adds
+  version of the same log (11 decisions, 1 page) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
+- **Scheduled documentation-sync runs (added 2026-08-07, explicit decision in
+  chat): standing authorization to merge doc-only PRs from that recurring task
+  yourself, without waiting for approval, once CI (`ci.yml`) is green — same
+  bar as any other merge, just no confirmation step for this specific,
+  narrow case (README/`docs/` changes only, never product code).** That
+  scheduled run lands on a fresh randomly-named branch every time, so an
+  unmerged PR from a previous run is never reused automatically. Before
+  opening a new one, check for another open PR titled starting "docs: sync" —
+  if found, fold any still-valid unique content from it into the new one,
+  merge the more complete/accurate PR once CI is green, and close the other
+  with a comment linking to the merged one. Don't leave two open at once.
 
 ## Architecture (see [`docs/arquitectura.md`](docs/arquitectura.md) for full detail)
 
