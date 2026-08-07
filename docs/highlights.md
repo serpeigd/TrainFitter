@@ -133,6 +133,23 @@ slot. Escalating a scope is easy to do quietly; this one is on the
 record, with the reasoning, because "the code CAN'T send" (see #3) is a
 guarantee worth being honest about the moment it stops being absolute.
 
+## 11. A documented architecture reversal, chosen after seeing the real trade-off — not defaulted into
+
+`notion_connector.py`'s original design deliberately stored only a summary per
+client ("no second copy of the plan anywhere"). Letting a trainer look up and
+revise a past client's plan needed more than that, so two options were scoped
+out and put to the project owner explicitly: keep the lean summary-only design
+(the trainer retypes a fresh intake to "revise" a client), or store the
+client's complete `perfil_cliente` in Notion so it can be reloaded and edited
+in place. The owner chose the bigger option. **Why it matters:** reversing a
+documented design decision is exactly the kind of hard-to-reverse
+architectural call this project treats as something to ask about, not assume
+under a broad "build everything" instruction — the same discipline already
+applied to the `gmail.send` scope widening (#10). Verified end-to-end against
+the real workspace, not just mocked: a saved profile round-tripped byte-for-byte
+through save → look-up-by-email, and a revision updated the same Notion page ID
+rather than creating a duplicate.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*
