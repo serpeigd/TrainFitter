@@ -5,6 +5,10 @@
 # TrainFitter
 
 [![CI](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml/badge.svg)](https://github.com/serpeigd/TrainFitter/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B.svg?logo=streamlit&logoColor=white)](https://trainfitter.streamlit.app/)
+[![Free, no paid API key required](https://img.shields.io/badge/cost-100%25%20free-brightgreen.svg)](#free-only-by-design)
 
 **🔗 [Live demo](https://trainfitter.streamlit.app/) — no install, no login, no API key.**
 **📋 [Engineering highlights](docs/highlights.md)** — the 1-page version of what's interesting here.
@@ -161,17 +165,143 @@ This repository is built phase by phase, as a learning project. Right now:
   generative-AI layer (`motor="llm"`) is already designed and ready to switch on when
   it makes sense.
 
+## Known limitations
+
+Disclosed here the same way they're disclosed in [`docs/decisiones.md`](docs/decisiones.md)
+— a passing test suite and a working demo shouldn't be read as claiming more than what's
+actually been verified:
+
+- **`motor="llm"` is designed but never exercised against the real Anthropic API.** The
+  rule engine (`motor="reglas"`) is what every example, test, and the live demo actually
+  run — see [Free-only by design](#free-only-by-design) below.
+- **`buscar_intakes_nuevos()` (new-client intake scanning in `mcp/gmail_client.py`) is
+  covered by mocked-network tests only, not a real inbox end-to-end.** Injecting a
+  synthetic *incoming* message via Gmail's `messages().insert()` needs a broader OAuth
+  scope than this project's deliberately narrow `gmail.compose` grants (`403 Insufficient
+  Permission`) — every other Gmail code path (drafts, sends, adherence-reply scanning)
+  *is* verified against a real mailbox; this one specific test gap is a documented
+  trade-off, not an oversight. See `docs/decisiones.md`'s "Automated new-client intake"
+  entry.
+- **A revision can't re-attach the original bloodwork PDF.** Streamlit's `file_uploader`
+  has no API for pre-seeding a file, so `_cargar_ficha_para_revisar()` can't offer the
+  original upload back. This no longer loses safety-relevant data, though: the *extracted
+  markers* from that PDF are stored in Notion's "Full Profile (JSON)" and carried forward
+  automatically on a revision (verified live — a carried-forward out-of-range marker still
+  forces `revision_reforzada`) — only the raw file itself isn't recoverable.
+- **The client portal's "view your plan" screen is bounded by a truncated summary**, not
+  the full generated routine/diet JSON — it reads back the same ≤2000-character summary
+  `guardar_registro_cliente()` saves to Notion's Clients database, by design (see
+  `docs/decisiones.md`'s portal entry): no second full-plan storage layer was added just
+  for that screen.
+- **A magic link can't be revoked individually once issued.** `agents/portal_tokens.py`'s
+  tokens are stateless (no database to remove one from) — the only ways to invalidate a
+  link early are its own expiry (7 days by default) or rotating `PORTAL_SECRET_KEY`,
+  which invalidates *every* outstanding link at once.
+- **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
+  after a period of no traffic triggers a cold start (can take up to a minute); this is a
+  hosting trade-off, not an application bug.
+
+## Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Language | Python 3.12 | Matches CI (`.github/workflows/ci.yml`) and `pyproject.toml`'s `target-version` |
+| Generation engines | Standard-library rule engines (default) + optional Anthropic API tool-use | Free by default; same output schema either way (see [`docs/arquitectura.md`](docs/arquitectura.md)) |
+| UI | [Streamlit](https://streamlit.io/) | Fast, free-tier-hostable Python UI, no separate frontend build |
+| PDF generation/parsing | [`reportlab`](https://www.reportlab.com/), [`pypdf`](https://pypi.org/project/pypdf/), [`pdfplumber`](https://github.com/jsvine/pdfplumber) | Fillable forms (intake, checklist) + bloodwork text extraction, all local, no OCR service |
+| Email | Gmail API (`google-api-python-client`), scoped OAuth (`gmail.compose` → `gmail.readonly` → `gmail.send` for exactly one function) | Free tier, real inbox, scope-enforced draft-only behavior almost everywhere (see `docs/highlights.md` #3 and #10) |
+| Persistence / lightweight CRM | Notion API (`notion-client`) — "Clients" + "Check-ins" databases | Free tier, no infra to run, human-readable outside the app too |
+| Automation | GitHub Actions cron (`.github/workflows/inbox_trigger.yml`) | Free tier, no server to keep running |
+| Tests | `pytest` | Deterministic rule engine + mocked-network coverage for Gmail/Notion |
+| Lint | `ruff` | Core correctness rules only — see `pyproject.toml`'s note on why stricter naming rules are deliberately off (Spanish identifiers are intentional, see [`CLAUDE.md`](CLAUDE.md)) |
+| Hosting | Streamlit Community Cloud (free tier) | [trainfitter.streamlit.app](https://trainfitter.streamlit.app/), auto-redeploys on push to `master` |
+
+## Configuration
+
+Every environment variable is **optional** — the default pipeline (`motor="reglas"`,
+no PDF/Gmail/Notion features) needs none of them. Copy [`.env.example`](.env.example) to
+`.env` and fill in only what the features you want to try actually need:
+
+| Variable | Needed for | Notes |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | `motor="llm"` (optional generative-AI engine) | Pay-per-token — see [Free-only by design](#free-only-by-design) |
+| `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `NOTION_CHECKINS_DATABASE_ID` | Notion connector (`mcp/notion_connector.py`) | Free Notion integration token; `NOTION_DATABASE_ID` is "Clients", `NOTION_CHECKINS_DATABASE_ID` is the separate "Check-ins" database |
+| `APP_APPROVAL_PASSWORD` | Gating the "Approve" button on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail |
+| `PORTAL_SECRET_KEY` | Client portal magic links (`agents/portal_tokens.py`) | Any long random string; rotating it invalidates every outstanding link |
+| `PORTAL_BASE_URL` | Building a clickable portal link | Defaults to `http://localhost:8501`; set to the real deployment URL in production |
+| `TRAINER_NOTIFICATION_EMAIL` | Automatic trainer notification on a client check-in | Optional; unset = notification skipped entirely, the check-in itself still saves |
+
+The Gmail connector (`mcp/gmail_client.py`) is configured separately, via
+`credentials.json`/`token.json` from an OAuth consent flow (see that module's docstring
+for the exact setup) — not plain environment variables, since it needs an interactive
+browser authorization step. On Streamlit Community Cloud and GitHub Actions, where
+there's no filesystem to persist those two files across restarts, their JSON content is
+instead stored as the `GMAIL_CREDENTIALS_JSON`/`GMAIL_TOKEN_JSON` secrets and
+materialized back to disk at startup (`ui/app.py`'s `_materializar_secretos_gmail()`,
+`.github/workflows/inbox_trigger.yml`'s equivalent step) — local dev just uses the two
+files directly.
+
+## Free-only by design
+
+TrainFitter's core promise: **fully free, no paid API key required.** The *only* piece
+that would ever cost money is the optional `motor="llm"` path (pay-per-token Anthropic
+API) — it's fully designed and schema-compatible with `motor="reglas"`, but deliberately
+never exercised against the real API in this repo's tests, examples, or the live demo.
+Every other feature (PDF generation/parsing, Gmail, Notion, hosting, CI, the cron trigger)
+runs on local libraries or free-tier services. See `CLAUDE.md` and
+[`docs/decisiones.md`](docs/decisiones.md#free-only-guardrail) for the full reasoning.
+
+## Roadmap / next steps
+
+Nothing here is committed — these are the next candidate improvements, roughly in order
+of how directly they follow from what's already disclosed above:
+
+- Actually exercise `motor="llm"` end-to-end against the real Anthropic API (currently
+  designed but untested for real) to compare draft quality against the rule engine.
+- Widen `buscar_intakes_nuevos()`'s real-inbox test coverage if a safe way to do so is
+  found that doesn't require broadening the Gmail OAuth scope beyond what it needs.
+- A way to revoke a single portal magic link early, without rotating the shared secret
+  key for every client at once.
+- Expanding the knowledge base (`docs/base_conocimiento/`) — see the `update-knowledge-base`
+  project skill for the process already used to add the adherence/behavior-change note.
+
+## FAQ
+
+**Does this cost anything to run?** No — the default engine, PDF generation/parsing, the
+Streamlit UI, and the free tiers of Notion/Gmail/GitHub Actions/Streamlit Cloud are all
+free. The only optional paid piece is `motor="llm"`, off by default. See
+[Free-only by design](#free-only-by-design).
+
+**Will it ever email or message a client without a human clicking something first?** No.
+Every plan is a draft until a trainer explicitly approves it, and the only two functions
+in the whole codebase that send real email (`enviar_enlace_portal()`,
+`enviar_notificacion_checkin()`) either require the trainer to click a gated button, or
+notify the *trainer's own inbox*, never a client, automatically. See `docs/highlights.md`
+#3 and #10.
+
+**The live demo looks like it's not responding — is it broken?** Probably just asleep.
+Streamlit Community Cloud's free tier spins down an inactive app; the first request after
+a while wakes it back up, which can take up to a minute. Reload after a short wait.
+
+**Why are some variable/dict-key names in Spanish?** A deliberate, documented scoping
+exception — see `CLAUDE.md`'s "Standing conventions" and `docs/decisiones.md`. Prose,
+comments, docs, and commit messages are English throughout; domain identifiers
+(`perfil_cliente`, `revision_reforzada`, etc.) stay Spanish on purpose and aren't "bugs"
+to fix.
+
 ## Repository structure
 
 ```
 TrainFitter/
 ├── README.md                        This document
+├── CLAUDE.md                        Project instructions / working notes (conventions, status)
 ├── main.py                          Automatic inbox trigger (adherence check-ins + new-client intakes, run via cron)
 ├── docs/
 │   ├── metodo_entrenador.md         Trainer's methodology (knowledge base)
 │   ├── arquitectura.md              System design and flow
 │   ├── decisiones.md                Technical decision log, by phase
-│   └── highlights.md                1-page cheat sheet of the best design decisions
+│   ├── highlights.md                1-page cheat sheet of the best design decisions
+│   └── base_conocimiento/           Evidence-backed notes (training, nutrition, adherence, safety) the rule engines draw on
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
 ├── agents/                          Routine, diet, validator, orchestrator, PDF generation (+ intake form), seeded variety, portal tokens
@@ -182,6 +312,8 @@ TrainFitter/
 ├── assets/                          Cropped.jpg (banner), icon.png (favicon/sidebar mark), logo.jpg (source archive)
 ├── examples/                        Example clients and sample outputs
 ├── requirements.txt                 Python dependencies
+├── pyproject.toml                   Ruff lint config
+├── .env.example                     Template for optional env vars (see Configuration below)
 └── .gitignore
 ```
 
@@ -229,6 +361,19 @@ pip install -r requirements.txt
 ```
 then copy `.env.example` to `.env` and set your `ANTHROPIC_API_KEY`.
 
+### Option 4 — Automatic inbox trigger (the cron job, run manually)
+
+`main.py` is what `.github/workflows/inbox_trigger.yml` runs on a schedule. It needs
+real Gmail (`credentials.json`/`token.json`) and Notion credentials to do anything
+useful — see [Configuration](#configuration) — but can be run by hand for testing:
+
+```bash
+python main.py
+```
+
+Scans the inbox once for adherence check-in replies and new-client intake PDFs, logs
+what it finds to Notion, and exits — it never creates a Gmail draft or sends anything.
+
 ## Running the tests
 
 Free — no API key needed, covers the rule engines, the validator's safety cross-checks,
@@ -240,3 +385,16 @@ pytest
 ```
 
 This is the same command CI runs on every push (`.github/workflows/ci.yml`).
+
+## Commands quick reference
+
+| Command | What it does | Needs an API key / credentials? |
+|---|---|---|
+| `python agents/run_pipeline_demo.py` | Full pipeline (routine → diet → validator) on the 3 example clients | No |
+| `python agents/run_routine_demo.py` | Routine agent only | No |
+| `python agents/run_manual_pipeline_demo.py` | Routine + diet + validator, no orchestrator | No |
+| `streamlit run ui/app.py` | Trainer's visual panel, locally | No (Notion/Gmail features degrade gracefully if unset) |
+| `python main.py` | Inbox trigger: scans for adherence replies + new intakes, logs to Notion | Yes — Gmail + Notion credentials |
+| `pytest` | Full test suite | No |
+| `ruff check .` | Lint | No |
+| `python -m py_compile agents/*.py mcp/*.py ui/app.py main.py` | Syntax check (also run in CI) | No |
