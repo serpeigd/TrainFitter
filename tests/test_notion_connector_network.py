@@ -463,3 +463,137 @@ def test_historial_checkins_wraps_api_error(monkeypatch):
     cliente.databases.retrieve.side_effect = _api_error()
     with pytest.raises(NotionClientError):
         notion_connector.historial_checkins("client@example.com")
+
+
+# --- listar_clientes() -------------------------------------------------------
+
+
+def test_listar_clientes_returns_rows_most_recent_first(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [
+            {
+                "id": "page-1",
+                "properties": {
+                    "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+                    "Email": {"email": "laura@example.com"},
+                    "Date": {"date": {"start": "2026-08-01"}},
+                    "Goal": {"select": {"name": "Hypertrophy"}},
+                    "Level": {"select": {"name": "Intermediate"}},
+                    "Verdict": {"select": {"name": "Approved"}},
+                    "Email Sent": {"checkbox": True},
+                },
+            },
+        ]
+    }
+
+    clientes = notion_connector.listar_clientes()
+
+    assert clientes == [
+        {
+            "id": "page-1", "nombre": "Laura Fernandez", "email": "laura@example.com", "fecha": "2026-08-01",
+            "objetivo": "Hypertrophy", "nivel": "Intermediate", "veredicto": "Approved", "email_enviado": True,
+        }
+    ]
+    _args, kwargs = cliente.data_sources.query.call_args
+    assert kwargs["data_source_id"] == "ds-clients"
+    assert kwargs["sorts"] == [{"property": "Date", "direction": "descending"}]
+    assert kwargs["page_size"] == 100
+
+
+def test_listar_clientes_respects_custom_limit(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}
+
+    notion_connector.listar_clientes(limite=10)
+
+    _args, kwargs = cliente.data_sources.query.call_args
+    assert kwargs["page_size"] == 10
+
+
+def test_listar_clientes_empty_workspace(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}
+
+    assert notion_connector.listar_clientes() == []
+
+
+def test_listar_clientes_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.listar_clientes()
+
+
+# --- ultimo_checkin_por_cliente() --------------------------------------------
+
+
+def test_ultimo_checkin_por_cliente_keeps_only_the_most_recent_row_per_email(monkeypatch):
+    """Two rows for the same client -- since results come back newest
+    first, the SECOND one seen for a given email must be skipped, not
+    overwrite the first."""
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-checkins"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [
+            {
+                "properties": {
+                    "Email": {"email": "ana@example.com"},
+                    "Date": {"date": {"start": "2026-08-05"}},
+                    "Type": {"select": {"name": "Adherence check-in"}},
+                    "Adherence rating": {"select": {"name": "High"}},
+                    "Weight (kg)": {"number": 65.0},
+                },
+            },
+            {
+                "properties": {
+                    "Email": {"email": "ana@example.com"},
+                    "Date": {"date": {"start": "2026-07-20"}},
+                    "Type": {"select": {"name": "Adherence check-in"}},
+                    "Adherence rating": {"select": {"name": "Low"}},
+                },
+            },
+        ]
+    }
+
+    ultimos = notion_connector.ultimo_checkin_por_cliente()
+
+    assert set(ultimos) == {"ana@example.com"}
+    assert ultimos["ana@example.com"]["fecha"] == "2026-08-05"
+    assert ultimos["ana@example.com"]["valoracion"] == "High"
+    assert ultimos["ana@example.com"]["peso_kg"] == 65.0
+
+
+def test_ultimo_checkin_por_cliente_groups_by_email(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-checkins"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [
+            {"properties": {"Email": {"email": "ana@example.com"}, "Date": {"date": {"start": "2026-08-05"}}, "Type": {}}},
+            {"properties": {"Email": {"email": "luis@example.com"}, "Date": {"date": {"start": "2026-08-01"}}, "Type": {}}},
+        ]
+    }
+
+    ultimos = notion_connector.ultimo_checkin_por_cliente()
+
+    assert set(ultimos) == {"ana@example.com", "luis@example.com"}
+
+
+def test_ultimo_checkin_por_cliente_skips_rows_with_no_email(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-checkins"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [{"properties": {"Date": {"date": {"start": "2026-08-05"}}, "Type": {}}}]
+    }
+
+    assert notion_connector.ultimo_checkin_por_cliente() == {}
+
+
+def test_ultimo_checkin_por_cliente_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.ultimo_checkin_por_cliente()

@@ -41,6 +41,21 @@ google-auth-oauthlib>=1.2.0
 reportlab>=4.2.0
 pypdf>=5.0.0
 
+# Gráficos de tendencia (ui/app.py: peso/adherencia a lo largo del tiempo,
+# tanto en el panel del entrenador como en el portal del cliente).
+# st.line_chart() necesita Altair para dibujar -- streamlit lo declara como
+# dependencia propia, pero un entorno real de este proyecto ha llegado a
+# tenerlo instalado sin él de todos modos y el gráfico lanzó
+# ModuleNotFoundError en vivo (visto, no solo asumido). pandas arma los
+# DataFrame que le pasamos a st.line_chart() (la lista "todos los
+# clientes" de más abajo NO necesita pandas -- st.dataframe() acepta una
+# lista de diccionarios directamente). El código además degrada solo (sin
+# gráfico, resto de la página intacta) si por lo que sea alguno de los
+# dos no está instalado, pero para que el gráfico funcione de verdad hace
+# falta esto:
+altair>=5.0.0
+pandas>=1.4.0
+
 # Tests (opcional) — solo si quieres ejecutar la suite en tests/. Gratis,
 # no llama a ninguna API:
 pytest>=8.0.0

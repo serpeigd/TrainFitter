@@ -256,6 +256,26 @@ shared with `_vista_portal_cliente()` rather than duplicated) — scoped by
 the signed token's own email, never something a client could type in to
 see someone else's data.
 
+A **"Clients"** section (4th tab in `ui/app.py`) gives the trainer a
+roster of every real client at a glance — `notion_connector.
+listar_clientes()` plus `ultimo_checkin_por_cliente()` (one query
+against the whole Check-ins database, grouped by email in Python, since
+Notion has no native "latest row per group" query), joined by email, with
+a client whose most recent rating was Low flagged with ⚠️
+(`_etiqueta_atencion()`). `_render_historial_checkins()` also gained a
+trend chart (`_render_grafico_tendencia()`, weight and adherence rating
+over time via `st.line_chart()`) shown in both places that function
+already runs — the trainer's per-client view and the client's own portal
+view. A real crash was caught live-testing this (not by the test suite,
+which never renders a real page): `st.line_chart()` needs Altair, which
+turned out not to actually be present in a real running instance despite
+streamlit declaring it as a dependency — opening the portal with 2+
+weight check-ins on file raised `ModuleNotFoundError` and broke the whole
+page. Fixed two ways: `altair`/`pandas` are now explicit dependencies in
+`requirements.txt`, and the chart-rendering code also catches
+`ImportError`/`ModuleNotFoundError` defensively, same pattern already
+used for reportlab/pypdf/pdfplumber elsewhere in this project.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

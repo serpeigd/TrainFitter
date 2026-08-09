@@ -16,6 +16,7 @@ from notion_connector import (
     _credenciales,
     _dividir_bloques_notion,
     _fila_checkin_desde_pagina,
+    _fila_cliente_lista_desde_pagina,
     _fila_registro_cliente_desde_pagina,
     _unir_bloques_notion,
     actualizar_email_cliente,
@@ -24,9 +25,11 @@ from notion_connector import (
     crear_registro_checkin,
     existe_checkin_para_mensaje,
     historial_checkins,
+    listar_clientes,
     marcar_email_enviado,
     obtener_perfil_completo,
     obtener_registro_cliente,
+    ultimo_checkin_por_cliente,
 )
 
 
@@ -213,6 +216,26 @@ def test_buscar_cliente_por_email_missing_credentials_raises(monkeypatch, tmp_pa
         buscar_cliente_por_email("client@example.com")
 
 
+def test_listar_clientes_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        listar_clientes()
+
+
+def test_ultimo_checkin_por_cliente_missing_credentials_raises(monkeypatch, tmp_path):
+    import notion_connector
+
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
+    monkeypatch.delenv("NOTION_DATABASE_ID", raising=False)
+    monkeypatch.setattr(notion_connector, "REPO_ROOT", tmp_path)
+    with pytest.raises(NotionClientError):
+        ultimo_checkin_por_cliente()
+
+
 def test_crear_registro_checkin_missing_credentials_raises(monkeypatch, tmp_path):
     import notion_connector
 
@@ -334,6 +357,49 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "resumen": "Routine: full body. Diet: 2000 kcal.",
         "veredicto": "Auto-approved",
         "fecha": "2026-08-01",
+    }
+
+
+def test_fila_cliente_lista_extracts_expected_fields():
+    pagina = {
+        "id": "page-1",
+        "properties": {
+            "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+            "Email": {"email": "laura@example.com"},
+            "Date": {"date": {"start": "2026-08-01"}},
+            "Goal": {"select": {"name": "Hypertrophy"}},
+            "Level": {"select": {"name": "Intermediate"}},
+            "Verdict": {"select": {"name": "Approved"}},
+            "Email Sent": {"checkbox": True},
+        }
+    }
+    fila = _fila_cliente_lista_desde_pagina(pagina)
+    assert fila == {
+        "id": "page-1",
+        "nombre": "Laura Fernandez",
+        "email": "laura@example.com",
+        "fecha": "2026-08-01",
+        "objetivo": "Hypertrophy",
+        "nivel": "Intermediate",
+        "veredicto": "Approved",
+        "email_enviado": True,
+    }
+
+
+def test_fila_cliente_lista_handles_missing_optional_properties():
+    """A record without an email typed in yet (see actualizar_email_cliente()'s
+    docstring on when that gets backfilled) shouldn't crash the overview."""
+    pagina = {"id": "page-2", "properties": {"Name": {"title": [{"plain_text": "New Client"}]}}}
+    fila = _fila_cliente_lista_desde_pagina(pagina)
+    assert fila == {
+        "id": "page-2",
+        "nombre": "New Client",
+        "email": None,
+        "fecha": None,
+        "objetivo": None,
+        "nivel": None,
+        "veredicto": None,
+        "email_enviado": False,
     }
 
 

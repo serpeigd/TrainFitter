@@ -153,6 +153,12 @@ This repository is built phase by phase, as a learning project. Right now:
 - The client portal also shows a client their own check-in history, not
   just today's — the same view the trainer already has, scoped to that
   client's own signed link so there's no way to see anyone else's data.
+- A **"Clients"** tab gives the trainer a roster of every real client at a
+  glance — most recent check-in and rating included, with a ⚠️ flag on
+  anyone whose adherence just dropped — instead of looking each one up by
+  email individually. Check-in history (both the trainer's and the
+  client's own) now includes a simple trend chart for weight and adherence
+  over time, reusing the same data already being logged.
 
 ## What it doesn't include yet
 

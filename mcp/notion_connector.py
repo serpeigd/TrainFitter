@@ -804,3 +804,122 @@ def historial_checkins(email: str) -> list[dict]:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
     return [_fila_checkin_desde_pagina(pagina) for pagina in resultado["results"]]
+
+
+def _fila_cliente_lista_desde_pagina(pagina: dict) -> dict:
+    """Extracts the fields ui/app.py's "Clients" overview needs from a raw
+    Clients page object -- a superset of _fila_registro_cliente_desde_pagina()
+    (which stays as-is, scoped to only what the client portal needs) since
+    this is trainer-only and the overview table has room for more columns.
+    Pure function, no I/O."""
+    propiedades = pagina["properties"]
+    nombre = "".join(t["plain_text"] for t in propiedades.get("Name", {}).get("title", []))
+    email = propiedades.get("Email", {}).get("email")
+    fecha = (propiedades.get("Date", {}).get("date") or {}).get("start")
+    objetivo = (propiedades.get("Goal", {}).get("select") or {}).get("name")
+    nivel = (propiedades.get("Level", {}).get("select") or {}).get("name")
+    veredicto = (propiedades.get("Verdict", {}).get("select") or {}).get("name")
+    email_enviado = propiedades.get("Email Sent", {}).get("checkbox", False)
+    return {
+        "id": pagina["id"],
+        "nombre": nombre,
+        "email": email,
+        "fecha": fecha,
+        "objetivo": objetivo,
+        "nivel": nivel,
+        "veredicto": veredicto,
+        "email_enviado": email_enviado,
+    }
+
+
+def listar_clientes(limite: int = 100) -> list[dict]:
+    """
+    Returns every Clients record, most recently admitted first -- feeds
+    ui/app.py's "Clients" overview, the first place in this project a
+    trainer can see every client at a glance instead of looking each one
+    up individually by email (see _cargar_ficha_para_revisar()/
+    historial_checkins(), both one-client-at-a-time by design).
+
+    Args:
+        limite: max rows returned. Notion's own per-request page_size cap
+            is 100; this project has never needed pagination past that
+            for a portfolio-scale client list, so a second "load more"
+            request was left out rather than built for a case that
+            doesn't come up yet.
+
+    Returns:
+        A list of {"id", "nombre", "email", "fecha", "objetivo", "nivel",
+        "veredicto", "email_enviado"} dicts.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, database_id = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            sorts=[{"property": "Date", "direction": "descending"}],
+            page_size=limite,
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return [_fila_cliente_lista_desde_pagina(pagina) for pagina in resultado["results"]]
+
+
+def ultimo_checkin_por_cliente(limite: int = 100) -> dict[str, dict]:
+    """
+    Returns each client's single most recent Check-ins row, keyed by
+    email -- lets ui/app.py's "Clients" overview show an at-a-glance
+    adherence signal per client (who needs attention right now) without
+    one query per client. A single query against the whole Check-ins
+    database, sorted newest first, grouped by email in Python -- Notion's
+    API has no native "latest row per group" query, and this project's
+    scale doesn't justify anything fancier.
+
+    Args:
+        limite: max Check-ins rows scanned (see listar_clientes()'s
+            docstring on why 100 is the practical ceiling here -- a
+            client with many check-ins further back than the scanned
+            window just doesn't show up in this particular view; their
+            full history is still there via historial_checkins()).
+
+    Returns:
+        {email: {"fecha", "tipo", "valoracion", "notas", "peso_kg"}} for
+        whichever clients have at least one Check-ins row within the
+        scanned window. A client with no check-ins at all simply has no
+        key -- not an error, a brand-new client legitimately has none.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+    database_id = _checkins_database_id()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            sorts=[{"property": "Date", "direction": "descending"}],
+            page_size=limite,
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    ultimos: dict[str, dict] = {}
+    for pagina in resultado["results"]:
+        email = (pagina["properties"].get("Email") or {}).get("email")
+        if not email or email in ultimos:
+            continue  # a less recent row for this client -- results are newest-first, so skip it
+        ultimos[email] = _fila_checkin_desde_pagina(pagina)
+    return ultimos

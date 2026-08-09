@@ -166,8 +166,10 @@ from notion_connector import (  # noqa: E402
     crear_registro_checkin,
     guardar_registro_cliente,
     historial_checkins,
+    listar_clientes,
     marcar_email_enviado,
     obtener_registro_cliente,
+    ultimo_checkin_por_cliente,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import DIAS_SEMANA_DIETA  # noqa: E402
@@ -679,6 +681,20 @@ TRANSLATIONS = {
         "tab_example": "📋 Example client",
         "tab_new_intake": "📝 New Client",
         "tab_revise_client": "🔄 Revise client",
+        "tab_clients": "👥 Clients",
+        "clients_panel_header": "### 👥 All clients",
+        "clients_panel_caption": "Every client at a glance, with their most recent check-in — see who needs attention.",
+        "clients_panel_error": "Could not load the client list: {error}",
+        "clients_panel_empty": "No clients saved yet.",
+        "clients_col_name": "Name",
+        "clients_col_email": "Email",
+        "clients_col_date": "Admitted",
+        "clients_col_goal": "Goal",
+        "clients_col_level": "Level",
+        "clients_col_verdict": "Verdict",
+        "clients_col_email_sent": "Email Sent",
+        "clients_col_last_checkin": "Last check-in",
+        "clients_col_last_rating": "Last rating",
         "revise_client_header": "🔎 Load an existing client to revise",
         "revise_client_caption": (
             "Find a past client by email, edit anything below, and regenerate their plan — "
@@ -811,6 +827,8 @@ TRANSLATIONS = {
         "adherence_history_header": "📈 Adherence history",
         "adherence_history_empty": "No check-ins logged for this email yet.",
         "adherence_history_error": "Could not load adherence history: {error}",
+        "history_chart_weight": "Weight over time",
+        "history_chart_adherence": "Adherence trend (1 = Low, 2 = Medium, 3 = High)",
         "portal_section_header": "### 🔗 Client portal",
         "portal_section_caption": (
             "Sends a real email (not a draft) with a private link where the client can see a plan summary "
@@ -856,6 +874,20 @@ TRANSLATIONS = {
         "tab_example": "📋 Cliente de ejemplo",
         "tab_new_intake": "📝 Cliente nuevo",
         "tab_revise_client": "🔄 Revisar cliente",
+        "tab_clients": "👥 Clientes",
+        "clients_panel_header": "### 👥 Todos los clientes",
+        "clients_panel_caption": "Todos tus clientes de un vistazo, con su check-in más reciente — ve quién necesita atención.",
+        "clients_panel_error": "No se pudo cargar la lista de clientes: {error}",
+        "clients_panel_empty": "Todavía no hay clientes guardados.",
+        "clients_col_name": "Nombre",
+        "clients_col_email": "Email",
+        "clients_col_date": "Admitido",
+        "clients_col_goal": "Objetivo",
+        "clients_col_level": "Nivel",
+        "clients_col_verdict": "Veredicto",
+        "clients_col_email_sent": "Email enviado",
+        "clients_col_last_checkin": "Último check-in",
+        "clients_col_last_rating": "Última valoración",
         "revise_client_header": "🔎 Cargar un cliente existente para revisar",
         "revise_client_caption": (
             "Busca un cliente anterior por email, edita lo que necesites y regenera su plan — "
@@ -989,6 +1021,8 @@ TRANSLATIONS = {
         "adherence_history_header": "📈 Historial de adherencia",
         "adherence_history_empty": "Todavía no hay check-ins registrados para este email.",
         "adherence_history_error": "No se pudo cargar el historial de adherencia: {error}",
+        "history_chart_weight": "Peso a lo largo del tiempo",
+        "history_chart_adherence": "Tendencia de adherencia (1 = Baja, 2 = Media, 3 = Alta)",
         "portal_section_header": "### 🔗 Portal del cliente",
         "portal_section_caption": (
             "Envía un email real (no un borrador) con un enlace privado donde el cliente puede ver un resumen "
@@ -1747,13 +1781,69 @@ def _dialogo_aprobacion(estado, guardar_en_notion: bool) -> None:
         st.rerun()
 
 
+# English labels regardless of UI language, matching every Notion select
+# value this project ever writes (see notion_connector.py's
+# OBJETIVO_LABELS etc.) -- valoracion itself always comes back in English
+# from Notion, so mapping from it stays in English too.
+VALORACION_A_NUMERO = {"Low": 1, "Medium": 2, "High": 3}
+
+
+def _render_grafico_tendencia(historial: list[dict]) -> None:
+    """A simple trend chart from the same rows the list view below
+    already renders -- no new query. historial is newest-first (that
+    list view's own natural order); reversed once here for a
+    left-to-right timeline. Weight and adherence rating are independent
+    series -- a check-in missing one still contributes to the other,
+    only rendered once there's an actual trend to show (2+ points; a
+    single check-in has nothing to trend).
+
+    st.line_chart() needs Altair to actually draw. streamlit's own
+    package metadata declares it as a dependency, but a real, live
+    instance of this app hit ModuleNotFoundError here anyway and
+    crashed the whole page a client was on -- caught by live-testing,
+    not assumed safe just because it "should" be there. Altair is now
+    also an explicit, declared dependency of this project (see
+    requirements.txt) rather than relying on it arriving transitively,
+    and this still catches the import failure defensively on top of
+    that, same "never crash over an optional visual" pattern already
+    used for reportlab/pypdf/pdfplumber elsewhere in this project -- a
+    missing chart library degrades to no chart, never a broken page."""
+    cronologico = list(reversed(historial))
+
+    filas_peso = [f for f in cronologico if f.get("peso_kg") is not None and f["fecha"]]
+    filas_valoracion = [f for f in cronologico if f["valoracion"] in VALORACION_A_NUMERO and f["fecha"]]
+
+    try:
+        # Lazy import, same convention as reportlab/pypdf/pdfplumber
+        # elsewhere in this project: the free rule-engine pipeline (and
+        # every other section of this app) never needs pandas installed,
+        # only these two chart-rendering paths do.
+        import pandas as pd
+
+        if len(filas_peso) >= 2:
+            st.caption(t("history_chart_weight"))
+            st.line_chart(pd.DataFrame({"kg": [f["peso_kg"] for f in filas_peso]}, index=[f["fecha"] for f in filas_peso]))
+
+        if len(filas_valoracion) >= 2:
+            st.caption(t("history_chart_adherence"))
+            st.line_chart(
+                pd.DataFrame(
+                    {"adherence": [VALORACION_A_NUMERO[f["valoracion"]] for f in filas_valoracion]},
+                    index=[f["fecha"] for f in filas_valoracion],
+                )
+            )
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+
 def _render_historial_checkins(email: str) -> None:
-    """Renders a client's Check-ins history (most recent first, with
-    rating/weight/notes) -- shared by the trainer's own "Adherence
-    history" expander in _panel_aprobacion() and the client portal's own
-    history view in _vista_portal_cliente() below, so the row-formatting
-    logic (and the "how it degrades on error" behavior) only lives in one
-    place. Best-effort: a Notion failure shows a caption, never crashes
+    """Renders a client's Check-ins history (a trend chart when there's
+    enough data, then each row with rating/weight/notes, most recent
+    first) -- shared by the trainer's own "Adherence history" expander in
+    _panel_aprobacion() and the client portal's own history view in
+    _vista_portal_cliente() below, so the row-formatting logic (and the
+    "how it degrades on error" behavior) only lives in one place.
+    Best-effort: a Notion failure shows a caption, never crashes
     whichever page called this."""
     try:
         historial = historial_checkins(email)
@@ -1763,6 +1853,10 @@ def _render_historial_checkins(email: str) -> None:
 
     if not historial:
         st.caption(t("adherence_history_empty"))
+        return
+
+    _render_grafico_tendencia(historial)
+
     for fila in historial:
         etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
         etiqueta_peso = f" · {fila['peso_kg']} kg" if fila.get("peso_kg") is not None else ""
@@ -2077,6 +2171,66 @@ def _vista_portal_cliente(token: str) -> None:
             pass
 
 
+def _etiqueta_atencion(valoracion: str | None) -> str:
+    """A quick visual flag for a client whose most recent check-in rated
+    Low -- see _panel_todos_los_clientes()'s docstring on why this
+    overview exists at all. Pure function, no I/O."""
+    if valoracion == "Low":
+        return f"⚠️ {valoracion}"
+    return valoracion or ""
+
+
+def _panel_todos_los_clientes() -> None:
+    """The trainer's client roster: every real "New Client"/"Revise
+    client" record at a glance, joined with each client's most recent
+    Check-ins row so a client who needs attention (a Low adherence
+    rating, or no check-in at all) stands out without opening Notion or
+    looking each client up individually by email -- the only way to see
+    this before now. Read-only: this section never generates or saves
+    anything, only lists what's already there. Two separate,
+    independently best-effort queries (see listar_clientes()/
+    ultimo_checkin_por_cliente()'s own docstrings): a failure in the
+    second one still leaves the roster itself useful, just without the
+    adherence column."""
+    st.markdown(t("clients_panel_header"))
+    st.caption(t("clients_panel_caption"))
+
+    try:
+        clientes = listar_clientes()
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.error(t("clients_panel_error").format(error=str(exc)))
+        return
+
+    if not clientes:
+        st.caption(t("clients_panel_empty"))
+        return
+
+    try:
+        ultimos_checkins = ultimo_checkin_por_cliente()
+    except (NotionClientError, ImportError, ModuleNotFoundError):
+        ultimos_checkins = {}
+
+    filas = []
+    for cliente in clientes:
+        ultimo = ultimos_checkins.get(cliente["email"] or "")
+        filas.append({
+            t("clients_col_name"): cliente["nombre"],
+            t("clients_col_email"): cliente["email"] or "",
+            t("clients_col_date"): cliente["fecha"] or "",
+            t("clients_col_goal"): cliente["objetivo"] or "",
+            t("clients_col_level"): cliente["nivel"] or "",
+            t("clients_col_verdict"): cliente["veredicto"] or "",
+            t("clients_col_email_sent"): "✅" if cliente["email_enviado"] else "",
+            t("clients_col_last_checkin"): (ultimo["fecha"] if ultimo else "") or "",
+            t("clients_col_last_rating"): _etiqueta_atencion(ultimo["valoracion"]) if ultimo else "",
+        })
+
+    # A plain list of dicts, not pd.DataFrame(filas) -- st.dataframe()
+    # already accepts one natively, so this whole section never needs
+    # pandas at all (unlike the trend charts above, which genuinely do).
+    st.dataframe(filas, use_container_width=True, hide_index=True)
+
+
 # ---------------------------------------------------------------------------
 # Page
 # ---------------------------------------------------------------------------
@@ -2188,12 +2342,13 @@ st.markdown(
 # while building this. st.segmented_control's value is decoupled from its
 # displayed text (format_func), exactly like the selectboxes elsewhere in
 # this file, so the active section survives a language switch untouched.
-SECCIONES = ["nueva", "revisar", "ejemplo"]  # "New Client" first, per the trainer's workflow
+SECCIONES = ["nueva", "revisar", "clientes", "ejemplo"]  # "New Client" first, per the trainer's workflow
 seccion_activa = st.segmented_control(
     "navigation",
     SECCIONES,
     format_func=lambda k: {
-        "nueva": t("tab_new_intake"), "revisar": t("tab_revise_client"), "ejemplo": t("tab_example"),
+        "nueva": t("tab_new_intake"), "revisar": t("tab_revise_client"),
+        "clientes": t("tab_clients"), "ejemplo": t("tab_example"),
     }[k],
     default="nueva",
     key="seccion_activa",
@@ -2232,6 +2387,9 @@ elif seccion_activa == "revisar":
         st.session_state["revisar_perfil_id"] = id(perfil_revisado)
     if st.session_state.get("ultimo_origen") == "revisar":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
+
+elif seccion_activa == "clientes":
+    _panel_todos_los_clientes()
 
 elif seccion_activa == "ejemplo":
     perfil_ejemplo = _selector_cliente_ejemplo()
