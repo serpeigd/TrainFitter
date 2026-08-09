@@ -150,6 +150,30 @@ the real workspace, not just mocked: a saved profile round-tripped byte-for-byte
 through save → look-up-by-email, and a revision updated the same Notion page ID
 rather than creating a duplicate.
 
+## 12. Degrade a column, not the page — and a real crash a 257-test suite couldn't see
+
+The client roster (`_panel_todos_los_clientes()`) joins two Notion queries in
+Python — `listar_clientes()` (every Clients record) and
+`ultimo_checkin_por_cliente()` (each client's latest Check-ins row, grouped by
+email, since Notion has no native "latest row per group" query). They're kept
+as two independently-failable calls on purpose: if the Check-ins query fails,
+the roster still renders from the Clients query alone, just without the
+adherence column, instead of the whole tab going blank over one degraded
+signal. Separately, live-testing the real app (not the test suite, which
+never renders an actual Streamlit page) caught a genuine production bug: the
+new trend chart's `st.line_chart()` needs Altair, which `streamlit` declares
+as a dependency but which turned out to be missing from a real running
+instance — opening the client portal with check-in data raised a bare
+`ModuleNotFoundError` and crashed the whole page, not just the chart. Fixed
+twice over: `altair`/`pandas` became explicit, declared dependencies in
+`requirements.txt` instead of relied on transitively, and the chart code also
+catches `ImportError`/`ModuleNotFoundError` defensively, matching this
+project's existing "a missing optional library degrades a feature, never
+crashes the page" pattern (reportlab/pypdf/pdfplumber). **Why it matters:** a
+passing test suite is not the same claim as "verified against the real app" —
+this project's own disclosed limitations exist precisely because those two
+things get conflated elsewhere.
+
 ---
 
 *For the full "why," including things that were tried and reverted, see*
