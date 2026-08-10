@@ -143,6 +143,15 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   reason in `advertencias_revision_humana` and stick to a general, cautious diet.
 - Apply absorption synergies when they fit the profile (e.g. plant iron + vitamin C
   in vegetarian/vegan diets).
+- Never suggest a food the client listed under disliked foods or additional
+  restrictions, even though those aren't allergies. If they mentioned a dietary
+  approach or main concern (e.g. anti-inflammatory, lowering gluten), lean the
+  suggestions that way and say so in `consejos_sinergias` -- but a "lower gluten"
+  preference is not the same as a declared gluten allergy/intolerance: don't treat
+  it as one, and don't add an `advertencias_revision_humana` entry for it.
+- If the profile reports high stress, low average sleep, or a sedentary job, you may
+  lean the suggestions toward magnesium-rich or higher-fiber foods respectively and
+  mention why -- this is a preference, not a clinical adjustment.
 - Build `plan_semanal` as a real, varied 7-day plan (Monday first) -- not the same
   meals repeated every day. Every food you mention in it must also appear in the
   matching fuentes_*_sugeridas list (protein/carbohydrate/fat/vegetable), so it never

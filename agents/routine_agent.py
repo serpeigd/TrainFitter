@@ -170,6 +170,12 @@ STARTING POINT, not a final prescription.
   `advertencias_revision_humana`. Never ignore or downplay it.
 - The method's values (set/rep ranges, volume...) are reasonable starting points,
   not rigid rules: adjust them to this specific person's level, goal, and context.
+  A beginner should get less volume and simpler, more guided exercises than an
+  advanced trainee with the exact same available equipment; trim the number of
+  exercises per session for someone with limited time (e.g. under 45 minutes)
+  rather than prescribing a session they can't actually finish; and if they
+  reported high stress or short sleep, keep volume a bit more conservative for
+  this first block and say so in the summary.
 - The message to the client should sound like the trainer: warm, direct,
   pedagogical, no unexplained jargon.
 - You must respond ONLY by calling the `entregar_borrador_rutina` tool."""

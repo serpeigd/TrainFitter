@@ -23,7 +23,13 @@ determinism as the rest of this module (a dedicated RNG namespace so it
 never shifts what the narrative-text RNG would have picked).
 """
 
-from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para, fuentes_verdura_para
+from food_bank import (
+    fuentes_carbohidrato_para,
+    fuentes_grasa_para,
+    fuentes_proteina_para,
+    fuentes_verdura_para,
+    preferencias_blandas,
+)
 from planificador_comidas import generar_plan_semanal
 from variacion import elegir_variante, rng_para_cliente
 
@@ -183,6 +189,68 @@ def _calcular_necesidades(perfil: dict) -> dict:
             "carbohidratos_g": round(carbohidratos_g),
         },
     }
+
+
+def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list[str]:
+    """Explains WHY the weekly plan leans a certain way whenever a soft
+    preference (food_bank.preferencias_blandas()) is active -- the same
+    "never a silent, unexplained adjustment" principle already applied to
+    rutina_reglas.py's stress/sleep and session-length notes. Purely
+    informational: these never trigger advertencias_revision_humana (see
+    that function below), since none of this is a safety concern.
+
+    The antiinflamatorio tip's own food list is diet-type aware: oily fish
+    is only ever a candidate for omnivore clients (food_bank.py's
+    tipos_dieta filter already excludes it for vegetarian/vegan clients),
+    so naming it unconditionally would describe foods a vegetarian/vegan
+    client's plan could never actually contain."""
+    preferencias = preferencias_blandas(perfil)
+    tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
+    if idioma == "es":
+        fuentes_antiinflamatorias = (
+            "pescado azul, aceite de oliva, frutos secos/semillas" if tipo_dieta == "omnivora"
+            else "aceite de oliva, aguacate, frutos secos/semillas"
+        )
+        textos = {
+            "reducir_gluten": (
+                "Has pedido bajar el gluten: el pan, la pasta integral y el seitán se han dejado "
+                "fuera de las fuentes sugeridas (la avena se mantiene — solo tiene trazas, no gluten "
+                "en sí)."
+            ),
+            "antiinflamatorio": (
+                f"Has pedido un enfoque antiinflamatorio: el plan prioriza {fuentes_antiinflamatorias} "
+                "y verdura y fruta de colores intensos."
+            ),
+            "estres_alto_o_sueno_bajo": (
+                "Dado el estrés/sueño que declaraste, el plan prioriza fuentes ricas en magnesio "
+                "(legumbres, frutos secos, semillas, quinoa)."
+            ),
+            "trabajo_sedentario": (
+                "Con un trabajo poco activo, el plan prioriza fuentes con más fibra (legumbres, "
+                "avena, integrales, verdura) para ayudar con la saciedad y la digestión."
+            ),
+        }
+    else:
+        textos = {
+            "reducir_gluten": (
+                "You asked to lower gluten: bread, whole wheat pasta, and seitan were left out of "
+                "the suggested sources (oats stay in — only trace amounts, not gluten itself)."
+            ),
+            "antiinflamatorio": (
+                f"You asked for an anti-inflammatory approach: this plan leans on "
+                f"{'oily fish, olive oil, nuts/seeds' if tipo_dieta == 'omnivora' else 'olive oil, avocado, nuts/seeds'}, "
+                "and deeply colored vegetables and fruit."
+            ),
+            "estres_alto_o_sueno_bajo": (
+                "Given the stress/sleep you reported, this plan leans on magnesium-rich sources "
+                "(legumes, nuts, seeds, quinoa)."
+            ),
+            "trabajo_sedentario": (
+                "With a mostly sedentary job, this plan leans on higher-fiber sources (legumes, "
+                "oats, whole grains, vegetables) to help with satiety and digestion."
+            ),
+        }
+    return [textos[p] for p in ("reducir_gluten", "antiinflamatorio", "estres_alto_o_sueno_bajo", "trabajo_sedentario") if p in preferencias]
 
 
 def _consejos_sinergias(perfil: dict, idioma: str = "en") -> list[str]:
@@ -359,7 +427,7 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
         "fuentes_grasa_sugeridas": fuentes_grasa_para(perfil_cliente),
         "fuentes_verdura_sugeridas": fuentes_verdura_para(perfil_cliente),
         "plan_semanal": plan_semanal,
-        "consejos_sinergias": _consejos_sinergias(perfil_cliente, idioma),
+        "consejos_sinergias": _consejos_sinergias(perfil_cliente, idioma) + _consejos_por_preferencias_blandas(perfil_cliente, idioma),
         "advertencias_revision_humana": _generar_advertencias(perfil_cliente, idioma),
         "mensaje_para_el_cliente": mensaje_para_el_cliente,
     }

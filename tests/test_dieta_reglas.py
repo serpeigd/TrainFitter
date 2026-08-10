@@ -156,3 +156,51 @@ def test_allergy_excludes_food_from_weekly_plan(perfil_base):
     borrador = generar_borrador_dieta_reglas(perfil_base)
     texto_plan = str(borrador["plan_semanal"]).lower()
     assert "nuts (walnuts" not in texto_plan
+
+
+# --- Soft dietary preferences (maximal personalization) -------------------
+
+
+def test_disliked_food_excluded_from_suggested_sources(perfil_base):
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["broccoli"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert "Broccoli" not in borrador["fuentes_verdura_sugeridas"]
+
+
+def test_gluten_preference_excludes_gluten_but_not_traces(perfil_base):
+    perfil_base["nutricion"]["inquietud_principal"] = "quiero bajar el gluten"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert "Whole wheat bread" not in borrador["fuentes_carbohidrato_sugeridas"]
+    assert "Oats" in borrador["fuentes_carbohidrato_sugeridas"]
+
+
+def test_gluten_preference_note_appears_in_synergy_tips(perfil_base):
+    perfil_base["nutricion"]["inquietud_principal"] = "bajar el gluten"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert any("gluten" in c.lower() for c in borrador["consejos_sinergias"])
+
+
+def test_antiinflammatory_note_appears_and_is_diet_type_aware(perfil_base):
+    """The tip must not name oily fish for a vegetarian/vegan client, since
+    that food is never actually a candidate for them (see
+    dieta_reglas.py's _consejos_por_preferencias_blandas())."""
+    perfil_base["nutricion"]["inquietud_principal"] = "antiinflamatoria"
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    consejo = next(c for c in borrador["consejos_sinergias"] if "anti-inflammatory" in c.lower())
+    assert "oily fish" not in consejo.lower()
+
+
+def test_no_soft_preference_notes_for_a_clean_profile(perfil_base):
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = "active outdoor work"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    for palabra in ("gluten", "anti-inflammatory", "magnesium", "fiber"):
+        assert not any(palabra in c.lower() for c in borrador["consejos_sinergias"])
+
+
+def test_disliked_food_never_triggers_enhanced_review(perfil_base):
+    """A preference, not a safety concern -- must never show up in
+    advertencias_revision_humana the way a real allergy would."""
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["chicken breast"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert borrador["advertencias_revision_humana"] == []

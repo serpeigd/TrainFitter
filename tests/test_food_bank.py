@@ -2,18 +2,22 @@
 and diet-type filtering (the same safety-critical concern as
 test_perfil_utils.py, on the nutrition side)."""
 
+import pytest
 from food_bank import (
     FUENTES_CARBOHIDRATO,
     FUENTES_GRASA,
     FUENTES_PROTEINA,
     FUENTES_VERDURA,
     INDICE_ALIMENTOS,
+    alimentos_no_deseados,
     etiquetas_excluidas,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
     fuentes_proteina_para,
     fuentes_verdura_para,
     nombre_mostrado,
+    preferencias_blandas,
+    preferencias_texto_libre,
 )
 
 
@@ -181,3 +185,132 @@ def test_some_vegetables_are_tagged_as_vitamin_c_sources():
 def test_indice_alimentos_covers_every_food_across_all_four_banks():
     for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA:
         assert INDICE_ALIMENTOS[alimento["nombre"]] is alimento
+
+
+# --- Soft dietary preferences (maximal personalization) -------------------
+
+
+def test_preferencias_texto_libre_pools_every_free_text_field(perfil_base):
+    perfil_base["objetivo"]["en_sus_palabras"] = "own words text"
+    perfil_base["nutricion"]["contexto"] = "context text"
+    perfil_base["nutricion"]["inquietud_principal"] = "inquietud text"
+    perfil_base["notas_libres"] = "free notes text"
+    texto = preferencias_texto_libre(perfil_base)
+    for fragmento in ("own words text", "context text", "inquietud text", "free notes text"):
+        assert fragmento in texto
+
+
+@pytest.mark.parametrize("frase", ["antiinflamatoria", "anti-inflammatory", "inflammation", "INFLAMACIÓN"])
+def test_antiinflamatorio_detected_bilingual(perfil_base, frase):
+    perfil_base["nutricion"]["inquietud_principal"] = frase
+    assert "antiinflamatorio" in preferencias_blandas(perfil_base)
+
+
+@pytest.mark.parametrize("frase", ["bajar el gluten", "lower gluten", "gluten-free"])
+def test_reducir_gluten_detected_bilingual(perfil_base, frase):
+    perfil_base["nutricion"]["inquietud_principal"] = frase
+    assert "reducir_gluten" in preferencias_blandas(perfil_base)
+
+
+def test_no_soft_preferences_for_a_clean_profile(perfil_base):
+    # perfil_base's own default tipo_trabajo ("sedentary office job") would
+    # otherwise trigger "trabajo_sedentario" -- overridden here so this
+    # test genuinely isolates "no preference text/signals at all".
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = "active outdoor work"
+    assert preferencias_blandas(perfil_base) == set()
+
+
+def test_high_stress_detected_as_soft_preference(perfil_base):
+    perfil_base["estilo_de_vida"]["nivel_estres_percibido"] = "alto"
+    assert "estres_alto_o_sueno_bajo" in preferencias_blandas(perfil_base)
+
+
+def test_low_sleep_detected_as_soft_preference(perfil_base):
+    perfil_base["estilo_de_vida"]["horas_sueno_promedio"] = 5
+    assert "estres_alto_o_sueno_bajo" in preferencias_blandas(perfil_base)
+
+
+def test_normal_stress_and_sleep_not_flagged(perfil_base):
+    perfil_base["estilo_de_vida"]["nivel_estres_percibido"] = "medio"
+    perfil_base["estilo_de_vida"]["horas_sueno_promedio"] = 7
+    assert "estres_alto_o_sueno_bajo" not in preferencias_blandas(perfil_base)
+
+
+@pytest.mark.parametrize("trabajo", ["sedentary office job", "trabajo de oficina", "desk job"])
+def test_sedentary_job_detected_bilingual(perfil_base, trabajo):
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = trabajo
+    assert "trabajo_sedentario" in preferencias_blandas(perfil_base)
+
+
+def test_active_job_not_flagged_as_sedentary(perfil_base):
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = "construction worker, on my feet all day"
+    assert "trabajo_sedentario" not in preferencias_blandas(perfil_base)
+
+
+def test_reducir_gluten_excludes_gluten_but_keeps_gluten_traces(perfil_base):
+    """The soft "lower gluten" preference is deliberately narrower than a
+    declared allergy: it excludes `gluten`-tagged foods (bread, pasta,
+    seitan) but keeps `gluten_trazas` ones (oats) -- see food_bank.py's
+    module docstring for why that distinction is real, not an oversight."""
+    perfil_base["nutricion"]["inquietud_principal"] = "quiero bajar el gluten"
+    carbs = fuentes_carbohidrato_para(perfil_base)
+    proteinas = fuentes_proteina_para(perfil_base)
+    assert "Whole wheat bread" not in carbs
+    assert "Whole wheat pasta" not in carbs
+    assert "Seitan" not in proteinas
+    assert "Oats" in carbs  # traces only, not excluded by the soft preference
+
+
+def test_a_real_gluten_allergy_still_excludes_oats_too(perfil_base):
+    """Contrast with the soft preference above: an actual declared allergy
+    keeps excluding gluten_trazas as well -- unchanged, hard-safety
+    behavior via etiquetas_excluidas()."""
+    perfil_base["salud"]["intolerancias_alimentarias"] = ["gluten intolerance"]
+    carbs = fuentes_carbohidrato_para(perfil_base)
+    assert "Whole wheat bread" not in carbs
+    assert "Oats" not in carbs
+
+
+def test_disliked_food_excluded_by_exact_name_match(perfil_base):
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["broccoli"]
+    assert "Broccoli" not in fuentes_verdura_para(perfil_base)
+
+
+def test_disliked_food_matched_without_accents(perfil_base):
+    """A client typing without accents ("brocoli") must still match
+    "Brócoli" -- see food_bank._sin_acentos()."""
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["brocoli"]
+    assert "Broccoli" not in fuentes_verdura_para(perfil_base)
+
+
+def test_disliked_food_matched_from_a_longer_sentence(perfil_base):
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["no me gusta el pescado blanco"]
+    assert "White fish (hake, sole)" not in fuentes_proteina_para(perfil_base)
+
+
+def test_disliked_food_matched_via_spanish_display_name(perfil_base):
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["pollo"]
+    assert "Chicken breast" not in fuentes_proteina_para(perfil_base)
+
+
+def test_restrictions_also_feed_disliked_food_exclusion(perfil_base):
+    perfil_base["nutricion"]["restricciones"] = ["salmon"]
+    assert "Salmon / oily fish" not in fuentes_proteina_para(perfil_base)
+
+
+def test_short_disliked_phrases_are_ignored_to_avoid_false_collisions(perfil_base):
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["no"]
+    assert alimentos_no_deseados(perfil_base) == set()
+
+
+def test_disliked_food_does_not_trigger_a_health_review():
+    """A disliked food is a preference, never a safety concern -- unlike
+    etiquetas_excluidas(), alimentos_no_deseados() must have no bearing on
+    validator_agent.py's enhanced-review logic. This is a contract test on
+    the function's own return value, not a full pipeline run."""
+    from food_bank import etiquetas_excluidas
+    perfil = {
+        "salud": {"alergias_alimentarias": [], "intolerancias_alimentarias": []},
+        "nutricion": {"alimentos_que_no_le_gustan": ["chicken"], "restricciones": []},
+    }
+    assert etiquetas_excluidas(perfil) == set()

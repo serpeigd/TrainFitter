@@ -170,3 +170,103 @@ def test_different_clients_can_get_different_exercises(perfil_base):
         borrador = generar_borrador_rutina_reglas(perfil_base)
         primeros_ejercicios.add(borrador["sesiones"][0]["ejercicios"][0]["nombre"])
     assert len(primeros_ejercicios) > 1
+
+
+# --- Level-based volume/complexity (maximal personalization) --------------
+
+
+def test_beginner_gets_fewer_sets_on_basic_exercises_than_intermediate(perfil_base):
+    perfil_base["experiencia"]["nivel"] = "principiante"
+    principiante = generar_borrador_rutina_reglas(perfil_base)
+
+    perfil_base["experiencia"]["nivel"] = "intermedio"
+    intermedio = generar_borrador_rutina_reglas(perfil_base)
+
+    series_principiante = [e["series"] for s in principiante["sesiones"] for e in s["ejercicios"]]
+    series_intermedio = [e["series"] for s in intermedio["sesiones"] for e in s["ejercicios"]]
+    assert sum(series_principiante) < sum(series_intermedio)
+
+
+def test_advanced_gets_more_sets_than_intermediate(perfil_base):
+    perfil_base["experiencia"]["nivel"] = "avanzado"
+    avanzado = generar_borrador_rutina_reglas(perfil_base)
+
+    perfil_base["experiencia"]["nivel"] = "intermedio"
+    intermedio = generar_borrador_rutina_reglas(perfil_base)
+
+    series_avanzado = [e["series"] for s in avanzado["sesiones"] for e in s["ejercicios"]]
+    series_intermedio = [e["series"] for s in intermedio["sesiones"] for e in s["ejercicios"]]
+    assert sum(series_avanzado) > sum(series_intermedio)
+
+
+def test_series_never_drop_below_the_floor(perfil_base):
+    """A beginner (-1 basic) with high stress/low sleep (-1 more) stacks to
+    -2 on basic exercises -- must still clamp at SERIES_MINIMAS, never go
+    to 1 or 0 sets."""
+    perfil_base["experiencia"]["nivel"] = "principiante"
+    perfil_base["estilo_de_vida"]["nivel_estres_percibido"] = "alto"
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        for ejercicio in sesion["ejercicios"]:
+            assert ejercicio["series"] >= 2
+
+
+def test_beginner_is_biased_toward_lower_complexity_exercises(perfil_base):
+    """Machine/bodyweight/dumbbell exercises should show up more often than
+    barbell compound lifts for a beginner when both are valid candidates
+    for the same slot -- sampled across many client IDs since it's a bias,
+    not an absolute exclusion (see rutina_reglas.py's
+    _preferir_baja_complejidad_primero())."""
+    barbell_exercises = {e["nombre"] for e in EXERCISE_BANK if "barras_y_discos" in e["material"]}
+
+    conteo_principiante = 0
+    conteo_avanzado = 0
+    total = 0
+    for i in range(20):
+        perfil_base["id_cliente"] = f"complejidad_test_{i}"
+        perfil_base["experiencia"]["nivel"] = "principiante"
+        principiante = generar_borrador_rutina_reglas(perfil_base)
+        perfil_base["experiencia"]["nivel"] = "avanzado"
+        avanzado = generar_borrador_rutina_reglas(perfil_base)
+
+        for sesion in principiante["sesiones"]:
+            for ejercicio in sesion["ejercicios"]:
+                total += 1
+                if ejercicio["nombre"] in barbell_exercises:
+                    conteo_principiante += 1
+        for sesion in avanzado["sesiones"]:
+            for ejercicio in sesion["ejercicios"]:
+                if ejercicio["nombre"] in barbell_exercises:
+                    conteo_avanzado += 1
+
+    assert conteo_principiante < conteo_avanzado
+
+
+def test_short_session_trims_the_last_exercises(perfil_base):
+    perfil_base["disponibilidad"]["minutos_por_sesion"] = 25
+    corto = generar_borrador_rutina_reglas(perfil_base)
+
+    perfil_base["disponibilidad"]["minutos_por_sesion"] = 60
+    normal = generar_borrador_rutina_reglas(perfil_base)
+
+    for s_corto, s_normal in zip(corto["sesiones"], normal["sesiones"]):
+        assert len(s_corto["ejercicios"]) < len(s_normal["ejercicios"])
+        assert len(s_corto["ejercicios"]) >= 2
+
+
+def test_short_session_note_appears_in_summary(perfil_base):
+    perfil_base["disponibilidad"]["minutos_por_sesion"] = 20
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    assert "25-minute" not in borrador["resumen_enfoque"]  # sanity: not hardcoded
+    assert "20-minute" in borrador["resumen_enfoque"]
+
+
+def test_high_stress_or_low_sleep_note_appears_in_summary(perfil_base):
+    perfil_base["estilo_de_vida"]["horas_sueno_promedio"] = 5
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    assert "conservative" in borrador["resumen_enfoque"].lower()
+
+
+def test_normal_stress_and_sleep_has_no_conservative_note(perfil_base):
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    assert "conservative" not in borrador["resumen_enfoque"].lower()

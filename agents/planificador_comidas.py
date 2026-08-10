@@ -38,6 +38,18 @@ left) -- keeping them out of the gram-solving math avoids a four-way
 optimization for a handful of extra kcal that "aprox_kcal" already signals
 as approximate.
 
+DESIGN — soft preferences bias selection, they never exclude on their own
+(gluten is the one exception, and even that exclusion happens upstream in
+food_bank.py, not here): food_bank.preferencias_blandas() detects things
+like "wants an anti-inflammatory approach," "reported high stress or low
+sleep," or "sedentary job" and this module narrows a food category's
+candidates toward a matching sinergias tag (antiinflamatorio/magnesio/
+fibra_alta) MOST of the time, not always -- see
+_sesgar_por_preferencias() -- so a full week still shows some variety
+instead of looping the same few foods. Falls back to the unfiltered list
+whenever narrowing would leave nothing, same "prefer, don't exclude"
+pattern already used for the vitamin-C pairing above.
+
 DESIGN — safety stays with food_bank.py's existing filters, not a second
 copy of them: every food this module ever picks comes from
 fuentes_proteina_para(perfil)/fuentes_carbohidrato_para(perfil)/
@@ -60,6 +72,7 @@ from food_bank import (
     fuentes_proteina_para,
     fuentes_verdura_para,
     nombre_mostrado,
+    preferencias_blandas,
 )
 
 DIAS_SEMANA = {
@@ -121,6 +134,35 @@ def _candidatos_para_comida_ligera(candidatos: dict) -> dict:
         "proteina": proteina_ligera or candidatos["proteina"],
         "grasa": grasa_ligera or candidatos["grasa"],
     }
+
+
+# Soft preference tag (food_bank.preferencias_blandas()) -> the sinergias
+# tag to bias meal-food selection toward. "reducir_gluten" is deliberately
+# absent here: that one is already a hard exclusion applied upstream by
+# food_bank.py's fuentes_*_para(), not a bias -- by the time candidatos
+# reaches this module, gluten-tagged foods are already gone from it.
+SESGO_POR_PREFERENCIA = {
+    "antiinflamatorio": "antiinflamatorio",
+    "estres_alto_o_sueno_bajo": "magnesio",
+    "trabajo_sedentario": "fibra_alta",
+}
+
+
+def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[str], rng: random.Random) -> list[str]:
+    """Narrows one food category's candidates toward whichever
+    SESGO_POR_PREFERENCIA tags are active, most (not all) of the time --
+    a consistent bias across the week rather than every single meal
+    forced into the same handful of foods, which would read as
+    repetitive rather than personalized. Falls back to the untouched
+    list when no candidate carries any active tag (a diet-type/allergy
+    combination that happens to exclude all of them for this slot)."""
+    etiquetas_activas = {SESGO_POR_PREFERENCIA[p] for p in preferencias if p in SESGO_POR_PREFERENCIA}
+    if not etiquetas_activas or not candidatos_categoria:
+        return candidatos_categoria
+    preferidos = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c]["sinergias"] & etiquetas_activas]
+    if preferidos and rng.random() < 0.75:
+        return preferidos
+    return candidatos_categoria
 
 # Flat, fixed vegetable/fruit portions (grams) -- not solved from macros,
 # see module docstring.
@@ -245,7 +287,8 @@ def _describir_desayuno_o_snack(
 
 
 def _construir_comida(
-    tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict, idioma: str, rng: random.Random,
+    tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
+    preferencias: set[str], idioma: str, rng: random.Random,
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -266,6 +309,16 @@ def _construir_comida(
         candidatos = _candidatos_para_comida_ligera(candidatos)
     if tipo != "snack":
         candidatos = _candidatos_para_comida_principal(candidatos)
+
+    # Soft-preference bias (antiinflamatorio/magnesio/fibra_alta -- see
+    # SESGO_POR_PREFERENCIA) applies on top of the realism filters above,
+    # to every category that can carry one of those tags.
+    candidatos = {
+        "proteina": _sesgar_por_preferencias(candidatos["proteina"], preferencias, rng),
+        "carbohidrato": _sesgar_por_preferencias(candidatos["carbohidrato"], preferencias, rng),
+        "grasa": _sesgar_por_preferencias(candidatos["grasa"], preferencias, rng),
+        "verdura": _sesgar_por_preferencias(candidatos["verdura"], preferencias, rng),
+    }
 
     proteina_nombre = rng.choice(candidatos["proteina"])
     carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
@@ -357,6 +410,12 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     if not candidatos["proteina"] or not candidatos["carbohidrato"]:
         return []
 
+    # Soft preferences (see food_bank.preferencias_blandas()) -- gluten is
+    # already excluded from `candidatos` above (a hard exclusion applied
+    # by fuentes_*_para() itself), so what's left here only ever biases
+    # selection, never excludes.
+    preferencias = preferencias_blandas(perfil)
+
     kcal_dia = necesidades["calorias_objetivo_kcal"]
     macros = necesidades["macros"]
     kcal_grasa_dia = macros["grasa_g"] * 9
@@ -378,7 +437,7 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
         for tipo, peso_kcal, peso_grasa in zip(slots, pesos_kcal, pesos_grasa):
             kcal_objetivo = kcal_dia * (peso_kcal / total_peso_kcal)
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
-            comida = _construir_comida(tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, idioma, rng)
+            comida = _construir_comida(tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, idioma, rng)
             if tipo == "snack" and slots.count("snack") > 1:
                 contador_snack += 1
                 comida["tipo"] = f"{comida['tipo']} {contador_snack}"

@@ -70,6 +70,7 @@ CAMPO_INTOLERANCIAS = "salud__intolerancias_alimentarias"
 CAMPO_TIPO_DIETA = "nutricion__tipo_dieta"
 CAMPO_RESTRICCIONES = "nutricion__restricciones"
 CAMPO_NO_LE_GUSTA = "nutricion__alimentos_que_no_le_gustan"
+CAMPO_INQUIETUD_PRINCIPAL = "nutricion__inquietud_principal"
 CAMPO_COMIDAS_DIA = "nutricion__comidas_al_dia_preferidas"
 CAMPO_CONTEXTO_NUTRICION = "nutricion__contexto"
 CAMPO_HORAS_SUENO = "estilo_de_vida__horas_sueno_promedio"
@@ -226,6 +227,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "tipo_dieta": "Tipo de dieta",
             "restricciones": "Restricciones adicionales (separadas por comas)",
             "no_gusta": "Alimentos que no te gustan (separados por comas)",
+            "inquietud": "Enfoque o inquietud principal de dieta (opcional, ej. antiinflamatoria, bajar el gluten...)",
             "comidas": "Comidas al día preferidas",
             "contexto": "Tu contexto (cocinas tú, tiempo, presupuesto...)",
             "sec_estilo": "7. Estilo de vida",
@@ -278,6 +280,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "tipo_dieta": "Diet type",
             "restricciones": "Additional restrictions (comma-separated)",
             "no_gusta": "Foods you don't like (comma-separated)",
+            "inquietud": "Main dietary concern or approach (optional, e.g. anti-inflammatory, lower gluten...)",
             "comidas": "Preferred meals per day",
             "contexto": "Your context (do you cook, time, budget...)",
             "sec_estilo": "7. Lifestyle",
@@ -343,6 +346,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
     f.radio(CAMPO_TIPO_DIETA, t["tipo_dieta"], opciones_dieta)
     f.texto(CAMPO_RESTRICCIONES, t["restricciones"])
     f.texto(CAMPO_NO_LE_GUSTA, t["no_gusta"])
+    f.texto(CAMPO_INQUIETUD_PRINCIPAL, t["inquietud"])
     f.texto(CAMPO_COMIDAS_DIA, t["comidas"])
     f.texto(CAMPO_CONTEXTO_NUTRICION, t["contexto"], multiline=True)
 
@@ -483,6 +487,7 @@ def leer_intake_pdf(contenido_pdf: bytes) -> dict:
             "tipo_dieta": _valor_campo(campos, CAMPO_TIPO_DIETA) or "omnivora",
             "restricciones": _lista_desde_texto(_valor_campo(campos, CAMPO_RESTRICCIONES)),
             "alimentos_que_no_le_gustan": _lista_desde_texto(_valor_campo(campos, CAMPO_NO_LE_GUSTA)),
+            "inquietud_principal": _valor_campo(campos, CAMPO_INQUIETUD_PRINCIPAL),
             "comidas_al_dia_preferidas": entero(CAMPO_COMIDAS_DIA, por_defecto=4),
             "contexto": _valor_campo(campos, CAMPO_CONTEXTO_NUTRICION),
         },

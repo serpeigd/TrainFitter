@@ -769,6 +769,8 @@ TRANSLATIONS = {
         "diet_type": "Diet type",
         "additional_restrictions": "Additional restrictions (comma-separated)",
         "disliked_foods": "Foods they don't like (comma-separated)",
+        "main_dietary_concern": "Main dietary concern or approach (optional)",
+        "main_dietary_concern_placeholder": "e.g. anti-inflammatory, lower gluten, gut health...",
         "meals_per_day": "Preferred meals per day",
         "nutrition_context": "Context (cooking, time, budget...)",
         "sec_lifestyle": "7. Lifestyle",
@@ -982,6 +984,8 @@ TRANSLATIONS = {
         "diet_type": "Tipo de dieta",
         "additional_restrictions": "Restricciones adicionales (coma)",
         "disliked_foods": "Alimentos que no le gustan (coma)",
+        "main_dietary_concern": "Enfoque o inquietud principal de dieta (opcional)",
+        "main_dietary_concern_placeholder": "ej. antiinflamatoria, bajar el gluten, salud digestiva...",
         "meals_per_day": "Comidas al día preferidas",
         "nutrition_context": "Contexto (cocina, tiempo, presupuesto...)",
         "sec_lifestyle": "7. Estilo de vida",
@@ -1382,6 +1386,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "tipo_dieta_valor": nutricion["tipo_dieta"],
         "restricciones": ", ".join(nutricion.get("restricciones", [])),
         "no_le_gustan": ", ".join(nutricion.get("alimentos_que_no_le_gustan", [])),
+        "inquietud_principal": nutricion.get("inquietud_principal", ""),
         "comidas": nutricion.get("comidas_al_dia_preferidas", 3),
         "contexto": nutricion.get("contexto", ""),
         "sueno": estilo.get("horas_sueno_promedio", 7.0),
@@ -1483,6 +1488,9 @@ def _formulario_ficha_nueva() -> dict | None:
     c14, c15 = st.columns(2)
     restricciones_texto = c14.text_input(t("additional_restrictions"), key="restricciones")
     no_le_gustan_texto = c15.text_input(t("disliked_foods"), key="no_le_gustan")
+    inquietud_principal = st.text_input(
+        t("main_dietary_concern"), key="inquietud_principal", placeholder=t("main_dietary_concern_placeholder"),
+    )
     comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=3, key="comidas")
     contexto_nutricion = st.text_area(t("nutrition_context"), key="contexto")
 
@@ -1570,6 +1578,7 @@ def _formulario_ficha_nueva() -> dict | None:
             "tipo_dieta": tipo_dieta,
             "restricciones": _lista_desde_texto(restricciones_texto),
             "alimentos_que_no_le_gustan": _lista_desde_texto(no_le_gustan_texto),
+            "inquietud_principal": inquietud_principal.strip(),
             "comidas_al_dia_preferidas": int(comidas_al_dia),
             "contexto": contexto_nutricion.strip(),
         },

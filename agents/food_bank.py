@@ -43,7 +43,38 @@ has), "probiotico"/"prebiotico_fibra" (yogurt + oats/fruit in the same
 meal). planificador_comidas.py reads these tags to decide which foods to
 pair *within the same meal*, not just list separately -- see that module's
 own docstring for how.
+
+DESIGN — soft dietary preferences (added for maximal personalization, see
+docs/decisiones.md): unlike allergies/intolerances (a hard, safety-relevant
+exclusion via `etiquetas`/`etiquetas_excluidas()`), a client can express a
+*preference* -- "I want to eat anti-inflammatory," "I'd like to lower my
+gluten," a food they simply don't like -- that should shape the plan
+without ever being treated as a declared allergy (no
+`revision_reforzada`, no cross-check warning; see
+validator_agent.py, which deliberately never reads these).
+`preferencias_texto_libre()` pools every free-text field a client might
+have expressed this in (goal in their own words, nutrition context, the
+new `inquietud_principal` field, free notes) so a preference mentioned
+anywhere gets picked up, not just in one specific box.
+`preferencias_blandas()` turns that pooled text plus two *structured*
+lifestyle fields (perceived stress, sleep hours) into a small set of tags:
+"reducir_gluten" (soft-excludes `gluten`-tagged foods from suggestions --
+deliberately NOT `gluten_trazas`/traces, e.g. oats: a real, common
+distinction between "lower gluten" and an actual gluten allergy/intolerance,
+which still excludes both), "antiinflamatorio" (bias meal selection toward
+foods tagged "antiinflamatorio" below -- oily fish, olive oil, nuts/seeds,
+colorful vegetables/fruit), and "estres_alto_o_sueno_bajo" (bias toward
+"magnesio"-tagged foods -- magnesium at night is one of
+docs/base_conocimiento/nutricion.md's four longevity-focus blocks, and
+docs/base_conocimiento/sinergias_nutrientes.md's own timing section calls
+out magnesium specifically). `alimentos_no_deseados()` is a separate,
+per-food (not per-tag) soft exclusion: it matches a client's disliked-foods/
+restrictions free text directly against each food's own name (English or
+Spanish) -- unlike a synergy/preference tag, "I don't like broccoli" is
+about one specific food, not a category.
 """
+
+import unicodedata
 
 FUENTES_PROTEINA = [
     {
@@ -68,7 +99,7 @@ FUENTES_PROTEINA = [
     },
     {
         "nombre": "Salmon / oily fish", "nombre_es": "Salmón / pescado azul",
-        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(),
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": {"antiinflamatorio"},
         "macros_100g": {"kcal": 208, "proteina_g": 20, "carbohidratos_g": 0, "grasa_g": 13},
     },
     {
@@ -84,31 +115,31 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Lentils", "nombre_es": "Lentejas",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"},
-        "sinergias": {"hierro_no_hemo"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
         "macros_100g": {"kcal": 116, "proteina_g": 9, "carbohidratos_g": 20, "grasa_g": 0.4},
     },
     {
         "nombre": "Chickpeas", "nombre_es": "Garbanzos",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"},
-        "sinergias": {"hierro_no_hemo"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
         "macros_100g": {"kcal": 164, "proteina_g": 9, "carbohidratos_g": 27, "grasa_g": 2.6},
     },
     {
         "nombre": "Tofu", "nombre_es": "Tofu",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
         "macros_100g": {"kcal": 144, "proteina_g": 15, "carbohidratos_g": 3, "grasa_g": 8},
     },
     {
         "nombre": "Tempeh", "nombre_es": "Tempeh",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
         "macros_100g": {"kcal": 192, "proteina_g": 20, "carbohidratos_g": 8, "grasa_g": 11},
     },
     {
         "nombre": "Edamame", "nombre_es": "Edamame",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
         "macros_100g": {"kcal": 121, "proteina_g": 12, "carbohidratos_g": 10, "grasa_g": 5},
     },
     {
@@ -141,7 +172,8 @@ FUENTES_CARBOHIDRATO = [
     },
     {
         "nombre": "Oats", "nombre_es": "Avena",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten_trazas"}, "sinergias": {"prebiotico_fibra"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten_trazas"},
+        "sinergias": {"prebiotico_fibra", "magnesio", "fibra_alta"},
         "macros_100g": {"kcal": 389, "proteina_g": 16.9, "carbohidratos_g": 66, "grasa_g": 6.9},
     },
     {
@@ -151,22 +183,23 @@ FUENTES_CARBOHIDRATO = [
     },
     {
         "nombre": "Whole wheat bread", "nombre_es": "Pan integral",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
         "macros_100g": {"kcal": 247, "proteina_g": 13, "carbohidratos_g": 41, "grasa_g": 3.4},
     },
     {
         "nombre": "Whole wheat pasta", "nombre_es": "Pasta integral",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
         "macros_100g": {"kcal": 124, "proteina_g": 5, "carbohidratos_g": 25, "grasa_g": 1.1},
     },
     {
         "nombre": "Quinoa", "nombre_es": "Quinoa",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"magnesio"},
         "macros_100g": {"kcal": 120, "proteina_g": 4.4, "carbohidratos_g": 21, "grasa_g": 1.9},
     },
     {
         "nombre": "Legumes (also a carb source)", "nombre_es": "Legumbres (también fuente de carbohidrato)",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"legumbre"}, "sinergias": {"hierro_no_hemo"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"legumbre"},
+        "sinergias": {"hierro_no_hemo", "magnesio", "fibra_alta"},
         "macros_100g": {"kcal": 132, "proteina_g": 8.9, "carbohidratos_g": 24, "grasa_g": 0.5},
     },
     {
@@ -179,22 +212,23 @@ FUENTES_CARBOHIDRATO = [
 FUENTES_GRASA = [
     {
         "nombre": "Extra virgin olive oil", "nombre_es": "Aceite de oliva virgen extra",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"},
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
     {
         "nombre": "Avocado", "nombre_es": "Aguacate",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "fibra_alta"},
         "macros_100g": {"kcal": 160, "proteina_g": 2, "carbohidratos_g": 8.5, "grasa_g": 15},
     },
     {
         "nombre": "Nuts (walnuts, almonds)", "nombre_es": "Frutos secos (nueces, almendras)",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"frutos_secos"}, "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"frutos_secos"},
+        "sinergias": {"antiinflamatorio", "magnesio"},
         "macros_100g": {"kcal": 600, "proteina_g": 20, "carbohidratos_g": 15, "grasa_g": 52},
     },
     {
         "nombre": "Seeds (chia, flax)", "nombre_es": "Semillas (chía, lino)",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "magnesio"},
         "macros_100g": {"kcal": 500, "proteina_g": 18, "carbohidratos_g": 34, "grasa_g": 34},
     },
     # The one entry that ISN'T universally compatible -- omnivore only.
@@ -205,7 +239,7 @@ FUENTES_GRASA = [
     # client's diet draft was suggesting fish as a fat source.
     {
         "nombre": "Oily fish (EPA/DHA)", "nombre_es": "Pescado azul (EPA/DHA)",
-        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(),
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": {"antiinflamatorio"},
         "macros_100g": {"kcal": 208, "proteina_g": 20, "carbohidratos_g": 0, "grasa_g": 13},
     },
 ]
@@ -223,42 +257,45 @@ FUENTES_GRASA = [
 FUENTES_VERDURA = [
     {
         "nombre": "Broccoli", "nombre_es": "Brócoli",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
+        "sinergias": {"vitamina_c", "antiinflamatorio", "fibra_alta"},
         "macros_100g": {"kcal": 35, "proteina_g": 2.4, "carbohidratos_g": 7, "grasa_g": 0.4},
     },
     {
         "nombre": "Spinach", "nombre_es": "Espinacas",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"hierro_no_hemo"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
+        "sinergias": {"hierro_no_hemo", "antiinflamatorio", "magnesio"},
         "macros_100g": {"kcal": 23, "proteina_g": 2.9, "carbohidratos_g": 3.6, "grasa_g": 0.4},
     },
     {
         "nombre": "Red bell pepper", "nombre_es": "Pimiento rojo",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "macros_100g": {"kcal": 31, "proteina_g": 1, "carbohidratos_g": 6, "grasa_g": 0.3},
     },
     {
         "nombre": "Tomato", "nombre_es": "Tomate",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "beta_caroteno"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
+        "sinergias": {"vitamina_c", "beta_caroteno", "antiinflamatorio"},
         "macros_100g": {"kcal": 18, "proteina_g": 0.9, "carbohidratos_g": 3.9, "grasa_g": 0.2},
     },
     {
         "nombre": "Carrot", "nombre_es": "Zanahoria",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"beta_caroteno"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"beta_caroteno", "fibra_alta"},
         "macros_100g": {"kcal": 41, "proteina_g": 0.9, "carbohidratos_g": 10, "grasa_g": 0.2},
     },
     {
         "nombre": "Mixed salad greens", "nombre_es": "Ensalada variada",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"fibra_alta"},
         "macros_100g": {"kcal": 20, "proteina_g": 1.5, "carbohidratos_g": 3.5, "grasa_g": 0.2},
     },
     {
         "nombre": "Kiwi", "nombre_es": "Kiwi",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "macros_100g": {"kcal": 61, "proteina_g": 1.1, "carbohidratos_g": 15, "grasa_g": 0.5},
     },
     {
         "nombre": "Citrus (orange, lemon)", "nombre_es": "Cítricos (naranja, limón)",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "macros_100g": {"kcal": 47, "proteina_g": 0.9, "carbohidratos_g": 12, "grasa_g": 0.1},
     },
 ]
@@ -287,7 +324,12 @@ def nombre_mostrado(nombre: str, idioma: str) -> str:
 
 
 def etiquetas_excluidas(perfil: dict) -> set[str]:
-    """Profile allergies/intolerances translated into food-bank exclusion tags."""
+    """Profile allergies/intolerances translated into food-bank exclusion
+    tags -- a hard, safety-relevant exclusion (see validator_agent.py's
+    cross-check). Never mixed with the soft preferences below: an allergy
+    excludes both `gluten` and `gluten_trazas`; a soft "lower gluten"
+    preference (see preferencias_blandas()) only excludes `gluten`,
+    deliberately keeping trace-amount foods like oats available."""
     salud = perfil.get("salud", {})
     texto = " ".join(
         salud.get("alergias_alimentarias", []) + salud.get("intolerancias_alimentarias", [])
@@ -310,37 +352,166 @@ def etiquetas_excluidas(perfil: dict) -> set[str]:
     return excluidas
 
 
+# Bilingual keyword -> soft-preference tag, checked against the pooled free
+# text preferencias_texto_libre() builds. Deliberately small and easy to
+# extend -- these are the two the project owner named explicitly; see
+# docs/decisiones.md for why this stays keyword matching rather than real
+# language understanding (the project's free-only guardrail).
+_PALABRAS_CLAVE_PREFERENCIA_BLANDA = {
+    "reducir_gluten": (
+        "bajar el gluten", "menos gluten", "reducir gluten", "reducir el gluten",
+        "lower gluten", "less gluten", "reduce gluten", "gluten-free", "gluten free",
+    ),
+    "antiinflamatorio": (
+        "antiinflamatoria", "antiinflamatorio", "anti-inflamatoria", "anti-inflamatorio",
+        "anti-inflammatory", "anti inflammatory", "inflamacion", "inflamación", "inflammation",
+    ),
+}
+
+
+def preferencias_texto_libre(perfil: dict) -> str:
+    """Pools every free-text field a client might have expressed a dietary
+    preference in -- their goal in their own words, the nutrition context
+    box, the dedicated `inquietud_principal` field, and general free
+    notes -- into one lowercased string, so a preference mentioned in any
+    one of them gets picked up rather than only a single specific box."""
+    objetivo = perfil.get("objetivo", {})
+    nutricion = perfil.get("nutricion", {})
+    partes = [
+        objetivo.get("en_sus_palabras") or "",
+        nutricion.get("contexto") or "",
+        nutricion.get("inquietud_principal") or "",
+        perfil.get("notas_libres") or "",
+    ]
+    return " ".join(partes).lower()
+
+
+def preferencias_blandas(perfil: dict) -> set[str]:
+    """Soft dietary preferences -- never a safety/allergy concern, never
+    surfaced to validator_agent.py, just a bias applied to suggestions.
+    Combines keyword-matched free text (see
+    _PALABRAS_CLAVE_PREFERENCIA_BLANDA) with two structured lifestyle
+    signals: high perceived stress or under 6h average sleep
+    ("estres_alto_o_sueno_bajo" -- biases toward magnesium-tagged foods,
+    see docs/base_conocimiento/nutricion.md's longevity-focus blocks and
+    sinergias_nutrientes.md's timing section) and a sedentary job
+    ("trabajo_sedentario" -- biases toward high-fiber foods)."""
+    texto = preferencias_texto_libre(perfil)
+    preferencias = {
+        etiqueta for etiqueta, palabras in _PALABRAS_CLAVE_PREFERENCIA_BLANDA.items()
+        if any(palabra in texto for palabra in palabras)
+    }
+
+    estilo = perfil.get("estilo_de_vida", {})
+    estres = estilo.get("nivel_estres_percibido")
+    sueno = estilo.get("horas_sueno_promedio")
+    if estres == "alto" or (isinstance(sueno, (int, float)) and sueno < 6):
+        preferencias.add("estres_alto_o_sueno_bajo")
+
+    trabajo = (estilo.get("tipo_trabajo") or "").lower()
+    if any(kw in trabajo for kw in ("sedentari", "sedentary", "oficina", "office", "desk", "escritorio")):
+        preferencias.add("trabajo_sedentario")
+
+    return preferencias
+
+
+def _sin_acentos(texto: str) -> str:
+    """Strips diacritics (á->a, í->i, ...) so "brocoli" (a client typing
+    without accents, common in casual text) still matches "Brócoli" --
+    unlike the fixed category keyword lists in etiquetas_excluidas()/
+    _PALABRAS_CLAVE_PREFERENCIA_BLANDA (which can afford to just list both
+    accented/unaccented variants by hand), alimentos_no_deseados() matches
+    against every food name in the bank, so it needs to handle this
+    generically. Standard library only (unicodedata), no new dependency."""
+    return "".join(c for c in unicodedata.normalize("NFKD", texto) if not unicodedata.combining(c))
+
+
+def _nombres_para_coincidencia(alimento: dict) -> tuple[str, ...]:
+    """Every name form a disliked-food phrase might reasonably match
+    against for this food -- English and Spanish names, each also
+    stripped of any parenthetical qualifier ("White fish (hake, sole)" ->
+    also "white fish"), since a client writing "no me gusta el pescado
+    blanco" won't also name the specific fish types in parentheses. Accent-
+    insensitive (see _sin_acentos())."""
+    nombres = {alimento["nombre"], alimento["nombre_es"]}
+    nombres |= {n.split("(")[0].strip() for n in nombres if "(" in n}
+    return tuple(_sin_acentos(n.lower()) for n in nombres if n)
+
+
+def alimentos_no_deseados(perfil: dict) -> set[str]:
+    """Canonical food NAMES to soft-exclude because the client said they
+    don't want them -- disliked foods and additional restrictions, matched
+    directly against each food's own name (English or Spanish, see
+    _nombres_para_coincidencia()) rather than a category tag, since "I
+    don't like broccoli" is about one specific food, not a whole food
+    group. Substring matching both ways (the disliked phrase inside the
+    food name, or the food name inside a longer disliked phrase) so both a
+    single word ("brócoli") and a fuller sentence ("no me gusta el pescado
+    blanco") can match, accent-insensitive. Phrases under 3 characters are
+    skipped to avoid accidental short-word collisions."""
+    nutricion = perfil.get("nutricion", {})
+    frases = [
+        _sin_acentos(frase.lower().strip())
+        for frase in (nutricion.get("alimentos_que_no_le_gustan", []) + nutricion.get("restricciones", []))
+        if len(frase.strip()) >= 3
+    ]
+    if not frases:
+        return set()
+
+    no_deseados = set()
+    for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA:
+        nombres = _nombres_para_coincidencia(alimento)
+        if any(frase in nombre or nombre in frase for frase in frases for nombre in nombres):
+            no_deseados.add(alimento["nombre"])
+    return no_deseados
+
+
+def _etiquetas_a_evitar(perfil: dict) -> set[str]:
+    """etiquetas_excluidas() (hard, allergy-driven) plus, when the
+    "reducir_gluten" soft preference is active, `gluten` alone -- NOT
+    `gluten_trazas`, see preferencias_blandas()'s docstring for why that
+    distinction matters."""
+    evitar = etiquetas_excluidas(perfil)
+    if "reducir_gluten" in preferencias_blandas(perfil):
+        evitar = evitar | {"gluten"}
+    return evitar
+
+
 def fuentes_proteina_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
-    excluidas = etiquetas_excluidas(perfil)
+    evitar = _etiquetas_a_evitar(perfil)
+    no_deseados = alimentos_no_deseados(perfil)
     return [
         f["nombre"] for f in FUENTES_PROTEINA
-        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & excluidas)
+        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
     ]
 
 
 def fuentes_carbohidrato_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
-    excluidas = etiquetas_excluidas(perfil)
+    evitar = _etiquetas_a_evitar(perfil)
+    no_deseados = alimentos_no_deseados(perfil)
     return [
         f["nombre"] for f in FUENTES_CARBOHIDRATO
-        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & excluidas)
+        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
     ]
 
 
 def fuentes_grasa_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
-    excluidas = etiquetas_excluidas(perfil)
+    evitar = _etiquetas_a_evitar(perfil)
+    no_deseados = alimentos_no_deseados(perfil)
     return [
         f["nombre"] for f in FUENTES_GRASA
-        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & excluidas)
+        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
     ]
 
 
 def fuentes_verdura_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
-    excluidas = etiquetas_excluidas(perfil)
+    evitar = _etiquetas_a_evitar(perfil)
+    no_deseados = alimentos_no_deseados(perfil)
     return [
         f["nombre"] for f in FUENTES_VERDURA
-        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & excluidas)
+        if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
     ]

@@ -231,6 +231,76 @@ def _candidatos(grupo: str, tipo: str, material_cliente: set[str], lesion_tags: 
     ]
 
 
+# Technical-demand heuristic derived from an exercise's own required
+# equipment (exercise_bank.py doesn't carry a separate "complexity" field
+# to maintain by hand) -- a free barbell lift asks more of technique/
+# stability than the machine-guided or bodyweight equivalent covering the
+# same muscle group. Used only to REORDER candidates within a slot for
+# beginners (see _preferir_baja_complejidad_primero()), never to exclude:
+# a beginner training only with a barbell still needs a full session.
+def _complejidad(ejercicio: dict) -> str:
+    material = ejercicio["material"]
+    if "barras_y_discos" in material:
+        return "alta"
+    if "mancuernas" in material:
+        return "media"
+    return "baja"  # maquinas_guiadas, poleas, peso_corporal, bicicleta_estatica
+
+
+def _preferir_baja_complejidad_primero(candidatos: list[dict]) -> list[dict]:
+    """Stable sort so lower-complexity exercises come first within an
+    already-shuffled candidate list -- the client-seeded shuffle upstream
+    still decides which specific exercise wins among equally-complex
+    options, this only reorders across complexity tiers."""
+    orden = {"baja": 0, "media": 1, "alta": 2}
+    return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
+
+
+# Volume adjustment by level (method §2 + docs/base_conocimiento/
+# entrenamiento.md's "Adaptation by level" and "Volume: landmarks" — a
+# beginner sits nearer MEV, technique before load, near-linear progression;
+# an advanced trainee has more room toward MAV before diminishing returns).
+# Isolation work stays closer to constant across levels on purpose -- it's
+# already low-fatigue-cost, so there's less headroom to cut for a beginner
+# and less need to add for an advanced trainee the way compound volume has.
+AJUSTE_SERIES_POR_NIVEL = {
+    "principiante": {"basico": -1, "aislamiento": 0},
+    "intermedio": {"basico": 0, "aislamiento": 0},
+    "avanzado": {"basico": 1, "aislamiento": 1},
+}
+SERIES_MINIMAS = 2  # never go below this regardless of how many adjustments stack
+
+
+def _ajuste_series_por_estilo_de_vida(perfil: dict) -> int:
+    """A conservative -1 to basic-exercise series when the client reported
+    high stress or under 6h average sleep -- recovery capacity is part of
+    what MRV (max recoverable volume) actually depends on
+    (docs/base_conocimiento/entrenamiento.md), not just training age.
+    Stacks with (doesn't replace) the level-based adjustment above; both
+    are clamped by SERIES_MINIMAS together, not separately."""
+    estilo = perfil.get("estilo_de_vida", {})
+    estres = estilo.get("nivel_estres_percibido")
+    sueno = estilo.get("horas_sueno_promedio")
+    if estres == "alto" or (isinstance(sueno, (int, float)) and sueno < 6):
+        return -1
+    return 0
+
+
+# Session-length-aware trimming (docs/base_conocimiento/entrenamiento.md:
+# "availability and equipment rule everything"): the routine used to
+# ignore minutos_por_sesion entirely once past the resumen label,
+# regularly prescribing a 5-6 exercise session to someone who only has 30
+# minutes. Trims the LAST slots off each day's template (the earlier
+# slots are the day's main compound lifts -- see PLANTILLAS_DIA's own
+# ordering -- so a shortened session keeps the highest-priority work).
+def _num_slots_a_recortar(minutos_por_sesion: int) -> int:
+    if minutos_por_sesion < 30:
+        return 2
+    if minutos_por_sesion < 45:
+        return 1
+    return 0
+
+
 def _elegir_split_y_secuencia(dias_por_semana: int) -> tuple[str, list[str]]:
     dias = max(1, min(dias_por_semana, 6))
     if dias <= 3:
@@ -310,6 +380,10 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     lesion_tags = tags_lesiones(perfil_cliente)
     split, secuencia_dias = _elegir_split_y_secuencia(disponibilidad["dias_por_semana"])
 
+    ajuste_nivel = AJUSTE_SERIES_POR_NIVEL.get(nivel, AJUSTE_SERIES_POR_NIVEL["intermedio"])
+    ajuste_estilo_vida = _ajuste_series_por_estilo_de_vida(perfil_cliente)
+    recorte_sesion = _num_slots_a_recortar(disponibilidad["minutos_por_sesion"])
+
     # Candidates for a given (grupo, tipo) slot are shuffled once per client
     # (seeded by id_cliente, so it's the same shuffle every time this same
     # client's plan is regenerated) and cached here — two clients with
@@ -324,11 +398,27 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     sesiones = []
     for indice, tipo_dia in enumerate(secuencia_dias, start=1):
         ejercicios = []
-        for grupo, tipo in PLANTILLAS_DIA[tipo_dia]:
+        plantilla_dia = PLANTILLAS_DIA[tipo_dia]
+        # Trim the LAST slots for a short session (see
+        # _num_slots_a_recortar()) -- the earlier slots are the day's main
+        # compound lifts (PLANTILLAS_DIA's own ordering), so a shortened
+        # session keeps the highest-priority work rather than an arbitrary
+        # subset. Never trims below 2 exercises: an empty/near-empty
+        # session isn't a useful draft even at 20 minutes.
+        if recorte_sesion:
+            plantilla_dia = plantilla_dia[: max(2, len(plantilla_dia) - recorte_sesion)]
+        for grupo, tipo in plantilla_dia:
             clave = (grupo, tipo)
             if clave not in candidatos_por_slot:
                 candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags)
                 rng_ejercicios.shuffle(candidatos)
+                # Reorders across complexity tiers (doesn't re-shuffle
+                # within a tier) -- a beginner still gets exercise variety
+                # from the client-seeded shuffle above, just biased toward
+                # machine/bodyweight/dumbbell options over barbell
+                # compound lifts when both are available for this slot.
+                if nivel == "principiante":
+                    candidatos = _preferir_baja_complejidad_primero(candidatos)
                 candidatos_por_slot[clave] = candidatos
             candidatos = candidatos_por_slot[clave]
             if not candidatos:
@@ -337,7 +427,11 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             ejercicio = candidatos[rotacion % len(candidatos)]
             contador_rotacion[clave] += 1
 
-            parametros = PARAMETROS_POR_TIPO[tipo]
+            parametros_base = PARAMETROS_POR_TIPO[tipo]
+            series = max(
+                SERIES_MINIMAS, parametros_base["series"] + ajuste_nivel[tipo] + ajuste_estilo_vida,
+            )
+            parametros = {**parametros_base, "series": series}
             notas = ""
             grupos_afectados = {
                 "rodilla": {"pierna_cuadriceps", "pierna_isquios_gluteo", "gemelos"},
@@ -414,6 +508,13 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += f" y adaptados para una lesión declarada en: {', '.join(etiquetas_legibles)}."
         else:
             resumen += "."
+        if ajuste_estilo_vida < 0:
+            resumen += (
+                " Volumen algo más conservador esta primera etapa, dado el estrés/sueño que declaraste "
+                "— lo iremos subiendo según cómo lo vayas notando."
+            )
+        if recorte_sesion:
+            resumen += f" Ajustado a menos ejercicios por sesión para caber en tus {disponibilidad['minutos_por_sesion']} minutos disponibles."
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
@@ -429,6 +530,13 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += f" and adapted for a declared injury in: {', '.join(etiquetas_legibles)}."
         else:
             resumen += "."
+        if ajuste_estilo_vida < 0:
+            resumen += (
+                " Volume kept a bit more conservative for this first block, given the stress/sleep "
+                "you reported — we'll build it back up based on how you're actually recovering."
+            )
+        if recorte_sesion:
+            resumen += f" Trimmed to fewer exercises per session to fit your {disponibilidad['minutos_por_sesion']}-minute window."
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 

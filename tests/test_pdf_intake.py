@@ -13,6 +13,7 @@ from pdf_intake import (
     CAMPO_EDAD,
     CAMPO_EMBARAZO,
     CAMPO_EMBARAZO_DETALLE,
+    CAMPO_INQUIETUD_PRINCIPAL,
     CAMPO_LESION_DESCRIPCION,
     CAMPO_LUGAR_ENTRENO,
     CAMPO_MINUTOS_SESION,
@@ -66,6 +67,7 @@ VALORES_COMPLETOS = {
     CAMPO_LESION_DESCRIPCION: "Old shoulder strain, avoid heavy overhead pressing.",
     CAMPO_ALERGIAS: "peanuts, shellfish",
     CAMPO_TIPO_DIETA: "omnivora",
+    CAMPO_INQUIETUD_PRINCIPAL: "Would like a lower-gluten approach.",
     CAMPO_PASOS: "8000",
     CAMPO_NOTAS_LIBRES: "Excited to start!",
 }
@@ -123,6 +125,16 @@ def test_unfilled_equipment_checkboxes_are_not_included():
 def test_reads_back_comma_separated_allergy_list(pdf_relleno):
     perfil = leer_intake_pdf(pdf_relleno)
     assert perfil["salud"]["alergias_alimentarias"] == ["peanuts", "shellfish"]
+
+
+def test_reads_back_main_dietary_concern(pdf_relleno):
+    perfil = leer_intake_pdf(pdf_relleno)
+    assert perfil["nutricion"]["inquietud_principal"] == "Would like a lower-gluten approach."
+
+
+def test_blank_main_dietary_concern_is_empty_not_missing():
+    perfil = leer_intake_pdf(_llenar(generar_pdf_intake(idioma="en"), {CAMPO_NOMBRE: "Test"}))
+    assert perfil["nutricion"]["inquietud_principal"] == ""
 
 
 def test_injury_checkbox_becomes_a_single_lesiones_entry(pdf_relleno):

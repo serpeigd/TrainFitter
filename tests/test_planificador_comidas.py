@@ -154,3 +154,52 @@ def test_empty_protein_pool_returns_empty_plan_instead_of_crashing(perfil_base):
     # this test instead locks in that a plan is still returned, not that
     # it's ever actually empty in practice.
     assert len(plan) == 7
+
+
+# --- Soft-preference bias (maximal personalization) ------------------------
+
+
+def _porcentaje_salmon_en_comidas_principales(perfil):
+    rng = rng_para_cliente(perfil, "dieta:plan_semanal")
+    plan = generar_plan_semanal(perfil, NECESIDADES, 4, "en", rng)
+    principales = [c for d in plan for c in d["comidas"] if c["tipo"] in ("Lunch", "Dinner")]
+    con_salmon = sum(1 for c in principales if "salmon" in c["descripcion"].lower())
+    return con_salmon / len(principales)
+
+
+def test_antiinflammatory_preference_biases_toward_salmon(perfil_base):
+    """Salmon is the only antiinflamatorio-tagged protein in the bank --
+    an active preference should make it show up far more often in lunch/
+    dinner than the baseline uniform-random rate (~1-in-13 candidates)."""
+    perfil_base["nutricion"]["inquietud_principal"] = "antiinflamatoria"
+    tasa_con_preferencia = _porcentaje_salmon_en_comidas_principales(perfil_base)
+
+    perfil_base["nutricion"]["inquietud_principal"] = ""
+    tasa_sin_preferencia = _porcentaje_salmon_en_comidas_principales(perfil_base)
+
+    assert tasa_con_preferencia > tasa_sin_preferencia * 2
+    assert tasa_con_preferencia > 0.4
+
+
+def test_gluten_preference_propagates_into_the_weekly_plan_text(perfil_base):
+    """Not just the flat fuentes_*_sugeridas lists -- the actual meal
+    descriptions in plan_semanal must never mention bread/pasta/seitan
+    once "reducir_gluten" is active, since the planner only ever draws
+    from the already-filtered candidate pools (see module docstring)."""
+    perfil_base["nutricion"]["inquietud_principal"] = "bajar el gluten"
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    texto = str(plan).lower()
+    for prohibido in ("whole wheat bread", "whole wheat pasta", "seitan"):
+        assert prohibido not in texto
+    assert "oats" in texto or "rice" in texto or "quinoa" in texto  # still has real carb variety
+
+
+def test_no_active_preference_does_not_crash_and_still_varies(perfil_base):
+    """Baseline sanity check: with zero active soft preferences, the bias
+    function should be a no-op (not silently narrow every candidate list
+    to nothing)."""
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = "active outdoor work"  # override the fixture's sedentary default
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    assert len(plan) == 7
+    lunch_dinner_descripciones = {c["descripcion"] for d in plan for c in d["comidas"] if c["tipo"] in ("Lunch", "Dinner")}
+    assert len(lunch_dinner_descripciones) > 1  # real variety, not narrowed down to one option

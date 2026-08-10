@@ -189,6 +189,25 @@ This repository is built phase by phase, as a learning project. Right now:
   already-unlocked session shouldn't let anyone pull up any client's full
   profile just by knowing their email. Unset locally, same as everywhere
   else.
+- Both rule engines now genuinely use most of what the intake form collects,
+  instead of quietly ignoring several fields (a real, disclosed gap found by
+  reading the code before writing any). **Routine:** volume and exercise
+  complexity now actually scale by training level (grounded in
+  [`docs/base_conocimiento/entrenamiento.md`](docs/base_conocimiento/entrenamiento.md)'s
+  own MEV/MAV/MRV guidance), a short session (`minutos_por_sesion`) now
+  really trims the number of exercises instead of being silently ignored,
+  and high stress/short sleep keeps volume a bit more conservative — every
+  adjustment explained in plain language, never silent. **Diet:** disliked
+  foods and additional restrictions now actually get excluded (matched
+  against each food's own name, accent-insensitive); a new "main dietary
+  concern" field (e.g. anti-inflammatory, lower gluten) plus free-text
+  scanning across the whole form biases the weekly plan toward matching
+  foods — verified statistically, not just eyeballed (salmon's share of
+  lunch/dinner protein picks went from a 13% baseline to 80% once
+  "anti-inflammatory" was requested, averaged across 15 clients) — while
+  staying diet-type aware (never suggests oily fish to a vegetarian/vegan
+  client) and never confusing a soft preference with a real declared
+  allergy.
 
 ## What it doesn't include yet
 

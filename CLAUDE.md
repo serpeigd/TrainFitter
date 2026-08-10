@@ -372,6 +372,49 @@ actual send path is covered by mocked-network tests rather than
 triggering a real send during verification, matching this project's bar
 for every other real-world side effect.
 
+Both rule engines now actually use most of what the intake form
+collects, instead of quietly ignoring several fields — a request that
+started as one new diet field and grew, mid-conversation, into a much
+larger one after the project owner was asked (and answered) four scoping
+questions. Reading `rutina_reglas.py`/`dieta_reglas.py` first surfaced a
+real, disclosed gap: `experiencia.nivel` changed only label text, not
+actual volume; `minutos_por_sesion`, disliked foods/restrictions, and
+every `estilo_de_vida` field were collected and never read anywhere.
+**Routine:** volume by level (-1 set for beginners, +1 for advanced on
+compound work, grounded in `docs/base_conocimiento/entrenamiento.md`'s
+own already-written MEV/MAV/MRV section), a complexity bias toward
+machine/dumbbell/bodyweight over barbell lifts for beginners (derived
+from each exercise's own equipment, no new field to maintain), a further
+-1 set when the client reported high stress or under 6h sleep (stacks
+with the level adjustment, both clamped at a shared floor of 2), and
+real session-length-aware trimming (`minutos_por_sesion` under 45/30
+minutes now actually shortens the session, trimming from the end so the
+main compound lifts survive). **Diet:** disliked foods/restrictions now
+genuinely exclude (`food_bank.alimentos_no_deseados()`, matched by food
+name rather than category, accent-insensitive, explicitly never treated
+as a safety concern — no `advertencias_revision_humana`, unlike a real
+allergy); a new `nutricion.inquietud_principal` field plus pooled
+free-text scanning (goal-in-own-words, nutrition context, free notes)
+feeds `food_bank.preferencias_blandas()`, which detects `"reducir_gluten"`
+(excludes only the `gluten` tag, deliberately keeping `gluten_trazas`
+foods like oats — a real, tested distinction from an actual gluten
+allergy) and `"antiinflamatorio"`, plus two structured lifestyle signals
+(`"estres_alto_o_sueno_bajo"`, `"trabajo_sedentario"`) that bias (not
+exclude) meal selection toward magnesium/fiber-tagged foods via
+`planificador_comidas._sesgar_por_preferencias()`. Verified statistically,
+not just read: salmon's share of lunch/dinner protein picks went from a
+13% baseline to 80% once "antiinflamatorio" was active, averaged across
+15 client IDs. The antiinflammatory tip's own wording is diet-type
+aware (never names oily fish for a vegetarian/vegan client) — caught by
+generating a real vegetarian example client's plan, not by inspection.
+Two of the three example clients already had disliked foods on file that
+were silently ignored before this fix (`cliente_ejemplo_1`: oily fish;
+`cliente_ejemplo_2`: tofu) — regenerating their plans now shows those
+foods genuinely gone, a real bug fix on data that already existed.
+`cliente_ejemplo_2` also picked up a real `inquietud_principal` value to
+demonstrate the new field. 341 tests passing (up from 297), and the full
+feature verified live end-to-end through the actual running app.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

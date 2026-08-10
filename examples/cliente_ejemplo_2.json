@@ -51,6 +51,7 @@
     "tipo_dieta": "vegetariana_ovolacto",
     "restricciones": ["no meat", "no fish"],
     "alimentos_que_no_le_gustan": ["tofu"],
+    "inquietud_principal": "Would like an anti-inflammatory approach, given the old knee injury.",
     "comidas_al_dia_preferidas": 3,
     "contexto": "Vegetarian for 10 years by personal choice, not willing to change that. Cooks little during the week due to lack of time, often relies on pre-made food."
   },

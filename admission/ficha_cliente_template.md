@@ -107,6 +107,10 @@ stopped and why...)_
 - **Is there any food you can't tolerate or prefer to avoid** (even if it's not an
   allergy or intolerance, just something you don't like)?
 
+- **Is there a particular dietary approach or main concern you'd like the plan to
+  lean into?** _(optional — for example: anti-inflammatory, lowering gluten, gut
+  health... whatever's on your mind)_
+
 - **How many meals a day do you prefer to eat?**
 
 - **Tell me your context:** _(do you cook yourself? Are you short on time on
