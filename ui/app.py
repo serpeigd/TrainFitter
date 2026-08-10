@@ -811,6 +811,8 @@ TRANSLATIONS = {
         "protein_sources_label": "**Protein**\n",
         "carb_sources_label": "**Carbohydrate**\n",
         "fat_sources_label": "**Fat**\n",
+        "veg_sources_label": "**Vegetables & fruit**\n",
+        "weekly_plan_header": "📅 Weekly meal plan",
         "synergy_tips_header": "Nutritional synergy tips",
         "client_message_header": "Message for the client",
         "download_diet": "Download diet (JSON)",
@@ -1012,6 +1014,8 @@ TRANSLATIONS = {
         "protein_sources_label": "**Proteína**\n",
         "carb_sources_label": "**Carbohidrato**\n",
         "fat_sources_label": "**Grasa**\n",
+        "veg_sources_label": "**Verduras y fruta**\n",
+        "weekly_plan_header": "📅 Plan semanal de comidas",
         "synergy_tips_header": "Consejos de sinergias nutricionales",
         "client_message_header": "Mensaje para el cliente",
         "download_diet": "Descargar dieta (JSON)",
@@ -1715,15 +1719,28 @@ def _mostrar_dieta(dieta: dict) -> None:
     # (validator/JSON/email/Notion all rely on that — see food_bank.py's
     # docstring); translated here for display only.
     idioma = st.session_state.lang
-    c1, c2, c3 = st.columns(3)
-    c1.markdown(t("protein_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_proteina_sugeridas"]))
-    c2.markdown(t("carb_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_carbohidrato_sugeridas"]))
-    c3.markdown(t("fat_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_grasa_sugeridas"]))
+    fuentes_verdura = dieta.get("fuentes_verdura_sugeridas", [])
+    columnas = st.columns(4 if fuentes_verdura else 3)
+    columnas[0].markdown(t("protein_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_proteina_sugeridas"]))
+    columnas[1].markdown(t("carb_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_carbohidrato_sugeridas"]))
+    columnas[2].markdown(t("fat_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in dieta["fuentes_grasa_sugeridas"]))
+    if fuentes_verdura:
+        columnas[3].markdown(t("veg_sources_label") + "\n".join(f"- {alimento_mostrado(f, idioma)}" for f in fuentes_verdura))
 
     if dieta["consejos_sinergias"]:
         with st.expander(t("synergy_tips_header")):
             for consejo in dieta["consejos_sinergias"]:
                 st.markdown(f"- {consejo}")
+
+    # plan_semanal is optional -- absent for a draft generated before this
+    # field existed (or a hand-built one), same "degrades gracefully"
+    # convention as every other optional field in this dict.
+    if dieta.get("plan_semanal"):
+        with st.expander(t("weekly_plan_header")):
+            for dia_info in dieta["plan_semanal"]:
+                st.markdown(f"**{dia_info['dia']}**")
+                for comida in dia_info["comidas"]:
+                    st.markdown(f"- *{comida['tipo']}* ({comida['aprox_kcal']} kcal): {comida['descripcion']}")
 
     with st.expander(t("client_message_header")):
         st.markdown(dieta["mensaje_para_el_cliente"])

@@ -46,6 +46,34 @@ ENTREGAR_BORRADOR_DIETA_TOOL = {
             "fuentes_proteina_sugeridas": {"type": "array", "items": {"type": "string"}},
             "fuentes_carbohidrato_sugeridas": {"type": "array", "items": {"type": "string"}},
             "fuentes_grasa_sugeridas": {"type": "array", "items": {"type": "string"}},
+            "fuentes_verdura_sugeridas": {"type": "array", "items": {"type": "string"}},
+            "plan_semanal": {
+                "type": "array",
+                "description": (
+                    "A 7-day meal plan, Monday first. Each day breaks down into "
+                    "breakfast/lunch/dinner (+ snacks matching comidas_al_dia), each "
+                    "with a short description of what to eat and its approximate kcal."
+                ),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "dia": {"type": "string"},
+                        "comidas": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "tipo": {"type": "string"},
+                                    "descripcion": {"type": "string"},
+                                    "aprox_kcal": {"type": "integer"},
+                                },
+                                "required": ["tipo", "descripcion", "aprox_kcal"],
+                            },
+                        },
+                    },
+                    "required": ["dia", "comidas"],
+                },
+            },
             "consejos_sinergias": {"type": "array", "items": {"type": "string"}},
             "advertencias_revision_humana": {
                 "type": "array",
@@ -115,6 +143,11 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   reason in `advertencias_revision_humana` and stick to a general, cautious diet.
 - Apply absorption synergies when they fit the profile (e.g. plant iron + vitamin C
   in vegetarian/vegan diets).
+- Build `plan_semanal` as a real, varied 7-day plan (Monday first) -- not the same
+  meals repeated every day. Every food you mention in it must also appear in the
+  matching fuentes_*_sugeridas list (protein/carbohydrate/fat/vegetable), so it never
+  suggests something outside what's already been filtered for this client's diet
+  type and allergies.
 - The message to the client should sound like the trainer: warm, direct, pedagogical.
 - You must respond ONLY by calling the `entregar_borrador_dieta` tool."""
 

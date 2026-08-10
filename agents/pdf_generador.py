@@ -75,35 +75,68 @@ CAMPO_DIAS_DIETA = "diet_days"
 CAMPO_NOTAS_DIETA = "diet_notes"
 
 
+# Brand-adjacent colors for the weekly-plan table (a print-safe, more
+# saturated cousin of ui/app.py's COLOR_TEAL/COLOR_BG_ELEVATED -- reportlab
+# renders on white paper, not a dark UI background, so these are picked for
+# contrast/legibility on paper rather than reused as literal hex values).
+_COLOR_TABLA_CABECERA = "#0F6F5C"
+_COLOR_TABLA_FILA_ALTERNA = "#EAF4F1"
+_COLOR_TABLA_BORDE = "#C7D9D5"
+
+
 def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "en") -> bytes:
     """
-    Renders the diet draft as a plain, read-only PDF -- calories/macros,
-    meal distribution, suggested food sources, and synergy tips. Never
-    includes advertencias_revision_humana (see module docstring).
+    Renders the diet draft as a plain, read-only PDF -- calories/macros, a
+    full 7-day meal plan (when present -- see below), suggested food
+    sources, and synergy tips. Never includes advertencias_revision_humana
+    (see module docstring).
 
     Args:
         borrador_dieta: same schema as agents/dieta_reglas.py's output.
+            "plan_semanal" and "fuentes_verdura_sugeridas" are optional --
+            a draft from before this fields existed (or a hand-built test
+            fixture) still renders correctly, just without that section.
         nombre_cliente: for the title and greeting.
         idioma: "en" (default) or "es" -- language of this document's own
-            labels/headings. Food source names are translated for display
-            via food_bank.nombre_mostrado(), same as ui/app.py does on
-            screen -- the canonical English values inside borrador_dieta
-            itself are untouched.
+            labels/headings. Food source names in the plain suggested-
+            sources lists are translated for display via
+            food_bank.nombre_mostrado(), same as ui/app.py does on screen
+            -- the canonical English values inside borrador_dieta itself
+            are untouched. plan_semanal's own descriptions are already
+            localized text (see dieta_reglas.py's docstring for why that
+            one field is the exception), so they're rendered as-is here.
 
     Returns:
         The PDF file's raw bytes.
     """
     from food_bank import nombre_mostrado
+    from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.platypus import (
+        KeepTogether,
+        ListFlowable,
+        ListItem,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     estilos = getSampleStyleSheet()
     estilo_titulo = ParagraphStyle("Titulo", parent=estilos["Title"], spaceAfter=6)
     estilo_cuerpo = ParagraphStyle("Cuerpo", parent=estilos["BodyText"], spaceAfter=10)
     estilo_seccion = ParagraphStyle("Seccion", parent=estilos["Heading2"], spaceBefore=12, spaceAfter=6)
     estilo_item = ParagraphStyle("Item", parent=estilos["BodyText"], spaceAfter=2)
+    estilo_dia = ParagraphStyle(
+        "Dia", parent=estilos["Heading3"], spaceBefore=10, spaceAfter=4, textColor=colors.HexColor(_COLOR_TABLA_CABECERA),
+    )
+    estilo_celda = ParagraphStyle("Celda", parent=estilos["BodyText"], fontSize=8.5, leading=11)
+    estilo_celda_cabecera = ParagraphStyle(
+        "CeldaCabecera", parent=estilo_celda, textColor=colors.white, fontName="Helvetica-Bold",
+    )
 
     m = borrador_dieta["macros"]
     if idioma == "es":
@@ -115,9 +148,14 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
                 f"{m['proteina_g']} g proteína · {m['grasa_g']} g grasa · {m['carbohidratos_g']} g carbohidratos"
             ),
             "reparto": "Reparto de comidas",
+            "plan_semanal": "Plan semanal de comidas",
+            "col_comida": "Comida",
+            "col_kcal": "kcal aprox.",
+            "col_que_comer": "Qué comer",
             "proteina": "Fuentes de proteína sugeridas",
             "carbohidrato": "Fuentes de carbohidrato sugeridas",
             "grasa": "Fuentes de grasa sugeridas",
+            "verdura": "Verduras y fruta sugeridas",
             "consejos": "Consejos",
             "pie": "Borrador preparado por TrainFitter — revisado y enviado por tu entrenador/a.",
         }
@@ -130,9 +168,14 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
                 f"{m['proteina_g']} g protein · {m['grasa_g']} g fat · {m['carbohidratos_g']} g carbs"
             ),
             "reparto": "Meal distribution",
+            "plan_semanal": "Weekly meal plan",
+            "col_comida": "Meal",
+            "col_kcal": "~kcal",
+            "col_que_comer": "What to eat",
             "proteina": "Suggested protein sources",
             "carbohidrato": "Suggested carbohydrate sources",
             "grasa": "Suggested fat sources",
+            "verdura": "Suggested vegetables & fruit",
             "consejos": "Tips",
             "pie": "Draft prepared by TrainFitter — reviewed and sent by your trainer.",
         }
@@ -146,11 +189,46 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
         Paragraph(borrador_dieta["distribucion_comidas"], estilo_cuerpo),
     ]
 
+    plan_semanal = borrador_dieta.get("plan_semanal") or []
+    if plan_semanal:
+        contenido.append(Paragraph(textos["plan_semanal"], estilo_seccion))
+        estilo_tabla = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_COLOR_TABLA_CABECERA)),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(_COLOR_TABLA_FILA_ALTERNA)]),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor(_COLOR_TABLA_BORDE)),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ])
+        for dia_info in plan_semanal:
+            filas = [[
+                Paragraph(textos["col_comida"], estilo_celda_cabecera),
+                Paragraph(textos["col_kcal"], estilo_celda_cabecera),
+                Paragraph(textos["col_que_comer"], estilo_celda_cabecera),
+            ]]
+            for comida in dia_info["comidas"]:
+                filas.append([
+                    Paragraph(f"<b>{comida['tipo']}</b>", estilo_celda),
+                    Paragraph(str(comida["aprox_kcal"]), estilo_celda),
+                    Paragraph(comida["descripcion"], estilo_celda),
+                ])
+            tabla = Table(filas, colWidths=[2.6 * cm, 1.8 * cm, 11.7 * cm])
+            tabla.setStyle(estilo_tabla)
+            # Keeps a day's heading glued to its own table -- otherwise a
+            # page break could strand "Wednesday" alone at the bottom of a
+            # page with its table starting fresh on the next one.
+            contenido.append(KeepTogether([Paragraph(dia_info["dia"], estilo_dia), tabla]))
+
     for clave, fuentes in (
         ("proteina", borrador_dieta["fuentes_proteina_sugeridas"]),
         ("carbohidrato", borrador_dieta["fuentes_carbohidrato_sugeridas"]),
         ("grasa", borrador_dieta["fuentes_grasa_sugeridas"]),
+        ("verdura", borrador_dieta.get("fuentes_verdura_sugeridas", [])),
     ):
+        if not fuentes:
+            continue
         contenido.append(Paragraph(textos[clave], estilo_seccion))
         contenido.append(
             ListFlowable(

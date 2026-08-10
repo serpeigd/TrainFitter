@@ -14,9 +14,17 @@ calculation from the client's own data, but the narrative phrasing
 (distribucion_comidas, mensaje_para_el_cliente) is picked from a few
 equivalent variants seeded by id_cliente, so two different clients no
 longer read identical boilerplate — see docs/decisiones.md.
+
+Also builds an actual 7-day meal plan (breakfast/lunch/dinner + snacks,
+see agents/planificador_comidas.py) from the same macro targets and the
+client's own filtered food candidates — "plan_semanal" below — rather
+than stopping at flat "suggested sources" lists. Same per-client-seeded
+determinism as the rest of this module (a dedicated RNG namespace so it
+never shifts what the narrative-text RNG would have picked).
 """
 
-from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para
+from food_bank import fuentes_carbohidrato_para, fuentes_grasa_para, fuentes_proteina_para, fuentes_verdura_para
+from planificador_comidas import generar_plan_semanal
 from variacion import elegir_variante, rng_para_cliente
 
 # g of protein per kg of body weight, by goal (docs/base_conocimiento/nutricion.md,
@@ -295,7 +303,14 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             regardless of `idioma` — see food_bank.py's module docstring for
             why (the validator's allergy cross-check depends on it).
             ui/app.py translates food names for on-screen display
-            separately, via food_bank.nombre_mostrado().
+            separately, via food_bank.nombre_mostrado(). plan_semanal's own
+            prose descriptions are the one exception to "food names stay
+            English": unlike fuentes_*_sugeridas, nothing safety-critical
+            string-matches against plan_semanal's text (validator_agent.py
+            only ever reads the flat *_sugeridas lists), so
+            planificador_comidas.py translates food names for display right
+            there via food_bank.nombre_mostrado() -- same helper, just
+            applied a step earlier than pdf_generador.py normally would.
     """
     nombre = perfil_cliente["datos_basicos"]["nombre"]
     objetivo = perfil_cliente["objetivo"]["principal"]
@@ -310,6 +325,11 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
     rng_texto = rng_para_cliente(perfil_cliente, "dieta:texto")
     distribucion = elegir_variante(rng_texto, DISTRIBUCION_VARIANTES[idioma]).format(n=comidas_al_dia)
     cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_DIETA_VARIANTES[idioma])
+
+    # Separate RNG namespace from rng_texto above -- picking meals never
+    # shifts which narrative-text variant gets picked, and vice versa.
+    rng_plan = rng_para_cliente(perfil_cliente, "dieta:plan_semanal")
+    plan_semanal = generar_plan_semanal(perfil_cliente, necesidades, comidas_al_dia, idioma, rng_plan)
 
     if idioma == "es":
         resumen = (
@@ -337,6 +357,8 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
         "fuentes_proteina_sugeridas": fuentes_proteina_para(perfil_cliente),
         "fuentes_carbohidrato_sugeridas": fuentes_carbohidrato_para(perfil_cliente),
         "fuentes_grasa_sugeridas": fuentes_grasa_para(perfil_cliente),
+        "fuentes_verdura_sugeridas": fuentes_verdura_para(perfil_cliente),
+        "plan_semanal": plan_semanal,
         "consejos_sinergias": _consejos_sinergias(perfil_cliente, idioma),
         "advertencias_revision_humana": _generar_advertencias(perfil_cliente, idioma),
         "mensaje_para_el_cliente": mensaje_para_el_cliente,

@@ -314,6 +314,42 @@ portal-link email bodies at the project owner's request — the
 guarantee they described is still fully enforced in code, only the
 explanatory text in the email itself was cut.
 
+The diet PDF's flat "suggested sources" lists became a real 7-day meal
+plan (breakfast/lunch/dinner/snacks), requested directly by the project
+owner. New module `agents/planificador_comidas.py` builds it from the same
+macro targets `dieta_reglas.py` already computes, drawing foods *only*
+from `food_bank.py`'s existing `fuentes_*_para(perfil)` candidate pools —
+no second, unchecked path into the raw food banks, so
+`validator_agent.py`'s existing allergy cross-check covers the weekly plan
+automatically. A 4th food category, `FUENTES_VERDURA` (vegetables/fruit),
+was added and wired into that same cross-check. Every food now carries
+approximate `macros_100g` (standard reference values) so portions can be
+solved from the client's targets — deliberately not gram-perfect, same
+"estimate, adjust from real progress" philosophy the diet's own client
+message already states. Synergy pairing (non-heme iron + vitamin C in the
+same meal, dinner getting the day's largest fat share) is mechanical, not
+just a static tip, grounded in
+`docs/base_conocimiento/sinergias_nutrientes.md`'s own table. Two
+portion-realism bugs — whole-cut meat/fish as a "snack," 500g+ of fruit as
+a dinner's main carb — were caught only by generating and reading a real
+week, fixed with targeted candidate-pool filters, and locked in as
+regression tests. `plan_semanal`'s own food names are the one deliberate
+exception to "food names stay canonical English" (nothing safety-critical
+string-matches against its prose, unlike `fuentes_*_sugeridas`), so
+`food_bank.nombre_mostrado()` runs at description-build time instead of at
+render time. The diet PDF gained a styled weekly-plan table (teal header,
+alternating rows, kept together across page breaks); `ui/app.py`'s
+trainer-facing panel shows the identical plan in a matching expander, so
+approving doesn't require opening the PDF first. Both fields are optional
+— a draft without them (an older one, a hand-built fixture, or a future
+`motor="llm"` response) renders exactly as before, section omitted rather
+than crashing. `ENTREGAR_BORRADOR_DIETA_TOOL`'s schema gained the matching
+fields, keeping the "two interchangeable engines, one schema" invariant
+intact. Verified live in both languages: PDF table renders correctly
+(visually inspected), the on-screen panel shows the identical plan, and a
+vegan + nut-allergy profile never leaked a restricted food into a real
+generated week.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
@@ -330,6 +366,7 @@ if the user explicitly opts in to spending money.
 |---|---|
 | Routine rule engine | `agents/rutina_reglas.py` |
 | Diet rule engine | `agents/dieta_reglas.py` |
+| Weekly meal planner (breakfast/lunch/dinner/snacks, synergy pairing) | `agents/planificador_comidas.py` |
 | Per-client seeded variety (exercise picks, phrasing) | `agents/variacion.py` |
 | Validator | `agents/validator_agent.py` |
 | Orchestrator | `agents/orchestrator.py` |

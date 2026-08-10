@@ -101,6 +101,79 @@ def test_diet_pdf_never_includes_trainer_only_warnings(borrador_dieta):
     assert "flag for follow-up" not in texto
 
 
+def test_diet_pdf_without_weekly_plan_still_renders(borrador_dieta):
+    """borrador_dieta (the fixture above) has no "plan_semanal" key --
+    matches a draft built before that field existed, or a hand-built test
+    fixture. Must degrade to no weekly-plan section, never crash."""
+    from pypdf import PdfReader
+
+    assert "plan_semanal" not in borrador_dieta
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Weekly meal plan" not in texto
+
+
+def test_diet_pdf_renders_the_weekly_plan_when_present(borrador_dieta):
+    from pypdf import PdfReader
+
+    borrador_dieta["plan_semanal"] = [
+        {
+            "dia": "Monday",
+            "comidas": [
+                {"tipo": "Breakfast", "descripcion": "150g oats, 200g greek yogurt.", "aprox_kcal": 420},
+                {"tipo": "Lunch", "descripcion": "150g chicken breast, 200g rice, with 15g olive oil.", "aprox_kcal": 650},
+            ],
+        },
+        {
+            "dia": "Tuesday",
+            "comidas": [
+                {"tipo": "Breakfast", "descripcion": "100g oats, 150g eggs.", "aprox_kcal": 380},
+            ],
+        },
+    ]
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Weekly meal plan" in texto
+    assert "Monday" in texto
+    assert "Tuesday" in texto
+    assert "Breakfast" in texto
+    assert "150g chicken breast" in texto
+    assert "650" in texto
+
+
+def test_diet_pdf_translates_weekly_plan_section_header_for_spanish(borrador_dieta):
+    from pypdf import PdfReader
+
+    borrador_dieta["plan_semanal"] = [
+        {"dia": "Lunes", "comidas": [{"tipo": "Desayuno", "descripcion": "100g de avena.", "aprox_kcal": 300}]},
+    ]
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="es")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Plan semanal de comidas" in texto
+    assert "Lunes" in texto
+
+
+def test_diet_pdf_shows_vegetable_sources_when_present(borrador_dieta):
+    from pypdf import PdfReader
+
+    borrador_dieta["fuentes_verdura_sugeridas"] = ["Broccoli", "Spinach"]
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Suggested vegetables" in texto
+    assert "Broccoli" in texto
+
+
+def test_diet_pdf_omits_vegetable_section_when_absent(borrador_dieta):
+    """No "fuentes_verdura_sugeridas" key at all (matches a pre-existing
+    draft) -- the section header shouldn't render with nothing under it."""
+    from pypdf import PdfReader
+
+    assert "fuentes_verdura_sugeridas" not in borrador_dieta
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Suggested vegetables" not in texto
+
+
 # --- generar_pdf_checklist() / es_checklist_pdf() ---------------------------
 
 

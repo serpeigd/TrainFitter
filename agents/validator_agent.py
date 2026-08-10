@@ -21,7 +21,7 @@ gets its self-assessment wrong.
 """
 
 from exercise_bank import EXERCISE_BANK
-from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, etiquetas_excluidas
+from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, FUENTES_VERDURA, etiquetas_excluidas
 from perfil_utils import tags_lesiones
 
 
@@ -103,16 +103,24 @@ def _validar_rutina_contra_lesiones(perfil: dict, borrador_rutina: dict, idioma:
 
 
 def _validar_dieta_contra_alergias(perfil: dict, borrador_dieta: dict, idioma: str = "en") -> list[str]:
-    """Cross-checks every food suggested in the draft against declared allergies/intolerances."""
+    """Cross-checks every food suggested in the draft against declared
+    allergies/intolerances -- including plan_semanal's meals, since every
+    food agents/planificador_comidas.py ever picks is drawn from these same
+    four *_sugeridas lists (see that module's docstring), so checking the
+    lists themselves already covers the weekly plan with no separate
+    free-text parsing needed."""
     excluidas = etiquetas_excluidas(perfil)
     if not excluidas:
         return []
 
-    indice_alimentos = {f["nombre"]: f["etiquetas"] for f in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA}
+    indice_alimentos = {
+        f["nombre"]: f["etiquetas"] for f in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA
+    }
     sugerencias = (
         borrador_dieta.get("fuentes_proteina_sugeridas", [])
         + borrador_dieta.get("fuentes_carbohidrato_sugeridas", [])
         + borrador_dieta.get("fuentes_grasa_sugeridas", [])
+        + borrador_dieta.get("fuentes_verdura_sugeridas", [])
     )
 
     motivos = []

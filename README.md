@@ -97,6 +97,17 @@ This repository is built phase by phase, as a learning project. Right now:
   (see [`agents/variacion.py`](agents/variacion.py)) — two similar clients no
   longer get byte-identical drafts, while regenerating the *same* client
   still reproduces the same plan every time.
+- The diet is a real **7-day meal plan** (breakfast/lunch/dinner/snacks), not
+  just flat lists of suggested foods — built by
+  [`agents/planificador_comidas.py`](agents/planificador_comidas.py) from the
+  same free rule engine, still 100% free and deterministic per client.
+  Portions are solved from the client's own kcal/macro targets, and
+  absorption-synergy pairings (e.g. a plant-iron food paired with a
+  vitamin-C source in the same meal) are applied structurally, grounded in
+  [`docs/base_conocimiento/sinergias_nutrientes.md`](docs/base_conocimiento/sinergias_nutrientes.md)
+  — not just listed as a separate tip. Renders as a styled table in the diet
+  PDF and in the trainer's on-screen review, in whichever language the UI
+  is set to.
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a
@@ -320,7 +331,7 @@ TrainFitter/
 │   └── base_conocimiento/           Evidence-backed notes (training, nutrition, adherence, safety) the rule engines draw on
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, validator, orchestrator, PDF generation (+ intake form), seeded variety, portal tokens
+├── agents/                          Routine, diet, weekly meal planner, validator, orchestrator, PDF generation (+ intake form), seeded variety, portal tokens
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + portal-link send + adherence-reply/intake detection), Notion (Clients + Check-ins)

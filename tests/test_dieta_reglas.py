@@ -110,3 +110,49 @@ def test_different_clients_get_varied_narrative_text(perfil_base):
         assert cuerpo in MENSAJE_CLIENTE_DIETA_VARIANTES["en"]
         mensajes.add(cuerpo)
     assert len(mensajes) > 1
+
+
+# --- plan_semanal / fuentes_verdura_sugeridas (weekly meal planner) -------
+
+
+def test_weekly_plan_has_seven_days_starting_monday(perfil_base):
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert len(borrador["plan_semanal"]) == 7
+    assert borrador["plan_semanal"][0]["dia"] == "Monday"
+    assert borrador["plan_semanal"][-1]["dia"] == "Sunday"
+
+
+def test_weekly_plan_day_names_follow_idioma(perfil_base):
+    borrador = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert borrador["plan_semanal"][0]["dia"] == "Lunes"
+
+
+def test_weekly_plan_meal_count_matches_comidas_al_dia(perfil_base):
+    perfil_base["nutricion"]["comidas_al_dia_preferidas"] = 5
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert all(len(dia["comidas"]) == 5 for dia in borrador["plan_semanal"])
+
+
+def test_weekly_plan_meals_include_kcal_and_description(perfil_base):
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    for comida in borrador["plan_semanal"][0]["comidas"]:
+        assert comida["aprox_kcal"] > 0
+        assert comida["descripcion"]
+        assert comida["tipo"]
+
+
+def test_vegetable_sources_present_and_diet_type_filtered(perfil_base):
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert "Broccoli" in borrador["fuentes_verdura_sugeridas"]
+
+
+def test_allergy_excludes_food_from_weekly_plan(perfil_base):
+    """The weekly plan only ever draws from the already-filtered
+    fuentes_*_sugeridas candidate pools (see planificador_comidas.py's
+    docstring) -- a declared allergy must never show up in plan_semanal's
+    own text either, not just be absent from the flat lists."""
+    perfil_base["salud"]["alergias_alimentarias"] = ["tree nut allergy"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    texto_plan = str(borrador["plan_semanal"]).lower()
+    assert "nuts (walnuts" not in texto_plan

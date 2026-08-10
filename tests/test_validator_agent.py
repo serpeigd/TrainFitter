@@ -66,6 +66,26 @@ def test_catches_conflicting_food_even_if_draft_did_not_flag_it(perfil_base):
     assert any("Eggs" in motivo for motivo in veredicto["motivos"])
 
 
+def test_catches_conflicting_vegetable_even_if_draft_did_not_flag_it(perfil_base):
+    """Same defense-in-depth pattern as test_catches_conflicting_food_
+    even_if_draft_did_not_flag_it, for the vegetable/fruit category added
+    alongside the weekly meal planner -- locks in that adding a 4th food
+    list didn't accidentally skip it in the cross-check."""
+    perfil_base["salud"]["alergias_alimentarias"] = ["fish allergy"]
+    borrador_dieta_defectuoso = {
+        "advertencias_revision_humana": [],
+        "fuentes_proteina_sugeridas": [],
+        "fuentes_carbohidrato_sugeridas": [],
+        "fuentes_grasa_sugeridas": ["Oily fish (EPA/DHA)"],
+        "fuentes_verdura_sugeridas": ["Broccoli"],
+    }
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, borrador_dieta_defectuoso)
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("Oily fish" in motivo for motivo in veredicto["motivos"])
+    assert not any("Broccoli" in motivo for motivo in veredicto["motivos"])
+
+
 def test_out_of_range_bloodwork_marker_forces_enhanced_review(perfil_base):
     """Same defense-in-depth pattern as injuries/allergies, applied to
     parsed bloodwork markers (agents/analytics_parser.py)."""

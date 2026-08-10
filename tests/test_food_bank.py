@@ -6,10 +6,13 @@ from food_bank import (
     FUENTES_CARBOHIDRATO,
     FUENTES_GRASA,
     FUENTES_PROTEINA,
+    FUENTES_VERDURA,
+    INDICE_ALIMENTOS,
     etiquetas_excluidas,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
     fuentes_proteina_para,
+    fuentes_verdura_para,
     nombre_mostrado,
 )
 
@@ -122,3 +125,59 @@ def test_every_food_declares_which_diets_allow_it():
 def test_nombre_mostrado_returns_spanish_only_for_es():
     assert nombre_mostrado("Chicken breast", "es") == "Pechuga de pollo"
     assert nombre_mostrado("Chicken breast", "en") == "Chicken breast"
+
+
+# --- FUENTES_VERDURA / fuentes_verdura_para() (added alongside the weekly
+# meal planner) -- same filtering discipline as the other three banks, so
+# the vegetable category doesn't quietly open a hole in allergy/diet-type
+# safety. ------------------------------------------------------------------
+
+
+def test_vegetable_sources_available_to_every_diet_type(perfil_base):
+    for tipo in ("omnivora", "vegetariana_ovolacto", "vegana"):
+        perfil_base["nutricion"]["tipo_dieta"] = tipo
+        assert "Broccoli" in fuentes_verdura_para(perfil_base)
+
+
+def test_every_vegetable_declares_which_diets_allow_it():
+    for alimento in FUENTES_VERDURA:
+        assert alimento.get("tipos_dieta"), f"missing tipos_dieta for {alimento['nombre']!r}"
+
+
+def test_every_vegetable_has_a_spanish_display_name():
+    for alimento in FUENTES_VERDURA:
+        assert alimento.get("nombre_es"), f"missing nombre_es for {alimento['nombre']!r}"
+
+
+# --- macros_100g / sinergias (added for the weekly meal planner) ---------
+
+
+def test_every_food_across_all_four_banks_has_macros_100g():
+    """planificador_comidas.py's portion math divides by macros_100g["kcal"]
+    for every food it can pick -- a missing entry would crash mid-plan, not
+    just render oddly, so this is locked in as an invariant."""
+    for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA:
+        macros = alimento.get("macros_100g")
+        assert macros, f"missing macros_100g for {alimento['nombre']!r}"
+        for clave in ("kcal", "proteina_g", "carbohidratos_g", "grasa_g"):
+            assert clave in macros, f"{alimento['nombre']!r} missing {clave!r} in macros_100g"
+        assert macros["kcal"] > 0, f"{alimento['nombre']!r} has non-positive kcal"
+
+
+def test_non_heme_iron_sources_are_tagged_for_synergy_pairing():
+    """Locks in the specific foods docs/base_conocimiento/sinergias_nutrientes.md
+    calls out as non-heme (plant) iron sources -- planificador_comidas.py's
+    vitamin-C pairing only fires for foods carrying this tag."""
+    for nombre in ("Lentils", "Chickpeas", "Tofu", "Tempeh", "Edamame"):
+        assert "hierro_no_hemo" in INDICE_ALIMENTOS[nombre]["sinergias"], nombre
+
+
+def test_some_vegetables_are_tagged_as_vitamin_c_sources():
+    con_vitamina_c = [f["nombre"] for f in FUENTES_VERDURA if "vitamina_c" in f["sinergias"]]
+    assert "Red bell pepper" in con_vitamina_c
+    assert "Kiwi" in con_vitamina_c
+
+
+def test_indice_alimentos_covers_every_food_across_all_four_banks():
+    for alimento in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA:
+        assert INDICE_ALIMENTOS[alimento["nombre"]] is alimento
