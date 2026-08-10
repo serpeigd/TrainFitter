@@ -163,6 +163,12 @@ This repository is built phase by phase, as a learning project. Right now:
   email individually. Check-in history (both the trainer's and the
   client's own) now includes a simple trend chart for weight and adherence
   over time, reusing the same data already being logged.
+- Both **"Revise client"** and **"Clients"** display real clients' personal
+  data (emails at minimum; "Revise client" surfaces full health details) —
+  on the public demo, both are gated behind the same shared password that
+  already protects the "Approve" button, unlocked once per browser session
+  rather than re-checked on every click. Unset locally, same as everywhere
+  else.
 
 ## What it doesn't include yet
 
@@ -232,7 +238,7 @@ no PDF/Gmail/Notion features) needs none of them. Copy [`.env.example`](.env.exa
 |---|---|---|
 | `ANTHROPIC_API_KEY` | `motor="llm"` (optional generative-AI engine) | Pay-per-token — see [Free-only by design](#free-only-by-design) |
 | `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `NOTION_CHECKINS_DATABASE_ID` | Notion connector (`mcp/notion_connector.py`) | Free Notion integration token; `NOTION_DATABASE_ID` is "Clients", `NOTION_CHECKINS_DATABASE_ID` is the separate "Check-ins" database |
-| `APP_APPROVAL_PASSWORD` | Gating the "Approve" button on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail |
+| `APP_APPROVAL_PASSWORD` | Gating the "Approve" button, plus the "Revise client" and "Clients" sections, on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail or browse real clients' personal data |
 | `PORTAL_SECRET_KEY` | Client portal magic links (`agents/portal_tokens.py`) | Any long random string; rotating it invalidates every outstanding link |
 | `PORTAL_BASE_URL` | Building a clickable portal link | Defaults to `http://localhost:8501`; set to the real deployment URL in production |
 | `TRAINER_NOTIFICATION_EMAIL` | Automatic trainer notification on a client check-in | Optional; unset = notification skipped entirely, the check-in itself still saves |

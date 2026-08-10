@@ -682,6 +682,12 @@ TRANSLATIONS = {
         "tab_new_intake": "📝 New Client",
         "tab_revise_client": "🔄 Revise client",
         "tab_clients": "👥 Clients",
+        "clients_gate_info": (
+            "This deployment requires the trainer's password to view real clients' personal data "
+            "(email, health details) — the same one used to approve a plan."
+        ),
+        "clients_gate_password_label": "Password",
+        "clients_gate_unlock_button": "Unlock",
         "clients_panel_header": "### 👥 All clients",
         "clients_panel_caption": "Every client at a glance, with their most recent check-in — see who needs attention.",
         "clients_panel_error": "Could not load the client list: {error}",
@@ -875,6 +881,12 @@ TRANSLATIONS = {
         "tab_new_intake": "📝 Cliente nuevo",
         "tab_revise_client": "🔄 Revisar cliente",
         "tab_clients": "👥 Clientes",
+        "clients_gate_info": (
+            "Este despliegue requiere la contraseña del entrenador para ver datos personales reales de "
+            "clientes (email, datos de salud) — la misma que se usa para aprobar un plan."
+        ),
+        "clients_gate_password_label": "Contraseña",
+        "clients_gate_unlock_button": "Desbloquear",
         "clients_panel_header": "### 👥 Todos los clientes",
         "clients_panel_caption": "Todos tus clientes de un vistazo, con su check-in más reciente — ve quién necesita atención.",
         "clients_panel_error": "No se pudo cargar la lista de clientes: {error}",
@@ -2180,6 +2192,49 @@ def _etiqueta_atencion(valoracion: str | None) -> str:
     return valoracion or ""
 
 
+def _datos_clientes_desbloqueados() -> bool:
+    """Whether the trainer has already unlocked the sections that expose
+    real clients' personal data this browser session. Unset
+    APPROVAL_PASSWORD means there's nothing to unlock -- same "off"
+    degradation as every other optional secret in this file (local dev,
+    the common case, is never gated)."""
+    return (not APPROVAL_PASSWORD) or st.session_state.get("clientes_desbloqueado", False)
+
+
+def _gate_datos_clientes() -> bool:
+    """Password gate in front of "Revise client" and "Clients" -- unlike
+    every other section, both put a real client's personal data on
+    screen (at minimum an email; Revise client's lookup surfaces the
+    full profile, including injuries/allergies/weight) just by clicking
+    a tab, with no button-click consequence to gate the way Approve's
+    own APPROVAL_PASSWORD dialog (_dialogo_aprobacion) does. On a public
+    demo, anyone could otherwise browse real clients' contact info and
+    health data. Reuses that same APPROVAL_PASSWORD rather than adding a
+    second secret -- one password, two things it protects; unset (local
+    dev) means both sections render exactly as before.
+
+    Unlocking is a session-level flag, not per-view like the approval
+    dialog: browsing a roster is a "look around" action repeated many
+    times, not one consequential click, so re-prompting on every rerun
+    would be friction with no real safety benefit once the trainer has
+    proven who they are once this session. Returns True (nothing left to
+    render) once unlocked, False while the prompt itself is still
+    showing."""
+    if _datos_clientes_desbloqueados():
+        return True
+    st.info(t("clients_gate_info"))
+    password_ingresada = st.text_input(
+        t("clients_gate_password_label"), type="password", key="clientes_password_gate",
+    )
+    if st.button(t("clients_gate_unlock_button"), key="clientes_desbloquear_boton"):
+        if password_ingresada == APPROVAL_PASSWORD:
+            st.session_state["clientes_desbloqueado"] = True
+            st.rerun()
+        else:
+            st.error(t("approval_password_wrong"))
+    return False
+
+
 def _panel_todos_los_clientes() -> None:
     """The trainer's client roster: every real "New Client"/"Revise
     client" record at a glance, joined with each client's most recent
@@ -2373,23 +2428,25 @@ if seccion_activa == "nueva":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "revisar":
-    perfil_revisado = _cargar_ficha_para_revisar()
-    if perfil_revisado is not None:
-        st.session_state["ultimo_perfil"] = perfil_revisado
-        st.session_state["ultimo_origen"] = "revisar"
-        # Correlates THIS exact submission to the Clients page being
-        # revised -- id() is stable for this specific dict object across
-        # reruns once stored in ultimo_perfil (same pattern
-        # notion_guardado_para/aprobado_para etc. already use below), and
-        # is captured at the one moment this dict is actually created, so
-        # it can't be confused with a different profile that happens to
-        # be submitted later in the same session.
-        st.session_state["revisar_perfil_id"] = id(perfil_revisado)
-    if st.session_state.get("ultimo_origen") == "revisar":
-        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
+    if _gate_datos_clientes():
+        perfil_revisado = _cargar_ficha_para_revisar()
+        if perfil_revisado is not None:
+            st.session_state["ultimo_perfil"] = perfil_revisado
+            st.session_state["ultimo_origen"] = "revisar"
+            # Correlates THIS exact submission to the Clients page being
+            # revised -- id() is stable for this specific dict object across
+            # reruns once stored in ultimo_perfil (same pattern
+            # notion_guardado_para/aprobado_para etc. already use below), and
+            # is captured at the one moment this dict is actually created, so
+            # it can't be confused with a different profile that happens to
+            # be submitted later in the same session.
+            st.session_state["revisar_perfil_id"] = id(perfil_revisado)
+        if st.session_state.get("ultimo_origen") == "revisar":
+            _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "clientes":
-    _panel_todos_los_clientes()
+    if _gate_datos_clientes():
+        _panel_todos_los_clientes()
 
 elif seccion_activa == "ejemplo":
     perfil_ejemplo = _selector_cliente_ejemplo()

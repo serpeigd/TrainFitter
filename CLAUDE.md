@@ -287,6 +287,21 @@ page. Fixed two ways: `altair`/`pandas` are now explicit dependencies in
 `ImportError`/`ModuleNotFoundError` defensively, same pattern already
 used for reportlab/pypdf/pdfplumber elsewhere in this project.
 
+A real privacy gap in the public demo was found and fixed the same day the
+"Clients" tab shipped: neither that tab nor "Revise client" had any gate at
+all, so on a deployment with `APP_APPROVAL_PASSWORD` set (the public demo),
+anyone could see real clients' emails (Clients) or a client's full profile
+including health data (Revise client) just by clicking a tab — no button
+click, no side effect needed. `_gate_datos_clientes()` now fronts both
+sections with the same `APPROVAL_PASSWORD` already gating the Approve
+button, unlocked once per browser session (`st.session_state
+["clientes_desbloqueado"]`) rather than re-prompted per view, since browsing
+a roster is a repeated look-around action, not one consequential click. On
+local dev (password unset) both sections render exactly as before. Verified
+live: both sections show only a password prompt until unlocked, a wrong
+password is rejected, the correct one unlocks both at once, and a page
+reload re-locks them.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
