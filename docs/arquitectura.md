@@ -8,8 +8,9 @@
 > replies and new-client intake PDFs — see the "Automatic inbox trigger" section
 > below. Beyond the original phase plan, the project has since added a
 > client-facing magic-link portal, a "Revise client" flow that stores and reloads
-> a client's full profile from Notion, and real-weight tracking through the
-> check-in loop — see [`README.md`](../README.md) and
+> a client's full profile from Notion, real-weight tracking through the
+> check-in loop, and a "Clients" roster tab with per-client trend charts (weight,
+> adherence rating) — see [`README.md`](../README.md) and
 > [`docs/decisiones.md`](decisiones.md) for the full, current feature list; this
 > document focuses on the core pipeline's design, not a changelog of every
 > feature added on top of it.
@@ -135,14 +136,34 @@ knowing anything about Streamlit.
 
 The CLI pipeline is the development layer; `ui/app.py` is the layer a
 non-technical trainer could actually use. It turns `ejecutar_pipeline()` into a
-click-through experience:
+click-through experience, organized into four sections navigated via
+`st.segmented_control()` (`New Client` first, per the trainer's own workflow) —
+deliberately **not** `st.tabs()`, whose labels double as their React identity, so
+translating them on a language switch remounted the whole component and reset
+the view back to the first tab (reproduced and confirmed while building this;
+`st.segmented_control`'s selected value is decoupled from its displayed text via
+`format_func`, so it survives a language switch untouched):
 
-- **"Example client" tab:** pick one of the JSON files in `examples/`, preview the
-  full intake, generate the plan.
-- **"New intake" tab:** a full form that mirrors `admission/ficha_cliente_template.md`
-  (basic info, goal, experience, availability, health, nutrition, lifestyle) and
-  builds the same JSON the agents consume — a trainer could onboard a real client
-  without touching code or JSON by hand.
+- **"New Client" section:** either upload a filled-in intake PDF
+  (`_cargar_ficha_desde_pdf()`) or fill out a form that mirrors
+  `admission/ficha_cliente_template.md` (basic info, goal, experience,
+  availability, health, nutrition, lifestyle) and builds the same JSON the
+  agents consume — a trainer could onboard a real client without touching code
+  or JSON by hand.
+- **"Revise client" section:** look up a past client by email
+  (`notion_connector.buscar_cliente_por_email()`) and reopen the same intake
+  form pre-filled with their stored `perfil_cliente`, to edit and regenerate;
+  re-approving updates the existing Notion record in place instead of
+  duplicating it (see "Revise client" below).
+- **"Clients" section (`_panel_todos_los_clientes()`):** a roster of every real
+  client (`notion_connector.listar_clientes()`), joined in Python with each
+  client's most recent Check-ins row (`ultimo_checkin_por_cliente()` — Notion
+  has no native "latest row per group" query) and flagged with ⚠️
+  (`_etiqueta_atencion()`) when that latest adherence rating is Low. The two
+  Notion queries are independently best-effort: if the Check-ins lookup fails,
+  the roster itself still renders, just without the adherence column.
+- **"Example client" section:** pick one of the JSON files in `examples/`, preview
+  the full intake, generate the plan.
 - **Live execution:** `st.status(...)` plus the `on_transition` callback show each
   orchestrator transition as it happens.
 - **Result:** verdict (with reasons if enhanced review applies), routine broken down
@@ -165,6 +186,10 @@ click-through experience:
   (joined by email, not a relation property) — the interaction history for
   that client. This is trainer-triggered, not a background job: a stateless
   Streamlit app has no push infrastructure to notice a send passively.
+  `_render_historial_checkins()` (shared with the client portal, see below)
+  also renders a trend chart (`_render_grafico_tendencia()`, weight and
+  adherence rating over time via `st.line_chart()`/Altair) from the same
+  check-in data, with no extra query.
 - **Password-gated approval:** on any deployment with `APP_APPROVAL_PASSWORD`
   set, approving a plan requires that password via a popup — so the public
   demo can have Notion and Gmail both active without a random visitor
@@ -201,6 +226,7 @@ a pipeline as fast as the rule engine.
 | Intake PDF (generate + read) | `agents/pdf_intake.py` | 6 | **Done** |
 | Client portal (magic link) | `agents/portal_tokens.py`, `ui/app.py`'s `_vista_portal_cliente()` | 6+ | **Done** |
 | Revise client (Notion-backed full profile) | `notion_connector.py`'s `buscar_cliente_por_email()`/`actualizar_registro_cliente()`, `ui/app.py`'s `_cargar_ficha_para_revisar()` | 6+ | **Done** |
+| Client roster + trend charts | `notion_connector.py`'s `listar_clientes()`/`ultimo_checkin_por_cliente()`, `ui/app.py`'s `_panel_todos_los_clientes()`/`_render_grafico_tendencia()` | 6+ | **Done** |
 
 ## Clinical personalization layer (active modulation)
 
