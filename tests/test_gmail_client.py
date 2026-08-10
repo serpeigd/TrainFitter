@@ -13,6 +13,7 @@ from gmail_client import (
     SCOPES,
     GmailClientError,
     _construir_cuerpo_email,
+    _construir_cuerpo_formulario_intake,
     _construir_cuerpo_notificacion_checkin,
     _construir_cuerpo_portal,
     _construir_mensaje_raw,
@@ -106,6 +107,20 @@ def test_portal_email_body_wrapper_text_translates_for_spanish():
     cuerpo = _construir_cuerpo_portal("Ana", "https://example.com/?portal_token=abc.def", idioma="es")
     assert cuerpo.startswith("Hola Ana,")
     assert "https://example.com/?portal_token=abc.def" in cuerpo
+
+
+def test_intake_form_email_body_has_no_variable_content():
+    """The narrowest of the three gmail.send-capable templates (see the
+    module docstring): not even a name, since nothing about the prospect
+    is known yet at this point in the funnel."""
+    cuerpo = _construir_cuerpo_formulario_intake()
+    assert "reply" in cuerpo.lower()
+    assert "attach" in cuerpo.lower()
+
+
+def test_intake_form_email_body_translates_for_spanish():
+    cuerpo = _construir_cuerpo_formulario_intake(idioma="es")
+    assert "responde a este email" in cuerpo.lower()
 
 
 def test_checkin_notification_body_includes_summary_and_suggestion():

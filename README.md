@@ -135,7 +135,12 @@ This repository is built phase by phase, as a learning project. Right now:
   review/approve it through the exact same flow as a manually typed intake.
   The blank form itself is a real, committed artifact
   ([`examples/blank_intake_form.pdf`](examples/blank_intake_form.pdf)) — what
-  the trainer actually shares with a prospect to get the loop started.
+  the trainer actually shares with a prospect to get the loop started. The
+  panel can also send that blank form and check for a reply directly: a
+  real, sent (not drafted) email — the third and narrowest of the three
+  deliberate exceptions to "never sends automatically" (a fixed template
+  with no variable content at all), gated behind the approval password on
+  a public deployment the same way "Revisar cliente" is.
 - A **client-facing portal** (magic link, no password): the trainer can send a
   client a private link to view a summary of their plan and log a check-in
   directly — no PDF round-trip needed. Links are signed, stateless, and
@@ -300,11 +305,11 @@ free. The only optional paid piece is `motor="llm"`, off by default. See
 [Free-only by design](#free-only-by-design).
 
 **Will it ever email or message a client without a human clicking something first?** No.
-Every plan is a draft until a trainer explicitly approves it, and the only two functions
+Every plan is a draft until a trainer explicitly approves it, and the only three functions
 in the whole codebase that send real email (`enviar_enlace_portal()`,
-`enviar_notificacion_checkin()`) either require the trainer to click a gated button, or
-notify the *trainer's own inbox*, never a client, automatically. See `docs/highlights.md`
-#3 and #10.
+`enviar_notificacion_checkin()`, `enviar_formulario_intake()`) either require the trainer
+to click a gated button, or notify the *trainer's own inbox*, never a client or
+prospect, automatically. See `docs/highlights.md` #3 and #10.
 
 **The live demo looks like it's not responding — is it broken?** Probably just asleep.
 Streamlit Community Cloud's free tier spins down an inactive app; the first request after

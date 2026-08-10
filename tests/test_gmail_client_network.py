@@ -386,3 +386,72 @@ def test_buscar_intakes_nuevos_wraps_http_error(monkeypatch):
     )
     with pytest.raises(GmailClientError):
         gmail_client.buscar_intakes_nuevos()
+
+
+def test_buscar_intakes_nuevos_narrows_the_query_when_remitente_given(monkeypatch):
+    """ui/app.py's "check for a reply" button passes a specific prospect's
+    email -- confirms that actually reaches Gmail's search query (a
+    `from:` qualifier) instead of silently scanning the whole inbox."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {"messages": []}
+
+    gmail_client.buscar_intakes_nuevos(remitente="laura@example.com")
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.list.call_args
+    assert "laura@example.com" in kwargs["q"]
+
+
+def test_buscar_intakes_nuevos_without_remitente_scans_the_whole_inbox(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {"messages": []}
+
+    gmail_client.buscar_intakes_nuevos()
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.list.call_args
+    assert "from:" not in kwargs["q"]
+
+
+# --- enviar_formulario_intake() ----------------------------------------------
+
+
+def test_enviar_formulario_intake_sends_not_drafts(monkeypatch):
+    """The third (and, as of now, last) function allowed to call
+    messages().send() -- see the module docstring's DESIGN notes."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    gmail_client.enviar_formulario_intake("prospect@example.com")
+
+    servicio.users.return_value.messages.return_value.send.assert_called_once()
+    servicio.users.return_value.drafts.return_value.create.assert_not_called()
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    assert mensaje["to"] == "prospect@example.com"
+    partes = mensaje.get_payload()
+    nombres_adjuntos = {p.get_filename() for p in partes[1:]}
+    assert nombres_adjuntos == {"trainfitter-intake-form.pdf"}
+
+
+def test_enviar_formulario_intake_attaches_the_spanish_filename_for_es(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    gmail_client.enviar_formulario_intake("prospect@example.com", idioma="es")
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    partes = mensaje.get_payload()
+    nombres_adjuntos = {p.get_filename() for p in partes[1:]}
+    assert nombres_adjuntos == {"formulario-inscripcion-trainfitter.pdf"}
+
+
+def test_enviar_formulario_intake_wraps_http_error(monkeypatch):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.enviar_formulario_intake("prospect@example.com")

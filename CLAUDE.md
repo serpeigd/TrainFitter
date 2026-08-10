@@ -350,6 +350,28 @@ intact. Verified live in both languages: PDF table renders correctly
 vegan + nut-allergy profile never leaked a restricted food into a real
 generated week.
 
+The "Upload a filled intake PDF" section can now email the blank form to
+a prospect and check for their reply, both from the panel directly,
+requested directly by the project owner. `mcp/gmail_client.py`'s
+`enviar_formulario_intake()` is a third, narrow addition to the
+`gmail.send` exception (a fixed template with no variable slots at all —
+not even a name, since nothing about the prospect is known yet).
+`buscar_intakes_nuevos()` gained an optional `remitente` parameter (a
+`from:` search qualifier) so the same function serves both `main.py`'s
+scheduled whole-inbox scan and the panel's one-prospect "check for a
+reply" button — no duplicated search logic. Both new actions are gated
+behind `APPROVAL_PASSWORD` (re-checked per click) on any deployment where
+it's set: sending is a real email to an address a public-demo visitor
+could type in, and checking for a reply pulls back a specific prospect's
+personal data just from their email — the same class of exposure
+"Revisar cliente" is already gated against. Verified live against the
+real Gmail account: the read-only "check" path executed for real (a
+made-up address correctly came back "not found"), and the password gate
+was confirmed to block "Send blank form" before any network call. The
+actual send path is covered by mocked-network tests rather than
+triggering a real send during verification, matching this project's bar
+for every other real-world side effect.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

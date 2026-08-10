@@ -153,8 +153,10 @@ from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
 from gmail_client import (  # noqa: E402
     GmailClientError,
+    buscar_intakes_nuevos,
     crear_borrador,
     enviar_enlace_portal,
+    enviar_formulario_intake,
     enviar_notificacion_checkin,
     verificar_envio,
 )
@@ -721,6 +723,16 @@ TRANSLATIONS = {
         "intake_pdf_upload_empty": "The name field is empty — looks like a blank template, not a filled-in form.",
         "intake_pdf_upload_loaded": "Loaded intake for **{nombre}**.",
         "intake_pdf_upload_confirm": "Use this data and generate the plan",
+        "intake_email_flow_header": "✉️ Or email the blank form to a prospect",
+        "intake_email_flow_label": "Prospect's email",
+        "intake_email_flow_password_label": "Trainer password (required on this deployment)",
+        "intake_email_flow_missing": "Enter the prospect's email first.",
+        "intake_send_button": "Send blank form",
+        "intake_send_success": "✅ Sent — ask them to reply to that email with the form filled in.",
+        "intake_send_error": "Could not send the form: {error}",
+        "intake_check_button": "Check for a reply",
+        "intake_check_not_found": "No filled-in reply found yet from that email.",
+        "intake_check_error": "Could not check for a reply: {error}",
         "sec_basic_info": "1. Basic info",
         "full_name": "Full name",
         "age": "Age",
@@ -924,6 +936,16 @@ TRANSLATIONS = {
         "intake_pdf_upload_empty": "El campo de nombre está vacío — parece una plantilla en blanco, no una ficha rellenada.",
         "intake_pdf_upload_loaded": "Ficha cargada para **{nombre}**.",
         "intake_pdf_upload_confirm": "Usar estos datos y generar el plan",
+        "intake_email_flow_header": "✉️ O envía la ficha en blanco por email a un candidato",
+        "intake_email_flow_label": "Email del candidato",
+        "intake_email_flow_password_label": "Contraseña del entrenador (necesaria en este despliegue)",
+        "intake_email_flow_missing": "Escribe primero el email del candidato.",
+        "intake_send_button": "Enviar ficha en blanco",
+        "intake_send_success": "✅ Enviada — pídele que responda a ese email con la ficha rellenada.",
+        "intake_send_error": "No se pudo enviar la ficha: {error}",
+        "intake_check_button": "Comprobar si ha respondido",
+        "intake_check_not_found": "Todavía no hay ninguna respuesta rellenada de ese email.",
+        "intake_check_error": "No se pudo comprobar si respondió: {error}",
         "sec_basic_info": "1. Datos básicos",
         "full_name": "Nombre completo",
         "age": "Edad",
@@ -1186,16 +1208,100 @@ def _clave_multiselect(nombre_base: str, por_defecto: list[str]) -> tuple[str, l
 # Building the profile from an uploaded, already-filled intake PDF
 # ---------------------------------------------------------------------------
 
+def _perfil_desde_intake_encontrado(perfil: dict) -> dict:
+    """Stamps id_cliente/fecha_admision onto a freshly-parsed intake
+    profile -- shared by the manual-upload path and the "check for a
+    reply" flow below, so the two ways of getting a perfil_cliente in here
+    can't drift on this detail."""
+    nombre = perfil["datos_basicos"]["nombre"]
+    perfil["id_cliente"] = f"cliente_ui_{_slug(nombre)}"
+    perfil["fecha_admision"] = datetime.now(timezone.utc).date().isoformat()
+    return perfil
+
+
+def _flujo_email_intake() -> None:
+    """Send the blank intake form to a prospect's email, and/or check
+    whether they've already replied with it filled in -- both from the
+    panel directly, instead of the trainer attaching/downloading things by
+    hand from their own mail client. Sets
+    st.session_state["intake_encontrado"] on a successful "check" so the
+    caller (_cargar_ficha_desde_pdf()) can offer the same explicit-confirm
+    step the manual upload already has.
+
+    Both actions are gated behind APPROVAL_PASSWORD (re-checked on every
+    click, same as _cargar_ficha_para_revisar()'s per-lookup check) on any
+    deployment where it's set -- sending is a real email leaving this
+    project's Gmail account to an address anyone on a public demo could
+    type in, and checking for a reply pulls back a specific prospect's
+    personal data (name, health details) just from knowing their email --
+    the same class of exposure "Revisar cliente" was gated against.
+    Unset locally, same as everywhere else."""
+    st.markdown(t("intake_email_flow_header"))
+    email_prospecto = st.text_input(t("intake_email_flow_label"), key="intake_email_prospecto")
+    password_intake = (
+        st.text_input(t("intake_email_flow_password_label"), type="password", key="intake_email_password")
+        if APPROVAL_PASSWORD else None
+    )
+
+    col_enviar, col_comprobar = st.columns(2)
+    enviar_click = col_enviar.button(t("intake_send_button"), key="intake_enviar_formulario")
+    comprobar_click = col_comprobar.button(t("intake_check_button"), key="intake_comprobar_respuesta")
+
+    if not (enviar_click or comprobar_click):
+        return
+
+    if not email_prospecto:
+        st.warning(t("intake_email_flow_missing"))
+        return
+    if APPROVAL_PASSWORD and password_intake != APPROVAL_PASSWORD:
+        st.error(t("approval_password_wrong"))
+        return
+
+    if enviar_click:
+        try:
+            enviar_formulario_intake(email_prospecto.strip(), idioma=st.session_state.lang)
+            st.success(t("intake_send_success"))
+        except GmailClientError as exc:
+            st.error(t("intake_send_error").format(error=str(exc)))
+
+    if comprobar_click:
+        try:
+            intakes = buscar_intakes_nuevos(remitente=email_prospecto.strip())
+        except GmailClientError as exc:
+            st.error(t("intake_check_error").format(error=str(exc)))
+            return
+        if not intakes:
+            st.info(t("intake_check_not_found"))
+            return
+        perfil = _perfil_desde_intake_encontrado(intakes[0]["perfil"])
+        st.session_state["intake_encontrado"] = perfil
+        st.rerun()
+
+
 def _cargar_ficha_desde_pdf() -> dict | None:
     """Alternative to _formulario_ficha_nueva(): lets the trainer load a
     filled agents/pdf_intake.py form (e.g. one a prospect emailed back)
-    instead of retyping the whole intake by hand. Same id_cliente/
+    instead of retyping the whole intake by hand -- either uploaded by
+    hand, or found directly by searching the inbox for a specific
+    prospect's reply (see _flujo_email_intake()). Same id_cliente/
     fecha_admision convention as the manual form below, and the same
     "only return once the trainer explicitly confirms" pattern -- so a
-    stale upload left in the widget doesn't silently regenerate a plan
-    on every unrelated rerun of this page."""
+    stale upload/search result left around doesn't silently regenerate a
+    plan on every unrelated rerun of this page."""
     with st.expander(t("intake_pdf_upload_header")):
         st.caption(t("intake_pdf_upload_caption"))
+
+        _flujo_email_intake()
+
+        if st.session_state.get("intake_encontrado"):
+            perfil_encontrado = st.session_state["intake_encontrado"]
+            nombre_encontrado = perfil_encontrado["datos_basicos"]["nombre"]
+            st.success(t("intake_pdf_upload_loaded").format(nombre=nombre_encontrado))
+            if st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_encontrado"):
+                return perfil_encontrado
+            return None
+
+        st.divider()
         pdf_subido = st.file_uploader(t("intake_pdf_upload_label"), type=["pdf"], key="intake_pdf_subido")
         if pdf_subido is None:
             return None
@@ -1206,15 +1312,12 @@ def _cargar_ficha_desde_pdf() -> dict | None:
             return None
 
         perfil = leer_intake_pdf(contenido_pdf)
-        nombre = perfil["datos_basicos"]["nombre"]
-        if not nombre:
+        if not perfil["datos_basicos"]["nombre"]:
             st.warning(t("intake_pdf_upload_empty"))
             return None
+        perfil = _perfil_desde_intake_encontrado(perfil)
 
-        perfil["id_cliente"] = f"cliente_ui_{_slug(nombre)}"
-        perfil["fecha_admision"] = datetime.now(timezone.utc).date().isoformat()
-
-        st.success(t("intake_pdf_upload_loaded").format(nombre=nombre))
+        st.success(t("intake_pdf_upload_loaded").format(nombre=perfil["datos_basicos"]["nombre"]))
         if not st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_pdf"):
             return None
         return perfil

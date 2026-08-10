@@ -31,37 +31,52 @@ consent flow (deleting token.json first) is required once, both locally
 and on any deployment.
 
 DESIGN — gmail.send is a deliberate, narrow exception to "never sends
-automatically", scoped to exactly two functions, both sending TO the
-trainer's own side of the relationship, never unsolicited content TO a
-client: enviar_enlace_portal() sends a real message (via messages().send(),
-not drafts().create()) containing nothing but a signed magic link (see
-agents/portal_tokens.py) to the client portal — never plan content, never
-anything the trainer hasn't already approved. This is a real, considered
-trade-off against the draft-only principle above, made explicitly by the
-project owner (not a default), because a magic link is only useful if it
-actually reaches the client's inbox — a draft the trainer would have to
-open and manually forward defeats the point of a self-serve portal. The
-blast radius is kept as small as this scope allows: it's the only one of
-the two send-capable functions reachable from a client-facing action, and
-that action is gated behind one explicit button in ui/app.py's approval
-panel (gated the same way draft creation already is — behind an approved
-plan, and behind APP_APPROVAL_PASSWORD on the public demo), sending a
-fixed, code-defined template with exactly one variable slot (the link
-itself) — never free text a trainer or client could inject content into.
+automatically", scoped to exactly three functions, each one either
+trainer-triggered with fixed, non-improvised content, or aimed at the
+trainer's own inbox rather than a client's — never a client receiving
+unsolicited, trainer-unreviewed content: enviar_enlace_portal() sends a
+real message (via messages().send(), not drafts().create()) containing
+nothing but a signed magic link (see agents/portal_tokens.py) to the
+client portal — never plan content, never anything the trainer hasn't
+already approved. This is a real, considered trade-off against the
+draft-only principle above, made explicitly by the project owner (not a
+default), because a magic link is only useful if it actually reaches the
+client's inbox — a draft the trainer would have to open and manually
+forward defeats the point of a self-serve portal. The blast radius is
+kept as small as this scope allows: reachable only from one explicit
+button in ui/app.py's approval panel (gated the same way draft creation
+already is — behind an approved plan, and behind APP_APPROVAL_PASSWORD on
+the public demo), sending a fixed, code-defined template with exactly one
+variable slot (the link itself) — never free text a trainer or client
+could inject content into.
 
-DESIGN — enviar_notificacion_checkin() is the second (and, as of now,
-last) function allowed to call messages().send(): unlike
-enviar_enlace_portal(), this one is genuinely automatic (fired the moment
-a client submits the portal's own check-in form, no button click at
-all) — but it mails the *trainer's own* inbox (TRAINER_NOTIFICATION_EMAIL,
-see ui/app.py), never a client, so it can't violate "TrainFitter never
-contacts a client on its own" no matter how it fires. Best-effort by
-design: a failure here (missing config, expired credentials, an API
-error) must never block the actual check-in from being saved to Notion —
-ui/app.py swallows exceptions from this call the same way it already does
-for actualizar_email_cliente()/marcar_email_enviado(), since a trainer
-notification email is a convenience layered on top of the real record,
-not the record itself.
+DESIGN — enviar_notificacion_checkin() is the second function allowed to
+call messages().send(): unlike enviar_enlace_portal(), this one is
+genuinely automatic (fired the moment a client submits the portal's own
+check-in form, no button click at all) — but it mails the *trainer's own*
+inbox (TRAINER_NOTIFICATION_EMAIL, see ui/app.py), never a client, so it
+can't violate "TrainFitter never contacts a client on its own" no matter
+how it fires. Best-effort by design: a failure here (missing config,
+expired credentials, an API error) must never block the actual check-in
+from being saved to Notion — ui/app.py swallows exceptions from this call
+the same way it already does for actualizar_email_cliente()/
+marcar_email_enviado(), since a trainer notification email is a
+convenience layered on top of the real record, not the record itself.
+
+DESIGN — enviar_formulario_intake() is the third (and, as of now, last)
+function allowed to call messages().send(): requested directly, to let a
+trainer email a prospective client the blank intake form (see
+agents/pdf_intake.py) straight from the panel instead of attaching it by
+hand from their own mail client. The narrowest of the three by content:
+its template has NO variable slots at all, not even the prospect's name
+(nothing about them is known yet at this point in the funnel) — the only
+thing that ever varies between calls is which of two fixed, code-defined
+PDF/text pairs (EN/ES) gets attached. Same gating as
+enviar_enlace_portal(): one explicit button, behind APP_APPROVAL_PASSWORD
+on deployments where it's set (this is the one action in the "New Client"
+tab that touches a real inbox before any client data exists yet, so it
+needs the same protection the rest of that tab's write actions already
+have).
 
 DESIGN — pure logic separated from network/auth: _construir_mensaje_raw()
 and _construir_cuerpo_email() are plain functions with no I/O, fully unit
@@ -528,6 +543,80 @@ def enviar_notificacion_checkin(
         raise GmailClientError(f"Gmail API error: {exc}") from exc
 
 
+ASUNTO_INTAKE_EN = "Your TrainFitter intake form"
+ASUNTO_INTAKE_ES = "Tu ficha de admisión de TrainFitter"
+
+
+def _construir_cuerpo_formulario_intake(idioma: str = "en") -> str:
+    """Fixed, code-defined template with no variable slots at all -- not
+    even a name, since at this point in the funnel the prospect isn't a
+    client yet and nothing about them is known. Pure formatting, no I/O."""
+    if idioma == "es":
+        return (
+            "Hola,\n\n"
+            "Adjunta va tu ficha de admisión de TrainFitter. Rellénala y "
+            "RESPONDE A ESTE EMAIL con el formulario adjunto de nuevo — al "
+            "responder, el archivo no se adjunta solo, así que tendrás que "
+            "volver a adjuntarlo tú.\n\n"
+            "¡Gracias!"
+        )
+    return (
+        "Hi,\n\n"
+        "Attached is your TrainFitter intake form. Please fill it in and "
+        "REPLY TO THIS EMAIL with the form attached again — replying "
+        "doesn't carry the attachment over automatically, so you'll need "
+        "to attach it yourself.\n\n"
+        "Thanks!"
+    )
+
+
+def enviar_formulario_intake(destinatario: str, idioma: str = "en") -> None:
+    """
+    Actually SENDS (not drafts) a blank intake form PDF to a prospective
+    client -- a third, narrow addition to the gmail.send exception (see the
+    module docstring's DESIGN note): a trainer starting a new-client
+    conversation used to have to attach agents/pdf_intake.py's blank form
+    by hand from their own mail client; this does it from the panel
+    directly. Kept as narrow as the two existing send-capable functions:
+    a fixed, code-defined template with NO variable slots (not even the
+    prospect's name -- nothing about them is known yet), and the one PDF
+    attached is always the same freshly-generated blank template, never
+    anything a trainer or client could inject content into.
+
+    Args:
+        destinatario: the prospective client's email.
+        idioma: "en" (default) or "es" -- both the email's own text and the
+            attached form's own labels.
+
+    Raises:
+        GmailClientError: invalid recipient, missing/expired credentials
+            (gmail.send was already required for enviar_enlace_portal(), so
+            no further re-authorization is needed on top of that), or a
+            Gmail API failure.
+    """
+    from pdf_intake import NOMBRE_PDF_INTAKE_EN, NOMBRE_PDF_INTAKE_ES, generar_pdf_intake
+
+    asunto = ASUNTO_INTAKE_ES if idioma == "es" else ASUNTO_INTAKE_EN
+    nombre_pdf = NOMBRE_PDF_INTAKE_ES if idioma == "es" else NOMBRE_PDF_INTAKE_EN
+    cuerpo = _construir_mensaje_raw(
+        destinatario,
+        asunto=asunto,
+        cuerpo_texto=_construir_cuerpo_formulario_intake(idioma),
+        adjuntos=[(nombre_pdf, generar_pdf_intake(idioma))],
+    )
+
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    try:
+        servicio = build("gmail", "v1", credentials=credenciales)
+        servicio.users().messages().send(userId="me", body=cuerpo["message"]).execute()
+    except HttpError as exc:
+        raise GmailClientError(f"Gmail API error: {exc}") from exc
+
+
 def verificar_envio(id_hilo: str) -> bool:
     """
     Checks whether the draft's thread now contains a message with the SENT
@@ -725,7 +814,7 @@ def _extraer_intake_pdf(servicio, id_mensaje: str, parte: dict) -> bytes | None:
     return None
 
 
-def buscar_intakes_nuevos() -> list[dict]:
+def buscar_intakes_nuevos(remitente: str | None = None) -> list[dict]:
     """
     Searches the inbox for new-client intake PDF submissions — a
     prospective client filling in and emailing back the form generated by
@@ -734,6 +823,17 @@ def buscar_intakes_nuevos() -> list[dict]:
     it doesn't mark anything as read or apply a label — main.py's job is
     to skip ones it's already turned into a Clients row (by message ID,
     via notion_connector.existe_cliente_para_mensaje()).
+
+    Args:
+        remitente: optional -- when given, narrows the search to messages
+            from this exact address (adds Gmail's own `from:` operator to
+            the query below) instead of scanning the whole inbox. Used by
+            ui/app.py's "check for a reply" button next to the form-sending
+            flow (see enviar_formulario_intake()): the trainer already
+            knows which prospect they're checking on, so there's no reason
+            to make them wait on (or wade through) every other PDF
+            attachment in the mailbox. main.py's own scheduled call passes
+            nothing, matching its original scan-everything behavior.
 
     Unlike an adherence reply, an intake submission is never a reply to
     anything -- there's no In-Reply-To signal to anchor on here. Two other
@@ -762,6 +862,8 @@ def buscar_intakes_nuevos() -> list[dict]:
     from pdf_intake import leer_intake_pdf
 
     consulta = "has:attachment filename:pdf"
+    if remitente:
+        consulta += f' from:"{_validar_destinatario(remitente)}"'
 
     try:
         servicio = build("gmail", "v1", credentials=credenciales)
