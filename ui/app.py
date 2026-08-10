@@ -684,7 +684,7 @@ TRANSLATIONS = {
         "tab_clients": "👥 Clients",
         "clients_gate_info": (
             "This deployment requires the trainer's password to view real clients' personal data "
-            "(email, health details) — the same one used to approve a plan."
+            "(email, health details)."
         ),
         "clients_gate_password_label": "Password",
         "clients_gate_unlock_button": "Unlock",
@@ -707,6 +707,7 @@ TRANSLATIONS = {
             "updates their existing record instead of creating a new one."
         ),
         "revise_client_email_label": "Client's email",
+        "revise_client_password_label": "Trainer password (required to load a client's data on this deployment)",
         "revise_client_load_button": "Load",
         "revise_client_error": "Could not look up this client: {error}",
         "revise_client_not_found": "No client found with that email.",
@@ -883,7 +884,7 @@ TRANSLATIONS = {
         "tab_clients": "👥 Clientes",
         "clients_gate_info": (
             "Este despliegue requiere la contraseña del entrenador para ver datos personales reales de "
-            "clientes (email, datos de salud) — la misma que se usa para aprobar un plan."
+            "clientes (email, datos de salud)."
         ),
         "clients_gate_password_label": "Contraseña",
         "clients_gate_unlock_button": "Desbloquear",
@@ -906,6 +907,7 @@ TRANSLATIONS = {
             "actualiza su registro existente en vez de crear uno nuevo."
         ),
         "revise_client_email_label": "Email del cliente",
+        "revise_client_password_label": "Contraseña del entrenador (necesaria para cargar datos de un cliente en este despliegue)",
         "revise_client_load_button": "Cargar",
         "revise_client_error": "No se pudo buscar a este cliente: {error}",
         "revise_client_not_found": "No se ha encontrado ningún cliente con ese email.",
@@ -1496,25 +1498,48 @@ def _cargar_ficha_para_revisar() -> dict | None:
 
     Sets st.session_state["revisar_pagina_id"] on a successful load --
     read by the dispatch block below to correlate the eventual submitted
-    profile back to the record to UPDATE rather than create."""
+    profile back to the record to UPDATE rather than create.
+
+    On top of _gate_datos_clientes()'s session-level unlock for this whole
+    section, the actual lookup re-checks APPROVAL_PASSWORD every single
+    time it runs (like _dialogo_aprobacion's per-click check, not a
+    one-time flag) -- the session unlock only proves the trainer knew the
+    password *once*; without this, anyone at an already-unlocked session
+    (a shared screen, a laptop left open) could pull up *any* client's
+    full health profile just by knowing their email, with nothing tying
+    that specific lookup back to the trainer. Skipped entirely when
+    APPROVAL_PASSWORD is unset, same "off" degradation as everywhere
+    else -- local dev stays exactly as friction-free as before."""
     with st.expander(t("revise_client_header")):
         st.caption(t("revise_client_caption"))
         email_buscar = st.text_input(t("revise_client_email_label"), key="revisar_email")
+        password_buscar = (
+            st.text_input(t("revise_client_password_label"), type="password", key="revisar_password")
+            if APPROVAL_PASSWORD else None
+        )
         if email_buscar and st.button(t("revise_client_load_button"), key="revisar_cargar"):
-            try:
-                registro = buscar_cliente_por_email(email_buscar.strip())
-            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                st.error(t("revise_client_error").format(error=str(exc)))
-                registro = None
-
-            if registro is None:
-                st.warning(t("revise_client_not_found"))
+            if APPROVAL_PASSWORD and password_buscar != APPROVAL_PASSWORD:
+                # Deliberately doesn't call buscar_cliente_por_email() at all on a
+                # wrong password -- falls through to the same, unmodified
+                # _formulario_ficha_nueva() at the bottom of this function instead
+                # of returning early, so a mistyped password never leaves the
+                # trainer stuck without a form.
+                st.error(t("approval_password_wrong"))
             else:
-                for clave, valor in _campos_formulario_desde_perfil(registro["perfil"]).items():
-                    st.session_state[clave] = valor
-                st.session_state["revisar_pagina_id"] = registro["id"]
-                st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
-                st.rerun()
+                try:
+                    registro = buscar_cliente_por_email(email_buscar.strip())
+                except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                    st.error(t("revise_client_error").format(error=str(exc)))
+                    registro = None
+
+                if registro is None:
+                    st.warning(t("revise_client_not_found"))
+                else:
+                    for clave, valor in _campos_formulario_desde_perfil(registro["perfil"]).items():
+                        st.session_state[clave] = valor
+                    st.session_state["revisar_pagina_id"] = registro["id"]
+                    st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
+                    st.rerun()
 
         if st.session_state.get("revisar_cargado_nombre"):
             st.success(t("revise_client_loaded").format(nombre=st.session_state["revisar_cargado_nombre"]))

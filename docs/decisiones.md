@@ -1747,6 +1747,22 @@ Caught by the project owner looking at the just-shipped "Clients" tab and notici
 
 **Verified live, not just read through:** ran the actual dev server with a temporary `APP_APPROVAL_PASSWORD` set, confirmed both "Revise client" and "Clients" show only the password prompt (no client data in the DOM at any point) before unlocking, confirmed a wrong password is rejected with the same "Incorrect password" message the approval dialog already uses, confirmed the correct password unlocks *both* sections at once (one shared flag), and confirmed a page reload re-locks them. The temporary password was removed from `.env` again immediately after.
 
+## The session-level unlock wasn't enough for "Revise client" specifically — a per-lookup re-check closes the gap
+
+Raised right after the privacy-gap fix above shipped: the session-level unlock on "Revise client" proves the trainer knew the password *once*, but from that point on, typing literally any email into the lookup field returns that client's complete health profile with zero further check that this specific lookup is legitimate — a shared/unlocked screen (or a leaked session) means "knowing a client's email" alone is enough. The "Clients" roster doesn't have the same problem (it only ever shows what the trainer's own session unlocked, not a per-record lookup by arbitrary input) and stays on the session-level gate.
+
+**Fix: `_cargar_ficha_para_revisar()`'s lookup now re-checks `APPROVAL_PASSWORD` on every single "Load" click**, the same per-action pattern `_dialogo_aprobacion()` already uses for Approve, layered on top of (not instead of) the section's session-level unlock. A wrong password shows the same "Incorrect password" message and — importantly — never calls `buscar_cliente_por_email()` at all, so a bad guess can't even trigger a real Notion query. Skipped entirely when `APPROVAL_PASSWORD` is unset, so local dev keeps zero extra friction, matching every other optional secret in this project.
+
+**Verified live:** with a temporary password set, a wrong password on the "Load" click showed "Incorrect password" and left the form empty (confirmed no lookup fired); the correct password went through to a real Notion query, confirmed by "No client found with that email" for a made-up test address rather than a password error.
+
+## Two more privacy/UX corrections, requested directly after live-testing the gate
+
+Both caught by the project owner actually using the freshly-gated app, not flagged in review.
+
+**The gate's own copy was giving away more than it needed to:** the password prompt originally said "the same one used to approve a plan" — accurate, but an unnecessary hint to anyone probing the gate about what else that password unlocks. Removed from both languages; the prompt now just states that a password is required, nothing about what else it's shared with.
+
+**The "never sends automatically" reassurance lines in client-facing emails were removed, at the project owner's request** — the parenthetical notes in `_construir_cuerpo_email()` (diet/routine email) and `_construir_cuerpo_portal()` (portal-link email) explaining "this was sent on purpose by your trainer, TrainFitter never sends on its own" were judged to read as unnecessary boilerplate from the client's side (a real client doesn't need TrainFitter's own internal safety guarantee explained to them in the email itself) rather than reassurance. The guarantee they described is still fully real and enforced in code (`gmail.compose`-only drafts, the one narrow `gmail.send` exception, all documented in this log and `CLAUDE.md`) — only the client-facing text explaining it was removed, not the guarantee itself.
+
 ---
 
 ## Fitness content disclaimer

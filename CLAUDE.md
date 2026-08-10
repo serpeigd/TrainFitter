@@ -300,7 +300,19 @@ a roster is a repeated look-around action, not one consequential click. On
 local dev (password unset) both sections render exactly as before. Verified
 live: both sections show only a password prompt until unlocked, a wrong
 password is rejected, the correct one unlocks both at once, and a page
-reload re-locks them.
+reload re-locks them. `_cargar_ficha_para_revisar()`'s lookup now also
+re-checks `APPROVAL_PASSWORD` on every "Load" click (not just once per
+session, like `_dialogo_aprobacion()`'s per-click check for Approve) —
+the session-level unlock alone meant anyone at an already-unlocked
+session could pull up any client's full health profile just by knowing
+their email; a wrong password now blocks the click before
+`buscar_cliente_por_email()` is even called. The gate's own prompt text
+also dropped the "same password used to approve a plan" hint (an
+unnecessary tell), and the client-facing "this was sent on purpose by
+your trainer" reassurance lines were removed from the diet/routine and
+portal-link email bodies at the project owner's request — the
+guarantee they described is still fully enforced in code, only the
+explanatory text in the email itself was cut.
 
 ## Free-only guardrail
 

@@ -201,8 +201,7 @@ def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador
             f"rellenable para ir marcando tu rutina. Dentro de unas semanas, "
             f"cuando ya hayas empezado, rellénalo y RESPONDE A ESTE EMAIL "
             f"con el formulario adjunto de nuevo — al responder, el archivo "
-            f"no se adjunta solo, así que tendrás que volver a adjuntarlo tú.\n\n"
-            f"(Este es un borrador preparado por TrainFitter — revisado y enviado por tu entrenador/a, nunca de forma automática.)"
+            f"no se adjunta solo, así que tendrás que volver a adjuntarlo tú."
         )
 
     return (
@@ -213,8 +212,7 @@ def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador
         f"to check off your routine. In a few weeks, once you've actually "
         f"started, fill it in and REPLY TO THIS EMAIL with the form "
         f"attached again — replying doesn't carry the attachment over "
-        f"automatically, so you'll need to attach it yourself.\n\n"
-        f"(This is a draft prepared by TrainFitter — reviewed and sent by your trainer, never automatically.)"
+        f"automatically, so you'll need to attach it yourself."
     )
 
 
@@ -384,9 +382,7 @@ def _construir_cuerpo_portal(nombre_cliente: str, url_portal: str, idioma: str =
             f"puedes ver un resumen de tu plan y registrar cómo te va:\n\n"
             f"{url_portal}\n\n"
             f"Este enlace es solo tuyo — no lo compartas. Caduca pasados unos "
-            f"días; si deja de funcionar, pídele a tu entrenador/a uno nuevo.\n\n"
-            f"(Este correo lo ha enviado tu entrenador/a a propósito, pulsando "
-            f"un botón — TrainFitter nunca escribe ni envía nada por su cuenta.)"
+            f"días; si deja de funcionar, pídele a tu entrenador/a uno nuevo."
         )
     return (
         f"Hi {nombre_cliente},\n\n"
@@ -395,9 +391,7 @@ def _construir_cuerpo_portal(nombre_cliente: str, url_portal: str, idioma: str =
         f"{url_portal}\n\n"
         f"This link is just for you — please don't share it. It expires "
         f"after a few days; ask your trainer for a new one if it stops "
-        f"working.\n\n"
-        f"(Your trainer sent this on purpose, by clicking a button — "
-        f"TrainFitter never writes or sends anything on its own.)"
+        f"working."
     )
 
 

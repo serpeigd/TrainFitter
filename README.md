@@ -167,7 +167,11 @@ This repository is built phase by phase, as a learning project. Right now:
   data (emails at minimum; "Revise client" surfaces full health details) —
   on the public demo, both are gated behind the same shared password that
   already protects the "Approve" button, unlocked once per browser session
-  rather than re-checked on every click. Unset locally, same as everywhere
+  rather than re-checked on every click. "Revise client"'s actual
+  email lookup goes further: it re-checks that same password on every
+  single load (not just the once-per-session unlock), since a shared or
+  already-unlocked session shouldn't let anyone pull up any client's full
+  profile just by knowing their email. Unset locally, same as everywhere
   else.
 
 ## What it doesn't include yet
