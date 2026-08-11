@@ -766,15 +766,20 @@ TRANSLATIONS = {
         "revise_client_error": "Could not look up this client: {error}",
         "revise_client_not_found": "No client found with that email.",
         "revise_client_loaded": "Loaded **{nombre}** — edit anything below and regenerate.",
-        "intake_pdf_upload_header": "📤 Upload a filled intake PDF (skip the form below)",
+        "revise_client_not_loaded": (
+            "Load a client by email above to see and edit their plan — this section can't create a "
+            "new client from scratch (use \"New client\" for that)."
+        ),
+        "intake_pdf_upload_header": "📤 Upload a filled intake PDF (instead of retyping it below)",
         "intake_pdf_upload_caption": (
-            "If the client emailed back a filled-in intake form, upload it here instead of retyping everything."
+            "If the client emailed back a filled-in intake form, upload it here to pre-fill the form "
+            "below instead of retyping everything — you'll still review and edit it before generating."
         ),
         "intake_pdf_upload_label": "Filled intake PDF",
         "intake_pdf_upload_invalid": "This doesn't look like a TrainFitter intake PDF.",
         "intake_pdf_upload_empty": "The name field is empty — looks like a blank template, not a filled-in form.",
         "intake_pdf_upload_loaded": "Loaded intake for **{nombre}**.",
-        "intake_pdf_upload_confirm": "Use this data and generate the plan",
+        "intake_pdf_upload_confirm": "Load this data into the form below",
         "intake_email_flow_header": "✉️ Or email the blank form to a prospect",
         "intake_email_flow_label": "Prospect's email",
         "intake_email_flow_password_label": "Trainer password (required on this deployment)",
@@ -983,16 +988,21 @@ TRANSLATIONS = {
         "revise_client_error": "No se pudo buscar a este cliente: {error}",
         "revise_client_not_found": "No se ha encontrado ningún cliente con ese email.",
         "revise_client_loaded": "Cargado **{nombre}** — edita lo que necesites y regenera.",
-        "intake_pdf_upload_header": "📤 Subir una ficha PDF rellenada (te saltas el formulario de abajo)",
+        "revise_client_not_loaded": (
+            "Carga un cliente por email arriba para ver y editar su plan — este apartado no sirve "
+            "para crear un cliente nuevo desde cero (usa \"Cliente nuevo\" para eso)."
+        ),
+        "intake_pdf_upload_header": "📤 Subir una ficha PDF rellenada (en vez de escribirla abajo)",
         "intake_pdf_upload_caption": (
-            "Si el cliente respondió por email con la ficha de admisión rellenada, súbela aquí en vez de "
-            "volver a escribirlo todo."
+            "Si el cliente respondió por email con la ficha de admisión rellenada, súbela aquí para "
+            "precargar el formulario de abajo en vez de escribirlo todo de nuevo — podrás revisarlo y "
+            "editarlo antes de generar."
         ),
         "intake_pdf_upload_label": "PDF de ficha rellenado",
         "intake_pdf_upload_invalid": "Esto no parece un PDF de ficha de TrainFitter.",
         "intake_pdf_upload_empty": "El campo de nombre está vacío — parece una plantilla en blanco, no una ficha rellenada.",
         "intake_pdf_upload_loaded": "Ficha cargada para **{nombre}**.",
-        "intake_pdf_upload_confirm": "Usar estos datos y generar el plan",
+        "intake_pdf_upload_confirm": "Cargar estos datos en el formulario de abajo",
         "intake_email_flow_header": "✉️ O envía la ficha en blanco por email a un candidato",
         "intake_email_flow_label": "Email del candidato",
         "intake_email_flow_password_label": "Contraseña del entrenador (necesaria en este despliegue)",
@@ -1344,16 +1354,24 @@ def _flujo_email_intake() -> None:
         st.rerun()
 
 
-def _cargar_ficha_desde_pdf() -> dict | None:
-    """Alternative to _formulario_ficha_nueva(): lets the trainer load a
-    filled agents/pdf_intake.py form (e.g. one a prospect emailed back)
-    instead of retyping the whole intake by hand -- either uploaded by
-    hand, or found directly by searching the inbox for a specific
-    prospect's reply (see _flujo_email_intake()). Same id_cliente/
-    fecha_admision convention as the manual form below, and the same
-    "only return once the trainer explicitly confirms" pattern -- so a
-    stale upload/search result left around doesn't silently regenerate a
-    plan on every unrelated rerun of this page."""
+def _cargar_ficha_desde_pdf() -> None:
+    """Loader for _formulario_ficha_nueva(), the same shared "New client"
+    form below -- instead of retyping a filled agents/pdf_intake.py form
+    (e.g. one a prospect emailed back) by hand, load it here (uploaded, or
+    found directly by searching the inbox for a specific prospect's reply
+    -- see _flujo_email_intake()).
+
+    Deliberately does NOT return a profile straight to the pipeline
+    anymore (a real behavior change, requested directly after live use):
+    confirming here pre-seeds the same session_state keys
+    _formulario_ficha_nueva()'s widgets read
+    (_campos_formulario_desde_perfil()) and reruns -- exactly the same
+    "load, then review/edit, then generate" pattern
+    _cargar_ficha_para_revisar() already uses for an existing client.
+    Parsed PDF fields are a mechanical field-by-field read (agents/
+    pdf_intake.py), not something guaranteed correct just because a form
+    was returned filled in -- skipping straight to generation meant no one
+    ever looked at that specific data before it became a routine/diet."""
     with st.expander(t("intake_pdf_upload_header")):
         st.caption(t("intake_pdf_upload_caption"))
 
@@ -1364,29 +1382,33 @@ def _cargar_ficha_desde_pdf() -> dict | None:
             nombre_encontrado = perfil_encontrado["datos_basicos"]["nombre"]
             st.success(t("intake_pdf_upload_loaded").format(nombre=nombre_encontrado))
             if st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_encontrado"):
-                return perfil_encontrado
-            return None
+                for clave, valor in _campos_formulario_desde_perfil(perfil_encontrado).items():
+                    st.session_state[clave] = valor
+                del st.session_state["intake_encontrado"]
+                st.rerun()
+            return
 
         st.divider()
         pdf_subido = st.file_uploader(t("intake_pdf_upload_label"), type=["pdf"], key="intake_pdf_subido")
         if pdf_subido is None:
-            return None
+            return
 
         contenido_pdf = pdf_subido.getvalue()
         if not es_intake_pdf(contenido_pdf):
             st.error(t("intake_pdf_upload_invalid"))
-            return None
+            return
 
         perfil = leer_intake_pdf(contenido_pdf)
         if not perfil["datos_basicos"]["nombre"]:
             st.warning(t("intake_pdf_upload_empty"))
-            return None
+            return
         perfil = _perfil_desde_intake_encontrado(perfil)
 
         st.success(t("intake_pdf_upload_loaded").format(nombre=perfil["datos_basicos"]["nombre"]))
-        if not st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_pdf"):
-            return None
-        return perfil
+        if st.button(t("intake_pdf_upload_confirm"), type="primary", key="confirmar_intake_pdf"):
+            for clave, valor in _campos_formulario_desde_perfil(perfil).items():
+                st.session_state[clave] = valor
+            st.rerun()
 
 
 def _campos_formulario_desde_perfil(perfil: dict) -> dict:
@@ -1660,25 +1682,31 @@ def _formulario_ficha_nueva() -> dict | None:
 # ---------------------------------------------------------------------------
 
 def _cargar_ficha_para_revisar() -> dict | None:
-    """A third front door into _formulario_ficha_nueva() (alongside the
-    blank form and the PDF-upload path above): instead of starting from
-    scratch, the trainer looks up an existing client by email
-    (buscar_cliente_por_email(), which reads back the full profile
-    guardar_registro_cliente()/actualizar_registro_cliente() now persist
-    -- see docs/decisiones.md for why that's a real, requested schema
-    change) and edits/regenerates from there. Reuses
-    _formulario_ficha_nueva() completely unmodified: loading a profile
-    just pre-seeds the same session_state keys those widgets already
-    read (_campos_formulario_desde_perfil()), the standard Streamlit
-    pattern for a programmatic default value -- st.rerun() right after
-    guarantees the form's own widgets are instantiated fresh against
-    that pre-seeded state, rather than relying on same-run ordering.
+    """A second front door into _formulario_ficha_nueva() (alongside the
+    blank form under "New client"): the trainer looks up an existing
+    client by email (buscar_cliente_por_email(), which reads back the
+    full profile guardar_registro_cliente()/actualizar_registro_cliente()
+    now persist -- see docs/decisiones.md for why that's a real,
+    requested schema change) and edits/regenerates from there.
 
-    Sets st.session_state["revisar_pagina_id"] on a successful load --
-    read by the dispatch block below to correlate the eventual submitted
-    profile back to the record to UPDATE rather than create.
+    Deliberately does NOT fall through to a blank _formulario_ficha_nueva()
+    when no client has been loaded -- it used to, which meant the trainer
+    could type up an entirely new client under "Revise client" without
+    ever looking one up, an easy way to end up with a stray Notion record
+    that's neither a real revision nor created through "New client"'s own
+    Notion-save/Gmail-draft gating. The form only renders once
+    st.session_state["revisar_pagina_id"] is set by a successful load
+    below, which is also what tells the eventual submission to UPDATE
+    that Notion page instead of creating a new one.
 
-    On top of _gate_datos_clientes()'s session-level unlock for this whole
+    Loading a profile pre-seeds the same session_state keys
+    _formulario_ficha_nueva()'s widgets already read
+    (_campos_formulario_desde_perfil()), the standard Streamlit pattern
+    for a programmatic default value -- st.rerun() right after guarantees
+    the form's own widgets are instantiated fresh against that pre-seeded
+    state, rather than relying on same-run ordering.
+
+    On top of _gate_datos_clientes()'s session-level unlock for this
     section, the actual lookup re-checks APPROVAL_PASSWORD every single
     time it runs (like _dialogo_aprobacion's per-click check, not a
     one-time flag) -- the session unlock only proves the trainer knew the
@@ -1700,10 +1728,8 @@ def _cargar_ficha_para_revisar() -> dict | None:
                 st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
             elif APPROVAL_PASSWORD and not _verificar_password(password_buscar):
                 # Deliberately doesn't call buscar_cliente_por_email() at all on a
-                # wrong password -- falls through to the same, unmodified
-                # _formulario_ficha_nueva() at the bottom of this function instead
-                # of returning early, so a mistyped password never leaves the
-                # trainer stuck without a form.
+                # wrong password -- just shows the error and leaves any
+                # previously loaded client's form (if any) exactly as it was.
                 st.error(t("approval_password_wrong"))
             else:
                 try:
@@ -1723,7 +1749,11 @@ def _cargar_ficha_para_revisar() -> dict | None:
 
         if st.session_state.get("revisar_cargado_nombre"):
             st.success(t("revise_client_loaded").format(nombre=st.session_state["revisar_cargado_nombre"]))
+        else:
+            st.info(t("revise_client_not_loaded"))
 
+    if not st.session_state.get("revisar_pagina_id"):
+        return None
     return _formulario_ficha_nueva()
 
 
@@ -2413,16 +2443,23 @@ def _etiqueta_atencion(valoracion: str | None) -> str:
     return valoracion or ""
 
 
-def _datos_clientes_desbloqueados() -> bool:
-    """Whether the trainer has already unlocked the sections that expose
-    real clients' personal data this browser session. Unset
-    APPROVAL_PASSWORD means there's nothing to unlock -- same "off"
-    degradation as every other optional secret in this file (local dev,
-    the common case, is never gated)."""
-    return (not APPROVAL_PASSWORD) or st.session_state.get("clientes_desbloqueado", False)
+def _datos_clientes_desbloqueados(seccion: str) -> bool:
+    """Whether the trainer has already unlocked THIS section (seccion:
+    "revisar" or "clientes") this browser session. Unset APPROVAL_PASSWORD
+    means there's nothing to unlock -- same "off" degradation as every
+    other optional secret in this file (local dev, the common case, is
+    never gated).
+
+    Scoped per section, not shared: unlocking "Revise client" used to also
+    silently unlock "Clients" (and vice versa) since both read the same
+    flag, which meant proving the password once bought access to both
+    kinds of exposed data (an email roster vs. a client's full health
+    profile) without ever being asked again for the second one. A real gap
+    the project owner caught live-testing, not a hypothetical."""
+    return (not APPROVAL_PASSWORD) or st.session_state.get(f"datos_desbloqueados__{seccion}", False)
 
 
-def _gate_datos_clientes() -> bool:
+def _gate_datos_clientes(seccion: str) -> bool:
     """Password gate in front of "Revise client" and "Clients" -- unlike
     every other section, both put a real client's personal data on
     screen (at minimum an email; Revise client's lookup surfaces the
@@ -2434,24 +2471,30 @@ def _gate_datos_clientes() -> bool:
     second secret -- one password, two things it protects; unset (local
     dev) means both sections render exactly as before.
 
+    Args:
+        seccion: "revisar" or "clientes" -- which of the two call sites is
+            asking, so each gets its own session_state flag/widget keys
+            (see _datos_clientes_desbloqueados()). Unlocking one no longer
+            unlocks the other.
+
     Unlocking is a session-level flag, not per-view like the approval
     dialog: browsing a roster is a "look around" action repeated many
-    times, not one consequential click, so re-prompting on every rerun
-    would be friction with no real safety benefit once the trainer has
-    proven who they are once this session. Returns True (nothing left to
-    render) once unlocked, False while the prompt itself is still
-    showing."""
-    if _datos_clientes_desbloqueados():
+    times, not one consequential click, so re-prompting on every rerun of
+    the SAME section would be friction with no real safety benefit once
+    the trainer has proven who they are once this session for it. Returns
+    True (nothing left to render) once that section is unlocked, False
+    while its prompt itself is still showing."""
+    if _datos_clientes_desbloqueados(seccion):
         return True
     st.info(t("clients_gate_info"))
     password_ingresada = st.text_input(
-        t("clients_gate_password_label"), type="password", key="clientes_password_gate",
+        t("clients_gate_password_label"), type="password", key=f"clientes_password_gate__{seccion}",
     )
-    if st.button(t("clients_gate_unlock_button"), key="clientes_desbloquear_boton"):
+    if st.button(t("clients_gate_unlock_button"), key=f"clientes_desbloquear_boton__{seccion}"):
         if _password_bloqueada():
             st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
         elif _verificar_password(password_ingresada):
-            st.session_state["clientes_desbloqueado"] = True
+            st.session_state[f"datos_desbloqueados__{seccion}"] = True
             st.rerun()
         else:
             st.error(t("approval_password_wrong"))
@@ -2637,9 +2680,8 @@ seccion_activa = st.segmented_control(
 # tagged with "ultimo_origen" — otherwise it would stay visible after
 # switching to the other section, which has nothing to do with it.
 if seccion_activa == "nueva":
-    perfil_nuevo = _cargar_ficha_desde_pdf()
-    if perfil_nuevo is None:
-        perfil_nuevo = _formulario_ficha_nueva()
+    _cargar_ficha_desde_pdf()
+    perfil_nuevo = _formulario_ficha_nueva()
     if perfil_nuevo is not None:
         st.session_state["ultimo_perfil"] = perfil_nuevo
         st.session_state["ultimo_origen"] = "nueva"
@@ -2651,7 +2693,7 @@ if seccion_activa == "nueva":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "revisar":
-    if _gate_datos_clientes():
+    if _gate_datos_clientes("revisar"):
         perfil_revisado = _cargar_ficha_para_revisar()
         if perfil_revisado is not None:
             st.session_state["ultimo_perfil"] = perfil_revisado
@@ -2668,7 +2710,7 @@ elif seccion_activa == "revisar":
             _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "clientes":
-    if _gate_datos_clientes():
+    if _gate_datos_clientes("clientes"):
         _panel_todos_los_clientes()
 
 elif seccion_activa == "ejemplo":

@@ -179,9 +179,9 @@ PROGRESION_VARIANTES = {
 MENSAJE_CLIENTE_RUTINA_VARIANTES = {
     "en": [
         "here's your first draft routine. Let's go step by step: technique first, weight later "
-        "— your body learns before it forces. It doesn't need to be perfect the first week; "
-        "what matters is that you can repeat it. If you have any questions, or if something "
-        "hurts (not just feels tough), let me know and we'll adjust it.",
+        "— you learn the movement before you load it. It doesn't need to be perfect the first "
+        "week; what matters is that you can repeat it. If you have any questions, or if "
+        "something hurts (not just feels tough), let me know and we'll adjust it.",
         "here's your first draft routine. Nothing here is set in stone — think of it as a "
         "starting point we'll shape together. The first week is about learning the movements, "
         "not chasing weight; if something feels off, especially any real pain rather than just "

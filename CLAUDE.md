@@ -440,6 +440,30 @@ picked up three new entries for this session's most defensible calls
 than eyeballed, and the `fake_anthropic` testing technique) — 15 total
 now, up from 11.
 
+Three real bugs caught by live use of the deployed app, all fixed the
+same day: the plan email repeated the client's name three times and read
+as a wall of text (`gmail_client._construir_cuerpo_email()` was adding
+its own greeting on top of one already baked into each of
+`mensaje_para_el_cliente`'s two halves — fixed with `_quitar_saludo()`
+plus labeled "🏋️ Your routine"/"🍽️ Your diet" sections); one of
+`rutina_reglas.py`'s four English message variants read as broken
+English (reworded, independent of `docs/metodo_entrenador.md`'s own
+"real phrases from the trainer" list, which stays untouched); and
+Google Drive's/Gmail's built-in PDF preview can't fill the checklist
+form (a viewer limitation, not a bug in the PDF — both language versions
+of the plan email now suggest downloading and opening it in a real PDF
+app). Separately, the password gate shared one unlock flag across
+"Revise client" and "Clients," so proving the password once silently
+unlocked both — `_gate_datos_clientes()` now takes a `seccion` argument
+so each gets its own flag. And two entry points used to skip the human
+review step entirely: "Revise client" let the trainer type up a brand
+new client from scratch (now only renders once a real client has been
+loaded by email), and confirming an uploaded/found intake PDF used to
+generate a plan directly from parsed fields with no one looking at them
+first (now pre-fills the same shared form for review, same pattern as
+"Revise client"). See `docs/decisiones.md` for the full write-up of all
+five.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

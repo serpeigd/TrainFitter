@@ -20,6 +20,7 @@ from gmail_client import (
     _extraer_checklist_pdf,
     _extraer_intake_pdf,
     _extraer_remitente,
+    _quitar_saludo,
     _recolectar_adjuntos_pdf,
     _validar_destinatario,
 )
@@ -70,6 +71,44 @@ def test_email_body_explains_re_attaching_the_checklist():
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
     assert "attach" in cuerpo.lower()
     assert "doesn't carry the attachment over automatically" in cuerpo
+
+
+def test_email_body_does_not_repeat_the_clients_name_in_the_greeting():
+    """Real bug: rutina_reglas.py/dieta_reglas.py each bake their own "Hi
+    {name}, " greeting into mensaje_para_el_cliente (by design, so it reads
+    naturally shown standalone -- see their own docstrings). Combining both
+    messages under this email's own greeting used to open three lines in a
+    row with the client's name; this locks in that it no longer does."""
+    borrador_rutina = {"mensaje_para_el_cliente": "Hi Ana, here's your routine."}
+    borrador_dieta = {"mensaje_para_el_cliente": "Hi Ana, here's your diet."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert cuerpo.count("Hi Ana") == 1
+
+
+def test_email_body_has_a_labeled_section_per_message():
+    """Structure fix alongside the greeting dedup above -- two full
+    paragraphs run together read as one wall of text."""
+    borrador_rutina = {"mensaje_para_el_cliente": "Hi Ana, here's your routine."}
+    borrador_dieta = {"mensaje_para_el_cliente": "Hi Ana, here's your diet."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "Your routine" in cuerpo
+    assert "Your diet" in cuerpo
+
+
+def test_quitar_saludo_strips_a_matching_greeting():
+    assert _quitar_saludo("Hi Ana, here's your routine.", "Ana", "en") == "here's your routine."
+    assert _quitar_saludo("Hola Ana, aquí tienes tu rutina.", "Ana", "es") == "aquí tienes tu rutina."
+
+
+def test_quitar_saludo_uses_only_the_first_name():
+    assert _quitar_saludo("Hi Ana, here's your routine.", "Ana García", "en") == "here's your routine."
+
+
+def test_quitar_saludo_leaves_message_untouched_if_greeting_does_not_match():
+    """Defensive: a hand-edited or unexpected message shouldn't get silently
+    mangled just because it doesn't start with the exact expected prefix."""
+    mensaje = "Coach's note: keep it light this week."
+    assert _quitar_saludo(mensaje, "Ana", "en") == mensaje
 
 
 def test_email_body_wrapper_text_translates_for_spanish():

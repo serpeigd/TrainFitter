@@ -193,41 +193,72 @@ def _validar_destinatario(destinatario: str) -> str:
     return destinatario
 
 
+def _quitar_saludo(mensaje: str, nombre_cliente: str, idioma: str) -> str:
+    """rutina_reglas.py/dieta_reglas.py each bake their own "Hi {first_name}, "
+    / "Hola {first_name}, " greeting directly into mensaje_para_el_cliente --
+    by design, so the message reads naturally when shown standalone (the
+    trainer's UI panel, the diet PDF -- see those modules' own docstrings).
+
+    This email shows BOTH messages together under one shared greeting, so
+    without this the client's own name would open three separate lines in a
+    row. Strips a matching leading greeting back off; leaves the message
+    untouched if the prefix doesn't match exactly (e.g. a hand-edited
+    message), since silently mangling text is worse than an occasional
+    harmless repeat."""
+    primer_nombre = nombre_cliente.split()[0] if nombre_cliente.strip() else nombre_cliente
+    saludo = f"Hola {primer_nombre}, " if idioma == "es" else f"Hi {primer_nombre}, "
+    return mensaje[len(saludo):] if mensaje.startswith(saludo) else mensaje
+
+
 def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en") -> str:
     """Brief plain-text email body -- the plan's own detail lives in the two
     attached PDFs now (see agents/pdf_generador.py), not inlined here. Pure
     formatting -- no network, no auth, trivially unit-testable.
 
     Keeps borrador_rutina/borrador_dieta's own mensaje_para_el_cliente (the
-    trainer's personal, warm note) but drops resumen_enfoque/macros, which
-    now live in the diet PDF instead of being duplicated in the email body.
+    trainer's personal, warm note, varied per client -- see
+    agents/variacion.py) but drops resumen_enfoque/macros, which now live in
+    the diet PDF instead of being duplicated in the email body. Each
+    message's own baked-in greeting is stripped (see _quitar_saludo()) and
+    replaced by one shared greeting up top, and the two are set under short
+    section labels instead of run together as one wall of text -- a real
+    fix, not cosmetic: the client's name used to open three lines in a row.
 
-    idioma only affects this template's own wrapper text (greeting,
-    attachment explanation, footer note) — mensaje_para_el_cliente was
-    already generated in whichever language the trainer had selected when
-    the plan was created (see rutina_reglas.py/dieta_reglas.py), so this
-    just needs to match that, not translate anything itself."""
+    idioma only affects this template's own wrapper text (greeting, section
+    labels, attachment explanation) — mensaje_para_el_cliente was already
+    generated in whichever language the trainer had selected when the plan
+    was created (see rutina_reglas.py/dieta_reglas.py), so this just needs
+    to match that, not translate anything itself."""
+    mensaje_rutina = _quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
+    mensaje_dieta = _quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
+
     if idioma == "es":
         return (
             f"Hola {nombre_cliente},\n\n"
-            f"{borrador_rutina['mensaje_para_el_cliente']}\n\n"
-            f"{borrador_dieta['mensaje_para_el_cliente']}\n\n"
-            f"Adjunto van dos archivos: tu dieta en PDF, y un formulario "
-            f"rellenable para ir marcando tu rutina. Dentro de unas semanas, "
-            f"cuando ya hayas empezado, rellénalo y RESPONDE A ESTE EMAIL "
-            f"con el formulario adjunto de nuevo — al responder, el archivo "
-            f"no se adjunta solo, así que tendrás que volver a adjuntarlo tú."
+            f"🏋️ Tu rutina\n{mensaje_rutina}\n\n"
+            f"🍽️ Tu dieta\n{mensaje_dieta}\n\n"
+            f"Adjunto van tu dieta en PDF y un formulario rellenable para ir "
+            f"marcando tu rutina. Dentro de unas semanas, cuando ya hayas "
+            f"empezado, rellénalo y RESPONDE A ESTE EMAIL con el formulario "
+            f"adjunto de nuevo — al responder, el archivo no se adjunta "
+            f"solo, así que tendrás que volver a adjuntarlo tú. Si el "
+            f"visor de tu correo/Drive no te deja escribir en los campos, "
+            f"descarga el PDF y ábrelo con Adobe Acrobat Reader (gratis) u "
+            f"otra app de PDF."
         )
 
     return (
         f"Hi {nombre_cliente},\n\n"
-        f"{borrador_rutina['mensaje_para_el_cliente']}\n\n"
-        f"{borrador_dieta['mensaje_para_el_cliente']}\n\n"
+        f"🏋️ Your routine\n{mensaje_rutina}\n\n"
+        f"🍽️ Your diet\n{mensaje_dieta}\n\n"
         f"Attached are two files: your diet as a PDF, and a fillable form "
         f"to check off your routine. In a few weeks, once you've actually "
         f"started, fill it in and REPLY TO THIS EMAIL with the form "
         f"attached again — replying doesn't carry the attachment over "
-        f"automatically, so you'll need to attach it yourself."
+        f"automatically, so you'll need to attach it yourself. If your "
+        f"mail/Drive preview won't let you type into the fields, download "
+        f"the PDF and open it in Adobe Acrobat Reader (free) or another "
+        f"PDF app."
     )
 
 
