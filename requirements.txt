@@ -60,6 +60,15 @@ pandas>=1.4.0
 # no llama a ninguna API:
 pytest>=8.0.0
 
+# Cobertura de tests (opcional) — solo si quieres `pytest --cov` en local;
+# CI ya lo ejecuta así (ver .github/workflows/ci.yml). motor="llm" nunca se
+# llama de verdad (ni aquí ni en local), pero su código de construcción de
+# la petición/parseo de la respuesta/manejo de errores sí se prueba, contra
+# un módulo `anthropic` falso inyectado en sys.modules
+# (tests/conftest.py's fake_anthropic) -- por eso NO hace falta instalar el
+# paquete `anthropic` real para que esa cobertura cuente. Gratis, sin API:
+pytest-cov>=5.0.0
+
 # Lint (opcional) — solo si quieres ejecutar `ruff check .` en local (ver
 # pyproject.toml). Gratis, wired en CI:
 ruff>=0.6.0

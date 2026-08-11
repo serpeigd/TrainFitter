@@ -136,6 +136,66 @@ def test_idioma_es_translates_motivos(perfil_base):
     assert any("lesión" in motivo.lower() for motivo in veredicto["motivos"])
 
 
+def test_idioma_es_translates_condition_pregnancy_medication_and_bloodwork_motivos(perfil_base):
+    """test_idioma_es_translates_motivos above only exercises the injury
+    branch of _motivos_desde_perfil()'s Spanish path -- a coverage report
+    (see pyproject.toml's [tool.coverage.run]) surfaced that the other
+    four (condition, pregnancy, medication, bloodwork) were untested in
+    Spanish specifically, on the pipeline's safety gate. Closed here."""
+    perfil_base["salud"]["enfermedades_o_condiciones"] = ["hipertensión"]
+    perfil_base["salud"]["embarazo_o_lactancia"] = {"aplica": True, "detalle": "second trimester"}
+    perfil_base["salud"]["medicacion_habitual"] = ["metformina"]
+    perfil_base["salud"]["analitica_adjunta"] = {
+        "tiene": True, "archivo": "x.pdf", "fecha": "2026-01-01", "notas": "",
+        "marcadores": [{"nombre": "TSH", "valor": 6.8, "unidad": "mIU/L", "rango_normal": "0.4-4.0", "fuera_de_rango": True}],
+    }
+    rutina = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    dieta = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    veredicto = validar_borradores(perfil_base, rutina, dieta, idioma="es")
+    motivos_texto = " ".join(veredicto["motivos"]).lower()
+    assert "condición" in motivos_texto
+    assert "embarazo" in motivos_texto
+    assert "medicación" in motivos_texto
+    assert "tsh" in motivos_texto
+
+
+def test_idioma_es_translates_diet_allergy_conflict_motivo(perfil_base):
+    """Same coverage gap as above, for _validar_dieta_contra_alergias()'s
+    own Spanish branch -- the defense-in-depth cross-check that catches a
+    conflicting food even when the draft didn't self-flag it."""
+    perfil_base["salud"]["alergias_alimentarias"] = ["huevo"]
+    borrador_dieta_defectuoso = {
+        "advertencias_revision_humana": [],
+        "fuentes_proteina_sugeridas": ["Eggs"],
+        "fuentes_carbohidrato_sugeridas": [],
+        "fuentes_grasa_sugeridas": [],
+    }
+    rutina = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    veredicto = validar_borradores(perfil_base, rutina, borrador_dieta_defectuoso, idioma="es")
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("revisión necesaria" in motivo.lower() and "eggs" in motivo.lower() for motivo in veredicto["motivos"])
+
+
+def test_exercise_not_in_the_bank_is_skipped_not_crashed(perfil_base):
+    """Defensive branch for a future motor="llm" routine: an exercise name
+    the local EXERCISE_BANK doesn't recognize can't be cross-checked
+    against injuries, so it's silently skipped rather than raising a
+    KeyError -- locked in here rather than only implicitly relied upon."""
+    perfil_base["salud"]["lesiones"] = [
+        {"zona": "rodilla", "descripcion": "", "estado": "antigua_controlada", "activa_actualmente": False}
+    ]
+    borrador_rutina_llm = {
+        "advertencias_revision_humana": [],
+        "sesiones": [{"dia": "Day 1", "ejercicios": [{"nombre": "Some exercise not in our bank", "series": 3, "repeticiones": "8-12"}]}],
+    }
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, borrador_rutina_llm, dieta)
+    # Still flagged for the declared injury itself (from the raw profile),
+    # just not for a cross-check against an exercise it can't identify.
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert not any("Some exercise not in our bank" in motivo for motivo in veredicto["motivos"])
+
+
 def test_duplicate_reasons_are_not_repeated(perfil_base):
     """Both the routine and diet engines independently warn about a declared
     health condition using the exact same wording — the validator must

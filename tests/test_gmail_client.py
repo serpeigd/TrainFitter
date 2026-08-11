@@ -18,6 +18,7 @@ from gmail_client import (
     _construir_cuerpo_portal,
     _construir_mensaje_raw,
     _extraer_checklist_pdf,
+    _extraer_intake_pdf,
     _extraer_remitente,
     _recolectar_adjuntos_pdf,
     _validar_destinatario,
@@ -221,6 +222,29 @@ def test_recolectar_adjuntos_pdf_ignores_non_pdf_attachments():
     assert _recolectar_adjuntos_pdf(None, "msg-1", parte) == []
 
 
+def test_recolectar_adjuntos_pdf_fetches_large_attachments_by_id():
+    """Gmail only inlines small attachment data on the message part itself
+    (see the other tests above, which pass servicio=None); anything larger
+    comes back as just an attachmentId needing a second API call -- this
+    was a real, untested branch until a coverage report (pyproject.toml's
+    [tool.coverage.run]) surfaced it."""
+    from unittest.mock import MagicMock
+
+    parte = {"filename": "adherence-checklist.pdf", "mimeType": "application/pdf", "body": {"attachmentId": "att-1"}}
+    servicio = MagicMock()
+    contenido_b64 = base64.urlsafe_b64encode(b"%PDF-large-bytes").decode("ascii")
+    servicio.users.return_value.messages.return_value.attachments.return_value.get.return_value.execute.return_value = {
+        "data": contenido_b64
+    }
+
+    resultado = _recolectar_adjuntos_pdf(servicio, "msg-1", parte)
+
+    assert resultado == [("adherence-checklist.pdf", b"%PDF-large-bytes")]
+    servicio.users.return_value.messages.return_value.attachments.return_value.get.assert_called_once_with(
+        userId="me", messageId="msg-1", id="att-1",
+    )
+
+
 def test_extraer_checklist_pdf_prefers_the_known_checklist_filename():
     """A reply could carry more than one PDF (e.g. the client forwarded the
     whole original chain, re-attaching the diet PDF too) -- the one
@@ -276,3 +300,27 @@ def test_extraer_checklist_pdf_returns_none_when_only_the_diet_pdf_is_present():
 def test_extraer_checklist_pdf_returns_none_with_no_pdf_attachments():
     parte = {"mimeType": "multipart/mixed", "parts": []}
     assert _extraer_checklist_pdf(None, "msg-1", parte) is None
+
+
+def test_extraer_intake_pdf_falls_back_to_field_detection_when_renamed():
+    """Same fallback pattern as _extraer_checklist_pdf() above, for the
+    intake PDF's own filename-first/form-fields-fallback logic -- was
+    only ever exercised indirectly (via buscar_intakes_nuevos()'s network
+    tests, which all use the known filename) until a coverage report
+    surfaced this branch specifically as untested."""
+    from pdf_intake import generar_pdf_intake
+
+    intake_real = generar_pdf_intake(idioma="en")
+    parte = {
+        "mimeType": "multipart/mixed",
+        "parts": [_parte_adjunto("my-renamed-intake.pdf", "application/pdf", intake_real)],
+    }
+    assert _extraer_intake_pdf(None, "msg-1", parte) == intake_real
+
+
+def test_extraer_intake_pdf_returns_none_with_no_recognizable_pdf():
+    parte = {
+        "mimeType": "multipart/mixed",
+        "parts": [_parte_adjunto("random.pdf", "application/pdf", b"%PDF-not-an-intake-form")],
+    }
+    assert _extraer_intake_pdf(None, "msg-1", parte) is None

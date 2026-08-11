@@ -22,7 +22,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import streamlit as st
@@ -90,6 +90,58 @@ _materializar_secretos_gmail()
 # against, matching how every other optional credential in this project
 # degrades to "off" rather than "broken" when not configured.
 APPROVAL_PASSWORD = os.environ.get("APP_APPROVAL_PASSWORD")
+
+# Lightweight brute-force protection, shared across every one of this
+# file's password-gated actions (Approve, the Revise-client/Clients
+# section gate, Revise client's own per-lookup check, and the intake-email
+# flow) via one counter in session_state -- switching which gate you try
+# next doesn't reset your attempt budget. After MAX_INTENTOS_PASSWORD wrong
+# guesses in a row, the password is locked out for COOLDOWN_MINUTOS
+# regardless of what's typed, not just shown another "incorrect password".
+# A real, disclosed limit rather than a false sense of security: this is
+# per browser session, not per IP -- a full page reload starts a fresh
+# session with its own budget, since Streamlit has no server-side request
+# throttling without extra infrastructure this project doesn't have. Still
+# a real improvement over the unlimited, instant retries that existed
+# before: a script hammering the gate now has to wait, not just resubmit.
+MAX_INTENTOS_PASSWORD = 5
+COOLDOWN_MINUTOS = 2
+
+
+def _password_bloqueada() -> bool:
+    """Whether the shared attempt budget is currently exhausted. Clears
+    itself (and the failed-attempt counter) once COOLDOWN_MINUTOS has
+    passed since the lockout started, rather than staying locked forever."""
+    bloqueada_desde = st.session_state.get("password_bloqueada_desde")
+    if bloqueada_desde is None:
+        return False
+    if datetime.now(timezone.utc) - bloqueada_desde > timedelta(minutes=COOLDOWN_MINUTOS):
+        st.session_state["password_bloqueada_desde"] = None
+        st.session_state["intentos_password_fallidos"] = 0
+        return False
+    return True
+
+
+def _verificar_password(intento: str | None) -> bool:
+    """The one place every password-gated action in this file should check
+    a typed password against APPROVAL_PASSWORD -- correct on a match (and
+    resets the failure counter), wrong otherwise (and counts toward the
+    shared lockout). Returns False immediately, without comparing anything,
+    while already locked out -- a locked-out session can't "get lucky" on
+    the right guess either."""
+    if _password_bloqueada():
+        return False
+    if intento == APPROVAL_PASSWORD:
+        st.session_state["intentos_password_fallidos"] = 0
+        st.session_state["password_bloqueada_desde"] = None
+        return True
+    intentos = st.session_state.get("intentos_password_fallidos", 0) + 1
+    st.session_state["intentos_password_fallidos"] = intentos
+    if intentos >= MAX_INTENTOS_PASSWORD:
+        st.session_state["password_bloqueada_desde"] = datetime.now(timezone.utc)
+    return False
+
+
 # Needed to build a full, clickable portal URL (generar_token_portal() only
 # returns the token itself) -- defaults to local dev's own address; set to
 # the real deployed URL (e.g. https://trainfitter.streamlit.app) via env
@@ -834,6 +886,9 @@ TRANSLATIONS = {
         "approval_dialog_title": "Trainer's approval",
         "approval_password_label": "Password (required to approve on this deployment)",
         "approval_password_wrong": "Incorrect password.",
+        "approval_password_locked": (
+            "Too many incorrect attempts — locked for {minutos} minutes. Try again later."
+        ),
         "approve_button": "✅ Approve and mark as ready to send",
         "approved_success": "Marked as approved at {time}.",
         "gmail_section_header": "### ✉️ Email the plan",
@@ -1049,6 +1104,9 @@ TRANSLATIONS = {
         "approval_dialog_title": "Aprobación del entrenador",
         "approval_password_label": "Contraseña (necesaria para aprobar en este despliegue)",
         "approval_password_wrong": "Contraseña incorrecta.",
+        "approval_password_locked": (
+            "Demasiados intentos incorrectos — bloqueado durante {minutos} minutos. Vuelve a intentarlo más tarde."
+        ),
         "approve_button": "✅ Aprobar y marcar como listo para enviar",
         "approved_success": "Marcado como aprobado a las {time}.",
         "gmail_section_header": "### ✉️ Enviar el plan por email",
@@ -1257,9 +1315,13 @@ def _flujo_email_intake() -> None:
     if not email_prospecto:
         st.warning(t("intake_email_flow_missing"))
         return
-    if APPROVAL_PASSWORD and password_intake != APPROVAL_PASSWORD:
-        st.error(t("approval_password_wrong"))
-        return
+    if APPROVAL_PASSWORD:
+        if _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+            return
+        if not _verificar_password(password_intake):
+            st.error(t("approval_password_wrong"))
+            return
 
     if enviar_click:
         try:
@@ -1634,7 +1696,9 @@ def _cargar_ficha_para_revisar() -> dict | None:
             if APPROVAL_PASSWORD else None
         )
         if email_buscar and st.button(t("revise_client_load_button"), key="revisar_cargar"):
-            if APPROVAL_PASSWORD and password_buscar != APPROVAL_PASSWORD:
+            if APPROVAL_PASSWORD and _password_bloqueada():
+                st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+            elif APPROVAL_PASSWORD and not _verificar_password(password_buscar):
                 # Deliberately doesn't call buscar_cliente_por_email() at all on a
                 # wrong password -- falls through to the same, unmodified
                 # _formulario_ficha_nueva() at the bottom of this function instead
@@ -1939,7 +2003,10 @@ def _dialogo_aprobacion(estado, guardar_en_notion: bool) -> None:
     it's not frozen at first import the way a module-level constant would be."""
     password_ingresada = st.text_input(t("approval_password_label"), type="password", key="approval_password_dialog")
     if st.button(t("approve_button"), type="primary"):
-        if password_ingresada != APPROVAL_PASSWORD:
+        if _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+            return
+        if not _verificar_password(password_ingresada):
             st.error(t("approval_password_wrong"))
             return
         _ejecutar_aprobacion(estado, guardar_en_notion)
@@ -2381,7 +2448,9 @@ def _gate_datos_clientes() -> bool:
         t("clients_gate_password_label"), type="password", key="clientes_password_gate",
     )
     if st.button(t("clients_gate_unlock_button"), key="clientes_desbloquear_boton"):
-        if password_ingresada == APPROVAL_PASSWORD:
+        if _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+        elif _verificar_password(password_ingresada):
             st.session_state["clientes_desbloqueado"] = True
             st.rerun()
         else:

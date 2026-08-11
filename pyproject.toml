@@ -16,3 +16,26 @@ select = ["E", "F", "W", "I"]
 # each entry (see docs/decisiones.md).
 "agents/exercise_bank.py" = ["E501"]
 "agents/food_bank.py" = ["E501"]
+
+[tool.coverage.run]
+# Scoped to the actual business logic (agents/, mcp/) -- ui/app.py is
+# deliberately not unit-tested (see CLAUDE.md: it's verified live via the
+# preview browser instead, a different kind of check pytest-cov can't see),
+# and main.py is a thin CLI entry point exercised by the real cron job, not
+# by this test suite. Counting either against "coverage" would just make
+# the number meaningless, not more honest.
+source = ["agents", "mcp"]
+omit = [
+    # Manual/demo entry points -- exercised by actually running them (see
+    # CI's own "Run the full pipeline" step and each script's own
+    # docstring), not by importing them under pytest. Including them here
+    # would count real, working code as "uncovered" just because pytest
+    # never imports a __main__-guarded script.
+    "agents/run_pipeline_demo.py",
+    "agents/run_routine_demo.py",
+    "agents/run_manual_pipeline_demo.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

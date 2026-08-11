@@ -49,5 +49,14 @@ jobs:
         working-directory: agents
         run: python run_pipeline_demo.py
 
-      - name: Run the test suite
-        run: python -m pytest tests/ -v
+      # --cov-fail-under is a real, measured floor (currently ~97%; see
+      # pyproject.toml's [tool.coverage.run] for what's in/out of scope --
+      # ui/app.py and main.py are deliberately excluded, see that file's
+      # own comment for why), not an arbitrary number: it fails the build
+      # on a real regression while leaving headroom for new code that
+      # hasn't been fully covered yet. motor="llm"'s request/response/
+      # error-handling code counts too, tested against a fake `anthropic`
+      # module (tests/conftest.py's fake_anthropic) -- no API key, no
+      # network, no cost.
+      - name: Run the test suite (with coverage)
+        run: python -m pytest tests/ -v --cov --cov-report=term-missing --cov-fail-under=90

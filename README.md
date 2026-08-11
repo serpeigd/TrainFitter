@@ -187,8 +187,10 @@ This repository is built phase by phase, as a learning project. Right now:
   email lookup goes further: it re-checks that same password on every
   single load (not just the once-per-session unlock), since a shared or
   already-unlocked session shouldn't let anyone pull up any client's full
-  profile just by knowing their email. Unset locally, same as everywhere
-  else.
+  profile just by knowing their email. A shared brute-force counter also
+  fronts every one of these password checks (Approve included): 5 wrong
+  guesses locks the password out for 2 minutes, no matter which gate it
+  was tried on. Unset locally, same as everywhere else.
 - Both rule engines now genuinely use most of what the intake form collects,
   instead of quietly ignoring several fields (a real, disclosed gap found by
   reading the code before writing any). **Routine:** volume and exercise
@@ -222,9 +224,13 @@ Disclosed here the same way they're disclosed in [`docs/decisiones.md`](docs/dec
 — a passing test suite and a working demo shouldn't be read as claiming more than what's
 actually been verified:
 
-- **`motor="llm"` is designed but never exercised against the real Anthropic API.** The
-  rule engine (`motor="reglas"`) is what every example, test, and the live demo actually
-  run — see [Free-only by design](#free-only-by-design) below.
+- **`motor="llm"` is designed but never exercised against the real, paid Anthropic API.**
+  The rule engine (`motor="reglas"`) is what every example, the live demo, and every
+  *real* API call actually run — see [Free-only by design](#free-only-by-design) below.
+  The request-building/response-parsing/error-handling code around that call *is*
+  tested (`tests/test_routine_agent.py`, `tests/test_diet_agent.py`, against a fake
+  `anthropic` module) — what's never happened is an actual model call, so the model's
+  real output quality is unverified, only the plumbing around it.
 - **`buscar_intakes_nuevos()` (new-client intake scanning in `mcp/gmail_client.py`) is
   covered by mocked-network tests only, not a real inbox end-to-end.** Injecting a
   synthetic *incoming* message via Gmail's `messages().insert()` needs a broader OAuth
@@ -263,7 +269,7 @@ actually been verified:
 | Email | Gmail API (`google-api-python-client`), scoped OAuth (`gmail.compose` → `gmail.readonly` → `gmail.send` for exactly one function) | Free tier, real inbox, scope-enforced draft-only behavior almost everywhere (see `docs/highlights.md` #3 and #10) |
 | Persistence / lightweight CRM | Notion API (`notion-client`) — "Clients" + "Check-ins" databases | Free tier, no infra to run, human-readable outside the app too |
 | Automation | GitHub Actions cron (`.github/workflows/inbox_trigger.yml`) | Free tier, no server to keep running |
-| Tests | `pytest` | Deterministic rule engine + mocked-network coverage for Gmail/Notion |
+| Tests | `pytest` + `pytest-cov` | Deterministic rule engine + mocked-network coverage for Gmail/Notion — even `motor="llm"`'s request/error-handling code is covered, against a fake `anthropic` module, never a real paid call. ~97% coverage on `agents/`+`mcp/`, enforced in CI (`--cov-fail-under=90`) |
 | Lint | `ruff` | Core correctness rules only — see `pyproject.toml`'s note on why stricter naming rules are deliberately off (Spanish identifiers are intentional, see [`CLAUDE.md`](CLAUDE.md)) |
 | Hosting | Streamlit Community Cloud (free tier) | [trainfitter.streamlit.app](https://trainfitter.streamlit.app/), auto-redeploys on push to `master` |
 

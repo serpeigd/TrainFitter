@@ -30,6 +30,8 @@ token.json
 .mypy_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+.coverage
+htmlcov/
 
 # --- IDE / editor ---
 .vscode/

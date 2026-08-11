@@ -20,7 +20,7 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (11 decisions, 1 page) — update it when a change adds
+  version of the same log (15 decisions, ~2 pages) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
 - **Scheduled documentation-sync runs (added 2026-08-07, explicit decision in
   chat): standing authorization to merge doc-only PRs from that recurring task
@@ -414,6 +414,31 @@ foods genuinely gone, a real bug fix on data that already existed.
 `cliente_ejemplo_2` also picked up a real `inquietud_principal` value to
 demonstrate the new field. 341 tests passing (up from 297), and the full
 feature verified live end-to-end through the actual running app.
+
+Four follow-up improvements, requested directly, all shipped the same
+day. **`motor="llm"`'s request/response/error-handling code is now
+tested** (`tests/test_routine_agent.py`, `tests/test_diet_agent.py`) via
+a fake `anthropic` module injected straight into `sys.modules`
+(`tests/conftest.py`'s `fake_anthropic` fixture) — no real package
+install, no API key, no network, no cost, and it exercises the actual
+code path (system prompt, forced tool use, every documented error) the
+never-called real API path shares. **CI now measures coverage**
+(`pytest --cov`, `--cov-fail-under=90`, scoped to `agents/`+`mcp/` via
+`pyproject.toml`'s `[tool.coverage.run]` — `ui/app.py`/`main.py`
+deliberately excluded, verified live instead) — the real number is 97%;
+reading the report surfaced (and closed) a handful of genuinely untested
+branches, most notably two Spanish-language paths in
+`validator_agent.py`, the safety gate, that had never been exercised in
+that language at all. **A shared brute-force counter** now fronts every
+password-gated action in `ui/app.py` (Approve, the Clients/Revise-client
+section gate, Revise client's per-lookup check, the intake-email flow) —
+5 wrong guesses locks `APPROVAL_PASSWORD` out for 2 minutes regardless of
+which gate was tried, verified live including confirming the *correct*
+password is also rejected during the lockout. **`docs/highlights.md`**
+picked up three new entries for this session's most defensible calls
+(the layered privacy fix, personalization verified statistically rather
+than eyeballed, and the `fake_anthropic` testing technique) — 15 total
+now, up from 11.
 
 ## Free-only guardrail
 
