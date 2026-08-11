@@ -486,6 +486,20 @@ project doesn't attempt a real interaction database. 402 tests passing
 output (set counts, kcal targets, niche-item sampling, supplement-skip
 logic all checked directly, not just asserted in tests).
 
+`_render_dashboard_clientes()` adds a fleet-level dashboard (4 KPI
+metrics + 2 bar charts: verdict mix, latest-adherence mix) directly
+above the "Clients" roster table, reusing the exact same
+`listar_clientes()`/`ultimo_checkin_por_cliente()` results that table
+already fetches — zero new Notion queries. Verified live against the
+real workspace. Separately, traced why a client's checklist PDF
+forwarded (rather than replied) into the inbox isn't picked up by the
+scheduled scan: `buscar_respuestas_adherencia()`'s `In-Reply-To` check
+is load-bearing, not incidental — a blank-but-structurally-intact
+checklist (the trainer's own sent original) computes to a real "Low"
+rating rather than `None` in `leer_checklist_pdf()`, so dropping that
+check risks a false adherence entry. Documented as a real, disclosed gap
+rather than fixed under time pressure — see `docs/decisiones.md`.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

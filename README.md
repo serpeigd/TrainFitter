@@ -194,9 +194,12 @@ This repository is built phase by phase, as a learning project. Right now:
 - A **"Clients"** tab gives the trainer a roster of every real client at a
   glance — most recent check-in and rating included, with a ⚠️ flag on
   anyone whose adherence just dropped — instead of looking each one up by
-  email individually. Check-in history (both the trainer's and the
-  client's own) now includes a simple trend chart for weight and adherence
-  over time, reusing the same data already being logged.
+  email individually. A compact dashboard (headcount, plans-by-verdict,
+  latest-adherence-mix) sits above that table, reusing the same two
+  queries the table itself already makes — no extra Notion cost. Check-in
+  history (both the trainer's and the client's own) now includes a simple
+  trend chart for weight and adherence over time, reusing the same data
+  already being logged.
 - Both **"Revise client"** and **"Clients"** display real clients' personal
   data (emails at minimum; "Revise client" surfaces full health details) —
   on the public demo, both are gated behind the same shared password that
@@ -277,6 +280,13 @@ actually been verified:
 - **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
   after a period of no traffic triggers a cold start (can take up to a minute); this is a
   hosting trade-off, not an application bug.
+- **A forwarded (not replied-to) checklist PDF isn't picked up by the adherence scan.**
+  `buscar_respuestas_adherencia()` requires the `In-Reply-To` header to distinguish a
+  client's genuine reply from the trainer's own sent copy of the blank original — a
+  blank checklist has real (just unchecked) fields, so without that check it could be
+  misread as a false "Low adherence" entry. A client who wants their check-in tracked
+  needs to hit Reply (even with no added text) rather than Forward. See
+  `docs/decisiones.md` for the full trace.
 - **Supplement-medication interaction checking is a coarse flag, not a real interaction
   database.** `validator_agent.py` forces enhanced review whenever a client reports both
   supplements and regular medication together — it can't tell you *which* combination is

@@ -746,6 +746,13 @@ TRANSLATIONS = {
         "clients_panel_caption": "Every client at a glance, with their most recent check-in — see who needs attention.",
         "clients_panel_error": "Could not load the client list: {error}",
         "clients_panel_empty": "No clients saved yet.",
+        "dashboard_total_clients": "Clients",
+        "dashboard_with_checkin": "With a check-in",
+        "dashboard_needs_attention": "⚠️ Needs attention",
+        "dashboard_no_checkin": "No check-in yet",
+        "dashboard_unknown": "Unknown",
+        "dashboard_verdict_chart": "Plans by verdict",
+        "dashboard_adherence_chart": "Latest adherence rating (per client)",
         "clients_col_name": "Name",
         "clients_col_email": "Email",
         "clients_col_date": "Admitted",
@@ -974,6 +981,13 @@ TRANSLATIONS = {
         "clients_panel_caption": "Todos tus clientes de un vistazo, con su check-in más reciente — ve quién necesita atención.",
         "clients_panel_error": "No se pudo cargar la lista de clientes: {error}",
         "clients_panel_empty": "Todavía no hay clientes guardados.",
+        "dashboard_total_clients": "Clientes",
+        "dashboard_with_checkin": "Con check-in",
+        "dashboard_needs_attention": "⚠️ Necesitan atención",
+        "dashboard_no_checkin": "Sin check-in todavía",
+        "dashboard_unknown": "Desconocido",
+        "dashboard_verdict_chart": "Planes por veredicto",
+        "dashboard_adherence_chart": "Última valoración de adherencia (por cliente)",
         "clients_col_name": "Nombre",
         "clients_col_email": "Email",
         "clients_col_date": "Admitido",
@@ -2527,6 +2541,55 @@ def _gate_datos_clientes(seccion: str) -> bool:
     return False
 
 
+def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:
+    """A compact fleet-level dashboard above the roster table: headcount
+    KPIs plus two bar charts (verdict mix, latest adherence-rating mix).
+    Deliberately zero extra cost -- reuses the exact same `clientes`/
+    `ultimos_checkins` the roster table below already fetched (see
+    _panel_todos_los_clientes()), just aggregated differently, rather than
+    issuing new Notion queries. Same "missing chart library degrades to no
+    chart, never a broken page" pattern as _render_grafico_tendencia()."""
+    total = len(clientes)
+    con_checkin = len(ultimos_checkins)
+    necesitan_atencion = sum(1 for u in ultimos_checkins.values() if u["valoracion"] == "Low")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(t("dashboard_total_clients"), total)
+    c2.metric(t("dashboard_with_checkin"), con_checkin)
+    c3.metric(t("dashboard_needs_attention"), necesitan_atencion)
+    c4.metric(t("dashboard_no_checkin"), total - con_checkin)
+
+    try:
+        # Lazy import, same convention as _render_grafico_tendencia(): only
+        # this chart-rendering path needs pandas, not the rest of the app.
+        import pandas as pd
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            conteo_veredicto: dict[str, int] = {}
+            for cliente in clientes:
+                clave = cliente["veredicto"] or t("dashboard_unknown")
+                conteo_veredicto[clave] = conteo_veredicto.get(clave, 0) + 1
+            if conteo_veredicto:
+                st.caption(t("dashboard_verdict_chart"))
+                st.bar_chart(pd.DataFrame({"count": list(conteo_veredicto.values())}, index=list(conteo_veredicto)))
+
+        with col_b:
+            conteo_valoracion = {"High": 0, "Medium": 0, "Low": 0}
+            for ultimo in ultimos_checkins.values():
+                if ultimo["valoracion"] in conteo_valoracion:
+                    conteo_valoracion[ultimo["valoracion"]] += 1
+            if any(conteo_valoracion.values()):
+                st.caption(t("dashboard_adherence_chart"))
+                st.bar_chart(
+                    pd.DataFrame({"count": list(conteo_valoracion.values())}, index=list(conteo_valoracion)),
+                )
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+    st.divider()
+
+
 def _panel_todos_los_clientes() -> None:
     """The trainer's client roster: every real "New Client"/"Revise
     client" record at a glance, joined with each client's most recent
@@ -2556,6 +2619,8 @@ def _panel_todos_los_clientes() -> None:
         ultimos_checkins = ultimo_checkin_por_cliente()
     except (NotionClientError, ImportError, ModuleNotFoundError):
         ultimos_checkins = {}
+
+    _render_dashboard_clientes(clientes, ultimos_checkins)
 
     filas = []
     for cliente in clientes:
