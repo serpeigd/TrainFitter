@@ -150,12 +150,14 @@ This repository is built phase by phase, as a learning project. Right now:
   covers a genuine extra session); diet days followed can't exceed the check-in
   period, since that bound is definitional rather than a target. The moment a
   client submits a check-in, the trainer's own inbox gets an automatic summary
-  plus a short, rule-based suggested next step — this is one of only two
+  plus a short, rule-based suggested next step — this is one of only three
   places in the whole project where Gmail actually **sends** a real email
-  instead of only creating a draft, and both send to the trainer's side of the
-  relationship, never to a client without review — a deliberate, narrow
-  exception (see [`docs/decisiones.md`](docs/decisiones.md)) to the "never
-  sends automatically" guarantee everywhere else in this project. The
+  instead of only creating a draft (the others: the portal-link email itself,
+  and emailing a blank intake form to a prospect — see the FAQ below). This
+  one specifically notifies the trainer's own inbox, never a client, fully
+  automatically — a deliberate, narrow exception (see
+  [`docs/decisiones.md`](docs/decisiones.md)) to the "never sends
+  automatically" guarantee everywhere else in this project. The
   check-in form can also log the client's current weight (optional) — closing
   a loop the generated plan itself already promised ("adjusted based on real
   weight ... over the first few weeks") but had no mechanism for until now.
@@ -266,7 +268,7 @@ actually been verified:
 | Generation engines | Standard-library rule engines (default) + optional Anthropic API tool-use | Free by default; same output schema either way (see [`docs/arquitectura.md`](docs/arquitectura.md)) |
 | UI | [Streamlit](https://streamlit.io/) | Fast, free-tier-hostable Python UI, no separate frontend build |
 | PDF generation/parsing | [`reportlab`](https://www.reportlab.com/), [`pypdf`](https://pypi.org/project/pypdf/), [`pdfplumber`](https://github.com/jsvine/pdfplumber) | Fillable forms (intake, checklist) + bloodwork text extraction, all local, no OCR service |
-| Email | Gmail API (`google-api-python-client`), scoped OAuth (`gmail.compose` → `gmail.readonly` → `gmail.send` for exactly one function) | Free tier, real inbox, scope-enforced draft-only behavior almost everywhere (see `docs/highlights.md` #3 and #10) |
+| Email | Gmail API (`google-api-python-client`), scoped OAuth (`gmail.compose` → `gmail.readonly` → `gmail.send` for three narrow, disclosed functions) | Free tier, real inbox, scope-enforced draft-only behavior almost everywhere (see `docs/highlights.md` #3 and #10, and the FAQ below) |
 | Persistence / lightweight CRM | Notion API (`notion-client`) — "Clients" + "Check-ins" databases | Free tier, no infra to run, human-readable outside the app too |
 | Automation | GitHub Actions cron (`.github/workflows/inbox_trigger.yml`) | Free tier, no server to keep running |
 | Tests | `pytest` + `pytest-cov` | Deterministic rule engine + mocked-network coverage for Gmail/Notion — even `motor="llm"`'s request/error-handling code is covered, against a fake `anthropic` module, never a real paid call. ~97% coverage on `agents/`+`mcp/`, enforced in CI (`--cov-fail-under=90`) |
@@ -412,9 +414,13 @@ python agents/run_manual_pipeline_demo.py # routine + diet + validator, no orche
 ```
 
 **Optional — real generative-AI layer:** the agents also accept `motor="llm"` to use
-the Anthropic API instead of the rule engine. To try it:
+the Anthropic API instead of the rule engine. `anthropic`/`python-dotenv` are
+deliberately commented out in [`requirements.txt`](requirements.txt) (a plain
+`pip install -r requirements.txt` never pulls in a paid-API package just to run
+the free default pipeline), so trying `motor="llm"` needs one extra install:
 ```bash
 pip install -r requirements.txt
+pip install anthropic python-dotenv
 ```
 then copy `.env.example` to `.env` and set your `ANTHROPIC_API_KEY`.
 
