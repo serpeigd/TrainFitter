@@ -8,6 +8,15 @@ an injury in that area). This is a deliberate simplification: instead of
 having an LLM "understand" what's safe, it's declared explicitly here —
 slower to maintain, but 100% deterministic, auditable, and free of API cost.
 
+DESIGN — "nicho" (niche/tryhard exercises, added for the commitment-level
+personalization, see docs/decisiones.md): a small, curated set of more
+technically demanding variants (Bulgarian split squat, Nordic hamstring
+curl, weighted pull-up...) that are only ever candidates for a client whose
+`experiencia.nivel_compromiso` is `"tryhard"` — see rutina_reglas.py's
+`_candidatos()`. Absent (defaults to `False` via `.get("nicho", False)`) on
+every pre-existing entry, so "chill"/"normal" (the default) behave exactly
+as before this was added.
+
 Note on scope: the "nombre" (name) values are the exercise's CANONICAL
 name — English, and deliberately never swapped for Spanish even when the UI
 language is Spanish. rutina_reglas.py selects exercises by this value, and
@@ -32,6 +41,7 @@ EXERCISE_BANK = [
     {"nombre": "High cable crossover / flye", "nombre_es": "Cruce de poleas altas / aperturas", "grupo": "pecho", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Parallel bar dips", "nombre_es": "Fondos en paralelas", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
     {"nombre": "Push-ups (standard)", "nombre_es": "Flexiones (estándar)", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
+    {"nombre": "Deficit push-up", "nombre_es": "Flexión en déficit", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
 
     # --- BACK ---
     {"nombre": "High cable row (close grip)", "nombre_es": "Remo en polea alta (agarre cerrado)", "grupo": "espalda", "material": {"poleas"}, "tipo": "basico", "contraindicaciones": set()},
@@ -41,6 +51,7 @@ EXERCISE_BANK = [
     {"nombre": "Cable pullover", "nombre_es": "Pullover en polea", "grupo": "espalda", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Face pull", "nombre_es": "Face pull (jalón a la cara)", "grupo": "espalda", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Inverted row (bodyweight)", "nombre_es": "Remo invertido (peso corporal)", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
+    {"nombre": "Weighted pull-up", "nombre_es": "Dominada lastrada", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
 
     # --- SHOULDERS ---
     {"nombre": "Machine shoulder press", "nombre_es": "Press de hombro en máquina", "grupo": "hombro", "material": {"maquinas_guiadas"}, "tipo": "basico", "contraindicaciones": set()},
@@ -49,6 +60,7 @@ EXERCISE_BANK = [
     {"nombre": "Machine reverse fly (rear delt)", "nombre_es": "Apertura posterior en máquina (deltoide posterior)", "grupo": "hombro", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Dumbbell front raise", "nombre_es": "Elevaciones frontales con mancuernas", "grupo": "hombro", "material": {"mancuernas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Pike push-up", "nombre_es": "Flexión pike (en V)", "grupo": "hombro", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
+    {"nombre": "Single-arm dumbbell push press", "nombre_es": "Push press a una mano con mancuerna", "grupo": "hombro", "material": {"mancuernas"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
 
     # --- LEGS (quads) ---
     {"nombre": "Barbell squat", "nombre_es": "Sentadilla con barra", "grupo": "pierna_cuadriceps", "material": {"barras_y_discos"}, "tipo": "basico", "contraindicaciones": {"rodilla"}},
@@ -59,6 +71,7 @@ EXERCISE_BANK = [
     {"nombre": "Low step-up with dumbbells", "nombre_es": "Step-up bajo con mancuernas", "grupo": "pierna_cuadriceps", "material": {"mancuernas", "bancos"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Bodyweight squat", "nombre_es": "Sentadilla con peso corporal", "grupo": "pierna_cuadriceps", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"rodilla"}},
     {"nombre": "Wall sit (isometric squat)", "nombre_es": "Sentadilla en pared (isométrica)", "grupo": "pierna_cuadriceps", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Bulgarian split squat", "nombre_es": "Sentadilla búlgara", "grupo": "pierna_cuadriceps", "material": {"mancuernas", "bancos"}, "tipo": "basico", "contraindicaciones": {"rodilla"}, "nicho": True},
 
     # --- LEGS (hamstrings / glutes) ---
     {"nombre": "Barbell Romanian deadlift", "nombre_es": "Peso muerto rumano con barra", "grupo": "pierna_isquios_gluteo", "material": {"barras_y_discos"}, "tipo": "basico", "contraindicaciones": {"lumbar"}},
@@ -68,6 +81,7 @@ EXERCISE_BANK = [
     {"nombre": "Single-leg glute bridge", "nombre_es": "Puente de glúteo a una pierna", "grupo": "pierna_isquios_gluteo", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Machine hip abduction", "nombre_es": "Abducción de cadera en máquina", "grupo": "pierna_isquios_gluteo", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Machine hip adduction", "nombre_es": "Aducción de cadera en máquina", "grupo": "pierna_isquios_gluteo", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Nordic hamstring curl", "nombre_es": "Curl femoral nórdico", "grupo": "pierna_isquios_gluteo", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": {"rodilla"}, "nicho": True},
 
     # --- CALVES ---
     {"nombre": "Standing machine calf raise", "nombre_es": "Elevación de gemelo de pie en máquina", "grupo": "gemelos", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
@@ -90,6 +104,7 @@ EXERCISE_BANK = [
     {"nombre": "Cable crunch", "nombre_es": "Crunch en polea", "grupo": "core", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Hanging / lying leg raise", "nombre_es": "Elevación de piernas (colgado o tumbado)", "grupo": "core", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Cable Pallof press", "nombre_es": "Pallof press en polea", "grupo": "core", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}},
+    {"nombre": "Dragon flag", "nombre_es": "Dragon flag", "grupo": "core", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}, "nicho": True},
 ]
 
 # English name -> Spanish display name. Display-only (see module docstring):

@@ -24,6 +24,7 @@ never shifts what the narrative-text RNG would have picked).
 """
 
 from food_bank import (
+    _sin_acentos,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
     fuentes_proteina_para,
@@ -54,6 +55,19 @@ AJUSTE_CALORICO = {
 }
 
 PORCENTAJE_GRASA_CALORIAS = 0.27
+
+# Commitment-level personalization (experiencia.nivel_compromiso, added
+# alongside rutina_reglas.py's own AJUSTE_SERIES_POR_COMPROMISO -- see
+# docs/decisiones.md): scales AJUSTE_CALORICO's magnitude, not its sign --
+# "tryhard" never turns a mild deficit into a crash diet, it pushes toward
+# the more assertive end of what the method already considers moderate
+# (perdida_grasa: -18% normal -> ~-23% tryhard, still short of the
+# "aggressive" deficits the method explicitly warns against). "chill" is
+# the mirror: a gentler, easier-to-sustain version of the same direction.
+# "normal" (the default) is 1.0 -- a no-op, so existing clients are
+# unaffected. salud_general's 0.0 adjustment stays 0.0 regardless (there's
+# no direction to scale).
+AJUSTE_COMPROMISO_MULTIPLICADOR = {"chill": 0.6, "normal": 1.0, "tryhard": 1.3}
 
 # Display-only label for the goal, used when building the human-readable
 # "resumen_enfoque" text (the schema value itself stays in Spanish — see
@@ -170,9 +184,12 @@ def _calcular_necesidades(perfil: dict) -> dict:
     datos = perfil["datos_basicos"]
     objetivo = perfil["objetivo"]["principal"]
 
+    nivel_compromiso = perfil.get("experiencia", {}).get("nivel_compromiso", "normal")
+    multiplicador_compromiso = AJUSTE_COMPROMISO_MULTIPLICADOR.get(nivel_compromiso, 1.0)
+
     bmr = _bmr(datos["peso_kg"], datos["altura_cm"], datos["edad"], datos["sexo"])
     tdee = bmr * _factor_actividad(perfil)
-    ajuste = AJUSTE_CALORICO.get(objetivo, 0.0)
+    ajuste = AJUSTE_CALORICO.get(objetivo, 0.0) * multiplicador_compromiso
     calorias_objetivo = tdee * (1 + ajuste)
 
     g_por_kg = PROTEINA_G_POR_KG.get(objetivo, 1.6)
@@ -251,6 +268,64 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
             ),
         }
     return [textos[p] for p in ("reducir_gluten", "antiinflamatorio", "estres_alto_o_sueno_bajo", "trabajo_sedentario") if p in preferencias]
+
+
+# Evidence-based supplement tips (docs/base_conocimiento/suplementacion.md),
+# only ever surfaced in "tryhard" mode (see AJUSTE_COMPROMISO_MULTIPLICADOR
+# above) -- deliberately short, generic dose/timing basics, not a
+# personalized protocol. The real safety-relevant check (supplements +
+# medication together -> enhanced review) lives in validator_agent.py.
+_SUPLEMENTOS_TRYHARD_TEXTOS = {
+    "en": {
+        "creatina": (
+            "Creatine monohydrate, 3-5 g/day, any time, taken consistently -- the best-backed "
+            "strength/muscle supplement there is."
+        ),
+        "proteina_polvo": (
+            "A whey or plant protein powder is a convenient way to hit your protein target if food "
+            "alone doesn't get you there -- not essential if it already does."
+        ),
+        "cafeina": (
+            "3-6 mg/kg about 45-60 min before training can help performance -- avoid it too close to "
+            "bedtime, since sleep is the foundation everything else depends on."
+        ),
+    },
+    "es": {
+        "creatina": (
+            "Creatina monohidrato, 3-5 g/día, a cualquier hora, tomada de forma constante -- el "
+            "suplemento con más respaldo para fuerza/masa muscular que existe."
+        ),
+        "proteina_polvo": (
+            "Un suplemento de proteína (whey o vegetal) es una forma cómoda de llegar a tu objetivo "
+            "de proteína si la comida sola no basta -- no es imprescindible si ya llegas."
+        ),
+        "cafeina": (
+            "3-6 mg/kg unos 45-60 min antes de entrenar puede ayudar al rendimiento -- evítala cerca "
+            "de la hora de dormir, ya que el sueño es la base de la que depende todo lo demás."
+        ),
+    },
+}
+_PALABRAS_CLAVE_SUPLEMENTO = {
+    "creatina": ("creatina", "creatine"),
+    "proteina_polvo": ("proteina en polvo", "protein powder", "whey", "proteina"),
+    "cafeina": ("cafeina", "caffeine"),
+}
+
+
+def _consejos_suplementos(perfil: dict, idioma: str = "en") -> list[str]:
+    """Skips any supplement the client already listed in
+    salud.suplementos_actuales (bilingual, accent-insensitive match, same
+    technique as food_bank.alimentos_no_deseados()) -- no point
+    "recommending" creatine to someone who already takes it."""
+    if perfil.get("experiencia", {}).get("nivel_compromiso") != "tryhard":
+        return []
+
+    ya_toma = _sin_acentos(" ".join(perfil.get("salud", {}).get("suplementos_actuales", [])).lower())
+    return [
+        _SUPLEMENTOS_TRYHARD_TEXTOS[idioma][clave]
+        for clave, palabras in _PALABRAS_CLAVE_SUPLEMENTO.items()
+        if not any(_sin_acentos(palabra) in ya_toma for palabra in palabras)
+    ]
 
 
 def _consejos_sinergias(perfil: dict, idioma: str = "en") -> list[str]:
@@ -399,6 +474,8 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
     rng_plan = rng_para_cliente(perfil_cliente, "dieta:plan_semanal")
     plan_semanal = generar_plan_semanal(perfil_cliente, necesidades, comidas_al_dia, idioma, rng_plan)
 
+    nivel_compromiso = perfil_cliente.get("experiencia", {}).get("nivel_compromiso", "normal")
+
     if idioma == "es":
         resumen = (
             f"Estimación de {necesidades['calorias_objetivo_kcal']} kcal/día para "
@@ -406,6 +483,13 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             f"con {necesidades['macros']['proteina_g']} g de proteína como prioridad. Es un punto de "
             "partida que se ajusta según el peso y la energía reales durante las primeras semanas."
         )
+        if nivel_compromiso == "tryhard":
+            resumen += (
+                " Modo tryhard: el ritmo hacia tu objetivo es algo más exigente, e incluye "
+                "alimentos y consejos de suplementación más específicos."
+            )
+        elif nivel_compromiso == "chill":
+            resumen += " Modo chill: el ritmo hacia tu objetivo es más suave, para que sea más fácil de sostener."
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
         resumen = (
@@ -414,6 +498,13 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             f"with {necesidades['macros']['proteina_g']} g of protein as the priority. It's a starting point "
             "that gets adjusted based on real weight and energy over the first few weeks."
         )
+        if nivel_compromiso == "tryhard":
+            resumen += (
+                " Tryhard mode: the pace toward your goal is a bit more demanding, and includes "
+                "more specific foods and supplement tips."
+            )
+        elif nivel_compromiso == "chill":
+            resumen += " Chill mode: the pace toward your goal is gentler, to make it easier to sustain."
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 
     return {
@@ -427,7 +518,11 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
         "fuentes_grasa_sugeridas": fuentes_grasa_para(perfil_cliente),
         "fuentes_verdura_sugeridas": fuentes_verdura_para(perfil_cliente),
         "plan_semanal": plan_semanal,
-        "consejos_sinergias": _consejos_sinergias(perfil_cliente, idioma) + _consejos_por_preferencias_blandas(perfil_cliente, idioma),
+        "consejos_sinergias": (
+            _consejos_sinergias(perfil_cliente, idioma)
+            + _consejos_por_preferencias_blandas(perfil_cliente, idioma)
+            + _consejos_suplementos(perfil_cliente, idioma)
+        ),
         "advertencias_revision_humana": _generar_advertencias(perfil_cliente, idioma),
         "mensaje_para_el_cliente": mensaje_para_el_cliente,
     }

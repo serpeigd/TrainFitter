@@ -52,6 +52,7 @@ CAMPO_ALTURA = "datos_basicos__altura_cm"
 CAMPO_OBJETIVO = "objetivo__principal"
 CAMPO_OBJETIVO_TEXTO = "objetivo__en_sus_palabras"
 CAMPO_NIVEL = "experiencia__nivel"
+CAMPO_NIVEL_COMPROMISO = "experiencia__nivel_compromiso"
 CAMPO_ANIOS_ENTRENANDO = "experiencia__anios_entrenando"
 CAMPO_EXPERIENCIA_DETALLE = "experiencia__detalle"
 CAMPO_DIAS_SEMANA = "disponibilidad__dias_por_semana"
@@ -65,6 +66,7 @@ CAMPO_CONDICIONES = "salud__enfermedades_o_condiciones"
 CAMPO_EMBARAZO = "salud__embarazo"
 CAMPO_EMBARAZO_DETALLE = "salud__embarazo_detalle"
 CAMPO_MEDICACION = "salud__medicacion_habitual"
+CAMPO_SUPLEMENTOS = "salud__suplementos_actuales"
 CAMPO_ALERGIAS = "salud__alergias_alimentarias"
 CAMPO_INTOLERANCIAS = "salud__intolerancias_alimentarias"
 CAMPO_TIPO_DIETA = "nutricion__tipo_dieta"
@@ -82,11 +84,17 @@ CAMPO_NOTAS_LIBRES = "notas_libres"
 # All the radio-group field names, mapped to a stable marker so
 # leer_intake_pdf() knows which fields are radios (value is the selected
 # option's own string) vs. plain text fields (value is free text).
-_CAMPOS_RADIO = {CAMPO_SEXO, CAMPO_OBJETIVO, CAMPO_NIVEL, CAMPO_LUGAR_ENTRENO, CAMPO_TIPO_DIETA, CAMPO_ESTRES}
+_CAMPOS_RADIO = {
+    CAMPO_SEXO, CAMPO_OBJETIVO, CAMPO_NIVEL, CAMPO_NIVEL_COMPROMISO, CAMPO_LUGAR_ENTRENO, CAMPO_TIPO_DIETA,
+    CAMPO_ESTRES,
+}
 _CAMPOS_ENTERO = {
     CAMPO_EDAD, CAMPO_DIAS_SEMANA, CAMPO_MINUTOS_SESION, CAMPO_COMIDAS_DIA, CAMPO_HORAS_SUENO, CAMPO_PASOS,
 }
-_CAMPOS_LISTA = {CAMPO_CONDICIONES, CAMPO_MEDICACION, CAMPO_ALERGIAS, CAMPO_INTOLERANCIAS, CAMPO_RESTRICCIONES, CAMPO_NO_LE_GUSTA}
+_CAMPOS_LISTA = {
+    CAMPO_CONDICIONES, CAMPO_MEDICACION, CAMPO_SUPLEMENTOS, CAMPO_ALERGIAS, CAMPO_INTOLERANCIAS,
+    CAMPO_RESTRICCIONES, CAMPO_NO_LE_GUSTA,
+}
 
 
 class _EscritorFormulario:
@@ -211,6 +219,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "sec_experiencia": "3. Experiencia de entrenamiento",
             "nivel": "Nivel", "anios": "Años entrenando (aprox.)",
             "exp_detalle": "Cuéntame un poco más (opcional)",
+            "nivel_compromiso": "¿Qué tan exigente quieres el plan?",
             "sec_disponibilidad": "4. Disponibilidad",
             "dias": "Días disponibles por semana", "minutos": "Minutos por sesión",
             "lugar": "Dónde entrenarás", "material": "Material disponible",
@@ -221,6 +230,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "embarazo": "¿Estás embarazada o en periodo de lactancia?",
             "embarazo_detalle": "Cuéntame en qué momento estás",
             "medicacion": "Medicación habitual (separada por comas)",
+            "suplementos": "Suplementos que tomas ahora (separados por comas)",
             "alergias": "Alergias alimentarias (separadas por comas)",
             "intolerancias": "Intolerancias alimentarias (separadas por comas)",
             "sec_nutricion": "6. Nutrición",
@@ -242,6 +252,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             ("recomposicion_corporal", "Recomposición"), ("salud_general", "Salud general"),
         ]
         opciones_nivel = [("principiante", "Principiante"), ("intermedio", "Intermedio"), ("avanzado", "Avanzado")]
+        opciones_compromiso = [("chill", "Chill (más suave)"), ("normal", "Normal"), ("tryhard", "Tryhard (más exigente)")]
         opciones_lugar = [
             ("gimnasio_completo", "Gimnasio completo"), ("gimnasio_pequeno", "Gimnasio pequeño"),
             ("casa_con_material", "Casa con material"), ("casa_sin_material", "Casa sin material"),
@@ -264,6 +275,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "sec_experiencia": "3. Training experience",
             "nivel": "Level", "anios": "Years training (approx.)",
             "exp_detalle": "Tell me a bit more (optional)",
+            "nivel_compromiso": "How demanding do you want the plan?",
             "sec_disponibilidad": "4. Availability",
             "dias": "Days available per week", "minutos": "Minutes per session",
             "lugar": "Where you'll train", "material": "Available equipment",
@@ -274,6 +286,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "embarazo": "Are you pregnant or breastfeeding?",
             "embarazo_detalle": "Tell me where you're at",
             "medicacion": "Regular medication (comma-separated)",
+            "suplementos": "Supplements you currently take (comma-separated)",
             "alergias": "Food allergies (comma-separated)",
             "intolerancias": "Food intolerances (comma-separated)",
             "sec_nutricion": "6. Nutrition",
@@ -295,6 +308,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             ("recomposicion_corporal", "Recomposition"), ("salud_general", "General health"),
         ]
         opciones_nivel = [("principiante", "Beginner"), ("intermedio", "Intermediate"), ("avanzado", "Advanced")]
+        opciones_compromiso = [("chill", "Chill (easier)"), ("normal", "Normal"), ("tryhard", "Tryhard (more demanding)")]
         opciones_lugar = [
             ("gimnasio_completo", "Full gym"), ("gimnasio_pequeno", "Small gym"),
             ("casa_con_material", "Home with equipment"), ("casa_sin_material", "Home, no equipment"),
@@ -325,6 +339,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
 
     f.seccion(t["sec_experiencia"])
     f.radio(CAMPO_NIVEL, t["nivel"], opciones_nivel)
+    f.radio(CAMPO_NIVEL_COMPROMISO, t["nivel_compromiso"], opciones_compromiso)
     f.texto(CAMPO_ANIOS_ENTRENANDO, t["anios"])
     f.texto(CAMPO_EXPERIENCIA_DETALLE, t["exp_detalle"], multiline=True)
 
@@ -339,6 +354,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
     f.texto(CAMPO_CONDICIONES, t["condiciones"])
     f.checkbox_con_texto(CAMPO_EMBARAZO, t["embarazo"], CAMPO_EMBARAZO_DETALLE, t["embarazo_detalle"])
     f.texto(CAMPO_MEDICACION, t["medicacion"])
+    f.texto(CAMPO_SUPLEMENTOS, t["suplementos"])
     f.texto(CAMPO_ALERGIAS, t["alergias"])
     f.texto(CAMPO_INTOLERANCIAS, t["intolerancias"])
 
@@ -462,6 +478,7 @@ def leer_intake_pdf(contenido_pdf: bytes) -> dict:
         },
         "experiencia": {
             "nivel": _valor_campo(campos, CAMPO_NIVEL) or "principiante",
+            "nivel_compromiso": _valor_campo(campos, CAMPO_NIVEL_COMPROMISO) or "normal",
             "anios_entrenando": flotante(CAMPO_ANIOS_ENTRENANDO),
             "detalle": _valor_campo(campos, CAMPO_EXPERIENCIA_DETALLE),
         },
@@ -479,6 +496,7 @@ def leer_intake_pdf(contenido_pdf: bytes) -> dict:
                 "detalle": _valor_campo(campos, CAMPO_EMBARAZO_DETALLE),
             },
             "medicacion_habitual": _lista_desde_texto(_valor_campo(campos, CAMPO_MEDICACION)),
+            "suplementos_actuales": _lista_desde_texto(_valor_campo(campos, CAMPO_SUPLEMENTOS)),
             "alergias_alimentarias": _lista_desde_texto(_valor_campo(campos, CAMPO_ALERGIAS)),
             "intolerancias_alimentarias": _lista_desde_texto(_valor_campo(campos, CAMPO_INTOLERANCIAS)),
             "analitica_adjunta": {"tiene": False, "archivo": None, "fecha": None, "notas": ""},

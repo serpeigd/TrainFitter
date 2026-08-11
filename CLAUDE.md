@@ -464,6 +464,28 @@ first (now pre-fills the same shared form for review, same pattern as
 "Revise client"). See `docs/decisiones.md` for the full write-up of all
 five.
 
+A new intake field, `experiencia.nivel_compromiso` (`"chill"`/`"normal"`/
+`"tryhard"`, default `"normal"` — a no-op, so existing clients are
+unaffected), personalizes both engines further: routine volume shifts by
+±1 set (stacking with, not replacing, the existing level/stress-sleep
+adjustments, same shared floor) and unlocks a small curated pool of more
+technically demanding "niche" exercises
+(`exercise_bank.py`/`rutina_reglas._candidatos()`); diet calorie
+aggressiveness scales via `AJUSTE_COMPROMISO_MULTIPLICADOR` — magnitude
+only, capped so tryhard still lands within the method's own "moderate,
+never aggressive" deficit range — and unlocks four curated niche foods
+(kimchi, natto, farro, algae oil) plus evidence-based supplement tips
+(creatine/protein/caffeine, skipping whatever the client already reports
+taking in the new `salud.suplementos_actuales` field). That same new
+field is cross-checked against `medicacion_habitual` in
+`validator_agent.py` — supplements alongside regular medication forces
+`revision_reforzada`, grounded in
+`docs/base_conocimiento/suplementacion.md`'s own safety rule, since this
+project doesn't attempt a real interaction database. 402 tests passing
+(up from 383), 97.4% coverage, verified against the real rule-engine
+output (set counts, kcal targets, niche-item sampling, supplement-skip
+logic all checked directly, not just asserted in tests).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

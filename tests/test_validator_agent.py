@@ -210,3 +210,33 @@ def test_duplicate_reasons_are_not_repeated(perfil_base):
     veredicto = validar_borradores(perfil_base, rutina, dieta)
     assert veredicto["motivos"].count(condicion_msg) == 1
     assert len(veredicto["motivos"]) == len(set(veredicto["motivos"]))
+
+
+def test_supplements_alongside_medication_forces_enhanced_review(perfil_base):
+    perfil_base["salud"]["suplementos_actuales"] = ["creatine"]
+    perfil_base["salud"]["medicacion_habitual"] = ["blood thinner"]
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("supplement" in motivo.lower() for motivo in veredicto["motivos"])
+
+
+def test_supplements_alone_do_not_force_enhanced_review(perfil_base):
+    """Only the combination with regular medication is treated as a
+    possible interaction -- supplements on their own aren't a safety
+    concern (see docs/base_conocimiento/suplementacion.md's own scope)."""
+    perfil_base["salud"]["suplementos_actuales"] = ["creatine"]
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "aprobado_automatico"
+
+
+def test_idioma_es_translates_supplement_interaction_motivo(perfil_base):
+    perfil_base["salud"]["suplementos_actuales"] = ["creatina"]
+    perfil_base["salud"]["medicacion_habitual"] = ["anticoagulante"]
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta, idioma="es")
+    assert any("suplemento" in motivo.lower() for motivo in veredicto["motivos"])

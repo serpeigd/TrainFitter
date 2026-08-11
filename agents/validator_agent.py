@@ -17,7 +17,14 @@ The validator doesn't blindly trust that routine_agent/diet_agent already
 flagged themselves correctly. It re-reads the client's raw profile
 independently, and it also cross-checks the drafts' actual exercises/foods
 against the declared injuries/allergies — in case a future LLM engine ever
-gets its self-assessment wrong.
+gets its self-assessment wrong. Same reasoning applies to
+`suplementos_actuales`: this project doesn't attempt a real
+supplement-drug interaction database (out of scope, and a false sense of
+completeness would be worse than none), so declaring both supplements AND
+regular medication together always forces enhanced review instead —
+docs/base_conocimiento/suplementacion.md's own "Safety rule" section is
+explicit that any possible interaction should be flagged for a human,
+never silently allowed through.
 """
 
 from exercise_bank import EXERCISE_BANK
@@ -42,6 +49,11 @@ def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
             motivos.append("El perfil indica embarazo o periodo de lactancia.")
         if salud.get("medicacion_habitual"):
             motivos.append(f"El perfil declara medicación habitual: {', '.join(salud['medicacion_habitual'])}.")
+        if salud.get("suplementos_actuales") and salud.get("medicacion_habitual"):
+            motivos.append(
+                f"El perfil declara suplementos ({', '.join(salud['suplementos_actuales'])}) junto con "
+                "medicación habitual — posible interacción, revisar antes de recomendar nada más."
+            )
         for marcador in salud.get("analitica_adjunta", {}).get("marcadores", []):
             if marcador.get("fuera_de_rango"):
                 motivos.append(
@@ -61,6 +73,11 @@ def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
         motivos.append("The profile indicates pregnancy or breastfeeding.")
     if salud.get("medicacion_habitual"):
         motivos.append(f"The profile declares regular medication: {', '.join(salud['medicacion_habitual'])}.")
+    if salud.get("suplementos_actuales") and salud.get("medicacion_habitual"):
+        motivos.append(
+            f"The profile declares supplements ({', '.join(salud['suplementos_actuales'])}) alongside "
+            "regular medication — possible interaction, review before recommending anything further."
+        )
     if salud.get("alergias_alimentarias"):
         motivos.append(
             f"The profile declares food allerg(y/ies): {', '.join(salud['alergias_alimentarias'])}."

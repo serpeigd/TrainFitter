@@ -221,13 +221,16 @@ def _material_cliente(perfil: dict) -> set[str]:
     return material
 
 
-def _candidatos(grupo: str, tipo: str, material_cliente: set[str], lesion_tags: set[str]) -> list[dict]:
+def _candidatos(
+    grupo: str, tipo: str, material_cliente: set[str], lesion_tags: set[str], incluir_nicho: bool = False,
+) -> list[dict]:
     return [
         ej for ej in EXERCISE_BANK
         if ej["grupo"] == grupo
         and ej["tipo"] == tipo
         and ej["material"] <= material_cliente
         and not (ej["contraindicaciones"] & lesion_tags)
+        and (incluir_nicho or not ej.get("nicho", False))
     ]
 
 
@@ -269,6 +272,18 @@ AJUSTE_SERIES_POR_NIVEL = {
     "avanzado": {"basico": 1, "aislamiento": 1},
 }
 SERIES_MINIMAS = 2  # never go below this regardless of how many adjustments stack
+
+# Commitment-level personalization (experiencia.nivel_compromiso, added
+# alongside dieta_reglas.py's own AJUSTE_COMPROMISO_MULTIPLICADOR -- see
+# docs/decisiones.md): a client-chosen "how demanding do you want this"
+# dial, separate from nivel (training experience, which the client doesn't
+# get to just pick). "chill" trims a set for a gentler, easier-to-sustain
+# session; "tryhard" adds one AND unlocks the small "nicho" pool of more
+# technically demanding exercise variants (see exercise_bank.py); "normal"
+# (the default) is a no-op, so existing clients are unaffected. Stacks with
+# (doesn't replace) the level/stress-sleep adjustments above, all clamped
+# together by the same SERIES_MINIMAS floor.
+AJUSTE_SERIES_POR_COMPROMISO = {"chill": -1, "normal": 0, "tryhard": 1}
 
 
 def _ajuste_series_por_estilo_de_vida(perfil: dict) -> int:
@@ -375,6 +390,8 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     objetivo = perfil_cliente["objetivo"]["principal"]
     nivel = perfil_cliente["experiencia"]["nivel"]
     nombre = perfil_cliente["datos_basicos"]["nombre"]
+    nivel_compromiso = perfil_cliente.get("experiencia", {}).get("nivel_compromiso", "normal")
+    incluir_nicho = nivel_compromiso == "tryhard"
 
     material_cliente = _material_cliente(perfil_cliente)
     lesion_tags = tags_lesiones(perfil_cliente)
@@ -382,6 +399,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
 
     ajuste_nivel = AJUSTE_SERIES_POR_NIVEL.get(nivel, AJUSTE_SERIES_POR_NIVEL["intermedio"])
     ajuste_estilo_vida = _ajuste_series_por_estilo_de_vida(perfil_cliente)
+    ajuste_compromiso = AJUSTE_SERIES_POR_COMPROMISO.get(nivel_compromiso, 0)
     recorte_sesion = _num_slots_a_recortar(disponibilidad["minutos_por_sesion"])
 
     # Candidates for a given (grupo, tipo) slot are shuffled once per client
@@ -410,7 +428,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
         for grupo, tipo in plantilla_dia:
             clave = (grupo, tipo)
             if clave not in candidatos_por_slot:
-                candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags)
+                candidatos = _candidatos(grupo, tipo, material_cliente, lesion_tags, incluir_nicho)
                 rng_ejercicios.shuffle(candidatos)
                 # Reorders across complexity tiers (doesn't re-shuffle
                 # within a tier) -- a beginner still gets exercise variety
@@ -429,7 +447,8 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
 
             parametros_base = PARAMETROS_POR_TIPO[tipo]
             series = max(
-                SERIES_MINIMAS, parametros_base["series"] + ajuste_nivel[tipo] + ajuste_estilo_vida,
+                SERIES_MINIMAS,
+                parametros_base["series"] + ajuste_nivel[tipo] + ajuste_estilo_vida + ajuste_compromiso,
             )
             parametros = {**parametros_base, "series": series}
             notas = ""
@@ -515,6 +534,10 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             )
         if recorte_sesion:
             resumen += f" Ajustado a menos ejercicios por sesión para caber en tus {disponibilidad['minutos_por_sesion']} minutos disponibles."
+        if nivel_compromiso == "tryhard":
+            resumen += " Modo tryhard: una serie extra por ejercicio y variantes más exigentes cuando el material lo permite."
+        elif nivel_compromiso == "chill":
+            resumen += " Modo chill: una serie menos por ejercicio para que sea más fácil de sostener."
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
@@ -537,6 +560,10 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             )
         if recorte_sesion:
             resumen += f" Trimmed to fewer exercises per session to fit your {disponibilidad['minutos_por_sesion']}-minute window."
+        if nivel_compromiso == "tryhard":
+            resumen += " Tryhard mode: one extra set per exercise, and more demanding variants where equipment allows."
+        elif nivel_compromiso == "chill":
+            resumen += " Chill mode: one fewer set per exercise, to make it easier to sustain."
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 

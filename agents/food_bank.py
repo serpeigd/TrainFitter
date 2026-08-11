@@ -72,6 +72,15 @@ per-food (not per-tag) soft exclusion: it matches a client's disliked-foods/
 restrictions free text directly against each food's own name (English or
 Spanish) -- unlike a synergy/preference tag, "I don't like broccoli" is
 about one specific food, not a category.
+
+DESIGN — "nicho" (niche/tryhard foods, added for the commitment-level
+personalization, see docs/decisiones.md): a handful of specialty/fermented
+entries (kimchi, natto, farro, algae oil) that are only ever candidates for
+a client whose `experiencia.nivel_compromiso` is `"tryhard"` -- these are
+curated by the trainer/project, not something a client types in freely
+(see `fuentes_*_para()`'s own `tryhard` gate). Absent (defaults to `False`
+via `.get("nicho", False)`) on every pre-existing entry, so "chill"/
+"normal" (the default) behave exactly as before this was added.
 """
 
 import unicodedata
@@ -152,6 +161,12 @@ FUENTES_PROTEINA = [
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },
+    {
+        "nombre": "Natto", "nombre_es": "Natto",
+        "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
+        "sinergias": {"probiotico", "magnesio"}, "nicho": True,
+        "macros_100g": {"kcal": 212, "proteina_g": 18, "carbohidratos_g": 14, "grasa_g": 11},
+    },
 ]
 
 # All entries here happen to contain no meat/fish/dairy/eggs, so every one
@@ -207,6 +222,11 @@ FUENTES_CARBOHIDRATO = [
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
         "macros_100g": {"kcal": 60, "proteina_g": 0.5, "carbohidratos_g": 15, "grasa_g": 0.2},
     },
+    {
+        "nombre": "Farro", "nombre_es": "Farro",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"}, "nicho": True,
+        "macros_100g": {"kcal": 170, "proteina_g": 6, "carbohidratos_g": 34, "grasa_g": 1.1},
+    },
 ]
 
 FUENTES_GRASA = [
@@ -241,6 +261,11 @@ FUENTES_GRASA = [
         "nombre": "Oily fish (EPA/DHA)", "nombre_es": "Pescado azul (EPA/DHA)",
         "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": {"antiinflamatorio"},
         "macros_100g": {"kcal": 208, "proteina_g": 20, "carbohidratos_g": 0, "grasa_g": 13},
+    },
+    {
+        "nombre": "Algae oil (vegan omega-3)", "nombre_es": "Aceite de algas (omega-3 vegano)",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"}, "nicho": True,
+        "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
 ]
 
@@ -297,6 +322,12 @@ FUENTES_VERDURA = [
         "nombre": "Citrus (orange, lemon)", "nombre_es": "Cítricos (naranja, limón)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "macros_100g": {"kcal": 47, "proteina_g": 0.9, "carbohidratos_g": 12, "grasa_g": 0.1},
+    },
+    {
+        "nombre": "Kimchi", "nombre_es": "Kimchi",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
+        "sinergias": {"probiotico", "vitamina_c"}, "nicho": True,
+        "macros_100g": {"kcal": 15, "proteina_g": 1.1, "carbohidratos_g": 2.4, "grasa_g": 0.5},
     },
 ]
 
@@ -477,13 +508,19 @@ def _etiquetas_a_evitar(perfil: dict) -> set[str]:
     return evitar
 
 
+def _tryhard(perfil: dict) -> bool:
+    return perfil.get("experiencia", {}).get("nivel_compromiso") == "tryhard"
+
+
 def fuentes_proteina_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     evitar = _etiquetas_a_evitar(perfil)
     no_deseados = alimentos_no_deseados(perfil)
+    tryhard = _tryhard(perfil)
     return [
         f["nombre"] for f in FUENTES_PROTEINA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
+        and (tryhard or not f.get("nicho", False))
     ]
 
 
@@ -491,9 +528,11 @@ def fuentes_carbohidrato_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     evitar = _etiquetas_a_evitar(perfil)
     no_deseados = alimentos_no_deseados(perfil)
+    tryhard = _tryhard(perfil)
     return [
         f["nombre"] for f in FUENTES_CARBOHIDRATO
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
+        and (tryhard or not f.get("nicho", False))
     ]
 
 
@@ -501,9 +540,11 @@ def fuentes_grasa_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     evitar = _etiquetas_a_evitar(perfil)
     no_deseados = alimentos_no_deseados(perfil)
+    tryhard = _tryhard(perfil)
     return [
         f["nombre"] for f in FUENTES_GRASA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
+        and (tryhard or not f.get("nicho", False))
     ]
 
 
@@ -511,7 +552,9 @@ def fuentes_verdura_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     evitar = _etiquetas_a_evitar(perfil)
     no_deseados = alimentos_no_deseados(perfil)
+    tryhard = _tryhard(perfil)
     return [
         f["nombre"] for f in FUENTES_VERDURA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
+        and (tryhard or not f.get("nicho", False))
     ]

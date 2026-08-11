@@ -176,6 +176,11 @@ STARTING POINT, not a final prescription.
   rather than prescribing a session they can't actually finish; and if they
   reported high stress or short sleep, keep volume a bit more conservative for
   this first block and say so in the summary.
+- If `experiencia.nivel_compromiso` is "chill", trim volume slightly for an easier,
+  more sustainable session; if "tryhard", volume can be a bit higher and you may
+  include more technically demanding exercise variants where the client's equipment
+  allows (e.g. Bulgarian split squats, weighted pull-ups) -- say so in the summary
+  either way.
 - The message to the client should sound like the trainer: warm, direct,
   pedagogical, no unexplained jargon.
 - You must respond ONLY by calling the `entregar_borrador_rutina` tool."""

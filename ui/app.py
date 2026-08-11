@@ -802,6 +802,11 @@ TRANSLATIONS = {
         "sec_experience": "3. Training experience",
         "level": "Level",
         "years_training": "Years training (approx.)",
+        "commitment_level": "How demanding do they want the plan?",
+        "commitment_level_caption": (
+            "Chill = a bit gentler (one fewer set, a milder calorie target). Tryhard = one extra set, "
+            "more demanding exercise variants, a more assertive calorie target, and supplement tips."
+        ),
         "experience_details": "Details on their experience (optional)",
         "sec_availability": "4. Availability",
         "days_per_week": "Days available per week",
@@ -816,6 +821,7 @@ TRANSLATIONS = {
         "injury_status": "Status",
         "conditions": "Diseases or conditions (comma-separated)",
         "medications": "Regular medication (comma-separated)",
+        "current_supplements": "Supplements they currently take (comma-separated)",
         "pregnant_label": "Are they pregnant or breastfeeding?",
         "detail_label": "Detail",
         "allergies": "Food allergies (comma-separated)",
@@ -1025,6 +1031,12 @@ TRANSLATIONS = {
         "sec_experience": "3. Experiencia entrenando",
         "level": "Nivel",
         "years_training": "Años entrenando (aprox.)",
+        "commitment_level": "¿Qué tan exigente quiere el plan?",
+        "commitment_level_caption": (
+            "Chill = algo más suave (una serie menos, objetivo calórico más moderado). Tryhard = una "
+            "serie más, variantes de ejercicio más exigentes, objetivo calórico más agresivo y "
+            "consejos de suplementación."
+        ),
         "experience_details": "Detalle de su experiencia (opcional)",
         "sec_availability": "4. Disponibilidad",
         "days_per_week": "Días disponibles a la semana",
@@ -1039,6 +1051,7 @@ TRANSLATIONS = {
         "injury_status": "Estado",
         "conditions": "Enfermedades o condiciones (separadas por coma)",
         "medications": "Medicación habitual (separada por coma)",
+        "current_supplements": "Suplementos que toma ahora mismo (separados por coma)",
         "pregnant_label": "¿Está embarazada o en periodo de lactancia?",
         "detail_label": "Detalle",
         "allergies": "Alergias alimentarias (separadas por coma)",
@@ -1176,6 +1189,7 @@ OPTION_LABELS = {
         "hipertrofia": "Build muscle (hypertrophy)", "perdida_grasa": "Lose fat",
         "recomposicion_corporal": "Recomposition (lose fat & build muscle)", "salud_general": "General health",
         "principiante": "Beginner", "intermedio": "Intermediate", "avanzado": "Advanced",
+        "chill": "Chill (easier)", "normal": "Normal", "tryhard": "Tryhard (more demanding)",
         "gimnasio_completo": "Full gym", "gimnasio_pequeno": "Small gym / limited equipment",
         "casa_con_material": "Home with some equipment", "casa_sin_material": "Home with no equipment",
         "maquinas_guiadas": "Guided machines", "poleas": "Cables", "barras_y_discos": "Barbell & plates",
@@ -1190,6 +1204,7 @@ OPTION_LABELS = {
         "hipertrofia": "Ganar músculo (hipertrofia)", "perdida_grasa": "Perder grasa",
         "recomposicion_corporal": "Recomposición (perder grasa y ganar músculo)", "salud_general": "Salud general",
         "principiante": "Principiante", "intermedio": "Intermedio", "avanzado": "Avanzado",
+        "chill": "Chill (más suave)", "normal": "Normal", "tryhard": "Tryhard (más exigente)",
         "gimnasio_completo": "Gimnasio completo", "gimnasio_pequeno": "Gimnasio pequeño / material limitado",
         "casa_con_material": "Casa con algo de material", "casa_sin_material": "Casa sin material",
         "maquinas_guiadas": "Máquinas guiadas", "poleas": "Poleas", "barras_y_discos": "Barras y discos",
@@ -1451,6 +1466,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "objetivo_valor": objetivo["principal"],
         "en_sus_palabras": objetivo.get("en_sus_palabras", ""),
         "nivel_valor": experiencia["nivel"],
+        "nivel_compromiso_valor": experiencia.get("nivel_compromiso", "normal"),
         "anios": experiencia.get("anios_entrenando", 0.5),
         "detalle_experiencia": experiencia.get("detalle", ""),
         "dias": disponibilidad["dias_por_semana"],
@@ -1463,6 +1479,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "estado_lesion_valor": "activa" if primera_lesion.get("activa_actualmente") else "antigua_controlada",
         "enfermedades": ", ".join(salud.get("enfermedades_o_condiciones", [])),
         "medicacion": ", ".join(salud.get("medicacion_habitual", [])),
+        "suplementos": ", ".join(salud.get("suplementos_actuales", [])),
         "embarazo": bool(embarazo.get("aplica")),
         "detalle_embarazo": embarazo.get("detalle", ""),
         "alergias": ", ".join(salud.get("alergias_alimentarias", [])),
@@ -1514,6 +1531,12 @@ def _formulario_ficha_nueva() -> dict | None:
     clave_nivel, indice_nivel = _clave_selectbox("nivel", niveles, "principiante")
     nivel = c6.selectbox(t("level"), niveles, format_func=opt, index=indice_nivel, key=clave_nivel)
     anios_entrenando = c7.number_input(t("years_training"), min_value=0.0, max_value=50.0, value=0.5, step=0.5, key="anios")
+    niveles_compromiso = ["chill", "normal", "tryhard"]
+    clave_compromiso, indice_compromiso = _clave_selectbox("nivel_compromiso", niveles_compromiso, "normal")
+    nivel_compromiso = st.selectbox(
+        t("commitment_level"), niveles_compromiso, format_func=opt, index=indice_compromiso, key=clave_compromiso,
+    )
+    st.caption(t("commitment_level_caption"))
     detalle_experiencia = st.text_area(t("experience_details"), key="detalle_experiencia")
 
     st.subheader(t("sec_availability"))
@@ -1547,6 +1570,7 @@ def _formulario_ficha_nueva() -> dict | None:
     c10, c11 = st.columns(2)
     enfermedades_texto = c10.text_input(t("conditions"), key="enfermedades")
     medicacion_texto = c11.text_input(t("medications"), key="medicacion")
+    suplementos_texto = st.text_input(t("current_supplements"), key="suplementos")
 
     embarazo = st.checkbox(t("pregnant_label"), key="embarazo")
     detalle_embarazo = st.text_input(t("detail_label"), key="detalle_embarazo") if embarazo else ""
@@ -1633,6 +1657,7 @@ def _formulario_ficha_nueva() -> dict | None:
         "objetivo": {"principal": principal, "en_sus_palabras": en_sus_palabras.strip()},
         "experiencia": {
             "nivel": nivel,
+            "nivel_compromiso": nivel_compromiso,
             "anios_entrenando": float(anios_entrenando),
             "detalle": detalle_experiencia.strip(),
         },
@@ -1654,6 +1679,7 @@ def _formulario_ficha_nueva() -> dict | None:
             "enfermedades_o_condiciones": _lista_desde_texto(enfermedades_texto),
             "embarazo_o_lactancia": {"aplica": embarazo, "detalle": detalle_embarazo.strip()},
             "medicacion_habitual": _lista_desde_texto(medicacion_texto),
+            "suplementos_actuales": _lista_desde_texto(suplementos_texto),
             "alergias_alimentarias": _lista_desde_texto(alergias_texto),
             "intolerancias_alimentarias": _lista_desde_texto(intolerancias_texto),
             "analitica_adjunta": analitica_adjunta,

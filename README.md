@@ -108,6 +108,19 @@ This repository is built phase by phase, as a learning project. Right now:
   — not just listed as a separate tip. Renders as a styled table in the diet
   PDF and in the trainer's on-screen review, in whichever language the UI
   is set to.
+- Both rule engines use most of what the intake form actually collects:
+  training level and session length shape routine volume/complexity,
+  disliked foods and lifestyle signals (stress/sleep, job type) bias diet
+  selection (bilingual keyword matching, still free — see
+  [`docs/decisiones.md`](docs/decisiones.md)), and a **commitment-level
+  dial** (`chill`/`normal`/`tryhard`) adjusts set volume and calorie
+  aggressiveness (magnitude only — capped so `tryhard` never crosses into
+  what the trainer's own method calls an aggressive deficit), unlocks a
+  small curated pool of more technically demanding exercises/foods, and
+  surfaces evidence-based supplement tips that skip whatever the client
+  already reports taking. A client-reported supplement alongside regular
+  medication forces enhanced review, the same defense-in-depth pattern
+  used for allergies and injuries.
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a
@@ -164,7 +177,10 @@ This repository is built phase by phase, as a learning project. Right now:
 - A **"Revise client"** section lets the trainer look up a past client by
   email and reopen their exact intake form, pre-filled with everything they
   originally entered, to edit and regenerate — approving updates that same
-  Notion record in place rather than creating a duplicate. This is a real,
+  Notion record in place rather than creating a duplicate. The form only
+  ever appears once a real client has actually been loaded this way — it
+  can't be used to type up a brand-new client from scratch (that's what
+  "New client" is for). This is a real,
   deliberate architecture change: Notion now stores each client's complete
   profile (chunked across a `rich_text` property), not just a summary — a
   trade-off the project owner chose explicitly after seeing the lighter
@@ -184,8 +200,10 @@ This repository is built phase by phase, as a learning project. Right now:
 - Both **"Revise client"** and **"Clients"** display real clients' personal
   data (emails at minimum; "Revise client" surfaces full health details) —
   on the public demo, both are gated behind the same shared password that
-  already protects the "Approve" button, unlocked once per browser session
-  rather than re-checked on every click. "Revise client"'s actual
+  already protects the "Approve" button, each unlocked independently once
+  per browser session (unlocking one no longer silently unlocks the
+  other — a real gap caught live-testing, fixed the same day) rather than
+  re-checked on every click. "Revise client"'s actual
   email lookup goes further: it re-checks that same password on every
   single load (not just the once-per-session unlock), since a shared or
   already-unlocked session shouldn't let anyone pull up any client's full
@@ -259,6 +277,12 @@ actually been verified:
 - **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
   after a period of no traffic triggers a cold start (can take up to a minute); this is a
   hosting trade-off, not an application bug.
+- **Supplement-medication interaction checking is a coarse flag, not a real interaction
+  database.** `validator_agent.py` forces enhanced review whenever a client reports both
+  supplements and regular medication together — it can't tell you *which* combination is
+  actually risky, only that a human should look before anything ships. A real interaction
+  database was deliberately out of scope (see `docs/decisiones.md`): a false sense of
+  completeness there would be worse than the honest, coarser flag.
 
 ## Tech stack
 

@@ -270,3 +270,89 @@ def test_high_stress_or_low_sleep_note_appears_in_summary(perfil_base):
 def test_normal_stress_and_sleep_has_no_conservative_note(perfil_base):
     borrador = generar_borrador_rutina_reglas(perfil_base)
     assert "conservative" not in borrador["resumen_enfoque"].lower()
+
+
+def test_tryhard_adds_a_set_and_chill_removes_one(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_rutina_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_rutina_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_rutina_reglas(perfil_base)
+
+    series_chill = chill["sesiones"][0]["ejercicios"][0]["series"]
+    series_normal = normal["sesiones"][0]["ejercicios"][0]["series"]
+    series_tryhard = tryhard["sesiones"][0]["ejercicios"][0]["series"]
+    assert series_chill == series_normal - 1
+    assert series_tryhard == series_normal + 1
+
+
+def test_series_never_drop_below_the_floor_even_stacked_with_chill(perfil_base):
+    """chill (-1) stacked with a beginner's own -1 and the stress/sleep -1
+    could reach zero or negative without the shared floor."""
+    perfil_base["experiencia"]["nivel"] = "principiante"
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    perfil_base["estilo_de_vida"]["horas_sueno_promedio"] = 5
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        for ejercicio in sesion["ejercicios"]:
+            assert ejercicio["series"] >= 2
+
+
+def test_niche_exercises_only_appear_in_tryhard_mode(perfil_base):
+    nicho = {e["nombre"] for e in EXERCISE_BANK if e.get("nicho")}
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    ]
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_rutina_reglas(perfil_base)
+    usados_normal = {e["nombre"] for s in normal["sesiones"] for e in s["ejercicios"]}
+    assert not (usados_normal & nicho)
+
+    encontrado = False
+    for i in range(15):
+        perfil_base["id_cliente"] = f"nicho_test_{i}"
+        perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+        tryhard = generar_borrador_rutina_reglas(perfil_base)
+        usados_tryhard = {e["nombre"] for s in tryhard["sesiones"] for e in s["ejercicios"]}
+        if usados_tryhard & nicho:
+            encontrado = True
+            break
+    assert encontrado
+
+
+def test_commitment_mode_note_appears_in_summary(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_rutina_reglas(perfil_base)
+    assert "tryhard" in tryhard["resumen_enfoque"].lower()
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_rutina_reglas(perfil_base)
+    assert "chill" in chill["resumen_enfoque"].lower()
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_rutina_reglas(perfil_base)
+    assert "tryhard" not in normal["resumen_enfoque"].lower()
+    assert "chill" not in normal["resumen_enfoque"].lower()
+
+
+def test_missing_nivel_compromiso_defaults_to_normal_behavior(perfil_base):
+    """A profile without the field at all (e.g. an older saved client) must
+    behave exactly like nivel_compromiso="normal", not crash or change
+    numbers."""
+    assert "nivel_compromiso" not in perfil_base["experiencia"]
+    sin_campo = generar_borrador_rutina_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    con_normal = generar_borrador_rutina_reglas(perfil_base)
+    assert sin_campo["sesiones"][0]["ejercicios"][0]["series"] == con_normal["sesiones"][0]["ejercicios"][0]["series"]
+
+
+def test_commitment_mode_note_appears_in_summary_es(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    assert "tryhard" in tryhard["resumen_enfoque"].lower()
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    assert "chill" in chill["resumen_enfoque"].lower()

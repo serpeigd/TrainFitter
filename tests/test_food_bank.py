@@ -314,3 +314,19 @@ def test_disliked_food_does_not_trigger_a_health_review():
         "nutricion": {"alimentos_que_no_le_gustan": ["chicken"], "restricciones": []},
     }
     assert etiquetas_excluidas(perfil) == set()
+
+
+def test_niche_foods_excluded_by_default_and_included_in_tryhard_mode(perfil_base):
+    normal = fuentes_proteina_para(perfil_base)
+    assert "Natto" not in normal
+    assert not any(f.get("nicho") and f["nombre"] in normal for f in FUENTES_PROTEINA)
+
+    perfil_base["experiencia"] = {"nivel_compromiso": "tryhard"}
+    tryhard = fuentes_proteina_para(perfil_base)
+    assert "Natto" in tryhard
+
+
+def test_niche_foods_still_respect_allergy_exclusion_in_tryhard_mode(perfil_base):
+    perfil_base["experiencia"] = {"nivel_compromiso": "tryhard"}
+    perfil_base["salud"]["alergias_alimentarias"] = ["soy allergy"]
+    assert "Natto" not in fuentes_proteina_para(perfil_base)

@@ -204,3 +204,84 @@ def test_disliked_food_never_triggers_enhanced_review(perfil_base):
     perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["chicken breast"]
     borrador = generar_borrador_dieta_reglas(perfil_base)
     assert borrador["advertencias_revision_humana"] == []
+
+
+def test_tryhard_pushes_calories_further_from_maintenance_than_chill(perfil_base):
+    perfil_base["objetivo"]["principal"] = "perdida_grasa"
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base)
+
+    # perdida_grasa is a deficit (fewer kcal = more aggressive), so tryhard
+    # (larger-magnitude deficit) lands BELOW normal, chill lands ABOVE it.
+    assert tryhard["calorias_objetivo_kcal"] < normal["calorias_objetivo_kcal"] < chill["calorias_objetivo_kcal"]
+
+
+def test_maintenance_goal_is_unaffected_by_commitment_level(perfil_base):
+    """salud_general's 0% adjustment has no direction to scale -- chill/
+    tryhard must not invent one."""
+    perfil_base["objetivo"]["principal"] = "salud_general"
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base)
+    assert chill["calorias_objetivo_kcal"] == tryhard["calorias_objetivo_kcal"]
+
+
+def test_commitment_mode_note_appears_in_summary(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base)
+    assert "tryhard" in tryhard["resumen_enfoque"].lower()
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_dieta_reglas(perfil_base)
+    assert "tryhard" not in normal["resumen_enfoque"].lower()
+
+
+def test_niche_foods_only_suggested_in_tryhard_mode(perfil_base):
+    normal = generar_borrador_dieta_reglas(perfil_base)
+    assert "Natto" not in normal["fuentes_proteina_sugeridas"]
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base)
+    assert "Natto" in tryhard["fuentes_proteina_sugeridas"]
+
+
+def test_supplement_tips_only_shown_in_tryhard_mode(perfil_base):
+    normal = generar_borrador_dieta_reglas(perfil_base)
+    assert not any("creatine" in c.lower() for c in normal["consejos_sinergias"])
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base)
+    assert any("creatine" in c.lower() for c in tryhard["consejos_sinergias"])
+
+
+def test_supplement_tips_skip_what_the_client_already_takes(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    perfil_base["salud"]["suplementos_actuales"] = ["Creatina"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    consejos = " ".join(borrador["consejos_sinergias"]).lower()
+    assert "creatine" not in consejos
+    assert "45-60 min before training" in consejos  # other tips (caffeine) still show
+
+
+def test_missing_nivel_compromiso_defaults_to_normal_behavior(perfil_base):
+    assert "nivel_compromiso" not in perfil_base["experiencia"]
+    sin_campo = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    con_normal = generar_borrador_dieta_reglas(perfil_base)
+    assert sin_campo["calorias_objetivo_kcal"] == con_normal["calorias_objetivo_kcal"]
+
+
+def test_commitment_mode_note_appears_in_summary_es(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert "tryhard" in tryhard["resumen_enfoque"].lower()
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
+    chill = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert "chill" in chill["resumen_enfoque"].lower()

@@ -1,6 +1,6 @@
 {
   "cliente_id": "cliente_001",
-  "resumen_enfoque": "'upper lower' split for intermediate level, 4 days/week, geared toward hypertrophy. Exercises selected based on the client's available equipment.",
+  "resumen_enfoque": "'upper lower' split for intermediate level, 4 days/week, geared toward hypertrophy. Exercises selected based on the client's available equipment. Tryhard mode: one extra set per exercise, and more demanding variants where equipment allows.",
   "nivel_asumido": "intermedio",
   "split": "upper_lower",
   "dias_por_semana": 4,
@@ -20,35 +20,35 @@
       "ejercicios": [
         {
           "nombre": "Push-ups (standard)",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "One-arm dumbbell row",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Machine shoulder press",
-          "series": 4,
+          "nombre": "Single-arm dumbbell push press",
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Dumbbell skull crusher",
-          "series": 3,
+          "nombre": "Cable triceps pushdown (bar)",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
           "nombre": "Dumbbell curl",
-          "series": 3,
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
@@ -66,36 +66,36 @@
       "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
       "ejercicios": [
         {
-          "nombre": "Goblet squat",
-          "series": 4,
+          "nombre": "Low step-up with dumbbells",
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Barbell Romanian deadlift",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Machine leg extension (moderate load)",
-          "series": 3,
+          "nombre": "Wall sit (isometric squat)",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Machine hip adduction",
-          "series": 3,
+          "nombre": "Machine hip abduction",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Cable Pallof press",
-          "series": 3,
+          "nombre": "Hanging / lying leg raise",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
@@ -116,35 +116,35 @@
       "ejercicios": [
         {
           "nombre": "Inverted row (bodyweight)",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Parallel bar dips",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Machine reverse fly (rear delt)",
-          "series": 3,
+          "nombre": "Dumbbell front raise",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
           "nombre": "Cable curl",
-          "series": 3,
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Cable triceps pushdown (bar)",
-          "series": 3,
+          "nombre": "Dumbbell skull crusher",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
@@ -164,28 +164,28 @@
       "ejercicios": [
         {
           "nombre": "Barbell hip thrust",
-          "series": 4,
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Dumbbell lunges",
-          "series": 4,
+          "nombre": "Bodyweight squat",
+          "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Seated calf raise",
-          "series": 3,
+          "nombre": "Standing machine calf raise",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
-          "nombre": "Hanging / lying leg raise",
-          "series": 3,
+          "nombre": "Cable Pallof press",
+          "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
