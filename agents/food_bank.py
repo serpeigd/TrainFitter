@@ -417,6 +417,22 @@ def preferencias_texto_libre(perfil: dict) -> str:
     return " ".join(partes).lower()
 
 
+def categoria_inquietud_conocida(texto: str) -> str:
+    """Maps free text to one of _PALABRAS_CLAVE_PREFERENCIA_BLANDA's known
+    categories ("antiinflamatorio"/"reducir_gluten"), or "" if it doesn't
+    match either -- the reverse direction of the same keyword lists
+    preferencias_blandas() already matches against, exposed publicly so
+    ui/app.py's preset dropdown for `nutricion.inquietud_principal` (see
+    docs/decisiones.md) can pre-select a known category when loading a
+    saved client for revision, falling back to its free-text "Other"
+    option for anything this project doesn't have a preset for."""
+    texto = texto.lower()
+    for categoria, palabras in _PALABRAS_CLAVE_PREFERENCIA_BLANDA.items():
+        if any(palabra in texto for palabra in palabras):
+            return categoria
+    return ""
+
+
 def preferencias_blandas(perfil: dict) -> set[str]:
     """Soft dietary preferences -- never a safety/allergy concern, never
     surfaced to validator_agent.py, just a bias applied to suggestions.

@@ -202,6 +202,7 @@ sys.path.insert(0, str(MCP_DIR))
 from adherencia_parser import resumir_adherencia, valoracion_desde_ratios  # noqa: E402
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
+from food_bank import categoria_inquietud_conocida  # noqa: E402
 from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
 from gmail_client import (  # noqa: E402
     GmailClientError,
@@ -834,7 +835,8 @@ TRANSLATIONS = {
         "additional_restrictions": "Additional restrictions (comma-separated)",
         "disliked_foods": "Foods they don't like (comma-separated)",
         "main_dietary_concern": "Main dietary concern or approach (optional)",
-        "main_dietary_concern_placeholder": "e.g. anti-inflammatory, lower gluten, gut health...",
+        "main_dietary_concern_other_label": "Describe it",
+        "main_dietary_concern_placeholder": "e.g. gut health, more energy in the mornings...",
         "meals_per_day": "Preferred meals per day",
         "nutrition_context": "Context (cooking, time, budget...)",
         "sec_lifestyle": "7. Lifestyle",
@@ -1071,7 +1073,8 @@ TRANSLATIONS = {
         "additional_restrictions": "Restricciones adicionales (coma)",
         "disliked_foods": "Alimentos que no le gustan (coma)",
         "main_dietary_concern": "Enfoque o inquietud principal de dieta (opcional)",
-        "main_dietary_concern_placeholder": "ej. antiinflamatoria, bajar el gluten, salud digestiva...",
+        "main_dietary_concern_other_label": "Descríbelo",
+        "main_dietary_concern_placeholder": "ej. salud digestiva, más energía por las mañanas...",
         "meals_per_day": "Comidas al día preferidas",
         "nutrition_context": "Contexto (cocina, tiempo, presupuesto...)",
         "sec_lifestyle": "7. Estilo de vida",
@@ -1213,6 +1216,8 @@ OPTION_LABELS = {
         "omnivora": "Omnivorous", "vegetariana_ovolacto": "Vegetarian", "vegana": "Vegan",
         "bajo": "Low", "medio": "Medium", "alto": "High",
         "full_body": "full body", "upper_lower": "upper lower", "push_pull_legs": "push pull legs",
+        "": "None", "antiinflamatorio": "Anti-inflammatory", "reducir_gluten": "Lower gluten",
+        "otra": "Other (describe below)",
     },
     "es": {
         "mujer": "Mujer", "hombre": "Hombre",
@@ -1228,6 +1233,8 @@ OPTION_LABELS = {
         "omnivora": "Omnívora", "vegetariana_ovolacto": "Vegetariana", "vegana": "Vegana",
         "bajo": "Bajo", "medio": "Medio", "alto": "Alto",
         "full_body": "cuerpo completo", "upper_lower": "torso-pierna", "push_pull_legs": "empuje-tracción-pierna",
+        "": "Ninguna", "antiinflamatorio": "Antiinflamatoria", "reducir_gluten": "Bajar el gluten",
+        "otra": "Otra (descríbelo abajo)",
     },
 }
 
@@ -1260,6 +1267,18 @@ def t(key: str) -> str:
 
 def opt(key: str) -> str:
     return OPTION_LABELS[st.session_state.lang].get(key, key)
+
+
+# Preset dropdown for nutricion.inquietud_principal (see docs/decisiones.md):
+# each preset maps to a natural-language phrase food_bank.py's
+# _PALABRAS_CLAVE_PREFERENCIA_BLANDA already recognizes for that category --
+# storing the phrase itself (not the internal key) means no changes were
+# needed in food_bank.py's matching logic for the presets to actually work.
+OPCIONES_INQUIETUD = ["", "antiinflamatorio", "reducir_gluten", "otra"]
+_FRASE_POR_INQUIETUD = {
+    "en": {"antiinflamatorio": "anti-inflammatory", "reducir_gluten": "lower gluten"},
+    "es": {"antiinflamatorio": "antiinflamatoria", "reducir_gluten": "bajar el gluten"},
+}
 
 
 OBJETIVOS = ["hipertrofia", "perdida_grasa", "recomposicion_corporal", "salud_general"]
@@ -1472,6 +1491,15 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
     primera_lesion = lesiones[0] if lesiones else {}
     embarazo = salud.get("embarazo_o_lactancia") or {}
 
+    # Reverse-maps a saved inquietud_principal (free text before this
+    # became a preset dropdown, or "Other" free text since) back onto the
+    # dropdown -- a known category pre-selects its preset; anything else
+    # pre-selects "otra" with the original text carried into its follow-up
+    # field, so a pre-dropdown client's saved concern is never silently
+    # dropped on revision.
+    inquietud_guardada = nutricion.get("inquietud_principal", "")
+    categoria_inquietud = categoria_inquietud_conocida(inquietud_guardada) if inquietud_guardada else ""
+
     return {
         "nombre": datos["nombre"],
         "edad": datos["edad"],
@@ -1502,7 +1530,8 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "tipo_dieta_valor": nutricion["tipo_dieta"],
         "restricciones": ", ".join(nutricion.get("restricciones", [])),
         "no_le_gustan": ", ".join(nutricion.get("alimentos_que_no_le_gustan", [])),
-        "inquietud_principal": nutricion.get("inquietud_principal", ""),
+        "inquietud_valor": categoria_inquietud or ("otra" if inquietud_guardada else ""),
+        "inquietud_otra_texto": "" if categoria_inquietud else inquietud_guardada,
         "comidas": nutricion.get("comidas_al_dia_preferidas", 3),
         "contexto": nutricion.get("contexto", ""),
         "sueno": estilo.get("horas_sueno_promedio", 7.0),
@@ -1611,9 +1640,17 @@ def _formulario_ficha_nueva() -> dict | None:
     c14, c15 = st.columns(2)
     restricciones_texto = c14.text_input(t("additional_restrictions"), key="restricciones")
     no_le_gustan_texto = c15.text_input(t("disliked_foods"), key="no_le_gustan")
-    inquietud_principal = st.text_input(
-        t("main_dietary_concern"), key="inquietud_principal", placeholder=t("main_dietary_concern_placeholder"),
+    clave_inquietud, indice_inquietud = _clave_selectbox("inquietud", OPCIONES_INQUIETUD, "")
+    inquietud_valor = st.selectbox(
+        t("main_dietary_concern"), OPCIONES_INQUIETUD, format_func=opt, index=indice_inquietud, key=clave_inquietud,
     )
+    if inquietud_valor == "otra":
+        inquietud_principal = st.text_input(
+            t("main_dietary_concern_other_label"), key="inquietud_otra_texto",
+            placeholder=t("main_dietary_concern_placeholder"),
+        ).strip()
+    else:
+        inquietud_principal = _FRASE_POR_INQUIETUD[st.session_state.lang].get(inquietud_valor, "")
     comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=3, key="comidas")
     contexto_nutricion = st.text_area(t("nutrition_context"), key="contexto")
 

@@ -530,6 +530,27 @@ from 402), 97.5% coverage. Not re-verified live in the browser this
 round (a port conflict with another concurrent session blocked it) —
 disclosed rather than claimed; due for a live spot-check next session.
 
+A real production crash got reported and fixed the same day: a
+`TypeError` inside `crear_borrador()` (PDF generation against a real
+client's data, redacted by Streamlit Cloud's own privacy behavior) was
+propagating past `ui/app.py`'s narrow
+`except (GmailClientError, ImportError, ModuleNotFoundError)` clause and
+crashing the whole app instead of just failing the draft button. Fixed
+by wrapping the PDF/email-body-building step and re-raising anything it
+throws as `GmailClientError` — the one type the caller already handles —
+locked in with a test that forces `generar_pdf_rutina()` to raise and
+confirms it's converted. The exact triggering data was never reproduced
+locally despite testing every example client plus a battery of
+adversarial profiles; the fix contains the *category* of bug regardless.
+Separately, `nutricion.inquietud_principal` became a preset dropdown
+(None/Anti-inflammatory/Lower gluten/Other) instead of free text — the
+presets store the exact phrase `food_bank.py`'s existing bilingual
+keyword matching already recognizes, so no matching-logic changes were
+needed, and a new public `food_bank.categoria_inquietud_conocida()`
+reverse-maps a previously-saved free-text concern back onto the right
+preset (or "Other," text intact) when loading a client for revision.
+419 tests passing (up from 415).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

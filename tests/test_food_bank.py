@@ -10,6 +10,7 @@ from food_bank import (
     FUENTES_VERDURA,
     INDICE_ALIMENTOS,
     alimentos_no_deseados,
+    categoria_inquietud_conocida,
     etiquetas_excluidas,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
@@ -330,3 +331,18 @@ def test_niche_foods_still_respect_allergy_exclusion_in_tryhard_mode(perfil_base
     perfil_base["experiencia"] = {"nivel_compromiso": "tryhard"}
     perfil_base["salud"]["alergias_alimentarias"] = ["soy allergy"]
     assert "Natto" not in fuentes_proteina_para(perfil_base)
+
+
+def test_categoria_inquietud_conocida_matches_antiinflamatorio():
+    assert categoria_inquietud_conocida("anti-inflammatory") == "antiinflamatorio"
+    assert categoria_inquietud_conocida("Antiinflamatoria") == "antiinflamatorio"
+
+
+def test_categoria_inquietud_conocida_matches_reducir_gluten():
+    assert categoria_inquietud_conocida("lower gluten") == "reducir_gluten"
+    assert categoria_inquietud_conocida("bajar el gluten") == "reducir_gluten"
+
+
+def test_categoria_inquietud_conocida_returns_empty_for_unmatched_text():
+    assert categoria_inquietud_conocida("more energy in the mornings") == ""
+    assert categoria_inquietud_conocida("") == ""
