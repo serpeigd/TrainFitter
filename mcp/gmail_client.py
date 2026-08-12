@@ -432,21 +432,30 @@ def crear_borrador(
     asunto = f"{ASUNTO_PLAN_ES} — {nombre_cliente}" if idioma == "es" else f"{ASUNTO_PLAN_EN} — {nombre_cliente}"
     nombre_pdf_dieta = NOMBRE_PDF_DIETA_ES if idioma == "es" else NOMBRE_PDF_DIETA_EN
     nombre_pdf_rutina = NOMBRE_PDF_RUTINA_ES if idioma == "es" else NOMBRE_PDF_RUTINA_EN
-    adjuntos = [
-        (nombre_pdf_rutina, generar_pdf_rutina(borrador_rutina, nombre_cliente, idioma)),
-        (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
-    ]
-    if incluir_checklist:
-        nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
-        adjuntos.append(
-            (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
-        )
-    cuerpo = _construir_mensaje_raw(
-        destinatario,
-        asunto=asunto,
-        cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist),
-        adjuntos=adjuntos,
-    )
+
+    # Building the PDFs/email body is local rendering, not a Gmail API call,
+    # but ui/app.py's caller only ever expects GmailClientError out of this
+    # function (see its own except clause) -- a bug in reportlab/pypdf
+    # rendering against some real client's actual data (malformed field,
+    # an edge case none of the example clients happen to hit) must not
+    # surface as an unhandled TypeError/ValueError/etc. that crashes the
+    # whole app. Wrapped once here rather than in every pdf_generador.py
+    # function, so that module's own functions/tests stay exception-neutral.
+    try:
+        adjuntos = [
+            (nombre_pdf_rutina, generar_pdf_rutina(borrador_rutina, nombre_cliente, idioma)),
+            (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
+        ]
+        if incluir_checklist:
+            nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
+            adjuntos.append(
+                (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
+            )
+        cuerpo_texto = _construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist)
+    except Exception as exc:
+        raise GmailClientError(f"Could not build the plan PDFs/email body: {exc}") from exc
+
+    cuerpo = _construir_mensaje_raw(destinatario, asunto=asunto, cuerpo_texto=cuerpo_texto, adjuntos=adjuntos)
 
     # Resolved before importing googleapiclient: _obtener_credenciales()
     # checks whether Gmail is set up at all first (see its docstring), so a

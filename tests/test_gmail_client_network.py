@@ -115,6 +115,26 @@ def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_
         gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
 
 
+def test_crear_borrador_wraps_a_pdf_generation_bug_instead_of_crashing(monkeypatch, borrador_rutina, borrador_dieta):
+    """Real production bug: a TypeError (or any other exception) raised
+    while building the PDFs/email body -- reportlab/pypdf rendering some
+    real client's actual data, not a Gmail API call at all -- used to
+    propagate straight past ui/app.py's `except (GmailClientError, ...)`
+    clause and crash the whole app. crear_borrador() must convert
+    anything raised in that step into a GmailClientError, the only
+    exception type its caller is prepared to catch."""
+    import pdf_generador
+
+    _mock_service(monkeypatch)
+
+    def _explota(*_args, **_kwargs):
+        raise TypeError("boom")
+
+    monkeypatch.setattr(pdf_generador, "generar_pdf_rutina", _explota)
+    with pytest.raises(GmailClientError):
+        gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+
 # --- enviar_enlace_portal() --------------------------------------------------
 
 
