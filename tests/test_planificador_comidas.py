@@ -203,3 +203,71 @@ def test_no_active_preference_does_not_crash_and_still_varies(perfil_base):
     assert len(plan) == 7
     lunch_dinner_descripciones = {c["descripcion"] for d in plan for c in d["comidas"] if c["tipo"] in ("Lunch", "Dinner")}
     assert len(lunch_dinner_descripciones) > 1  # real variety, not narrowed down to one option
+
+
+# --- Liked meals (comidas_favoritas) -- portal "repeat this meal" feature -
+
+
+def test_meal_dict_includes_structured_food_fields(perfil_base):
+    """Alongside the rendered "descripcion", each meal now also carries
+    its own structured picks -- what lets a client "like" a specific meal
+    from the portal without this project parsing food names back out of
+    prose (see docs/decisiones.md)."""
+    from food_bank import fuentes_proteina_para
+
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    comida = plan[0]["comidas"][0]
+    assert comida["tipo_interno"] == "desayuno"
+    assert comida["proteina"] in fuentes_proteina_para(perfil_base)
+
+
+def test_liked_meal_reappears_more_often_than_baseline(perfil_base):
+    """Statistical check, not a single-example read (same discipline as
+    the antiinflamatorio bias test above): a liked breakfast should show
+    up across the week noticeably more than the ~1-in-N baseline chance
+    for that specific protein."""
+    plan_base = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base, "baseline"))
+    desayunos_base = [c for d in plan_base for c in d["comidas"] if c["tipo_interno"] == "desayuno"]
+    proteina_objetivo = desayunos_base[0]["proteina"]
+    carbohidrato_objetivo = desayunos_base[0]["carbohidrato"]
+
+    perfil_base["nutricion"]["comidas_favoritas"] = [
+        {"tipo": "desayuno", "proteina": proteina_objetivo, "carbohidrato": carbohidrato_objetivo, "grasa": None},
+    ]
+    apariciones = 0
+    total = 0
+    for i in range(20):
+        perfil_base["id_cliente"] = f"favoritos_test_{i}"
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] == "desayuno":
+                    total += 1
+                    if comida["proteina"] == proteina_objetivo and comida["carbohidrato"] == carbohidrato_objetivo:
+                        apariciones += 1
+    assert apariciones / total > 0.35  # well above what an unbiased pick across many candidates would give
+
+
+def test_no_favorites_behaves_exactly_like_before(perfil_base):
+    """A profile without comidas_favoritas at all (every existing client)
+    must produce byte-identical plans to before this feature existed."""
+    assert "comidas_favoritas" not in perfil_base["nutricion"]
+    sin_favoritos = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    perfil_base["nutricion"]["comidas_favoritas"] = []
+    con_lista_vacia = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    assert sin_favoritos == con_lista_vacia
+
+
+def test_liked_meal_dropped_if_food_no_longer_a_valid_candidate(perfil_base):
+    """A safety-adjacent guarantee: if the liked food is no longer a
+    candidate (e.g. a new allergy since the meal was liked), it must
+    never be resurrected just because it's on the favorites list --
+    comidas_favoritas is matched against the already-filtered candidate
+    pool, not the raw food bank."""
+    perfil_base["nutricion"]["comidas_favoritas"] = [
+        {"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None},
+    ]
+    perfil_base["salud"]["alergias_alimentarias"] = ["egg allergy"]
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    texto = str(plan).lower()
+    assert "eggs" not in texto

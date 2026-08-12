@@ -18,6 +18,7 @@ from notion_connector import (
     _fila_checkin_desde_pagina,
     _fila_cliente_lista_desde_pagina,
     _fila_registro_cliente_desde_pagina,
+    _perfil_desde_propiedades,
     _unir_bloques_notion,
     actualizar_email_cliente,
     actualizar_registro_cliente,
@@ -73,7 +74,10 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
 
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
 
-    assert set(propiedades) == {"Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent", "Full Profile (JSON)"}
+    assert set(propiedades) == {
+        "Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent",
+        "Full Profile (JSON)", "Weekly Meal Plan (JSON)",
+    }
     assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
     assert propiedades["Date"]["date"]["start"] == "2026-01-15"
     assert propiedades["Goal"]["select"]["name"] == "Hypertrophy"
@@ -99,6 +103,63 @@ def test_page_properties_full_profile_round_trips_through_json(perfil_base, borr
     }
     guardado = json.loads(_unir_bloques_notion(propiedad_respuesta))
     assert guardado == perfil_base
+
+
+def test_page_properties_include_the_weekly_meal_plan(perfil_base, borrador_rutina, borrador_dieta):
+    borrador_dieta["plan_semanal"] = [{"dia": "Monday", "comidas": [{"tipo": "Breakfast"}]}]
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+
+    propiedad_respuesta = {
+        "rich_text": [
+            {"plain_text": b["text"]["content"]} for b in propiedades["Weekly Meal Plan (JSON)"]["rich_text"]
+        ]
+    }
+    guardado = json.loads(_unir_bloques_notion(propiedad_respuesta))
+    assert guardado == borrador_dieta["plan_semanal"]
+
+
+def test_page_properties_weekly_meal_plan_defaults_to_empty_list(perfil_base, borrador_rutina, borrador_dieta):
+    assert "plan_semanal" not in borrador_dieta
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedad_respuesta = {
+        "rich_text": [
+            {"plain_text": b["text"]["content"]} for b in propiedades["Weekly Meal Plan (JSON)"]["rich_text"]
+        ]
+    }
+    assert json.loads(_unir_bloques_notion(propiedad_respuesta)) == []
+
+
+def test_perfil_desde_propiedades_merges_liked_meals(perfil_base, borrador_rutina, borrador_dieta):
+    """Liked Meals (JSON) (client-portal-written) merges into
+    perfil["nutricion"]["comidas_favoritas"] with no extra wiring needed
+    by ui/app.py's "Revise client" -- both obtener_perfil_completo() and
+    buscar_cliente_por_email() share this same reassembly function."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    favoritas = [{"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None}]
+    propiedades["Liked Meals (JSON)"] = {"rich_text": [{"plain_text": json.dumps(favoritas)}]}
+
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert perfil["nutricion"]["comidas_favoritas"] == favoritas
+
+
+def test_perfil_desde_propiedades_without_liked_meals_has_no_key(perfil_base, borrador_rutina, borrador_dieta):
+    """A record saved before this property existed (or a client who's
+    never liked anything) must load exactly as before -- no crash, no
+    invented empty key that could be mistaken for "explicitly no
+    favorites" vs. "this feature didn't exist yet"."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert "comidas_favoritas" not in perfil["nutricion"]
 
 
 def test_dividir_bloques_notion_splits_long_text_under_the_block_limit():
@@ -357,6 +418,7 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "resumen": "Routine: full body. Diet: 2000 kcal.",
         "veredicto": "Auto-approved",
         "fecha": "2026-08-01",
+        "plan_semanal": [],
     }
 
 

@@ -217,6 +217,7 @@ from notion_connector import (  # noqa: E402
     NotionClientError,
     actualizar_email_cliente,
     actualizar_registro_cliente,
+    agregar_comida_favorita,
     buscar_cliente_por_email,
     crear_registro_checkin,
     guardar_registro_cliente,
@@ -939,6 +940,11 @@ TRANSLATIONS = {
         "portal_load_error": "Could not load your plan: {error}",
         "portal_welcome": "Hi {nombre} 👋",
         "portal_since_label": "Client since {fecha}",
+        "portal_meals_header": "🍽️ Your meals this week",
+        "portal_meals_caption": (
+            "Loved a meal? Tap 🤍 to like it — liked meals show up more often in your future plans."
+        ),
+        "portal_meal_like_error": "Could not save that: {error}",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
@@ -1178,6 +1184,12 @@ TRANSLATIONS = {
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_welcome": "Hola {nombre} 👋",
         "portal_since_label": "Cliente desde {fecha}",
+        "portal_meals_header": "🍽️ Tus comidas esta semana",
+        "portal_meals_caption": (
+            "¿Te ha gustado una comida? Toca 🤍 para marcarla — las comidas marcadas aparecerán más "
+            "a menudo en tus próximos planes."
+        ),
+        "portal_meal_like_error": "No se pudo guardar: {error}",
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
@@ -2392,6 +2404,38 @@ def _vista_portal_cliente(token: str) -> None:
         st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
     if registro["resumen"]:
         st.markdown(registro["resumen"])
+
+    # "plan_semanal" is empty for a record saved before this property
+    # existed -- degrades to no section at all, same spirit as every
+    # other best-effort read in this file. Session-scoped "already liked"
+    # tracking is purely a UI nicety (swap 🤍 -> ❤️, disable the button
+    # after one click) -- agregar_comida_favorita() itself already dedupes
+    # server-side, so a page reload losing this local state can't double
+    # up a favorite.
+    plan_semanal = registro.get("plan_semanal") or []
+    if plan_semanal:
+        with st.expander(t("portal_meals_header")):
+            st.caption(t("portal_meals_caption"))
+            comidas_marcadas = st.session_state.setdefault("comidas_marcadas", set())
+            for indice_dia, dia_info in enumerate(plan_semanal):
+                st.markdown(f"**{dia_info['dia']}**")
+                for indice_comida, comida in enumerate(dia_info.get("comidas", [])):
+                    clave = f"like_{indice_dia}_{indice_comida}"
+                    col_texto, col_boton = st.columns([6, 1])
+                    col_texto.markdown(f"{comida['tipo']}: {comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
+                    ya_marcada = clave in comidas_marcadas
+                    if col_boton.button("❤️" if ya_marcada else "🤍", key=clave, disabled=ya_marcada):
+                        try:
+                            agregar_comida_favorita(carga["pagina"], {
+                                "tipo": comida.get("tipo_interno"),
+                                "proteina": comida.get("proteina"),
+                                "carbohidrato": comida.get("carbohidrato"),
+                                "grasa": comida.get("grasa"),
+                            })
+                            comidas_marcadas.add(clave)
+                            st.rerun()
+                        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                            st.error(t("portal_meal_like_error").format(error=str(exc)))
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own

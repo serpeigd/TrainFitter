@@ -112,7 +112,13 @@ This repository is built phase by phase, as a learning project. Right now:
   [`docs/base_conocimiento/sinergias_nutrientes.md`](docs/base_conocimiento/sinergias_nutrientes.md)
   — not just listed as a separate tip. Renders as a styled table in the diet
   PDF and in the trainer's on-screen review, in whichever language the UI
-  is set to.
+  is set to. A client can **like a meal from their own portal**, and it
+  biases (never forces — same "prefer, don't lock" philosophy as the
+  synergy pairing above) toward reappearing in their next generated week,
+  dropped automatically if it's no longer a safe/valid pick (e.g. a new
+  allergy). Requires two extra Notion properties beyond the base setup —
+  see [`mcp/notion_connector.py`](mcp/notion_connector.py)'s module
+  docstring.
 - Both rule engines use most of what the intake form actually collects:
   training level and session length shape routine volume/complexity,
   disliked foods and lifestyle signals (stress/sleep, job type) bias diet

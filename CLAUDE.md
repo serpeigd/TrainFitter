@@ -551,6 +551,27 @@ reverse-maps a previously-saved free-text concern back onto the right
 preset (or "Other," text intact) when loading a client for revision.
 419 tests passing (up from 415).
 
+A client can now **like a meal from their own portal** and have it bias
+(not pin) toward reappearing in their next generated week — scoped with
+two clarifying questions first (who picks: client, via the portal; how
+"repeat" works: bias future generation, not lock to an exact weekday),
+plus a real blocker surfaced mid-investigation and confirmed separately:
+the portal never had access to the full weekly plan, only a 2000-char
+summary, a deliberate prior design now reversed the same way "Full
+Profile (JSON)" was. Each meal `planificador_comidas._construir_comida()`
+builds now also carries structured food picks (`tipo_interno`,
+`proteina`, `carbohidrato`, `grasa`) alongside its rendered description,
+so liking a meal never needs parsing food names back out of prose. Two
+new Notion properties: "Weekly Meal Plan (JSON)" (trainer-written,
+portal-read) and "Liked Meals (JSON)" (the one property the portal ever
+*writes*, kept separate so a client's like can never race with a
+trainer's concurrent edit). `_sesgar_por_favoritos()` reuses liked meals
+~60% of the time a match is still safe/valid, verified statistically
+across 20 client IDs. **Real setup dependency, disclosed**: needs those
+two properties added manually to the real Notion "Clients" database
+before it actually works — degrades gracefully until then. 430 tests
+passing (up from 419).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

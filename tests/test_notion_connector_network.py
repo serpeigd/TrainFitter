@@ -335,8 +335,74 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
         "resumen": "Routine: full body.",
         "veredicto": "Auto-approved",
         "fecha": "2026-08-01",
+        "plan_semanal": [],
     }
     cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
+
+
+def test_agregar_comida_favorita_appends_to_an_empty_list(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {"properties": {}}
+
+    comida = {"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None}
+    notion_connector.agregar_comida_favorita("page-1", comida)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Meals (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [comida]
+
+
+def test_agregar_comida_favorita_appends_to_an_existing_list(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    ya_favorita = {"tipo": "cena", "proteina": "Salmon / oily fish", "carbohidrato": "Rice", "grasa": None}
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Meals (JSON)": {"rich_text": [{"plain_text": json.dumps([ya_favorita])}]}}
+    }
+
+    nueva = {"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None}
+    notion_connector.agregar_comida_favorita("page-1", nueva)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Meals (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [ya_favorita, nueva]
+
+
+def test_agregar_comida_favorita_does_not_duplicate_the_same_meal(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    comida = {"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None}
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Meals (JSON)": {"rich_text": [{"plain_text": json.dumps([comida])}]}}
+    }
+
+    notion_connector.agregar_comida_favorita("page-1", comida)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Meals (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [comida]
+
+
+def test_agregar_comida_favorita_recovers_from_corrupt_existing_data(monkeypatch):
+    """Malformed JSON in "Liked Meals (JSON)" (a hand-edited Notion page,
+    a bug in an earlier version) must not block a new like -- starts
+    fresh with just this one meal rather than raising."""
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Meals (JSON)": {"rich_text": [{"plain_text": "{not valid json"}]}}
+    }
+
+    comida = {"tipo": "desayuno", "proteina": "Eggs", "carbohidrato": "Oats", "grasa": None}
+    notion_connector.agregar_comida_favorita("page-1", comida)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Meals (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [comida]
+
+
+def test_agregar_comida_favorita_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.side_effect = _api_error("boom")
+    with pytest.raises(NotionClientError):
+        notion_connector.agregar_comida_favorita("page-1", {"tipo": "desayuno"})
 
 
 def test_obtener_registro_cliente_wraps_api_error(monkeypatch):

@@ -164,6 +164,40 @@ def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[
         return preferidos
     return candidatos_categoria
 
+
+# Probability a matching liked meal actually gets reused, mirroring
+# _sesgar_por_preferencias()'s own bias-not-force philosophy: a client who
+# liked a meal should see it come back often, not have it locked to every
+# occurrence of that slot for the rest of time (see PROBABILIDAD_REPETIR_FAVORITO
+# for why "often" specifically).
+PROBABILIDAD_REPETIR_FAVORITO = 0.6
+
+
+def _sesgar_por_favoritos(tipo: str, candidatos: dict, comidas_favoritas: list[dict], rng: random.Random) -> dict | None:
+    """Looks for a client-liked meal (see docs/decisiones.md's "repeat a
+    meal" feature -- comidas_favoritas comes from the client portal, via
+    perfil["nutricion"]["comidas_favoritas"]) matching this slot's tipo,
+    whose protein/carb/fat picks are ALL still valid candidates here --
+    an allergy or diet-type change since the meal was liked correctly
+    drops it rather than resurrecting a now-unsafe pick, since `candidatos`
+    is already food_bank.py's allergy/diet-filtered pool by the time this
+    runs. Bias, not a hard lock: returns one matching favorite (picked
+    jointly across categories, not independently per category -- otherwise
+    the exact liked combination would rarely reappear intact) roughly
+    PROBABILIDAD_REPETIR_FAVORITO of the time a match exists; None
+    otherwise, so the caller falls through to its normal independent
+    per-category selection."""
+    candidatas = [
+        fav for fav in comidas_favoritas
+        if fav.get("tipo") == tipo
+        and (not fav.get("proteina") or fav["proteina"] in candidatos["proteina"])
+        and (not fav.get("carbohidrato") or fav["carbohidrato"] in candidatos["carbohidrato"])
+        and (not fav.get("grasa") or fav["grasa"] in candidatos["grasa"])
+    ]
+    if not candidatas or rng.random() >= PROBABILIDAD_REPETIR_FAVORITO:
+        return None
+    return rng.choice(candidatas)
+
 # Flat, fixed vegetable/fruit portions (grams) -- not solved from macros,
 # see module docstring.
 PORCION_VERDURA_PRINCIPAL_G = 100
@@ -288,7 +322,7 @@ def _describir_desayuno_o_snack(
 
 def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
-    preferencias: set[str], idioma: str, rng: random.Random,
+    preferencias: set[str], comidas_favoritas: list[dict], idioma: str, rng: random.Random,
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -320,9 +354,18 @@ def _construir_comida(
         "verdura": _sesgar_por_preferencias(candidatos["verdura"], preferencias, rng),
     }
 
-    proteina_nombre = rng.choice(candidatos["proteina"])
-    carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
-    grasa_nombre = rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None
+    # A liked meal (see _sesgar_por_favoritos()) wins the protein/carb/fat
+    # picks jointly, when one matches and its own dice roll says so;
+    # otherwise every category is chosen independently as before.
+    favorita = _sesgar_por_favoritos(tipo, candidatos, comidas_favoritas, rng)
+    if favorita:
+        proteina_nombre = favorita["proteina"] or rng.choice(candidatos["proteina"])
+        carbohidrato_nombre = favorita["carbohidrato"] or rng.choice(candidatos["carbohidrato"])
+        grasa_nombre = favorita["grasa"] or (rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None)
+    else:
+        proteina_nombre = rng.choice(candidatos["proteina"])
+        carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
+        grasa_nombre = rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None
 
     kcal_proteina = kcal_objetivo * ratios["proteina"]
     kcal_carbohidrato = kcal_objetivo * ratios["carbohidrato"]
@@ -372,6 +415,17 @@ def _construir_comida(
         "tipo": ETIQUETA_COMIDA[idioma][tipo],
         "descripcion": descripcion,
         "aprox_kcal": aprox_kcal,
+        # Structured picks, alongside the rendered "descripcion" above --
+        # canonical English names (never displayed directly; see module
+        # docstring), kept so a client can "like" this exact meal from the
+        # portal without this project resorting to parsing food names back
+        # out of rendered prose (see docs/decisiones.md). "tipo_interno" is
+        # the un-numbered slot key ("snack", not "Snack 2") -- a liked
+        # snack should bias ANY snack slot, not one specific position.
+        "tipo_interno": tipo,
+        "proteina": proteina_nombre,
+        "carbohidrato": carbohidrato_nombre,
+        "grasa": grasa_nombre,
     }
 
 
@@ -395,7 +449,16 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
 
     Returns:
         A list of 7 {"dia": str, "comidas": [{"tipo":, "descripcion":,
-        "aprox_kcal":}, ...]} dicts, Monday/Lunes first.
+        "aprox_kcal":, "tipo_interno":, "proteina":, "carbohidrato":,
+        "grasa":}, ...]} dicts, Monday/Lunes first. The last four fields
+        are structured (canonical English food names, never displayed
+        directly) alongside "descripcion"'s rendered prose -- what lets a
+        client "like" a meal from the portal and have it bias a future
+        week's plan (see _sesgar_por_favoritos()) without this project
+        parsing food names back out of rendered text.
+
+        perfil["nutricion"]["comidas_favoritas"] (optional, portal-written)
+        is read here to apply that bias -- absent for a new client.
     """
     candidatos = {
         "proteina": fuentes_proteina_para(perfil),
@@ -415,6 +478,10 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     # by fuentes_*_para() itself), so what's left here only ever biases
     # selection, never excludes.
     preferencias = preferencias_blandas(perfil)
+    # Meals the client "liked" from a previous week's plan, via the portal
+    # (see docs/decisiones.md) -- absent for a brand-new client, same
+    # "no field, no bias" degradation as every other optional signal here.
+    comidas_favoritas = perfil.get("nutricion", {}).get("comidas_favoritas") or []
 
     kcal_dia = necesidades["calorias_objetivo_kcal"]
     macros = necesidades["macros"]
@@ -437,7 +504,9 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
         for tipo, peso_kcal, peso_grasa in zip(slots, pesos_kcal, pesos_grasa):
             kcal_objetivo = kcal_dia * (peso_kcal / total_peso_kcal)
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
-            comida = _construir_comida(tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, idioma, rng)
+            comida = _construir_comida(
+                tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas, idioma, rng,
+            )
             if tipo == "snack" and slots.count("snack") > 1:
                 contador_snack += 1
                 comida["tipo"] = f"{comida['tipo']} {contador_snack}"
