@@ -743,7 +743,10 @@ TRANSLATIONS = {
         "clients_gate_password_label": "Password",
         "clients_gate_unlock_button": "Unlock",
         "clients_panel_header": "### 👥 All clients",
-        "clients_panel_caption": "Every client at a glance, with their most recent check-in — see who needs attention.",
+        "clients_panel_caption": (
+            "How your clients are doing at a glance, anonymized — headcounts and trends, no names or "
+            "emails. Look up an individual client in \"Revise client,\" or open Notion directly."
+        ),
         "clients_panel_error": "Could not load the client list: {error}",
         "clients_panel_empty": "No clients saved yet.",
         "dashboard_total_clients": "Clients",
@@ -753,15 +756,6 @@ TRANSLATIONS = {
         "dashboard_unknown": "Unknown",
         "dashboard_verdict_chart": "Plans by verdict",
         "dashboard_adherence_chart": "Latest adherence rating (per client)",
-        "clients_col_name": "Name",
-        "clients_col_email": "Email",
-        "clients_col_date": "Admitted",
-        "clients_col_goal": "Goal",
-        "clients_col_level": "Level",
-        "clients_col_verdict": "Verdict",
-        "clients_col_email_sent": "Email Sent",
-        "clients_col_last_checkin": "Last check-in",
-        "clients_col_last_rating": "Last rating",
         "revise_client_header": "🔎 Load an existing client to revise",
         "revise_client_caption": (
             "Find a past client by email, edit anything below, and regenerate their plan — "
@@ -882,6 +876,7 @@ TRANSLATIONS = {
         "col_reps": "Reps",
         "col_rest": "Rest",
         "col_notes": "Notes",
+        "effort_label": "💡 Effort:",
         "cardio_label": "Cardio:",
         "progression_and_message": "Progression and message for the client",
         "progression_label": "**Progression:**",
@@ -912,6 +907,11 @@ TRANSLATIONS = {
         "gmail_section_header": "### ✉️ Email the plan",
         "gmail_requires_approval": "Approve the plan above first — the Gmail draft unlocks once you do.",
         "client_email_label": "Client's email",
+        "attach_checklist_label": "Also attach a fillable adherence checklist PDF",
+        "attach_checklist_caption": (
+            "Off by default — the client portal is the usual way to log check-ins now. Turn this on "
+            "for a client without portal access, or who prefers tracking on paper/PDF."
+        ),
         "create_draft_button": "Create Gmail draft",
         "draft_created_success": "Draft created — [open it in Gmail]({url}).",
         "draft_error": "Could not create the draft: {error}",
@@ -978,7 +978,10 @@ TRANSLATIONS = {
         "clients_gate_password_label": "Contraseña",
         "clients_gate_unlock_button": "Desbloquear",
         "clients_panel_header": "### 👥 Todos los clientes",
-        "clients_panel_caption": "Todos tus clientes de un vistazo, con su check-in más reciente — ve quién necesita atención.",
+        "clients_panel_caption": (
+            "Cómo van tus clientes de un vistazo, anonimizado — totales y tendencias, sin nombres ni "
+            "emails. Para ver a un cliente concreto usa \"Revisar cliente\", o abre Notion directamente."
+        ),
         "clients_panel_error": "No se pudo cargar la lista de clientes: {error}",
         "clients_panel_empty": "Todavía no hay clientes guardados.",
         "dashboard_total_clients": "Clientes",
@@ -988,15 +991,6 @@ TRANSLATIONS = {
         "dashboard_unknown": "Desconocido",
         "dashboard_verdict_chart": "Planes por veredicto",
         "dashboard_adherence_chart": "Última valoración de adherencia (por cliente)",
-        "clients_col_name": "Nombre",
-        "clients_col_email": "Email",
-        "clients_col_date": "Admitido",
-        "clients_col_goal": "Objetivo",
-        "clients_col_level": "Nivel",
-        "clients_col_verdict": "Veredicto",
-        "clients_col_email_sent": "Email enviado",
-        "clients_col_last_checkin": "Último check-in",
-        "clients_col_last_rating": "Última valoración",
         "revise_client_header": "🔎 Cargar un cliente existente para revisar",
         "revise_client_caption": (
             "Busca un cliente anterior por email, edita lo que necesites y regenera su plan — "
@@ -1119,6 +1113,7 @@ TRANSLATIONS = {
         "col_reps": "Reps",
         "col_rest": "Descanso",
         "col_notes": "Notas",
+        "effort_label": "💡 Esfuerzo:",
         "cardio_label": "Cardio:",
         "progression_and_message": "Progresión y mensaje para el cliente",
         "progression_label": "**Progresión:**",
@@ -1149,6 +1144,12 @@ TRANSLATIONS = {
         "gmail_section_header": "### ✉️ Enviar el plan por email",
         "gmail_requires_approval": "Aprueba primero el plan de arriba — el borrador de Gmail se desbloquea al hacerlo.",
         "client_email_label": "Email del cliente",
+        "attach_checklist_label": "Adjuntar también un checklist de adherencia rellenable en PDF",
+        "attach_checklist_caption": (
+            "Desactivado por defecto — el portal del cliente es ahora la forma habitual de registrar "
+            "check-ins. Actívalo para un cliente sin acceso al portal, o que prefiera hacerlo en "
+            "papel/PDF."
+        ),
         "create_draft_button": "Crear borrador en Gmail",
         "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
         "draft_error": "No se pudo crear el borrador: {error}",
@@ -1934,6 +1935,8 @@ def _mostrar_rutina(rutina: dict) -> None:
                 for e in sesion["ejercicios"]
             ]
             st.table(filas)
+            if sesion.get("nota_esfuerzo"):
+                st.caption(f"{t('effort_label')} {sesion['nota_esfuerzo']}")
             if sesion.get("cardio_opcional"):
                 st.caption(f"{t('cardio_label')} {sesion['cardio_opcional']}")
 
@@ -2205,6 +2208,10 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     if not aprobado:
         st.info(t("gmail_requires_approval"))
     email_cliente = st.text_input(t("client_email_label"), key="email_cliente", disabled=not aprobado)
+    incluir_checklist = st.checkbox(
+        t("attach_checklist_label"), key="incluir_checklist", disabled=not aprobado,
+    )
+    st.caption(t("attach_checklist_caption"))
     if st.button(t("create_draft_button"), disabled=not aprobado):
         try:
             resultado_borrador = crear_borrador(
@@ -2213,6 +2220,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 estado.borrador_rutina,
                 estado.borrador_dieta,
                 idioma=st.session_state.lang,
+                incluir_checklist=incluir_checklist,
             )
             st.success(t("draft_created_success").format(url=resultado_borrador["url"]))
             # Kept for the "check if sent" button below — same single-slot,
@@ -2474,67 +2482,53 @@ def _vista_portal_cliente(token: str) -> None:
             pass
 
 
-def _etiqueta_atencion(valoracion: str | None) -> str:
-    """A quick visual flag for a client whose most recent check-in rated
-    Low -- see _panel_todos_los_clientes()'s docstring on why this
-    overview exists at all. Pure function, no I/O."""
-    if valoracion == "Low":
-        return f"⚠️ {valoracion}"
-    return valoracion or ""
+def _datos_clientes_desbloqueados() -> bool:
+    """Whether the trainer has already unlocked the sections that expose
+    real clients' data this browser session. Unset APPROVAL_PASSWORD means
+    there's nothing to unlock -- same "off" degradation as every other
+    optional secret in this file (local dev, the common case, is never
+    gated).
+
+    Back to a single shared flag across "Revise client" and "Clients",
+    reverting an earlier per-section split -- the project owner's own
+    call, once "Clients" stopped showing any individual client's data at
+    all (see _panel_todos_los_clientes(): it's an anonymized, fleet-level
+    dashboard now, roster table removed). The original reason for
+    splitting the flag -- unlocking one used to silently unlock the other,
+    even though they exposed different kinds of personal data -- no longer
+    applies now that only "Revise client" shows anything personal."""
+    return (not APPROVAL_PASSWORD) or st.session_state.get("clientes_desbloqueado", False)
 
 
-def _datos_clientes_desbloqueados(seccion: str) -> bool:
-    """Whether the trainer has already unlocked THIS section (seccion:
-    "revisar" or "clientes") this browser session. Unset APPROVAL_PASSWORD
-    means there's nothing to unlock -- same "off" degradation as every
-    other optional secret in this file (local dev, the common case, is
-    never gated).
-
-    Scoped per section, not shared: unlocking "Revise client" used to also
-    silently unlock "Clients" (and vice versa) since both read the same
-    flag, which meant proving the password once bought access to both
-    kinds of exposed data (an email roster vs. a client's full health
-    profile) without ever being asked again for the second one. A real gap
-    the project owner caught live-testing, not a hypothetical."""
-    return (not APPROVAL_PASSWORD) or st.session_state.get(f"datos_desbloqueados__{seccion}", False)
-
-
-def _gate_datos_clientes(seccion: str) -> bool:
-    """Password gate in front of "Revise client" and "Clients" -- unlike
-    every other section, both put a real client's personal data on
-    screen (at minimum an email; Revise client's lookup surfaces the
-    full profile, including injuries/allergies/weight) just by clicking
-    a tab, with no button-click consequence to gate the way Approve's
-    own APPROVAL_PASSWORD dialog (_dialogo_aprobacion) does. On a public
-    demo, anyone could otherwise browse real clients' contact info and
-    health data. Reuses that same APPROVAL_PASSWORD rather than adding a
-    second secret -- one password, two things it protects; unset (local
-    dev) means both sections render exactly as before.
-
-    Args:
-        seccion: "revisar" or "clientes" -- which of the two call sites is
-            asking, so each gets its own session_state flag/widget keys
-            (see _datos_clientes_desbloqueados()). Unlocking one no longer
-            unlocks the other.
+def _gate_datos_clientes() -> bool:
+    """Password gate in front of "Revise client" (full client health
+    profiles) and "Clients" (an anonymized fleet dashboard, gated mainly
+    so a public-demo visitor can't tell whether real client data exists
+    at all) -- unlike every other section, both render just by clicking a
+    tab, with no button-click consequence to gate the way Approve's own
+    APPROVAL_PASSWORD dialog (_dialogo_aprobacion) does. Reuses that same
+    APPROVAL_PASSWORD rather than adding a second secret -- one password,
+    two things it protects; unset (local dev) means both sections render
+    exactly as before.
 
     Unlocking is a session-level flag, not per-view like the approval
-    dialog: browsing a roster is a "look around" action repeated many
-    times, not one consequential click, so re-prompting on every rerun of
-    the SAME section would be friction with no real safety benefit once
-    the trainer has proven who they are once this session for it. Returns
-    True (nothing left to render) once that section is unlocked, False
-    while its prompt itself is still showing."""
-    if _datos_clientes_desbloqueados(seccion):
+    dialog: browsing either section is a "look around" action repeated
+    many times, not one consequential click, so re-prompting on every
+    rerun would be friction with no real safety benefit once the trainer
+    has proven who they are once this session. Returns True (nothing left
+    to render) once unlocked, False while the prompt itself is still
+    showing."""
+    if _datos_clientes_desbloqueados():
         return True
     st.info(t("clients_gate_info"))
     password_ingresada = st.text_input(
-        t("clients_gate_password_label"), type="password", key=f"clientes_password_gate__{seccion}",
+        t("clients_gate_password_label"), type="password", key="clientes_password_gate",
     )
-    if st.button(t("clients_gate_unlock_button"), key=f"clientes_desbloquear_boton__{seccion}"):
+    if st.button(t("clients_gate_unlock_button"), key="clientes_desbloquear_boton"):
         if _password_bloqueada():
             st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
         elif _verificar_password(password_ingresada):
-            st.session_state[f"datos_desbloqueados__{seccion}"] = True
+            st.session_state["clientes_desbloqueado"] = True
             st.rerun()
         else:
             st.error(t("approval_password_wrong"))
@@ -2542,13 +2536,15 @@ def _gate_datos_clientes(seccion: str) -> bool:
 
 
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:
-    """A compact fleet-level dashboard above the roster table: headcount
-    KPIs plus two bar charts (verdict mix, latest adherence-rating mix).
-    Deliberately zero extra cost -- reuses the exact same `clientes`/
-    `ultimos_checkins` the roster table below already fetched (see
-    _panel_todos_los_clientes()), just aggregated differently, rather than
-    issuing new Notion queries. Same "missing chart library degrades to no
-    chart, never a broken page" pattern as _render_grafico_tendencia()."""
+    """The entire "Clients" section's content: headcount KPIs plus two bar
+    charts (verdict mix, latest adherence-rating mix) -- aggregate counts
+    only, never an individual client's name/email/details, by design (see
+    _panel_todos_los_clientes()'s docstring). Deliberately zero extra
+    cost -- reuses the exact same `clientes`/`ultimos_checkins`
+    _panel_todos_los_clientes() already fetched, just aggregated
+    differently, rather than issuing new Notion queries. Same "missing
+    chart library degrades to no chart, never a broken page" pattern as
+    _render_grafico_tendencia()."""
     total = len(clientes)
     con_checkin = len(ultimos_checkins)
     necesitan_atencion = sum(1 for u in ultimos_checkins.values() if u["valoracion"] == "Low")
@@ -2587,21 +2583,20 @@ def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str,
     except (ImportError, ModuleNotFoundError):
         pass
 
-    st.divider()
-
 
 def _panel_todos_los_clientes() -> None:
-    """The trainer's client roster: every real "New Client"/"Revise
-    client" record at a glance, joined with each client's most recent
-    Check-ins row so a client who needs attention (a Low adherence
-    rating, or no check-in at all) stands out without opening Notion or
-    looking each client up individually by email -- the only way to see
-    this before now. Read-only: this section never generates or saves
-    anything, only lists what's already there. Two separate,
-    independently best-effort queries (see listar_clientes()/
-    ultimo_checkin_por_cliente()'s own docstrings): a failure in the
-    second one still leaves the roster itself useful, just without the
-    adherence column."""
+    """An anonymized, fleet-level view of every client -- headcount KPIs
+    and aggregate charts only (see _render_dashboard_clientes()), no
+    per-client roster table. That table used to live here (name, email,
+    goal, verdict, last check-in per row); removed at the project owner's
+    explicit request -- this app is meant to show the trainer how their
+    clients are doing "at a glance," not duplicate what Notion's own
+    database view already does better for looking up an individual
+    record. Read-only either way: this section never generates or saves
+    anything. Two separate, independently best-effort queries (see
+    listar_clientes()/ultimo_checkin_por_cliente()'s own docstrings): a
+    failure in the second one still leaves the KPIs/verdict chart useful,
+    just without the adherence-rating chart."""
     st.markdown(t("clients_panel_header"))
     st.caption(t("clients_panel_caption"))
 
@@ -2621,26 +2616,6 @@ def _panel_todos_los_clientes() -> None:
         ultimos_checkins = {}
 
     _render_dashboard_clientes(clientes, ultimos_checkins)
-
-    filas = []
-    for cliente in clientes:
-        ultimo = ultimos_checkins.get(cliente["email"] or "")
-        filas.append({
-            t("clients_col_name"): cliente["nombre"],
-            t("clients_col_email"): cliente["email"] or "",
-            t("clients_col_date"): cliente["fecha"] or "",
-            t("clients_col_goal"): cliente["objetivo"] or "",
-            t("clients_col_level"): cliente["nivel"] or "",
-            t("clients_col_verdict"): cliente["veredicto"] or "",
-            t("clients_col_email_sent"): "✅" if cliente["email_enviado"] else "",
-            t("clients_col_last_checkin"): (ultimo["fecha"] if ultimo else "") or "",
-            t("clients_col_last_rating"): _etiqueta_atencion(ultimo["valoracion"]) if ultimo else "",
-        })
-
-    # A plain list of dicts, not pd.DataFrame(filas) -- st.dataframe()
-    # already accepts one natively, so this whole section never needs
-    # pandas at all (unlike the trend charts above, which genuinely do).
-    st.dataframe(filas, use_container_width=True, hide_index=True)
 
 
 # ---------------------------------------------------------------------------
@@ -2784,7 +2759,7 @@ if seccion_activa == "nueva":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "revisar":
-    if _gate_datos_clientes("revisar"):
+    if _gate_datos_clientes():
         perfil_revisado = _cargar_ficha_para_revisar()
         if perfil_revisado is not None:
             st.session_state["ultimo_perfil"] = perfil_revisado
@@ -2801,7 +2776,7 @@ elif seccion_activa == "revisar":
             _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "clientes":
-    if _gate_datos_clientes("clientes"):
+    if _gate_datos_clientes():
         _panel_todos_los_clientes()
 
 elif seccion_activa == "ejemplo":

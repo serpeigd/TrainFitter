@@ -84,9 +84,14 @@ This repository is built phase by phase, as a learning project. Right now:
 - A real **Gmail draft** can be created for the approved plan — never sent
   automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
   the trainer reviews and sends it themselves from their own Gmail. The draft
-  carries a brief note plus two generated PDFs (see
-  [`agents/pdf_generador.py`](agents/pdf_generador.py)): the diet plan, and a
-  fillable check-in form for the routine.
+  carries a short, scannable note (one key point per section, pulled straight
+  from the plan) plus two generated PDFs (see
+  [`agents/pdf_generador.py`](agents/pdf_generador.py)) that always mirror each
+  other: the full routine and the full diet. A third PDF — a fillable
+  adherence checklist — is opt-in (a checkbox, unchecked by default): the
+  client portal below is the intended default way to log check-ins now, so
+  the checklist stays available only for the trainer's own specific call to
+  send one (e.g. a client without portal access).
 - Every real new-client plan is automatically **saved to Notion** as a
   persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
   — a lightweight CRM outside the browser session, which otherwise forgets
@@ -120,7 +125,12 @@ This repository is built phase by phase, as a learning project. Right now:
   surfaces evidence-based supplement tips that skip whatever the client
   already reports taking. A client-reported supplement alongside regular
   medication forces enhanced review, the same defense-in-depth pattern
-  used for allergies and injuries.
+  used for allergies and injuries. Every session also carries a real,
+  evidence-grounded effort cue (reps-in-reserve guidance — compounds
+  1-2 RIR, isolation 0-1 RIR), backed by two sources verified for this
+  addition (see
+  [`docs/base_conocimiento/entrenamiento.md`](docs/base_conocimiento/entrenamiento.md)),
+  shown in the routine PDF and the on-screen review.
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a
@@ -191,22 +201,19 @@ This repository is built phase by phase, as a learning project. Right now:
 - The client portal also shows a client their own check-in history, not
   just today's — the same view the trainer already has, scoped to that
   client's own signed link so there's no way to see anyone else's data.
-- A **"Clients"** tab gives the trainer a roster of every real client at a
-  glance — most recent check-in and rating included, with a ⚠️ flag on
-  anyone whose adherence just dropped — instead of looking each one up by
-  email individually. A compact dashboard (headcount, plans-by-verdict,
-  latest-adherence-mix) sits above that table, reusing the same two
-  queries the table itself already makes — no extra Notion cost. Check-in
-  history (both the trainer's and the client's own) now includes a simple
-  trend chart for weight and adherence over time, reusing the same data
-  already being logged.
-- Both **"Revise client"** and **"Clients"** display real clients' personal
-  data (emails at minimum; "Revise client" surfaces full health details) —
-  on the public demo, both are gated behind the same shared password that
-  already protects the "Approve" button, each unlocked independently once
-  per browser session (unlocking one no longer silently unlocks the
-  other — a real gap caught live-testing, fixed the same day) rather than
-  re-checked on every click. "Revise client"'s actual
+- A **"Clients"** tab gives the trainer an anonymized, fleet-level view of how
+  every real client is doing — headcount, plans-by-verdict, and
+  latest-adherence-mix, as KPI cards plus two bar charts — instead of a
+  per-client roster (that table existed briefly and was removed: this tab is
+  meant for "how's everyone doing at a glance," not a second, weaker copy of
+  what Notion's own database view already does better for looking up one
+  specific record). Check-in history (both the trainer's and the client's
+  own) includes a simple trend chart for weight and adherence over time,
+  reusing the same data already being logged.
+- **"Revise client"** displays a real client's full personal data (health
+  details included) — on the public demo it's gated behind the same shared
+  password that already protects the "Approve" button and "Clients," unlocked
+  once per browser session rather than re-checked on every click. Its actual
   email lookup goes further: it re-checks that same password on every
   single load (not just the once-per-session unlock), since a shared or
   already-unlocked session shouldn't let anyone pull up any client's full

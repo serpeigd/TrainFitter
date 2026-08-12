@@ -210,55 +210,92 @@ def _quitar_saludo(mensaje: str, nombre_cliente: str, idioma: str) -> str:
     return mensaje[len(saludo):] if mensaje.startswith(saludo) else mensaje
 
 
-def _construir_cuerpo_email(nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en") -> str:
-    """Brief plain-text email body -- the plan's own detail lives in the two
-    attached PDFs now (see agents/pdf_generador.py), not inlined here. Pure
-    formatting -- no network, no auth, trivially unit-testable.
+def _construir_cuerpo_email(
+    nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
+    incluir_checklist: bool = False,
+) -> str:
+    """Brief, scannable plain-text email body -- the plan's own detail
+    lives in the attached PDFs now (see agents/pdf_generador.py), not
+    inlined here. Pure formatting -- no network, no auth, trivially
+    unit-testable.
 
     Keeps borrador_rutina/borrador_dieta's own mensaje_para_el_cliente (the
     trainer's personal, warm note, varied per client -- see
-    agents/variacion.py) but drops resumen_enfoque/macros, which now live in
-    the diet PDF instead of being duplicated in the email body. Each
-    message's own baked-in greeting is stripped (see _quitar_saludo()) and
-    replaced by one shared greeting up top, and the two are set under short
-    section labels instead of run together as one wall of text -- a real
-    fix, not cosmetic: the client's name used to open three lines in a row.
+    agents/variacion.py), each under a short section label instead of run
+    together as one wall of text, with its own baked-in greeting stripped
+    (see _quitar_saludo()) and replaced by one shared greeting up top --
+    the client's name used to open three lines in a row before this.
+
+    Adds one genuinely useful, skimmable line per section straight from
+    the plan itself (borrador_rutina["progresion"], the diet's first
+    consejos_sinergias entry) rather than making the client open a PDF
+    just to see the single most actionable tip -- a real request, not
+    cosmetic: "easy to read, key points, without much text."
+
+    Args:
+        incluir_checklist: whether the adherence checklist PDF was
+            attached this time (see crear_borrador()'s own docstring --
+            opt-in, default False now that the client portal is the
+            intended default way to log adherence). Only affects whether
+            the closing attachment list/reply instructions mention it.
 
     idioma only affects this template's own wrapper text (greeting, section
-    labels, attachment explanation) — mensaje_para_el_cliente was already
-    generated in whichever language the trainer had selected when the plan
-    was created (see rutina_reglas.py/dieta_reglas.py), so this just needs
-    to match that, not translate anything itself."""
+    labels, attachment list) — mensaje_para_el_cliente/progresion/
+    consejos_sinergias were already generated in whichever language the
+    trainer had selected when the plan was created (see
+    rutina_reglas.py/dieta_reglas.py), so this just needs to match that,
+    not translate anything itself."""
     mensaje_rutina = _quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
     mensaje_dieta = _quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
+    tip_rutina = borrador_rutina.get("progresion", "")
+    tips_dieta = borrador_dieta.get("consejos_sinergias") or []
+    tip_dieta = tips_dieta[0] if tips_dieta else ""
 
     if idioma == "es":
+        adjuntos = ["🏋️ Tu rutina (PDF)", "🍽️ Tu dieta (PDF)"]
+        if incluir_checklist:
+            adjuntos.append("✅ Checklist de seguimiento (PDF, rellenable)")
+        cierre = "📎 Adjunto:\n" + "\n".join(f"• {a}" for a in adjuntos)
+        if incluir_checklist:
+            cierre += (
+                "\n\nDentro de unas semanas, cuando ya hayas empezado, rellena el checklist y "
+                "RESPONDE A ESTE EMAIL con el PDF adjunto de nuevo — al responder, el archivo "
+                "no se adjunta solo, así que tendrás que volver a adjuntarlo tú."
+            )
+        cierre += (
+            "\n\nSi el visor de tu correo/Drive no te deja escribir en los campos de un PDF, "
+            "descárgalo y ábrelo con Adobe Acrobat Reader (gratis) u otra app de PDF."
+        )
         return (
             f"Hola {nombre_cliente},\n\n"
-            f"🏋️ Tu rutina\n{mensaje_rutina}\n\n"
-            f"🍽️ Tu dieta\n{mensaje_dieta}\n\n"
-            f"Adjunto van tu dieta en PDF y un formulario rellenable para ir "
-            f"marcando tu rutina. Dentro de unas semanas, cuando ya hayas "
-            f"empezado, rellénalo y RESPONDE A ESTE EMAIL con el formulario "
-            f"adjunto de nuevo — al responder, el archivo no se adjunta "
-            f"solo, así que tendrás que volver a adjuntarlo tú. Si el "
-            f"visor de tu correo/Drive no te deja escribir en los campos, "
-            f"descarga el PDF y ábrelo con Adobe Acrobat Reader (gratis) u "
-            f"otra app de PDF."
+            f"🏋️ Tu rutina\n{mensaje_rutina}\n"
+            + (f"👉 {tip_rutina}\n" if tip_rutina else "")
+            + f"\n🍽️ Tu dieta\n{mensaje_dieta}\n"
+            + (f"👉 {tip_dieta}\n" if tip_dieta else "")
+            + f"\n{cierre}"
         )
 
+    adjuntos = ["🏋️ Your routine (PDF)", "🍽️ Your diet (PDF)"]
+    if incluir_checklist:
+        adjuntos.append("✅ Adherence checklist (PDF, fillable)")
+    cierre = "📎 Attached:\n" + "\n".join(f"• {a}" for a in adjuntos)
+    if incluir_checklist:
+        cierre += (
+            "\n\nIn a few weeks, once you've actually started, fill in the checklist and REPLY "
+            "TO THIS EMAIL with the PDF attached again — replying doesn't carry the attachment "
+            "over automatically, so you'll need to attach it yourself."
+        )
+    cierre += (
+        "\n\nIf your mail/Drive preview won't let you type into a PDF's fields, download it and "
+        "open it in Adobe Acrobat Reader (free) or another PDF app."
+    )
     return (
         f"Hi {nombre_cliente},\n\n"
-        f"🏋️ Your routine\n{mensaje_rutina}\n\n"
-        f"🍽️ Your diet\n{mensaje_dieta}\n\n"
-        f"Attached are two files: your diet as a PDF, and a fillable form "
-        f"to check off your routine. In a few weeks, once you've actually "
-        f"started, fill it in and REPLY TO THIS EMAIL with the form "
-        f"attached again — replying doesn't carry the attachment over "
-        f"automatically, so you'll need to attach it yourself. If your "
-        f"mail/Drive preview won't let you type into the fields, download "
-        f"the PDF and open it in Adobe Acrobat Reader (free) or another "
-        f"PDF app."
+        f"🏋️ Your routine\n{mensaje_rutina}\n"
+        + (f"👉 {tip_rutina}\n" if tip_rutina else "")
+        + f"\n🍽️ Your diet\n{mensaje_dieta}\n"
+        + (f"👉 {tip_dieta}\n" if tip_dieta else "")
+        + f"\n{cierre}"
     )
 
 
@@ -342,18 +379,30 @@ def _obtener_credenciales():
 
 def crear_borrador(
     destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
+    incluir_checklist: bool = False,
 ) -> dict:
     """
     Creates a Gmail draft (never sends it) with the approved plan: a brief
-    note (see _construir_cuerpo_email()) plus two PDFs generated by
-    agents/pdf_generador.py -- the diet plan, and a fillable checklist for
-    the client to mark up and send back once they've actually started.
+    note (see _construir_cuerpo_email()) plus the two PDFs generated by
+    agents/pdf_generador.py that describe the plan itself -- the full
+    routine and the full diet, always attached, mirroring each other.
 
     Args:
         destinatario, nombre_cliente, borrador_rutina, borrador_dieta: same as before.
         idioma: "en" (default) or "es" — language of this email's own
-            wrapper text and the two PDFs' own labels; see
+            wrapper text and the PDFs' own labels; see
             _construir_cuerpo_email()'s docstring.
+        incluir_checklist: default False. When True, also attaches the
+            fillable adherence checklist (agents/pdf_generador.py's
+            generar_pdf_checklist()) for the client to mark up and send
+            back. Opt-in rather than automatic, per the project owner's
+            own call: the client portal (see enviar_enlace_portal()) is
+            now the intended default way to log adherence, in-app rather
+            than via a PDF round-trip -- the checklist stays available
+            for the specific case a trainer still wants it (e.g. a client
+            without portal access, or who prefers paper/PDF), triggered
+            from ui/app.py's own checkbox next to "Create draft," not
+            included by default.
 
     Returns:
         {"url": a gmail.com link to the created draft, "thread_id": the
@@ -373,21 +422,30 @@ def crear_borrador(
         NOMBRE_PDF_CHECKLIST_ES,
         NOMBRE_PDF_DIETA_EN,
         NOMBRE_PDF_DIETA_ES,
+        NOMBRE_PDF_RUTINA_EN,
+        NOMBRE_PDF_RUTINA_ES,
         generar_pdf_checklist,
         generar_pdf_dieta,
+        generar_pdf_rutina,
     )
 
     asunto = f"{ASUNTO_PLAN_ES} — {nombre_cliente}" if idioma == "es" else f"{ASUNTO_PLAN_EN} — {nombre_cliente}"
     nombre_pdf_dieta = NOMBRE_PDF_DIETA_ES if idioma == "es" else NOMBRE_PDF_DIETA_EN
-    nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
+    nombre_pdf_rutina = NOMBRE_PDF_RUTINA_ES if idioma == "es" else NOMBRE_PDF_RUTINA_EN
+    adjuntos = [
+        (nombre_pdf_rutina, generar_pdf_rutina(borrador_rutina, nombre_cliente, idioma)),
+        (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
+    ]
+    if incluir_checklist:
+        nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
+        adjuntos.append(
+            (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
+        )
     cuerpo = _construir_mensaje_raw(
         destinatario,
         asunto=asunto,
-        cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma),
-        adjuntos=[
-            (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
-            (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
-        ],
+        cuerpo_texto=_construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist),
+        adjuntos=adjuntos,
     )
 
     # Resolved before importing googleapiclient: _obtener_credenciales()

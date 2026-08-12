@@ -56,6 +56,8 @@ from adherencia_parser import valoracion_desde_ratios
 # ASUNTO_PLAN_*/NOMBRE_ADJUNTO_* constants).
 NOMBRE_PDF_DIETA_EN = "diet-plan.pdf"
 NOMBRE_PDF_DIETA_ES = "plan-dieta.pdf"
+NOMBRE_PDF_RUTINA_EN = "routine-plan.pdf"
+NOMBRE_PDF_RUTINA_ES = "plan-rutina.pdf"
 NOMBRE_PDF_CHECKLIST_EN = "adherence-checklist.pdf"
 NOMBRE_PDF_CHECKLIST_ES = "checklist-adherencia.pdf"
 
@@ -245,6 +247,154 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
                 bulletType="bullet",
             )
         )
+
+    contenido.append(Spacer(1, 16))
+    contenido.append(Paragraph(textos["pie"], ParagraphStyle("Pie", parent=estilos["Italic"], fontSize=8)))
+
+    buffer = io.BytesIO()
+    SimpleDocTemplate(
+        buffer, pagesize=letter, topMargin=2 * cm, bottomMargin=2 * cm, leftMargin=2 * cm, rightMargin=2 * cm,
+    ).build(contenido)
+    return buffer.getvalue()
+
+
+def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str = "en") -> bytes:
+    """
+    Renders the routine draft as a plain, read-only PDF -- one table per
+    session (exercise/sets/reps/rest/notes), warmup, optional cardio, and
+    the progression tip. Mirrors generar_pdf_dieta()'s structure and
+    styling exactly (same colors/fonts/table style) so the two read as one
+    consistent document set. Never includes advertencias_revision_humana
+    (see module docstring -- those are enhanced-review flags for the
+    trainer, not something a client should see unreviewed).
+
+    DESIGN -- added alongside the diet PDF rather than always having
+    existed: until now, the routine's own content only ever lived in the
+    email body's brief mensaje_para_el_cliente text, with no equivalent
+    "here's your full plan" document the way the diet always had one --
+    a real, disclosed asymmetry the project owner asked to close (see
+    docs/decisiones.md).
+
+    Args:
+        borrador_rutina: same schema as agents/rutina_reglas.py's output.
+        nombre_cliente: for the title and greeting.
+        idioma: "en" (default) or "es" -- language of this document's own
+            labels/headings. Exercise names are translated for display via
+            exercise_bank.nombre_mostrado(), same as ui/app.py does on
+            screen -- the canonical English values inside borrador_rutina
+            itself are untouched.
+
+    Returns:
+        The PDF file's raw bytes.
+    """
+    from exercise_bank import nombre_mostrado
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    estilos = getSampleStyleSheet()
+    estilo_titulo = ParagraphStyle("Titulo", parent=estilos["Title"], spaceAfter=6)
+    estilo_cuerpo = ParagraphStyle("Cuerpo", parent=estilos["BodyText"], spaceAfter=10)
+    estilo_seccion = ParagraphStyle("Seccion", parent=estilos["Heading2"], spaceBefore=12, spaceAfter=6)
+    estilo_dia = ParagraphStyle(
+        "Dia", parent=estilos["Heading3"], spaceBefore=10, spaceAfter=4, textColor=colors.HexColor(_COLOR_TABLA_CABECERA),
+    )
+    estilo_subtexto = ParagraphStyle("Subtexto", parent=estilos["BodyText"], fontSize=9, spaceAfter=4)
+    estilo_celda = ParagraphStyle("Celda", parent=estilos["BodyText"], fontSize=8.5, leading=11)
+    estilo_celda_cabecera = ParagraphStyle(
+        "CeldaCabecera", parent=estilo_celda, textColor=colors.white, fontName="Helvetica-Bold",
+    )
+
+    if idioma == "es":
+        textos = {
+            "titulo": f"Tu rutina — {nombre_cliente}",
+            "resumen": "Resumen",
+            "calentamiento": "Calentamiento",
+            "cardio": "Cardio opcional",
+            "col_ejercicio": "Ejercicio",
+            "col_series": "Series",
+            "col_reps": "Reps",
+            "col_descanso": "Descanso",
+            "col_notas": "Notas",
+            "esfuerzo": "💡 Esfuerzo",
+            "progresion": "Cómo progresar",
+            "pie": "Borrador preparado por TrainFitter — revisado y enviado por tu entrenador/a.",
+        }
+    else:
+        textos = {
+            "titulo": f"Your routine — {nombre_cliente}",
+            "resumen": "Overview",
+            "calentamiento": "Warmup",
+            "cardio": "Optional cardio",
+            "col_ejercicio": "Exercise",
+            "col_series": "Sets",
+            "col_reps": "Reps",
+            "col_descanso": "Rest",
+            "col_notas": "Notes",
+            "esfuerzo": "💡 Effort",
+            "progresion": "How to progress",
+            "pie": "Draft prepared by TrainFitter — reviewed and sent by your trainer.",
+        }
+
+    contenido = [
+        Paragraph(textos["titulo"], estilo_titulo),
+        Paragraph(borrador_rutina["mensaje_para_el_cliente"], estilo_cuerpo),
+    ]
+    if borrador_rutina.get("resumen_enfoque"):
+        contenido.append(Paragraph(textos["resumen"], estilo_seccion))
+        contenido.append(Paragraph(borrador_rutina["resumen_enfoque"], estilo_cuerpo))
+
+    estilo_tabla = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_COLOR_TABLA_CABECERA)),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(_COLOR_TABLA_FILA_ALTERNA)]),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor(_COLOR_TABLA_BORDE)),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ])
+    # Defensive against a minimal/older borrador_rutina (e.g. a hand-built
+    # test fixture) missing per-session detail entirely -- same "renders
+    # correctly, just without that section" tolerance generar_pdf_dieta()
+    # already has for plan_semanal/fuentes_verdura_sugeridas.
+    for sesion in borrador_rutina.get("sesiones", []):
+        ejercicios = sesion.get("ejercicios", [])
+        bloque_dia = [Paragraph(sesion.get("dia", ""), estilo_dia)]
+        if sesion.get("calentamiento"):
+            bloque_dia.append(Paragraph(f"<b>{textos['calentamiento']}:</b> {sesion['calentamiento']}", estilo_subtexto))
+        if ejercicios:
+            filas = [[
+                Paragraph(textos["col_ejercicio"], estilo_celda_cabecera),
+                Paragraph(textos["col_series"], estilo_celda_cabecera),
+                Paragraph(textos["col_reps"], estilo_celda_cabecera),
+                Paragraph(textos["col_descanso"], estilo_celda_cabecera),
+                Paragraph(textos["col_notas"], estilo_celda_cabecera),
+            ]]
+            for ejercicio in ejercicios:
+                filas.append([
+                    Paragraph(nombre_mostrado(ejercicio["nombre"], idioma), estilo_celda),
+                    Paragraph(str(ejercicio["series"]), estilo_celda),
+                    Paragraph(str(ejercicio["repeticiones"]), estilo_celda),
+                    Paragraph(f"{ejercicio['descanso_seg']}s", estilo_celda),
+                    Paragraph(ejercicio["notas"] or "—", estilo_celda),
+                ])
+            tabla = Table(filas, colWidths=[5.6 * cm, 1.7 * cm, 1.9 * cm, 1.9 * cm, 5.9 * cm])
+            tabla.setStyle(estilo_tabla)
+            bloque_dia.append(tabla)
+        if sesion.get("nota_esfuerzo"):
+            bloque_dia.append(Paragraph(f"<b>{textos['esfuerzo']}:</b> {sesion['nota_esfuerzo']}", estilo_subtexto))
+        if sesion.get("cardio_opcional"):
+            bloque_dia.append(Paragraph(f"<b>{textos['cardio']}:</b> {sesion['cardio_opcional']}", estilo_subtexto))
+        # Keeps a day's heading/warmup glued to its own table -- same
+        # reasoning as generar_pdf_dieta()'s per-day KeepTogether.
+        contenido.append(KeepTogether(bloque_dia))
+
+    if borrador_rutina.get("progresion"):
+        contenido.append(Paragraph(textos["progresion"], estilo_seccion))
+        contenido.append(Paragraph(borrador_rutina["progresion"], estilo_cuerpo))
 
     contenido.append(Spacer(1, 16))
     contenido.append(Paragraph(textos["pie"], ParagraphStyle("Pie", parent=estilos["Italic"], fontSize=8)))

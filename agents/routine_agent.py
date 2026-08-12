@@ -99,6 +99,13 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
                             },
                         },
                         "cardio_opcional": {"type": "string"},
+                        "nota_esfuerzo": {
+                            "type": "string",
+                            "description": (
+                                "One sentence on how close to failure to train this session -- e.g. "
+                                "reps-in-reserve (RIR) guidance for the compound work vs. the isolation work."
+                            ),
+                        },
                     },
                     "required": ["dia", "ejercicios"],
                 },
@@ -181,6 +188,11 @@ STARTING POINT, not a final prescription.
   include more technically demanding exercise variants where the client's equipment
   allows (e.g. Bulgarian split squats, weighted pull-ups) -- say so in the summary
   either way.
+- Give every session a one-sentence `nota_esfuerzo`: reps-in-reserve (RIR) guidance,
+  not just a rep-count range. Compound/basic lifts should stay 1-2 reps short of
+  failure; isolation work at the end of the session can go closer to failure
+  (0-1 reps left) -- proximity to failure is its own training variable, separate
+  from load and volume.
 - The message to the client should sound like the trainer: warm, direct,
   pedagogical, no unexplained jargon.
 - You must respond ONLY by calling the `entregar_borrador_rutina` tool."""

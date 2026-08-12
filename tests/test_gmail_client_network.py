@@ -67,10 +67,12 @@ def test_crear_borrador_returns_url_and_thread_id(monkeypatch, borrador_rutina, 
     assert resultado == {"url": "https://mail.google.com/mail/u/0/#drafts/draft-1", "thread_id": "thread-1"}
 
 
-def test_crear_borrador_sends_two_pdf_attachments(monkeypatch, borrador_rutina, borrador_dieta):
+def test_crear_borrador_sends_the_routine_and_diet_pdfs_by_default(monkeypatch, borrador_rutina, borrador_dieta):
     """Confirms the actual request body crear_borrador() builds really
-    does carry two PDF attachments -- exercises the full path from
-    generar_pdf_dieta()/generar_pdf_checklist() through
+    does carry both plan PDFs (routine now always attached alongside
+    diet, mirroring it -- see generar_pdf_rutina()) and, by default,
+    NOT the checklist (opt-in now, see crear_borrador()'s docstring) --
+    exercises the full path from the PDF generators through
     _construir_mensaje_raw() to what would be sent to the real API."""
     servicio = _mock_service(monkeypatch)
     servicio.users.return_value.drafts.return_value.create.return_value.execute.return_value = {
@@ -83,8 +85,25 @@ def test_crear_borrador_sends_two_pdf_attachments(monkeypatch, borrador_rutina, 
     mensaje = message_from_bytes(raw)
     partes = mensaje.get_payload()
     nombres_adjuntos = {p.get_filename() for p in partes[1:]}
-    assert nombres_adjuntos == {"diet-plan.pdf", "adherence-checklist.pdf"}
+    assert nombres_adjuntos == {"routine-plan.pdf", "diet-plan.pdf"}
     assert all(p.get_content_type() == "application/pdf" for p in partes[1:])
+
+
+def test_crear_borrador_attaches_the_checklist_when_requested(monkeypatch, borrador_rutina, borrador_dieta):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.drafts.return_value.create.return_value.execute.return_value = {
+        "message": {"id": "draft-1", "threadId": "thread-1"}
+    }
+    gmail_client.crear_borrador(
+        "client@example.com", "Ana", borrador_rutina, borrador_dieta, incluir_checklist=True,
+    )
+
+    _args, kwargs = servicio.users.return_value.drafts.return_value.create.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    partes = mensaje.get_payload()
+    nombres_adjuntos = {p.get_filename() for p in partes[1:]}
+    assert nombres_adjuntos == {"routine-plan.pdf", "diet-plan.pdf", "adherence-checklist.pdf"}
 
 
 def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_dieta):

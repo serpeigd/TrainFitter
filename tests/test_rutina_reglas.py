@@ -356,3 +356,16 @@ def test_commitment_mode_note_appears_in_summary_es(perfil_base):
     perfil_base["experiencia"]["nivel_compromiso"] = "chill"
     chill = generar_borrador_rutina_reglas(perfil_base, idioma="es")
     assert "chill" in chill["resumen_enfoque"].lower()
+
+
+def test_every_session_gets_an_effort_note(perfil_base):
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        assert sesion["nota_esfuerzo"]
+        assert "RIR" in sesion["nota_esfuerzo"] or "reps in reserve" in sesion["nota_esfuerzo"].lower()
+
+
+def test_effort_note_is_translated_for_spanish(perfil_base):
+    borrador = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    for sesion in borrador["sesiones"]:
+        assert "margen" in sesion["nota_esfuerzo"].lower()

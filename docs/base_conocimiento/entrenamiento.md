@@ -36,6 +36,29 @@ week.
 - Leave reps in reserve (RIR) on compounds; failure is mostly reserved for isolation
   and core work. **Pain ≠ soreness**: if it hurts, the exercise gets changed or dropped.
 
+## Effort and proximity to failure (RIR/RPE) — reinforced with evidence
+
+"Leave a couple of reps in the tank" isn't just a comfort rule — it's a real training
+variable, separate from load and volume. A 2021 systematic review and meta-analysis
+found that both subjective (RIR-based RPE) and objective (velocity-based) ways of
+autoregulating how close to failure a set goes produce **similar strength gains** to
+training with a fixed percentage of 1RM, and that training closer to failure tends to
+favor hypertrophy specifically — with the trade-off that sets taken very close to (or
+to) failure cost more in fatigue and recovery than the same volume stopped a rep or
+two short. A separate trial in trained lifters found comparable strength/hypertrophy
+outcomes whether sets were taken to 0 or ~2 RIR, with less fatigue and better
+session-to-session consistency at 2 RIR.
+
+**Practical application (what a session's own RIR target should be):**
+- **Compound/basic lifts:** stop each set at **1-2 RIR** — you could do 1-2 more reps
+  with good technique. This is where most sessions should live most of the time.
+- **Isolation work:** closer to failure (**0-1 RIR**) is reasonable and often where
+  the biggest hypertrophy signal comes from — lower systemic fatigue cost than a
+  compound taken that close.
+- **A rep count "in the range" isn't the same as "done right"**: two sets of 8 reps
+  at very different RIR are different stimuli. The number on the page is a target
+  range; RIR is what actually calibrates the effort within it.
+
 ## Adaptation by level
 - **Beginner:** full-body, 2-3 days, technique before load, near-linear progression.
 - **Intermediate:** upper/lower or PPL, 3-4 days, planned progression.
@@ -76,3 +99,7 @@ strength and hypertrophy at the same time — better reserved for specific goals
 - [Training Volume Landmarks for Muscle Growth — RP Strength](https://rpstrength.com/expert-advice/training-volume-landmarks-muscle-growth)
 - [International Society of Sports Nutrition Position Stand: protein and exercise](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5477153/) (dose-response context in strength training)
 - Summary of Jeff Nippard's principles on volume/frequency (evidence-based communication, not a direct quote from him)
+
+## Sources consulted (verified, August 2026)
+- [The Effect of Load and Volume Autoregulation on Muscular Strength and Hypertrophy: A Systematic Review and Meta-Analysis (2021)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8762534/)
+- [The effects of resistance training to near failure on strength, hypertrophy, and motor unit adaptations in previously trained adults (2023)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10161210/)

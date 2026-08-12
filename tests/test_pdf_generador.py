@@ -16,6 +16,7 @@ from pdf_generador import (
     es_checklist_pdf,
     generar_pdf_checklist,
     generar_pdf_dieta,
+    generar_pdf_rutina,
     leer_checklist_pdf,
 )
 
@@ -23,12 +24,32 @@ from pdf_generador import (
 @pytest.fixture
 def borrador_rutina():
     return {
+        "resumen_enfoque": "'Upper Lower' split for intermediate level, 4 days/week, geared toward hypertrophy.",
+        "mensaje_para_el_cliente": "Hi Marta, here's your first draft routine.",
+        "progresion": "Add one rep before adding weight.",
         "sesiones": [
-            {"dia": "Day 1 — Upper A"},
-            {"dia": "Day 2 — Lower A"},
-            {"dia": "Day 3 — Upper B"},
-            {"dia": "Day 4 — Lower B"},
-        ]
+            {
+                "dia": "Day 1 — Upper A",
+                "grupos_musculares": ["pecho", "espalda"],
+                "calentamiento": "5 min light cardio, arm circles.",
+                "ejercicios": [
+                    {
+                        "nombre": "Barbell bench press", "series": 4, "repeticiones": "6-8",
+                        "descanso_seg": 120, "notas": "",
+                    },
+                ],
+                "cardio_opcional": "",
+            },
+            {"dia": "Day 2 — Lower A", "grupos_musculares": [], "calentamiento": "", "ejercicios": [], "cardio_opcional": ""},
+            {"dia": "Day 3 — Upper B", "grupos_musculares": [], "calentamiento": "", "ejercicios": [], "cardio_opcional": ""},
+            {
+                "dia": "Day 4 — Lower B",
+                "grupos_musculares": [],
+                "calentamiento": "",
+                "ejercicios": [],
+                "cardio_opcional": "Zone 2 cardio, 30-40 min.",
+            },
+        ],
     }
 
 
@@ -174,6 +195,55 @@ def test_diet_pdf_omits_vegetable_section_when_absent(borrador_dieta):
     assert "Suggested vegetables" not in texto
 
 
+# --- generar_pdf_rutina() ---------------------------------------------------
+
+
+def test_routine_pdf_is_a_real_pdf(borrador_rutina):
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    assert pdf.startswith(b"%PDF")
+
+
+def test_routine_pdf_contains_sessions_exercises_and_progression(borrador_rutina):
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Day 1" in texto
+    assert "Barbell bench press" in texto
+    assert "6-8" in texto
+    assert "Add one rep before adding weight" in texto
+
+
+def test_routine_pdf_includes_warmup_and_cardio_notes(borrador_rutina):
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "arm circles" in texto
+    assert "Zone 2 cardio" in texto
+
+
+def test_routine_pdf_translates_exercise_names_for_spanish(borrador_rutina):
+    """Same invariant as the diet PDF: exercise names are translated for
+    display via exercise_bank.nombre_mostrado(), the canonical English
+    values inside borrador_rutina stay untouched."""
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="es")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Press de banca con barra" in texto
+    assert "Barbell bench press" not in texto
+
+
+def test_routine_pdf_never_includes_trainer_only_warnings(borrador_rutina):
+    from pypdf import PdfReader
+
+    borrador_rutina["advertencias_revision_humana"] = ["Client has a knee injury, review before sending."]
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "knee injury" not in texto
+
+
 # --- generar_pdf_checklist() / es_checklist_pdf() ---------------------------
 
 
@@ -278,3 +348,12 @@ def test_reads_garbage_bytes_as_unparseable_without_raising():
     assert datos["dias_rutina_totales"] == 0
     assert datos["dias_dieta_totales"] is None
     assert datos["valoracion"] is None
+
+
+def test_routine_pdf_includes_the_effort_cue(borrador_rutina):
+    from pypdf import PdfReader
+
+    borrador_rutina["sesiones"][0]["nota_esfuerzo"] = "Leave 1-2 reps in reserve on compounds."
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Leave 1-2 reps in reserve on compounds." in texto

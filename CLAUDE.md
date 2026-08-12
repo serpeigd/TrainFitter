@@ -20,7 +20,7 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (15 decisions, ~2 pages) — update it when a change adds
+  version of the same log (17 decisions, ~2 pages) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
 - **Scheduled documentation-sync runs (added 2026-08-07, explicit decision in
   chat): standing authorization to merge doc-only PRs from that recurring task
@@ -487,18 +487,48 @@ output (set counts, kcal targets, niche-item sampling, supplement-skip
 logic all checked directly, not just asserted in tests).
 
 `_render_dashboard_clientes()` adds a fleet-level dashboard (4 KPI
-metrics + 2 bar charts: verdict mix, latest-adherence mix) directly
-above the "Clients" roster table, reusing the exact same
-`listar_clientes()`/`ultimo_checkin_por_cliente()` results that table
-already fetches — zero new Notion queries. Verified live against the
-real workspace. Separately, traced why a client's checklist PDF
-forwarded (rather than replied) into the inbox isn't picked up by the
-scheduled scan: `buscar_respuestas_adherencia()`'s `In-Reply-To` check
-is load-bearing, not incidental — a blank-but-structurally-intact
-checklist (the trainer's own sent original) computes to a real "Low"
-rating rather than `None` in `leer_checklist_pdf()`, so dropping that
-check risks a false adherence entry. Documented as a real, disclosed gap
-rather than fixed under time pressure — see `docs/decisiones.md`.
+metrics + 2 bar charts: verdict mix, latest-adherence mix), reusing the
+exact same `listar_clientes()`/`ultimo_checkin_por_cliente()` results
+`_panel_todos_los_clientes()` already fetches — zero new Notion queries.
+Verified live against the real workspace. Separately, traced why a
+client's checklist PDF forwarded (rather than replied) into the inbox
+isn't picked up by the scheduled scan: `buscar_respuestas_adherencia()`'s
+`In-Reply-To` check is load-bearing, not incidental — a
+blank-but-structurally-intact checklist (the trainer's own sent
+original) computes to a real "Low" rating rather than `None` in
+`leer_checklist_pdf()`, so dropping that check risks a false adherence
+entry. Documented as a real, disclosed gap rather than fixed under time
+pressure — see `docs/decisiones.md`.
+
+Four follow-ups shipped the same day, all from actually using the app
+for a day: the "Clients"/"Revise client" password-gate split above got
+**reverted** back to one shared flag — the project owner's own call,
+made *because* "Clients" lost its roster table (see next) and stopped
+showing any individual client's data at all, so the split's original
+premise stopped applying. "Clients" is now the dashboard *only* — the
+per-client roster table (name/email/goal/verdict/last-check-in) is gone,
+in favor of Notion's own database view for looking up one record; the
+now-dead `_etiqueta_atencion()`/`clients_col_*` code was removed with
+it. `crear_borrador()`'s adherence checklist PDF attachment is opt-in
+now (`incluir_checklist: bool = False`, a checkbox in the approval panel
+default-unchecked) rather than automatic — the client portal is the
+intended default way to log adherence now, so mailing a PDF-and-reply
+loop by default just duplicated it with more friction. And a real
+asymmetry got closed: the routine never had its own standalone PDF the
+way the diet always did (only a brief mention in the email body) — new
+`generar_pdf_rutina()` mirrors the diet PDF's structure exactly and is
+now always attached alongside it. Every session also gained a real,
+evidence-grounded `nota_esfuerzo` (reps-in-reserve effort cueing —
+compounds 1-2 RIR, isolation 0-1 RIR), backed by two sources actually
+read for this change (see `docs/base_conocimiento/entrenamiento.md`'s
+new "Effort and proximity to failure" section) and shown in the PDF, the
+on-screen review, and threaded into `routine_agent.py`'s system prompt.
+The plan email itself is shorter and more scannable — a real bullet list
+for attachments instead of a paragraph, plus exactly one 👉 key-point
+line per section pulled straight from the plan. 415 tests passing (up
+from 402), 97.5% coverage. Not re-verified live in the browser this
+round (a port conflict with another concurrent session blocked it) —
+disclosed rather than claimed; due for a live spot-check next session.
 
 ## Free-only guardrail
 

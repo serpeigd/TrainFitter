@@ -214,6 +214,32 @@ MENSAJE_CLIENTE_RUTINA_VARIANTES = {
     ],
 }
 
+# One genuinely useful, evidence-grounded note per session (not just an
+# exercise list) -- requested directly: "useful info for each session, key
+# points." Reps-in-reserve (RIR) is a real training variable independent of
+# the rep-count range itself; see docs/base_conocimiento/entrenamiento.md's
+# "Effort and proximity to failure" section for the underlying systematic
+# review this operationalizes -- basic/compound work stays a couple of reps
+# short of failure (lower fatigue cost, still enough stimulus), isolation
+# work at the end of a session can push closer to it (bigger local
+# hypertrophy signal, cheaper systemically). Session-level rather than
+# per-exercise: PLANTILLAS_DIA always mixes both types within a session, so
+# one note covering the whole session reads better than repeating it on
+# every row.
+NOTA_ESFUERZO_SESION = {
+    "en": (
+        "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- "
+        "you should feel you could do 1-2 more with good form. The isolation work at "
+        "the end of the session can go closer to failure (0-1 reps left)."
+    ),
+    "es": (
+        "Guía de esfuerzo: en los ejercicios básicos/compuestos deja 1-2 repeticiones "
+        "de margen (RIR) — deberías notar que podrías hacer 1-2 más con buena técnica. "
+        "El trabajo de aislamiento al final de la sesión puede ir más cerca del fallo "
+        "(0-1 repeticiones de margen)."
+    ),
+}
+
 
 def _material_cliente(perfil: dict) -> set[str]:
     material = set(perfil.get("disponibilidad", {}).get("material_disponible", []))
@@ -505,6 +531,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             "calentamiento": CALENTAMIENTO_POR_DIA[idioma][tipo_dia],
             "ejercicios": ejercicios,
             "cardio_opcional": cardio_label if indice == len(secuencia_dias) else "",
+            "nota_esfuerzo": NOTA_ESFUERZO_SESION[idioma],
         })
 
     # Same client -> same picks every time (seeded by id_cliente); a

@@ -61,16 +61,60 @@ def test_email_body_includes_the_clients_personal_messages():
     assert "here's your diet" in cuerpo
 
 
-def test_email_body_explains_re_attaching_the_checklist():
-    """Real-world lesson (see docs/decisiones.md): replying in Gmail
-    doesn't carry the original attachment over automatically, so the body
-    needs to say so explicitly or a client's reply arrives with nothing to
-    parse."""
+def test_email_body_always_lists_both_the_routine_and_diet_pdfs():
+    """Real gap fixed directly: the routine used to have no standalone
+    document at all, unlike the diet -- both are now always attached and
+    always listed, regardless of the checklist opt-in below."""
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
-    assert "attach" in cuerpo.lower()
+    assert "Your routine (PDF)" in cuerpo
+    assert "Your diet (PDF)" in cuerpo
+
+
+def test_email_body_omits_the_checklist_by_default():
+    """The checklist PDF is opt-in now (see crear_borrador()'s docstring)
+    -- the client portal is the intended default way to log adherence."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "checklist" not in cuerpo.lower()
+    assert "reply to this email" not in cuerpo.lower()
+
+
+def test_email_body_explains_re_attaching_the_checklist_when_included():
+    """Real-world lesson (see docs/decisiones.md): replying in Gmail
+    doesn't carry the original attachment over automatically, so the body
+    needs to say so explicitly or a client's reply arrives with nothing to
+    parse -- but only when the checklist was actually attached."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, incluir_checklist=True)
+    assert "Adherence checklist (PDF, fillable)" in cuerpo
     assert "doesn't carry the attachment over automatically" in cuerpo
+
+
+def test_email_body_includes_the_top_routine_and_diet_tips():
+    """A real, easy-to-skim key point per section straight from the plan
+    itself, instead of making the client open a PDF to see it."""
+    borrador_rutina = {"mensaje_para_el_cliente": "...", "progresion": "Add one rep before adding weight."}
+    borrador_dieta = {
+        "mensaje_para_el_cliente": "...",
+        "consejos_sinergias": ["Pair plant iron with vitamin C.", "Second tip, not included."],
+    }
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "Add one rep before adding weight." in cuerpo
+    assert "Pair plant iron with vitamin C." in cuerpo
+    assert "Second tip, not included." not in cuerpo
+
+
+def test_email_body_tolerates_missing_tips():
+    """A minimal/older borrador (no progresion/consejos_sinergias key at
+    all) must still render, just without the 👉 lines."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "👉" not in cuerpo
 
 
 def test_email_body_does_not_repeat_the_clients_name_in_the_greeting():
@@ -113,13 +157,13 @@ def test_quitar_saludo_leaves_message_untouched_if_greeting_does_not_match():
 
 def test_email_body_wrapper_text_translates_for_spanish():
     """idioma="es" only needs to translate this template's own wrapper text
-    (greeting, attachment explanation, footer) -- mensaje_para_el_cliente is
+    (greeting, attachment list, footer) -- mensaje_para_el_cliente is
     already in whichever language it was generated in (see
     rutina_reglas.py/dieta_reglas.py), so this test uses Spanish content for
     it too, matching a real idioma="es" pipeline run."""
     borrador_rutina = {"mensaje_para_el_cliente": "Hola Ana, aquí tienes tu rutina."}
     borrador_dieta = {"mensaje_para_el_cliente": "Hola Ana, aquí tienes tu dieta."}
-    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, idioma="es")
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, idioma="es", incluir_checklist=True)
     assert cuerpo.startswith("Hola Ana,")
     assert "aquí tienes tu rutina" in cuerpo
     assert "responde a este email" in cuerpo.lower()
