@@ -343,6 +343,21 @@ def test_categoria_inquietud_conocida_matches_reducir_gluten():
     assert categoria_inquietud_conocida("bajar el gluten") == "reducir_gluten"
 
 
+def test_categoria_inquietud_conocida_matches_salud_digestiva():
+    assert categoria_inquietud_conocida("gut health") == "salud_digestiva"
+    assert categoria_inquietud_conocida("salud digestiva") == "salud_digestiva"
+
+
+def test_categoria_inquietud_conocida_matches_mas_fibra():
+    assert categoria_inquietud_conocida("more fiber") == "mas_fibra"
+    assert categoria_inquietud_conocida("más fibra") == "mas_fibra"
+
+
+def test_categoria_inquietud_conocida_matches_mas_hierro():
+    assert categoria_inquietud_conocida("iron deficiency") == "mas_hierro"
+    assert categoria_inquietud_conocida("anemia") == "mas_hierro"
+
+
 def test_categoria_inquietud_conocida_returns_empty_for_unmatched_text():
     assert categoria_inquietud_conocida("more energy in the mornings") == ""
     assert categoria_inquietud_conocida("") == ""

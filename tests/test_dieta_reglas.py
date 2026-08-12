@@ -191,6 +191,24 @@ def test_antiinflammatory_note_appears_and_is_diet_type_aware(perfil_base):
     assert "oily fish" not in consejo.lower()
 
 
+def test_gut_health_preference_note_appears(perfil_base):
+    perfil_base["nutricion"]["inquietud_principal"] = "gut health"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert any("gut health" in c.lower() for c in borrador["consejos_sinergias"])
+
+
+def test_more_fiber_preference_note_appears(perfil_base):
+    perfil_base["nutricion"]["inquietud_principal"] = "more fiber"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert any("more fiber" in c.lower() for c in borrador["consejos_sinergias"])
+
+
+def test_more_iron_preference_note_appears(perfil_base):
+    perfil_base["nutricion"]["inquietud_principal"] = "iron deficiency"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert any("more iron" in c.lower() for c in borrador["consejos_sinergias"])
+
+
 def test_no_soft_preference_notes_for_a_clean_profile(perfil_base):
     perfil_base["estilo_de_vida"]["tipo_trabajo"] = "active outdoor work"
     borrador = generar_borrador_dieta_reglas(perfil_base)

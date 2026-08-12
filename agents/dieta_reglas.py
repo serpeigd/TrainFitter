@@ -246,6 +246,18 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
                 "Con un trabajo poco activo, el plan prioriza fuentes con más fibra (legumbres, "
                 "avena, integrales, verdura) para ayudar con la saciedad y la digestión."
             ),
+            "salud_digestiva": (
+                "Has pedido cuidar la salud digestiva: el plan prioriza fuentes probióticas "
+                "(yogur griego) combinadas con fibra prebiótica (avena, fruta) en la misma comida."
+            ),
+            "mas_fibra": (
+                "Has pedido más fibra: el plan prioriza legumbres, avena, integrales y verdura "
+                "por encima de otras fuentes de carbohidrato."
+            ),
+            "mas_hierro": (
+                "Has pedido más hierro: el plan prioriza fuentes de hierro no hemo (legumbres, "
+                "tofu) y las combina con vitamina C en la misma comida para mejorar su absorción."
+            ),
         }
     else:
         textos = {
@@ -266,8 +278,25 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
                 "With a mostly sedentary job, this plan leans on higher-fiber sources (legumes, "
                 "oats, whole grains, vegetables) to help with satiety and digestion."
             ),
+            "salud_digestiva": (
+                "You asked to look after your gut health: this plan leans on probiotic sources "
+                "(Greek yogurt) paired with prebiotic fiber (oats, fruit) in the same meal."
+            ),
+            "mas_fibra": (
+                "You asked for more fiber: this plan leans on legumes, oats, whole grains, and "
+                "vegetables over other carbohydrate sources."
+            ),
+            "mas_hierro": (
+                "You asked for more iron: this plan leans on non-heme iron sources (legumes, "
+                "tofu) and pairs them with vitamin C in the same meal to help absorption."
+            ),
         }
-    return [textos[p] for p in ("reducir_gluten", "antiinflamatorio", "estres_alto_o_sueno_bajo", "trabajo_sedentario") if p in preferencias]
+    return [
+        textos[p] for p in (
+            "reducir_gluten", "antiinflamatorio", "estres_alto_o_sueno_bajo", "trabajo_sedentario",
+            "salud_digestiva", "mas_fibra", "mas_hierro",
+        ) if p in preferencias
+    ]
 
 
 # Evidence-based supplement tips (docs/base_conocimiento/suplementacion.md),

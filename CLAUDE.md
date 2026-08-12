@@ -572,6 +572,19 @@ two properties added manually to the real Notion "Clients" database
 before it actually works — degrades gracefully until then. 430 tests
 passing (up from 419).
 
+The "Weekly Meal Plan (JSON)"/"Liked Meals (JSON)" Notion properties the
+meal-favoriting feature needed have been added to the real "TrainFitter
+Clients" database (via Notion's own schema API, not a manual click), and
+the whole loop was verified against the live workspace, not just mocked
+tests: a real client record's plan was saved, read back through the same
+function the portal calls, a real like was recorded, and regenerating the
+diet 15 times reproduced the liked meal ~55% of the time — matching the
+~60% design target. Three more dietary-concern dropdown presets shipped
+the same day — "Gut health," "More fiber," "More iron (anemia)" — each
+reusing a sinergia tag the food bank already carries (no new food data
+needed), deliberately excluding any preset without real backing behind it.
+439 tests passing (up from 430).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

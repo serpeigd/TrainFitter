@@ -837,7 +837,7 @@ TRANSLATIONS = {
         "disliked_foods": "Foods they don't like (comma-separated)",
         "main_dietary_concern": "Main dietary concern or approach (optional)",
         "main_dietary_concern_other_label": "Describe it",
-        "main_dietary_concern_placeholder": "e.g. gut health, more energy in the mornings...",
+        "main_dietary_concern_placeholder": "e.g. more energy in the mornings, joint pain...",
         "meals_per_day": "Preferred meals per day",
         "nutrition_context": "Context (cooking, time, budget...)",
         "sec_lifestyle": "7. Lifestyle",
@@ -1080,7 +1080,7 @@ TRANSLATIONS = {
         "disliked_foods": "Alimentos que no le gustan (coma)",
         "main_dietary_concern": "Enfoque o inquietud principal de dieta (opcional)",
         "main_dietary_concern_other_label": "Descríbelo",
-        "main_dietary_concern_placeholder": "ej. salud digestiva, más energía por las mañanas...",
+        "main_dietary_concern_placeholder": "ej. más energía por las mañanas, dolor articular...",
         "meals_per_day": "Comidas al día preferidas",
         "nutrition_context": "Contexto (cocina, tiempo, presupuesto...)",
         "sec_lifestyle": "7. Estilo de vida",
@@ -1229,6 +1229,7 @@ OPTION_LABELS = {
         "bajo": "Low", "medio": "Medium", "alto": "High",
         "full_body": "full body", "upper_lower": "upper lower", "push_pull_legs": "push pull legs",
         "": "None", "antiinflamatorio": "Anti-inflammatory", "reducir_gluten": "Lower gluten",
+        "salud_digestiva": "Gut health", "mas_fibra": "More fiber", "mas_hierro": "More iron (anemia)",
         "otra": "Other (describe below)",
     },
     "es": {
@@ -1246,6 +1247,7 @@ OPTION_LABELS = {
         "bajo": "Bajo", "medio": "Medio", "alto": "Alto",
         "full_body": "cuerpo completo", "upper_lower": "torso-pierna", "push_pull_legs": "empuje-tracción-pierna",
         "": "Ninguna", "antiinflamatorio": "Antiinflamatoria", "reducir_gluten": "Bajar el gluten",
+        "salud_digestiva": "Salud digestiva", "mas_fibra": "Más fibra", "mas_hierro": "Más hierro (anemia)",
         "otra": "Otra (descríbelo abajo)",
     },
 }
@@ -1286,10 +1288,24 @@ def opt(key: str) -> str:
 # _PALABRAS_CLAVE_PREFERENCIA_BLANDA already recognizes for that category --
 # storing the phrase itself (not the internal key) means no changes were
 # needed in food_bank.py's matching logic for the presets to actually work.
-OPCIONES_INQUIETUD = ["", "antiinflamatorio", "reducir_gluten", "otra"]
+OPCIONES_INQUIETUD = [
+    "", "antiinflamatorio", "reducir_gluten", "salud_digestiva", "mas_fibra", "mas_hierro", "otra",
+]
 _FRASE_POR_INQUIETUD = {
-    "en": {"antiinflamatorio": "anti-inflammatory", "reducir_gluten": "lower gluten"},
-    "es": {"antiinflamatorio": "antiinflamatoria", "reducir_gluten": "bajar el gluten"},
+    "en": {
+        "antiinflamatorio": "anti-inflammatory",
+        "reducir_gluten": "lower gluten",
+        "salud_digestiva": "gut health",
+        "mas_fibra": "more fiber",
+        "mas_hierro": "more iron",
+    },
+    "es": {
+        "antiinflamatorio": "antiinflamatoria",
+        "reducir_gluten": "bajar el gluten",
+        "salud_digestiva": "salud digestiva",
+        "mas_fibra": "más fibra",
+        "mas_hierro": "más hierro",
+    },
 }
 
 

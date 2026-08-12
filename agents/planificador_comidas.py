@@ -145,6 +145,9 @@ SESGO_POR_PREFERENCIA = {
     "antiinflamatorio": "antiinflamatorio",
     "estres_alto_o_sueno_bajo": "magnesio",
     "trabajo_sedentario": "fibra_alta",
+    "salud_digestiva": "probiotico",
+    "mas_fibra": "fibra_alta",
+    "mas_hierro": "hierro_no_hemo",
 }
 
 

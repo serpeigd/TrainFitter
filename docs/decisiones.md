@@ -1931,6 +1931,14 @@ Requested as an open-ended "look into this," scoped with two clarifying question
 
 30 new tests (statistical bias check, safety-drop-on-allergy-change, dedup-on-repeat-like, empty-plan degradation, the full Notion round trip mocked), 430 total (up from 419), lint clean.
 
+## The "repeat a meal" feature, verified for real against the live workspace — and three more dietary-concern presets
+
+**Notion setup done, and verified against the real workspace, not just mocked.** Added "Weekly Meal Plan (JSON)" and "Liked Meals (JSON)" (both `RICH_TEXT`) to the real "TrainFitter Clients" database directly via Notion's own API (schema DDL, not a manual click-through). Then ran the actual project code — not a synthetic test — against a real existing client record (`PEPE`, a test client created earlier this session): regenerated and saved a real plan (`actualizar_registro_cliente()`), confirmed `obtener_registro_cliente()` — the exact function the portal calls — reads back a real 7-day plan with the new structured fields intact, called `agregar_comida_favorita()` for real (a liked breakfast: Seitan + whole wheat bread), confirmed the like merged back into the profile on the next load (`buscar_cliente_por_email()`), and regenerated the diet 15 times with different seeds: **the liked breakfast reappeared 58/105 times (~55%)**, matching the ~60% design target within real sampling noise — not a mocked assertion, an actual measured rate against the live integration. This is strictly stronger evidence than the mocked-network tests alone (which only prove the request/response shapes are right, not that the real Notion schema accepts them or that the bias survives a real round trip).
+
+**Three more dietary-concern presets**, added the same way the first two were: reusing sinergia tags the food bank already carries, no new food data needed. "Gut health" (`salud_digestiva`) biases toward probiotic-tagged foods (Greek yogurt); "More fiber" (`mas_fibra`) biases toward the same `fibra_alta` tag the sedentary-job structured signal already uses, now also reachable by just saying so; "More iron / anemia" (`mas_hierro`) biases toward the existing non-heme-iron-tagged legumes/tofu/tempeh, paired with vitamin C in the same meal via the synergy logic that already exists for iron. Deliberately did *not* add presets with no real backing in the food bank (e.g. "low sodium," "heart health") — every option in the dropdown does something real, per the project owner's own "viable options only" request. Verified statistically across 15 client IDs for the iron bias (directional, not a fixed-threshold assertion — the baseline share of iron-tagged proteins is already non-trivial, unlike salmon's ~8% baseline for the antiinflammatory case, so a flaky single-seed threshold test would have been the wrong tool here).
+
+439 tests passing (up from 432), 97.4% coverage, lint clean.
+
 ---
 
 ## Fitness content disclaimer

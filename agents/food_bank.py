@@ -397,6 +397,18 @@ _PALABRAS_CLAVE_PREFERENCIA_BLANDA = {
         "antiinflamatoria", "antiinflamatorio", "anti-inflamatoria", "anti-inflamatorio",
         "anti-inflammatory", "anti inflammatory", "inflamacion", "inflamación", "inflammation",
     ),
+    "salud_digestiva": (
+        "salud digestiva", "salud intestinal", "digestion", "digestión", "microbiota",
+        "gut health", "digestive health", "gut",
+    ),
+    "mas_fibra": (
+        "mas fibra", "más fibra", "alta en fibra", "rica en fibra",
+        "high fiber", "high-fiber", "more fiber", "fiber-rich",
+    ),
+    "mas_hierro": (
+        "mas hierro", "más hierro", "deficit de hierro", "déficit de hierro", "anemia",
+        "more iron", "iron deficiency", "low iron", "iron-rich",
+    ),
 }
 
 
@@ -419,8 +431,9 @@ def preferencias_texto_libre(perfil: dict) -> str:
 
 def categoria_inquietud_conocida(texto: str) -> str:
     """Maps free text to one of _PALABRAS_CLAVE_PREFERENCIA_BLANDA's known
-    categories ("antiinflamatorio"/"reducir_gluten"), or "" if it doesn't
-    match either -- the reverse direction of the same keyword lists
+    categories ("antiinflamatorio"/"reducir_gluten"/"salud_digestiva"/
+    "mas_fibra"/"mas_hierro"), or "" if it doesn't match any -- the
+    reverse direction of the same keyword lists
     preferencias_blandas() already matches against, exposed publicly so
     ui/app.py's preset dropdown for `nutricion.inquietud_principal` (see
     docs/decisiones.md) can pre-select a known category when loading a
@@ -437,12 +450,16 @@ def preferencias_blandas(perfil: dict) -> set[str]:
     """Soft dietary preferences -- never a safety/allergy concern, never
     surfaced to validator_agent.py, just a bias applied to suggestions.
     Combines keyword-matched free text (see
-    _PALABRAS_CLAVE_PREFERENCIA_BLANDA) with two structured lifestyle
-    signals: high perceived stress or under 6h average sleep
-    ("estres_alto_o_sueno_bajo" -- biases toward magnesium-tagged foods,
-    see docs/base_conocimiento/nutricion.md's longevity-focus blocks and
-    sinergias_nutrientes.md's timing section) and a sedentary job
-    ("trabajo_sedentario" -- biases toward high-fiber foods)."""
+    _PALABRAS_CLAVE_PREFERENCIA_BLANDA -- "reducir_gluten"/
+    "antiinflamatorio"/"salud_digestiva" [probiotic-tagged foods]/
+    "mas_fibra"/"mas_hierro" [non-heme iron, paired with vitamin C the
+    same way the anemia/iron-deficiency concern already is]) with two
+    structured lifestyle signals: high perceived stress or under 6h
+    average sleep ("estres_alto_o_sueno_bajo" -- biases toward
+    magnesium-tagged foods, see docs/base_conocimiento/nutricion.md's
+    longevity-focus blocks and sinergias_nutrientes.md's timing section)
+    and a sedentary job ("trabajo_sedentario" -- biases toward
+    high-fiber foods)."""
     texto = preferencias_texto_libre(perfil)
     preferencias = {
         etiqueta for etiqueta, palabras in _PALABRAS_CLAVE_PREFERENCIA_BLANDA.items()

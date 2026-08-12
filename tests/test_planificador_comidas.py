@@ -181,6 +181,32 @@ def test_antiinflammatory_preference_biases_toward_salmon(perfil_base):
     assert tasa_con_preferencia > 0.4
 
 
+def test_more_iron_preference_biases_toward_non_heme_iron_sources(perfil_base):
+    """Non-heme-iron-tagged proteins (Lentils, Chickpeas, Tofu, Tempeh,
+    Edamame) already have a real baseline share among candidates -- unlike
+    salmon's ~1-in-13 baseline above, so this checks the bias directionally
+    across many client IDs rather than asserting a single seed clears a
+    fixed threshold (avoids a flaky test over-fitted to one RNG draw)."""
+    fuentes_hierro = {"Lentils", "Chickpeas", "Tofu", "Tempeh", "Edamame"}
+
+    def _tasa(perfil):
+        rng = rng_para_cliente(perfil, "dieta:plan_semanal")
+        plan = generar_plan_semanal(perfil, NECESIDADES, 4, "en", rng)
+        principales = [c for d in plan for c in d["comidas"] if c["tipo"] in ("Lunch", "Dinner")]
+        con_hierro = sum(1 for c in principales if c["proteina"] in fuentes_hierro)
+        return con_hierro / len(principales)
+
+    tasas_con, tasas_sin = [], []
+    for i in range(15):
+        perfil_base["id_cliente"] = f"hierro_test_{i}"
+        perfil_base["nutricion"]["inquietud_principal"] = "iron deficiency"
+        tasas_con.append(_tasa(perfil_base))
+        perfil_base["nutricion"]["inquietud_principal"] = ""
+        tasas_sin.append(_tasa(perfil_base))
+
+    assert sum(tasas_con) / len(tasas_con) > sum(tasas_sin) / len(tasas_sin)
+
+
 def test_gluten_preference_propagates_into_the_weekly_plan_text(perfil_base):
     """Not just the flat fuentes_*_sugeridas lists -- the actual meal
     descriptions in plan_semanal must never mention bread/pasta/seitan
