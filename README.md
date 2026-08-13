@@ -118,7 +118,13 @@ This repository is built phase by phase, as a learning project. Right now:
   dropped automatically if it's no longer a safe/valid pick (e.g. a new
   allergy) — verified against the real workspace, not just mocked: a real
   liked meal reappeared in ~55% of 15 regenerations, matching the ~60%
-  design target.
+  design target. **Liking an exercise works exactly the same way** on the
+  routine side (see [`agents/rutina_reglas.py`](agents/rutina_reglas.py)'s
+  `_sesgar_por_favoritos()`): a liked exercise is preferred, never pinned,
+  and is dropped silently the moment a new injury makes it unsafe — the
+  safety cross-check always outranks the preference. Verified live against
+  a real client record: a liked exercise came back in ~74% of 30
+  regenerations.
 - Both rule engines use most of what the intake form actually collects:
   training level and session length shape routine volume/complexity,
   disliked foods and lifestyle signals (stress/sleep, job type) bias diet
@@ -190,6 +196,13 @@ This repository is built phase by phase, as a learning project. Right now:
   check-in form can also log the client's current weight (optional) — closing
   a loop the generated plan itself already promised ("adjusted based on real
   weight ... over the first few weeks") but had no mechanism for until now.
+  Once there are enough weight entries to mean anything, a **weight-trend
+  nudge** (see [`agents/adherencia_parser.py`](agents/adherencia_parser.py)'s
+  `tendencia_peso()`) flags a real mismatch between the logged trend and the
+  goal's expected direction — shown to both the trainer and the client, and
+  included in the notification email. It only ever *tells the trainer to
+  look*: it never touches the diet's calorie math on its own, and goals with
+  no clear expected direction are deliberately never checked at all.
 - A **"Revise client"** section lets the trainer look up a past client by
   email and reopen their exact intake form, pre-filled with everything they
   originally entered, to edit and regenerate — approving updates that same
@@ -293,12 +306,14 @@ actually been verified:
 - **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
   after a period of no traffic triggers a cold start (can take up to a minute); this is a
   hosting trade-off, not an application bug.
-- **A forwarded (not replied-to) checklist PDF isn't picked up by the adherence scan.**
-  `buscar_respuestas_adherencia()` requires the `In-Reply-To` header to distinguish a
-  client's genuine reply from the trainer's own sent copy of the blank original — a
-  blank checklist has real (just unchecked) fields, so without that check it could be
-  misread as a false "Low adherence" entry. A client who wants their check-in tracked
-  needs to hit Reply (even with no added text) rather than Forward. See
+- **The adherence scan trusts the sender's address, not a cryptographic signal.** A
+  forwarded (not replied-to) checklist *is* now picked up — `buscar_respuestas_adherencia()`
+  excludes only the trainer's own sent copy of the blank original, by comparing the sender
+  against the authenticated account's own address (`getProfile()`) rather than requiring an
+  `In-Reply-To` header. That's a deliberately pragmatic line: a spoofed `From:` would pass
+  it. The consequence is bounded (a bogus adherence row in Notion, which
+  `checklist_tiene_contenido_real()` still has to let through first, and which never
+  changes a plan on its own), so no signature verification was added. See
   `docs/decisiones.md` for the full trace.
 - **Supplement-medication interaction checking is a coarse flag, not a real interaction
   database.** `validator_agent.py` forces enhanced review whenever a client reports both
@@ -508,3 +523,33 @@ This is the same command CI runs on every push (`.github/workflows/ci.yml`).
 | `pytest` | Full test suite | No |
 | `ruff check .` | Lint | No |
 | `python -m py_compile agents/*.py mcp/*.py ui/app.py main.py` | Syntax check (also run in CI) | No |
+
+## License and legal notice
+
+Copyright © 2026 Sergio Peigneux d'Egmont ([@serpeigd](https://github.com/serpeigd)).
+
+The source code in this repository is released under the [MIT License](LICENSE) — you may
+reuse, modify, and redistribute it, including commercially, as long as the copyright notice
+and the licence text travel with it. It is provided **as is, without warranty of any kind**;
+see the LICENSE file for the full disclaimer.
+
+**Not medical advice.** TrainFitter produces *draft* training and nutrition plans for a
+qualified professional to review, edit, and approve. It does not diagnose, treat, or
+prescribe, and no output of this repository should be treated as medical or dietetic advice.
+Every clinical signal it detects (injuries, allergies, out-of-range bloodwork markers,
+supplements taken alongside regular medication) results in the plan being flagged for a
+human — that flag is the product, not a clearance.
+
+**Personal and health data.** If you run this against real clients, you become responsible
+for the data you process. The intake form collects health data, which the GDPR treats as a
+special category requiring its own legal basis and safeguards; check-in records, bloodwork
+markers, and full client profiles are stored in *your* Notion workspace and *your* Gmail
+account, under those providers' terms, not in this repository. Nothing here is a legal
+opinion and no compliance claim is made — this is a portfolio project.
+
+**Third-party components** keep their own licences and terms and are not covered by the MIT
+grant above: the Gmail and Notion APIs, `reportlab`, `pypdf`, `pdfplumber`, `streamlit`,
+`pandas`, `altair`, and — only if you deliberately switch on the optional `motor="llm"`
+engine — the Anthropic API. The evidence cited in
+[`docs/base_conocimiento/`](docs/base_conocimiento/) belongs to its original authors and
+publishers; those notes summarize and cite it, they don't republish it.
