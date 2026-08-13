@@ -285,6 +285,38 @@ def _preferir_baja_complejidad_primero(candidatos: list[dict]) -> list[dict]:
     return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
 
 
+# Same bias-not-force philosophy and same probability as
+# planificador_comidas.PROBABILIDAD_REPETIR_FAVORITO -- a client who liked
+# an exercise should see it come back often, not have it locked into every
+# occurrence of that slot for the rest of time.
+PROBABILIDAD_REPETIR_FAVORITO = 0.6
+
+
+def _sesgar_por_favoritos(
+    grupo: str, tipo: str, candidatos: list[dict], ejercicios_favoritos: list[dict], rng,
+) -> dict | None:
+    """Looks for a client-liked exercise (see docs/decisiones.md's "repeat
+    an exercise" feature -- ejercicios_favoritos comes from the client
+    portal, via perfil["experiencia"]["ejercicios_favoritos"]) matching
+    this slot's (grupo, tipo), whose name is still among `candidatos` --
+    equipment no longer available or a new injury since it was liked
+    correctly drops it rather than resurrecting a now-unsafe pick, since
+    `candidatos` is already _candidatos()'s equipment/injury-filtered pool
+    by the time this runs. Bias, not a hard lock: returns one matching
+    favorite roughly PROBABILIDAD_REPETIR_FAVORITO of the time a match
+    exists; None otherwise, so the caller falls through to its normal
+    rotation-based selection."""
+    nombres_candidatos = {ej["nombre"] for ej in candidatos}
+    candidatas = [
+        fav for fav in ejercicios_favoritos
+        if fav.get("grupo") == grupo and fav.get("tipo") == tipo and fav.get("nombre") in nombres_candidatos
+    ]
+    if not candidatas or rng.random() >= PROBABILIDAD_REPETIR_FAVORITO:
+        return None
+    nombre_elegido = rng.choice(candidatas)["nombre"]
+    return next(ej for ej in candidatos if ej["nombre"] == nombre_elegido)
+
+
 # Volume adjustment by level (method §2 + docs/base_conocimiento/
 # entrenamiento.md's "Adaptation by level" and "Volume: landmarks" — a
 # beginner sits nearer MEV, technique before load, near-linear progression;
@@ -428,6 +460,12 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     ajuste_compromiso = AJUSTE_SERIES_POR_COMPROMISO.get(nivel_compromiso, 0)
     recorte_sesion = _num_slots_a_recortar(disponibilidad["minutos_por_sesion"])
 
+    # Exercises the client "liked" from a previous week's routine, via the
+    # portal (see docs/decisiones.md) -- absent for a brand-new client,
+    # same "no field, no bias" degradation as dieta_reglas.py's own
+    # comidas_favoritas.
+    ejercicios_favoritos = perfil_cliente.get("experiencia", {}).get("ejercicios_favoritos") or []
+
     # Candidates for a given (grupo, tipo) slot are shuffled once per client
     # (seeded by id_cliente, so it's the same shuffle every time this same
     # client's plan is regenerated) and cached here — two clients with
@@ -467,8 +505,14 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             candidatos = candidatos_por_slot[clave]
             if not candidatos:
                 continue  # no equipment/safe options for this slot: skip it instead of failing
+            # A liked exercise (see _sesgar_por_favoritos()) wins this slot
+            # when one matches and its own dice roll says so; otherwise the
+            # normal rotation picks as before. The rotation counter still
+            # advances either way, so a later non-favorite occurrence of
+            # this same slot doesn't skip ahead.
+            favorito = _sesgar_por_favoritos(grupo, tipo, candidatos, ejercicios_favoritos, rng_ejercicios)
             rotacion = contador_rotacion[clave]
-            ejercicio = candidatos[rotacion % len(candidatos)]
+            ejercicio = favorito or candidatos[rotacion % len(candidatos)]
             contador_rotacion[clave] += 1
 
             parametros_base = PARAMETROS_POR_TIPO[tipo]
@@ -513,6 +557,8 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                 notas = notas_por_tag[idioma][tags_aplicables[0]]
             ejercicios.append({
                 "nombre": ejercicio["nombre"],
+                "grupo": grupo,
+                "tipo": tipo,
                 "series": parametros["series"],
                 "repeticiones": parametros["repeticiones"],
                 "descanso_seg": parametros["descanso_seg"],

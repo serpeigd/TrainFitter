@@ -42,7 +42,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT / "agents"))
 sys.path.insert(0, str(REPO_ROOT / "mcp"))
 
-from adherencia_parser import resumir_adherencia  # noqa: E402
+from adherencia_parser import checklist_tiene_contenido_real, resumir_adherencia  # noqa: E402
 from gmail_client import GmailClientError, buscar_intakes_nuevos, buscar_respuestas_adherencia  # noqa: E402
 from notion_connector import (  # noqa: E402
     NotionClientError,
@@ -76,6 +76,15 @@ def procesar_adherencia() -> None:
         datos = leer_checklist_pdf(respuesta["contenido"])
         if datos["valoracion"] is None:
             print(f"Skipping {respuesta['id_mensaje']} from {respuesta['remitente']}: nothing parseable in it.")
+            continue
+        # Structurally a real checklist (valoracion is not None above), but
+        # every field is still blank/unfilled -- the trainer's own sent
+        # original, or a client's forward of it left untouched. Now that
+        # buscar_respuestas_adherencia() also accepts forwards (see its own
+        # docstring), this is the safety net that stops a blank one from
+        # ever being logged as a false "Low" adherence entry.
+        if not checklist_tiene_contenido_real(datos):
+            print(f"Skipping {respuesta['id_mensaje']} from {respuesta['remitente']}: checklist looks blank.")
             continue
 
         # Gmail only gives us the sender's address here, not the name on

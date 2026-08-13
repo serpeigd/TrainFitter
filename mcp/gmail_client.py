@@ -553,23 +553,30 @@ def enviar_enlace_portal(destinatario: str, nombre_cliente: str, url_portal: str
 
 def _construir_cuerpo_notificacion_checkin(
     nombre_cliente: str, resumen: str, sugerencia: str, peso_kg: float | None = None, idioma: str = "en",
+    tendencia: str | None = None,
 ) -> str:
-    """Pure formatting, no I/O. resumen/sugerencia are already-formatted
-    strings (from agents/adherencia_parser.py's resumir_adherencia()/
-    sugerencia_seguimiento()) -- this function only wraps them in a short
-    email, it doesn't reimplement that formatting. peso_kg, when the
-    client chose to share it, is the one piece of data this email adds on
-    top of what resumir_adherencia() already covers -- see
-    mcp/notion_connector.py's docstring on why "Weight (kg)" exists."""
+    """Pure formatting, no I/O. resumen/sugerencia/tendencia are already-
+    formatted strings (from agents/adherencia_parser.py's
+    resumir_adherencia()/sugerencia_seguimiento()/tendencia_peso()) --
+    this function only wraps them in a short email, it doesn't reimplement
+    that formatting. peso_kg, when the client chose to share it, is the
+    one piece of data this email adds on top of what resumir_adherencia()
+    already covers -- see mcp/notion_connector.py's docstring on why
+    "Weight (kg)" exists. tendencia is optional and only ever present for
+    a goal with an unambiguous expected weight direction (fat loss/
+    hypertrophy) with enough real trend data behind it -- see
+    tendencia_peso()'s own docstring for why it's silent otherwise."""
     linea_peso = ""
     if peso_kg is not None:
         linea_peso = f"Peso actual: {peso_kg} kg\n\n" if idioma == "es" else f"Current weight: {peso_kg} kg\n\n"
+    linea_tendencia = f"⚠️ {tendencia}\n\n" if tendencia else ""
 
     if idioma == "es":
         return (
             f"{nombre_cliente} acaba de enviar un check-in desde el portal de cliente:\n\n"
             f"{resumen}\n\n"
             f"{linea_peso}"
+            f"{linea_tendencia}"
             f"Siguiente paso sugerido: {sugerencia}\n\n"
             f"(Notificación automática del portal de TrainFitter.)"
         )
@@ -577,6 +584,7 @@ def _construir_cuerpo_notificacion_checkin(
         f"{nombre_cliente} just submitted a check-in via the client portal:\n\n"
         f"{resumen}\n\n"
         f"{linea_peso}"
+        f"{linea_tendencia}"
         f"Suggested next step: {sugerencia}\n\n"
         f"(Automatic notification from the TrainFitter client portal.)"
     )
@@ -589,6 +597,8 @@ def enviar_notificacion_checkin(
     valoracion: str | None,
     peso_kg: float | None = None,
     idioma: str = "en",
+    historial: list[dict] | None = None,
+    objetivo: str | None = None,
 ) -> None:
     """
     Actually SENDS (not drafts) a short email to the TRAINER's own inbox
@@ -610,6 +620,12 @@ def enviar_notificacion_checkin(
         peso_kg: optional current weight, when the client chose to share
             it in the portal's check-in form.
         idioma: "en" (default) or "es".
+        historial, objetivo: optional -- when both are given, this
+            function also runs agents/adherencia_parser.py's
+            tendencia_peso() and includes its result if it flags
+            anything. Omit either (the default) to skip the weight-trend
+            check entirely, e.g. when the caller doesn't have a fresh
+            history handy.
 
     Raises:
         GmailClientError: invalid recipient, missing/expired credentials,
@@ -617,16 +633,19 @@ def enviar_notificacion_checkin(
             and swallow it (best-effort) rather than let a notification
             failure block the actual Notion check-in from being saved.
     """
-    from adherencia_parser import resumir_adherencia, sugerencia_seguimiento
+    from adherencia_parser import resumir_adherencia, sugerencia_seguimiento, tendencia_peso
 
     resumen = resumir_adherencia(datos_checkin)
     sugerencia = sugerencia_seguimiento(valoracion)
+    tendencia = tendencia_peso(historial, objetivo, idioma) if historial is not None else None
     asunto = (
         f"Nuevo check-in: {nombre_cliente}" if idioma == "es" else f"New check-in: {nombre_cliente}"
     )
     cuerpo = _construir_mensaje_raw(
         destinatario, asunto=asunto,
-        cuerpo_texto=_construir_cuerpo_notificacion_checkin(nombre_cliente, resumen, sugerencia, peso_kg, idioma),
+        cuerpo_texto=_construir_cuerpo_notificacion_checkin(
+            nombre_cliente, resumen, sugerencia, peso_kg, idioma, tendencia,
+        ),
     )
 
     credenciales = _obtener_credenciales()
@@ -819,11 +838,30 @@ def _extraer_checklist_pdf(servicio, id_mensaje: str, parte: dict) -> bytes | No
 
 def buscar_respuestas_adherencia() -> list[dict]:
     """
-    Searches the inbox for client replies to a plan email that carry an
+    Searches the inbox for client replies to a plan email that carry a
     PDF attachment — candidate filled-in checklists. Returns every match
     found on every call; it doesn't mark anything as read or apply a label
     (see module docstring for why: dedup against already-processed
     replies is main.py's job, via Notion, not this function's).
+
+    Accepts both a genuine in-thread reply (In-Reply-To header set) AND a
+    forward from someone other than the trainer's own account -- closing a
+    real, previously disclosed gap (see docs/decisiones.md): a client who
+    hits Forward instead of Reply used to never be picked up at all, since
+    a forward carries no In-Reply-To header either, identical in that
+    respect to the trainer's own original sent copy. What actually needed
+    excluding was never "not a reply" — it was specifically "the trainer's
+    own sent copy of the still-blank original showing up in its own
+    self-search." Checking the sender against the authenticated account's
+    own address (via users().getProfile()) draws that exact line instead:
+    a forward from the client's own address now gets through. The other
+    half of the original worry -- a blank-but-structurally-intact
+    checklist reading as a false "Low" (leer_checklist_pdf() only returns
+    valoracion=None when a PDF has none of the expected fields at all, not
+    when they're merely unfilled) -- is caught by main.py's own,
+    independent adherencia_parser.checklist_tiene_contenido_real() gate,
+    which every candidate this function returns still has to pass before
+    it's ever logged to Notion.
 
     Returns:
         A list of {"id_mensaje", "id_hilo", "remitente", "fecha"
@@ -855,15 +893,18 @@ def buscar_respuestas_adherencia() -> list[dict]:
     # but it breaks the moment the trainer tests this by emailing
     # themselves, since Gmail labels a self-to-self reply as BOTH SENT and
     # INBOX -- excluding "sent" would wrongly exclude that reply too, not
-    # just the original. The reliable, label-independent signal for "is
-    # this actually a reply" is the standard In-Reply-To header (RFC 5322):
-    # it's set on every genuine reply and absent from an original message,
-    # regardless of which mailbox sent either one -- checked below, once
-    # per candidate, after fetching its headers.
+    # just the original. The actual signal checked below is the sender's
+    # address against the authenticated account's own (see docstring).
     consulta = f'has:attachment filename:pdf (subject:"{ASUNTO_PLAN_EN}" OR subject:"{ASUNTO_PLAN_ES}")'
 
     try:
         servicio = build("gmail", "v1", credentials=credenciales)
+        # Best-effort: if getProfile() ever fails to return an address (it
+        # shouldn't, for a successfully authenticated account), email_propio
+        # stays "" and the `and email_propio` guard below just skips the
+        # self-copy check entirely rather than raising -- the In-Reply-To
+        # path alone still catches every genuine reply either way.
+        email_propio = servicio.users().getProfile(userId="me").execute().get("emailAddress", "").lower()
         resultado = servicio.users().messages().list(userId="me", q=consulta).execute()
 
         respuestas = []
@@ -872,8 +913,10 @@ def buscar_respuestas_adherencia() -> list[dict]:
                 servicio.users().messages().get(userId="me", id=referencia["id"], format="full").execute()
             )
             cabeceras = mensaje["payload"]["headers"]
-            if not any(c["name"] == "In-Reply-To" for c in cabeceras):
-                continue  # the original plan email itself, not a reply to it
+            es_respuesta_en_hilo = any(c["name"] == "In-Reply-To" for c in cabeceras)
+            remitente = _extraer_remitente(cabeceras)
+            if not es_respuesta_en_hilo and email_propio and remitente.lower() == email_propio:
+                continue  # the trainer's own sent copy of the original, not a client submission
 
             contenido = _extraer_checklist_pdf(servicio, referencia["id"], mensaje["payload"])
             if contenido is None:
@@ -884,7 +927,7 @@ def buscar_respuestas_adherencia() -> list[dict]:
                 {
                     "id_mensaje": mensaje["id"],
                     "id_hilo": mensaje["threadId"],
-                    "remitente": _extraer_remitente(cabeceras),
+                    "remitente": remitente,
                     "fecha": fecha,
                     "contenido": contenido,
                 }

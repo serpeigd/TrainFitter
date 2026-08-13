@@ -107,6 +107,14 @@ below), scoped to exactly that field via its own read-modify-write so a
 client marking a favorite can never race with or clobber a trainer's
 concurrent edit to the rest of the profile.
 
+DESIGN — "Weekly Routine (JSON)"/"Liked Exercises (JSON)" are the exact
+same pair, mirrored for the routine side: the portal shows the client
+their current week's sessions and lets them mark an exercise to repeat
+(see agents/rutina_reglas.py's own _sesgar_por_favoritos()). Same split
+for the same reason — "Weekly Routine" trainer-written/portal-read,
+"Liked Exercises" the one field the portal ever writes, via its own
+scoped read-modify-write (agregar_ejercicio_favorito() below).
+
 DESIGN — actualizar_registro_cliente() updates the existing page in
 place rather than creating a new one: the "one master record per client"
 principle stated below (Check-ins is the append-only history; Clients is
@@ -135,7 +143,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Verdict (select), Summary (text), Email Sent (checkbox),
        Email (email), Source message ID (text),
        Full Profile (JSON) (text), Weekly Meal Plan (JSON) (text),
-       Liked Meals (JSON) (text)
+       Liked Meals (JSON) (text), Weekly Routine (JSON) (text),
+       Liked Exercises (JSON) (text)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
@@ -173,6 +182,12 @@ OBJETIVO_LABELS = {
     "recomposicion_corporal": "Recomposition",
     "salud_general": "General health",
 }
+# Reverse of OBJETIVO_LABELS -- lets a portal-safe read (the "Goal" select
+# property, not remotely as sensitive as the rest of "Full Profile (JSON)")
+# hand back the internal Spanish key agents/adherencia_parser.py's
+# tendencia_peso() expects, instead of every caller needing its own copy
+# of this mapping.
+_LABEL_A_OBJETIVO = {etiqueta: clave for clave, etiqueta in OBJETIVO_LABELS.items()}
 NIVEL_LABELS = {"principiante": "Beginner", "intermedio": "Intermediate", "avanzado": "Advanced"}
 VEREDICTO_LABELS = {"aprobado_automatico": "Approved", "revision_reforzada": "Enhanced review"}
 
@@ -256,6 +271,11 @@ def _construir_propiedades_pagina(
         "Weekly Meal Plan (JSON)": {
             "rich_text": _dividir_bloques_notion(
                 json.dumps(borrador_dieta.get("plan_semanal") or [], ensure_ascii=False)
+            )
+        },
+        "Weekly Routine (JSON)": {
+            "rich_text": _dividir_bloques_notion(
+                json.dumps(borrador_rutina.get("sesiones") or [], ensure_ascii=False)
             )
         },
     }
@@ -424,23 +444,42 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
     hand-built page dict instead of a real API response -- same pattern as
     _fila_checkin_desde_pagina() below.
 
-    "plan_semanal" defaults to [] (not an error) for a record saved before
-    "Weekly Meal Plan (JSON)" existed, or one whose JSON is somehow
-    corrupt -- the rest of the portal page (routine/diet summary, history)
-    still renders; the "this week's meals" section just has nothing to
+    "plan_semanal"/"sesiones" default to [] (not an error) for a record
+    saved before "Weekly Meal Plan (JSON)"/"Weekly Routine (JSON)"
+    existed, or one whose JSON is somehow corrupt -- the rest of the
+    portal page (routine/diet summary, history) still renders; the
+    "this week's meals"/"this week's routine" section just has nothing to
     show, same degrade-gracefully spirit as this module's other
-    best-effort reads."""
+    best-effort reads.
+
+    "objetivo" is the internal Spanish key (via _LABEL_A_OBJETIVO), not
+    the raw "Goal" select label -- a client's goal is already effectively
+    visible in "resumen"'s own prose ("geared toward fat loss," etc.), so
+    exposing the structured value too isn't a new disclosure, just a
+    usable one: ui/app.py's portal check-in flow needs it to call
+    agents/adherencia_parser.py's tendencia_peso(). None if the page has
+    no recognized Goal value (an older record, or the select was cleared)."""
     propiedades = pagina["properties"]
     nombre = "".join(t["plain_text"] for t in propiedades.get("Name", {}).get("title", []))
     resumen = "".join(t["plain_text"] for t in propiedades.get("Summary", {}).get("rich_text", []))
     veredicto = (propiedades.get("Verdict", {}).get("select") or {}).get("name")
     fecha = (propiedades.get("Date", {}).get("date") or {}).get("start")
+    objetivo_label = (propiedades.get("Goal", {}).get("select") or {}).get("name")
+    objetivo = _LABEL_A_OBJETIVO.get(objetivo_label)
     texto_plan = _unir_bloques_notion(propiedades.get("Weekly Meal Plan (JSON)", {}))
     try:
         plan_semanal = json.loads(texto_plan) if texto_plan else []
     except ValueError:
         plan_semanal = []
-    return {"nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha, "plan_semanal": plan_semanal}
+    texto_rutina = _unir_bloques_notion(propiedades.get("Weekly Routine (JSON)", {}))
+    try:
+        sesiones = json.loads(texto_rutina) if texto_rutina else []
+    except ValueError:
+        sesiones = []
+    return {
+        "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
+        "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones,
+    }
 
 
 def obtener_registro_cliente(pagina_id: str) -> dict:
@@ -449,13 +488,15 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
     (a client following their own magic link, see agents/portal_tokens.py)
     shows as "your plan". Reads the routine+diet summary (name, verdict,
     admission date, "Summary"'s 2000-char truncated content -- see this
-    module's docstring) PLUS the full "Weekly Meal Plan (JSON)" -- a
-    deliberate, later reversal of this function's original "no second
-    copy of the full plan" design, made so the portal can show the
-    client's actual current week's meals and let them mark one to repeat
-    (see this module's docstring and agents/planificador_comidas.py's
-    _sesgar_por_favoritos()). Still never reads "Full Profile (JSON)" --
-    the client's declared injuries/allergies/medication stay trainer-only.
+    module's docstring) PLUS the full "Weekly Meal Plan (JSON)"/"Weekly
+    Routine (JSON)" -- a deliberate, later reversal of this function's
+    original "no second copy of the full plan" design, made so the portal
+    can show the client's actual current week's meals/sessions and let
+    them mark one to repeat (see this module's docstring,
+    agents/planificador_comidas.py's _sesgar_por_favoritos(), and
+    agents/rutina_reglas.py's own). Still never reads "Full Profile
+    (JSON)" -- the client's declared injuries/allergies/medication stay
+    trainer-only.
 
     Args:
         pagina_id: the Notion page ID returned by guardar_registro_cliente()
@@ -463,7 +504,7 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
             the client).
 
     Returns:
-        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal"}.
+        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones"}.
 
     Raises:
         NotionClientError: missing credentials, the page doesn't exist
@@ -542,6 +583,60 @@ def agregar_comida_favorita(pagina_id: str, comida: dict) -> None:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
+def agregar_ejercicio_favorito(pagina_id: str, ejercicio: dict) -> None:
+    """
+    Appends one liked exercise to a client's "Liked Exercises (JSON)"
+    property -- called from the client portal when they mark an exercise
+    from their current week's routine (obtener_registro_cliente()'s
+    "sesiones") as one they'd like to see again. agents/rutina_reglas.py's
+    _sesgar_por_favoritos() reads this back (via _perfil_desde_propiedades()
+    merging it into perfil["experiencia"]["ejercicios_favoritos"]) the
+    next time a routine is regenerated for this client.
+
+    Same shape as agregar_comida_favorita() above, mirrored: its own
+    narrow property, a read-modify-write that only ever touches this one
+    field, so a client marking a favorite from the portal can never race
+    with (or clobber) a trainer's own concurrent edit to the rest of the
+    profile. Dedupes by exact match (same grupo/tipo/nombre) -- liking the
+    same exercise twice doesn't inflate its odds of reappearing.
+
+    Args:
+        pagina_id: the Notion page ID (from the portal's signed token).
+        ejercicio: {"grupo": str, "tipo": "basico"|"aislamiento",
+            "nombre": str} -- matches sesiones' own exercise entries'
+            "grupo"/"tipo"/"nombre" fields.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+        texto_actual = _unir_bloques_notion(pagina["properties"].get("Liked Exercises (JSON)", {}))
+        try:
+            favoritos = json.loads(texto_actual) if texto_actual else []
+        except ValueError:
+            favoritos = []  # corrupt existing data -- start fresh rather than blocking the like
+        if ejercicio not in favoritos:
+            favoritos.append(ejercicio)
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={
+                "Liked Exercises (JSON)": {
+                    "rich_text": _dividir_bloques_notion(json.dumps(favoritos, ensure_ascii=False))
+                }
+            },
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
 def obtener_perfil_completo(pagina_id: str) -> dict:
     """
     Reads back a Clients record's FULL perfil_cliente -- trainer-only
@@ -586,13 +681,15 @@ def _perfil_desde_propiedades(propiedades: dict) -> dict:
     property, just starting from a page fetched two different ways
     (retrieve vs. query). Pure function, no I/O.
 
-    Also merges in "Liked Meals (JSON)" (client-portal-written, see
-    agregar_comida_favorita()) as perfil["nutricion"]["comidas_favoritas"]
-    -- so a client's liked meals automatically flow into the trainer's
-    "Revise client" load and, from there, into the next
-    generar_plan_semanal() call, with no extra wiring needed anywhere
-    else. Best-effort: missing or corrupt liked-meals data never blocks
-    loading the rest of a real, valid profile over it."""
+    Also merges in "Liked Meals (JSON)"/"Liked Exercises (JSON)"
+    (client-portal-written, see agregar_comida_favorita()/
+    agregar_ejercicio_favorito()) as perfil["nutricion"]
+    ["comidas_favoritas"]/perfil["experiencia"]["ejercicios_favoritos"]
+    -- so a client's likes automatically flow into the trainer's "Revise
+    client" load and, from there, into the next generar_plan_semanal()/
+    generar_borrador_rutina_reglas() call, with no extra wiring needed
+    anywhere else. Best-effort: missing or corrupt liked data never
+    blocks loading the rest of a real, valid profile over it."""
     texto = _unir_bloques_notion(propiedades.get("Full Profile (JSON)", {}))
     if not texto:
         raise NotionClientError(
@@ -607,6 +704,13 @@ def _perfil_desde_propiedades(propiedades: dict) -> dict:
     if texto_favoritos:
         try:
             perfil.setdefault("nutricion", {})["comidas_favoritas"] = json.loads(texto_favoritos)
+        except ValueError:
+            pass
+
+    texto_ejercicios_favoritos = _unir_bloques_notion(propiedades.get("Liked Exercises (JSON)", {}))
+    if texto_ejercicios_favoritos:
+        try:
+            perfil.setdefault("experiencia", {})["ejercicios_favoritos"] = json.loads(texto_ejercicios_favoritos)
         except ValueError:
             pass
 

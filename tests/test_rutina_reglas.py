@@ -369,3 +369,73 @@ def test_effort_note_is_translated_for_spanish(perfil_base):
     borrador = generar_borrador_rutina_reglas(perfil_base, idioma="es")
     for sesion in borrador["sesiones"]:
         assert "margen" in sesion["nota_esfuerzo"].lower()
+
+
+# --- Liked exercises (ejercicios_favoritos) -- portal "repeat this exercise" ---
+
+
+def test_exercise_dict_includes_group_and_type_fields(perfil_base):
+    """Alongside "nombre", each exercise now also carries its own slot's
+    "grupo"/"tipo" -- what lets a client "like" a specific exercise from
+    the portal and have it match back to the right slot later, without
+    this project re-deriving it from exercise_bank.py at like-time (see
+    docs/decisiones.md)."""
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    ejercicio = borrador["sesiones"][0]["ejercicios"][0]
+    info = INDICE_EJERCICIOS[ejercicio["nombre"]]
+    assert ejercicio["grupo"] == info["grupo"]
+    assert ejercicio["tipo"] == info["tipo"]
+
+
+def test_liked_exercise_reappears_more_often_than_baseline(perfil_base):
+    """Statistical check, not a single-example read (same discipline as
+    planificador_comidas.py's own liked-meal test): a liked exercise
+    should show up in its slot noticeably more than the baseline rotation
+    chance among that slot's candidates."""
+    baseline = generar_borrador_rutina_reglas(perfil_base)
+    primer_ejercicio = baseline["sesiones"][0]["ejercicios"][0]
+    grupo_objetivo = primer_ejercicio["grupo"]
+    tipo_objetivo = primer_ejercicio["tipo"]
+    nombre_objetivo = primer_ejercicio["nombre"]
+
+    perfil_base["experiencia"]["ejercicios_favoritos"] = [
+        {"grupo": grupo_objetivo, "tipo": tipo_objetivo, "nombre": nombre_objetivo},
+    ]
+    apariciones = 0
+    total = 0
+    for i in range(20):
+        perfil_base["id_cliente"] = f"favoritos_ejercicio_test_{i}"
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        for sesion in borrador["sesiones"]:
+            for ejercicio in sesion["ejercicios"]:
+                if ejercicio["grupo"] == grupo_objetivo and ejercicio["tipo"] == tipo_objetivo:
+                    total += 1
+                    if ejercicio["nombre"] == nombre_objetivo:
+                        apariciones += 1
+    assert apariciones / total > 0.35  # well above what an unbiased rotation across many candidates would give
+
+
+def test_no_favorite_exercises_behaves_exactly_like_before(perfil_base):
+    """A profile without ejercicios_favoritos at all (every existing
+    client) must produce byte-identical routines to before this feature
+    existed."""
+    assert "ejercicios_favoritos" not in perfil_base["experiencia"]
+    sin_favoritos = generar_borrador_rutina_reglas(perfil_base)
+    perfil_base["experiencia"]["ejercicios_favoritos"] = []
+    con_lista_vacia = generar_borrador_rutina_reglas(perfil_base)
+    assert sin_favoritos == con_lista_vacia
+
+
+def test_liked_exercise_dropped_if_no_longer_a_valid_candidate(perfil_base):
+    """A safety-adjacent guarantee: if the liked exercise's equipment is no
+    longer available (or a new injury contraindicates it), it must never
+    be resurrected just because it's on the favorites list --
+    ejercicios_favoritos is matched against the already-filtered candidate
+    pool, not the raw exercise bank."""
+    perfil_base["experiencia"]["ejercicios_favoritos"] = [
+        {"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"},
+    ]
+    perfil_base["disponibilidad"]["material_disponible"] = []  # bodyweight-only: no barbell lift is a candidate
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert "Barbell Bench Press" not in nombres

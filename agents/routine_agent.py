@@ -90,6 +90,18 @@ ENTREGAR_BORRADOR_RUTINA_TOOL = {
                                 "type": "object",
                                 "properties": {
                                     "nombre": {"type": "string"},
+                                    "grupo": {
+                                        "type": "string",
+                                        "description": (
+                                            "Internal muscle-group key for this exercise, e.g. 'pecho', "
+                                            "'espalda' -- lets a client's future 'like this exercise' "
+                                            "carry over correctly. Not shown to the client."
+                                        ),
+                                    },
+                                    "tipo": {
+                                        "type": "string",
+                                        "enum": ["basico", "aislamiento"],
+                                    },
                                     "series": {"type": "integer"},
                                     "repeticiones": {"type": "string"},
                                     "descanso_seg": {"type": "integer"},

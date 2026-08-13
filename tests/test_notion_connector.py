@@ -76,7 +76,7 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
 
     assert set(propiedades) == {
         "Name", "Date", "Goal", "Level", "Verdict", "Summary", "Email Sent",
-        "Full Profile (JSON)", "Weekly Meal Plan (JSON)",
+        "Full Profile (JSON)", "Weekly Meal Plan (JSON)", "Weekly Routine (JSON)",
     }
     assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
     assert propiedades["Date"]["date"]["start"] == "2026-01-15"
@@ -160,6 +160,32 @@ def test_perfil_desde_propiedades_without_liked_meals_has_no_key(perfil_base, bo
     }
     perfil = _perfil_desde_propiedades(propiedades)
     assert "comidas_favoritas" not in perfil["nutricion"]
+
+
+def test_perfil_desde_propiedades_merges_liked_exercises(perfil_base, borrador_rutina, borrador_dieta):
+    """Same as test_perfil_desde_propiedades_merges_liked_meals above, for
+    the routine side -- Liked Exercises (JSON) merges into
+    perfil["experiencia"]["ejercicios_favoritos"]."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    favoritos = [{"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"}]
+    propiedades["Liked Exercises (JSON)"] = {"rich_text": [{"plain_text": json.dumps(favoritos)}]}
+
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert perfil["experiencia"]["ejercicios_favoritos"] == favoritos
+
+
+def test_perfil_desde_propiedades_without_liked_exercises_has_no_key(perfil_base, borrador_rutina, borrador_dieta):
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert "ejercicios_favoritos" not in perfil["experiencia"]
 
 
 def test_dividir_bloques_notion_splits_long_text_under_the_block_limit():
@@ -418,8 +444,24 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "resumen": "Routine: full body. Diet: 2000 kcal.",
         "veredicto": "Auto-approved",
         "fecha": "2026-08-01",
+        "objetivo": None,
         "plan_semanal": [],
+        "sesiones": [],
     }
+
+
+def test_fila_registro_cliente_maps_the_goal_label_back_to_the_internal_key():
+    pagina = {
+        "properties": {
+            "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+            "Summary": {"rich_text": []},
+            "Verdict": {"select": {"name": "Auto-approved"}},
+            "Date": {"date": {"start": "2026-08-01"}},
+            "Goal": {"select": {"name": "Fat loss"}},
+        }
+    }
+    fila = _fila_registro_cliente_desde_pagina(pagina)
+    assert fila["objetivo"] == "perdida_grasa"
 
 
 def test_fila_cliente_lista_extracts_expected_fields():

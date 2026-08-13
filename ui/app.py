@@ -199,7 +199,7 @@ COLOR_TEXT_MUTED = "#94A3B8"
 sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
-from adherencia_parser import resumir_adherencia, valoracion_desde_ratios  # noqa: E402
+from adherencia_parser import resumir_adherencia, tendencia_peso, valoracion_desde_ratios  # noqa: E402
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import categoria_inquietud_conocida  # noqa: E402
@@ -218,6 +218,7 @@ from notion_connector import (  # noqa: E402
     actualizar_email_cliente,
     actualizar_registro_cliente,
     agregar_comida_favorita,
+    agregar_ejercicio_favorito,
     buscar_cliente_por_email,
     crear_registro_checkin,
     guardar_registro_cliente,
@@ -945,6 +946,11 @@ TRANSLATIONS = {
             "Loved a meal? Tap 🤍 to like it — liked meals show up more often in your future plans."
         ),
         "portal_meal_like_error": "Could not save that: {error}",
+        "portal_routine_header": "🏋️ Your routine this week",
+        "portal_routine_caption": (
+            "Loved an exercise? Tap 🤍 to like it — liked exercises show up more often in your future routines."
+        ),
+        "portal_exercise_like_error": "Could not save that: {error}",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
@@ -1190,6 +1196,12 @@ TRANSLATIONS = {
             "a menudo en tus próximos planes."
         ),
         "portal_meal_like_error": "No se pudo guardar: {error}",
+        "portal_routine_header": "🏋️ Tu rutina esta semana",
+        "portal_routine_caption": (
+            "¿Te ha gustado un ejercicio? Toca 🤍 para marcarlo — los ejercicios marcados aparecerán más "
+            "a menudo en tus próximas rutinas."
+        ),
+        "portal_exercise_like_error": "No se pudo guardar: {error}",
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
@@ -2207,7 +2219,7 @@ def _render_grafico_tendencia(historial: list[dict]) -> None:
         pass
 
 
-def _render_historial_checkins(email: str) -> None:
+def _render_historial_checkins(email: str, objetivo: str | None = None) -> None:
     """Renders a client's Check-ins history (a trend chart when there's
     enough data, then each row with rating/weight/notes, most recent
     first) -- shared by the trainer's own "Adherence history" expander in
@@ -2215,7 +2227,15 @@ def _render_historial_checkins(email: str) -> None:
     _vista_portal_cliente() below, so the row-formatting logic (and the
     "how it degrades on error" behavior) only lives in one place.
     Best-effort: a Notion failure shows a caption, never crashes
-    whichever page called this."""
+    whichever page called this.
+
+    Args:
+        email: same as before.
+        objetivo: optional -- when given, also runs
+            agents/adherencia_parser.py's tendencia_peso() and shows its
+            result as a warning banner above the chart. Omit (the
+            default) to skip the check, e.g. when the caller doesn't have
+            a goal handy."""
     try:
         historial = historial_checkins(email)
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
@@ -2225,6 +2245,10 @@ def _render_historial_checkins(email: str) -> None:
     if not historial:
         st.caption(t("adherence_history_empty"))
         return
+
+    tendencia = tendencia_peso(historial, objetivo, st.session_state.lang) if objetivo else None
+    if tendencia:
+        st.warning(tendencia)
 
     _render_grafico_tendencia(historial)
 
@@ -2390,7 +2414,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     # every other optional Notion read/write in this panel.
     if email_cliente:
         with st.expander(t("adherence_history_header")):
-            _render_historial_checkins(email_cliente)
+            _render_historial_checkins(email_cliente, perfil["objetivo"]["principal"])
 
 
 def _vista_portal_cliente(token: str) -> None:
@@ -2453,12 +2477,43 @@ def _vista_portal_cliente(token: str) -> None:
                         except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
                             st.error(t("portal_meal_like_error").format(error=str(exc)))
 
+    # Same shape as the meals section above, mirrored for the routine
+    # side -- "sesiones" is empty for a record saved before this property
+    # existed. Its own session-scoped "already liked" set (separate key
+    # namespace from comidas_marcadas' button keys, so the two sections
+    # can't collide) -- agregar_ejercicio_favorito() itself already
+    # dedupes server-side.
+    sesiones = registro.get("sesiones") or []
+    if sesiones:
+        with st.expander(t("portal_routine_header")):
+            st.caption(t("portal_routine_caption"))
+            ejercicios_marcados = st.session_state.setdefault("ejercicios_marcados", set())
+            for indice_dia, sesion in enumerate(sesiones):
+                st.markdown(f"**{sesion['dia']}**")
+                for indice_ej, ejercicio in enumerate(sesion.get("ejercicios", [])):
+                    clave = f"like_ej_{indice_dia}_{indice_ej}"
+                    col_texto, col_boton = st.columns([6, 1])
+                    nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
+                    col_texto.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
+                    ya_marcado = clave in ejercicios_marcados
+                    if col_boton.button("❤️" if ya_marcado else "🤍", key=clave, disabled=ya_marcado):
+                        try:
+                            agregar_ejercicio_favorito(carga["pagina"], {
+                                "grupo": ejercicio.get("grupo"),
+                                "tipo": ejercicio.get("tipo"),
+                                "nombre": ejercicio.get("nombre"),
+                            })
+                            ejercicios_marcados.add(clave)
+                            st.rerun()
+                        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                            st.error(t("portal_exercise_like_error").format(error=str(exc)))
+
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own
     # history (carga["email"] comes from the signed token, never typed in),
     # same best-effort degrade-on-error behavior as everywhere else here.
     with st.expander(t("portal_history_header")):
-        _render_historial_checkins(carga["email"])
+        _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
     st.divider()
     st.subheader(t("portal_checkin_header"))
@@ -2572,8 +2627,17 @@ def _vista_portal_cliente(token: str) -> None:
     # own submission look like it failed if this part doesn't work.
     if TRAINER_NOTIFICATION_EMAIL:
         try:
+            # Best-effort here too: a failure fetching fresh history just
+            # means the notification skips the weight-trend check, not
+            # that the whole notification (or the check-in save above,
+            # already committed) is blocked over it.
+            try:
+                historial_actualizado = historial_checkins(carga["email"])
+            except (NotionClientError, ImportError, ModuleNotFoundError):
+                historial_actualizado = None
             enviar_notificacion_checkin(
                 TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
+                historial=historial_actualizado, objetivo=registro.get("objetivo"),
             )
         except (GmailClientError, ImportError, ModuleNotFoundError):
             pass

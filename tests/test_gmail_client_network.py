@@ -26,9 +26,18 @@ class _FakeResp:
 def _mock_service(monkeypatch):
     """Patches googleapiclient.discovery.build to return a MagicMock
     service (so a test can configure exactly what each chained call
-    returns) and _obtener_credenciales to skip the real OAuth flow."""
+    returns) and _obtener_credenciales to skip the real OAuth flow.
+
+    Defaults users().getProfile().execute() to a fake trainer address --
+    buscar_respuestas_adherencia() calls this to distinguish the trainer's
+    own sent copy of a plan email from a genuine client submission (see
+    its own docstring); every test that doesn't care about this can just
+    ignore it, and the handful that do override it explicitly."""
     monkeypatch.setattr(gmail_client, "_obtener_credenciales", lambda: object())
     servicio = MagicMock()
+    servicio.users.return_value.getProfile.return_value.execute.return_value = {
+        "emailAddress": "trainer@example.com"
+    }
     monkeypatch.setattr("googleapiclient.discovery.build", lambda *a, **k: servicio)
     return servicio
 
@@ -218,6 +227,41 @@ def test_enviar_notificacion_checkin_wraps_http_error(monkeypatch, datos_checkin
         gmail_client.enviar_notificacion_checkin("trainer@example.com", "Ana", datos_checkin, "High")
 
 
+def test_enviar_notificacion_checkin_includes_weight_trend_when_historial_and_objetivo_given(
+    monkeypatch, datos_checkin,
+):
+    """historial+objetivo are optional -- when both are given, this
+    function runs tendencia_peso() itself rather than making every caller
+    do it, and includes the result if it flags anything."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    historial = [
+        {"fecha": "2026-08-01", "peso_kg": 80.0, "tipo": "x", "valoracion": None, "notas": ""},
+        {"fecha": "2026-08-15", "peso_kg": 79.9, "tipo": "x", "valoracion": None, "notas": ""},
+    ]
+    gmail_client.enviar_notificacion_checkin(
+        "trainer@example.com", "Ana", datos_checkin, "High", historial=historial, objetivo="perdida_grasa",
+    )
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    cuerpo_texto = message_from_bytes(raw).get_payload(decode=True).decode("utf-8")
+    assert "hasn't trended down" in cuerpo_texto
+
+
+def test_enviar_notificacion_checkin_omits_weight_trend_without_historial(monkeypatch, datos_checkin):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
+
+    gmail_client.enviar_notificacion_checkin("trainer@example.com", "Ana", datos_checkin, "High")
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
+    cuerpo_texto = message_from_bytes(raw).get_payload(decode=True).decode("utf-8")
+    assert "⚠️" not in cuerpo_texto
+
+
 # --- verificar_envio() -------------------------------------------------------
 
 
@@ -296,12 +340,16 @@ def test_buscar_respuestas_adherencia_finds_a_genuine_reply(monkeypatch):
     assert respuestas[0]["contenido"] == checklist_pdf
 
 
-def test_buscar_respuestas_adherencia_skips_the_original_non_reply_message(monkeypatch):
-    """A message with no In-Reply-To header is the trainer's own original
-    plan email, not a reply -- must never be misread as adherence data
-    (this is the exact bug found live-testing with a self-sent email --
-    see docs/decisiones.md)."""
+def test_buscar_respuestas_adherencia_skips_the_trainers_own_sent_copy(monkeypatch):
+    """A message with no In-Reply-To header, sent FROM the trainer's own
+    authenticated account, is the trainer's own original plan email, not
+    a client submission -- must never be misread as adherence data (this
+    is the exact bug found live-testing with a self-sent email -- see
+    docs/decisiones.md)."""
     servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.getProfile.return_value.execute.return_value = {
+        "emailAddress": "trainer@example.com"
+    }
     servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
         "messages": [{"id": "msg-1"}]
     }
@@ -310,6 +358,37 @@ def test_buscar_respuestas_adherencia_skips_the_original_non_reply_message(monke
         mimetype="text/plain",
     )
     assert gmail_client.buscar_respuestas_adherencia() == []
+
+
+def test_buscar_respuestas_adherencia_accepts_a_forward_from_the_client(monkeypatch):
+    """A forward (no In-Reply-To, same as the trainer's own original) from
+    someone OTHER than the trainer's own account is a real client
+    submission and must now be picked up -- closing the previously
+    disclosed forward-tracking gap (see docs/decisiones.md). Safe because
+    main.py's own checklist_tiene_contenido_real() gate still catches a
+    blank-but-structurally-intact forward before it's ever logged."""
+    from pdf_generador import generar_pdf_checklist
+
+    checklist_pdf = generar_pdf_checklist(
+        {"sesiones": [{"dia": "Day 1"}]}, {"calorias_objetivo_kcal": 2000, "macros": {"proteina_g": 100}}, "Ana",
+    )
+    adjunto_b64 = base64.urlsafe_b64encode(checklist_pdf).decode("ascii")
+
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.getProfile.return_value.execute.return_value = {
+        "emailAddress": "trainer@example.com"
+    }
+    servicio.users.return_value.messages.return_value.list.return_value.execute.return_value = {
+        "messages": [{"id": "msg-1"}]
+    }
+    servicio.users.return_value.messages.return_value.get.return_value.execute.return_value = _mensaje_gmail(
+        headers=[{"name": "From", "value": "Ana <ana@example.com>"}],  # no In-Reply-To -- forwarded, not replied
+        parts=[{"filename": "adherence-checklist.pdf", "mimeType": "application/pdf", "body": {"data": adjunto_b64}}],
+    )
+
+    respuestas = gmail_client.buscar_respuestas_adherencia()
+    assert len(respuestas) == 1
+    assert respuestas[0]["remitente"] == "ana@example.com"
 
 
 def test_buscar_respuestas_adherencia_skips_replies_with_no_checklist_pdf(monkeypatch):

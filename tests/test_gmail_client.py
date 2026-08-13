@@ -238,6 +238,18 @@ def test_checkin_notification_body_omits_weight_when_not_given():
     assert "kg" not in cuerpo
 
 
+def test_checkin_notification_body_includes_weight_trend_when_given():
+    cuerpo = _construir_cuerpo_notificacion_checkin(
+        "Ana", "Routine: 5/3.", "Suggestion.", tendencia="Weight hasn't trended down over the last 14 days.",
+    )
+    assert "Weight hasn't trended down over the last 14 days." in cuerpo
+
+
+def test_checkin_notification_body_omits_weight_trend_when_not_given():
+    cuerpo = _construir_cuerpo_notificacion_checkin("Ana", "Routine: 5/3.", "Suggestion.")
+    assert "⚠️" not in cuerpo
+
+
 def test_raw_message_is_valid_base64url_rfc2822():
     payload = _construir_mensaje_raw("client@example.com", "Your plan", "Body text here.")
     raw = payload["message"]["raw"]

@@ -335,7 +335,9 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
         "resumen": "Routine: full body.",
         "veredicto": "Auto-approved",
         "fecha": "2026-08-01",
+        "objetivo": None,
         "plan_semanal": [],
+        "sesiones": [],
     }
     cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
 
@@ -403,6 +405,68 @@ def test_agregar_comida_favorita_wraps_api_error(monkeypatch):
     cliente.pages.retrieve.side_effect = _api_error("boom")
     with pytest.raises(NotionClientError):
         notion_connector.agregar_comida_favorita("page-1", {"tipo": "desayuno"})
+
+
+def test_agregar_ejercicio_favorito_appends_to_an_empty_list(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {"properties": {}}
+
+    ejercicio = {"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"}
+    notion_connector.agregar_ejercicio_favorito("page-1", ejercicio)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Exercises (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [ejercicio]
+
+
+def test_agregar_ejercicio_favorito_appends_to_an_existing_list(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    ya_favorito = {"grupo": "espalda", "tipo": "basico", "nombre": "Lat Pulldown"}
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Exercises (JSON)": {"rich_text": [{"plain_text": json.dumps([ya_favorito])}]}}
+    }
+
+    nuevo = {"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"}
+    notion_connector.agregar_ejercicio_favorito("page-1", nuevo)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Exercises (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [ya_favorito, nuevo]
+
+
+def test_agregar_ejercicio_favorito_does_not_duplicate_the_same_exercise(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    ejercicio = {"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"}
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Exercises (JSON)": {"rich_text": [{"plain_text": json.dumps([ejercicio])}]}}
+    }
+
+    notion_connector.agregar_ejercicio_favorito("page-1", ejercicio)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Exercises (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [ejercicio]
+
+
+def test_agregar_ejercicio_favorito_recovers_from_corrupt_existing_data(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.return_value = {
+        "properties": {"Liked Exercises (JSON)": {"rich_text": [{"plain_text": "{not valid json"}]}}
+    }
+
+    ejercicio = {"grupo": "pecho", "tipo": "basico", "nombre": "Barbell Bench Press"}
+    notion_connector.agregar_ejercicio_favorito("page-1", ejercicio)
+
+    _args, kwargs = cliente.pages.update.call_args
+    guardado = json.loads(kwargs["properties"]["Liked Exercises (JSON)"]["rich_text"][0]["text"]["content"])
+    assert guardado == [ejercicio]
+
+
+def test_agregar_ejercicio_favorito_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.retrieve.side_effect = _api_error("boom")
+    with pytest.raises(NotionClientError):
+        notion_connector.agregar_ejercicio_favorito("page-1", {"grupo": "pecho"})
 
 
 def test_obtener_registro_cliente_wraps_api_error(monkeypatch):

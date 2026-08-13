@@ -585,6 +585,30 @@ reusing a sinergia tag the food bank already carries (no new food data
 needed), deliberately excluding any preset without real backing behind it.
 439 tests passing (up from 430).
 
+Three roadmap follow-ups shipped together: **exercise-liking**, mirroring
+meal-liking exactly for the routine side (each generated exercise now
+also carries its slot's `grupo`/`tipo`; new "Weekly Routine (JSON)"/
+"Liked Exercises (JSON)" Notion properties, added to the real database;
+new `rutina_reglas._sesgar_por_favoritos()` biases exercise selection
+toward `perfil["experiencia"]["ejercicios_favoritos"]` ~60% of the time a
+match is still safe; verified live against the real "PEPE" test client —
+a liked exercise reappeared ~74% of the time across 30 regenerations).
+**A weight-trend nudge**: new `agents/adherencia_parser.tendencia_peso()`
+flags a real mismatch between logged weight and the goal's expected
+direction (only for `perdida_grasa`/`hipertrofia` — goals with no clear
+direction are deliberately never checked), shown as a warning banner in
+both the trainer's and the client's check-in history views and included
+in the trainer notification email; never touches calorie math
+automatically. **Safer forward-detection**: `buscar_respuestas_adherencia()`
+now accepts a genuine forward from the client (previously rejected
+alongside the trainer's own sent copy, which was the only case the
+`In-Reply-To` gate actually needed to exclude) by checking the sender
+against the authenticated account's own address via `getProfile()`; a
+new independent safety net, `checklist_tiene_contenido_real()`, still
+catches a blank-but-structurally-intact checklist before it's ever
+logged as fabricated adherence data. 471 tests passing (up from 439),
+97% coverage.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

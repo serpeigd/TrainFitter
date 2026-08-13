@@ -6,7 +6,13 @@ agents/pdf_generador.py). Reading structured data out of a reply is now
 tested in tests/test_pdf_generador.py; this file only covers what's left
 here: the rating heuristic and the summary formatter."""
 
-from adherencia_parser import resumir_adherencia, sugerencia_seguimiento, valoracion_desde_ratios
+from adherencia_parser import (
+    checklist_tiene_contenido_real,
+    resumir_adherencia,
+    sugerencia_seguimiento,
+    tendencia_peso,
+    valoracion_desde_ratios,
+)
 
 
 def test_valoracion_high_for_strong_adherence():
@@ -97,3 +103,115 @@ def test_sugerencia_low_points_toward_simplifying_not_pushing():
     with more volume."""
     sugerencia = sugerencia_seguimiento("Low").lower()
     assert "simplify" in sugerencia or "barrier" in sugerencia
+
+
+# --- checklist_tiene_contenido_real() (forward-tracking safety net) -------
+
+
+def test_blank_checklist_has_no_real_content():
+    """The exact shape a genuinely blank-but-structurally-intact checklist
+    reads as (see leer_checklist_pdf()): fields present, all unfilled."""
+    datos = _datos(dias_rutina_completados=0, dias_dieta_seguidos=None, notas_rutina="", notas_dieta="")
+    assert checklist_tiene_contenido_real(datos) is False
+
+
+def test_completed_sessions_count_as_real_content():
+    assert checklist_tiene_contenido_real(_datos(dias_rutina_completados=1)) is True
+
+
+def test_a_zero_diet_days_answer_counts_as_real_content():
+    """Explicitly answering "0 days followed" is real information -- not
+    the same as leaving the question blank (dias_dieta_seguidos=None)."""
+    datos = _datos(dias_rutina_completados=0, dias_dieta_seguidos=0, notas_rutina="", notas_dieta="")
+    assert checklist_tiene_contenido_real(datos) is True
+
+
+def test_notes_alone_count_as_real_content():
+    datos = _datos(dias_rutina_completados=0, dias_dieta_seguidos=None, notas_rutina="Felt great!", notas_dieta="")
+    assert checklist_tiene_contenido_real(datos) is True
+
+
+# --- tendencia_peso() (weight-trend nudge) ---------------------------------
+
+
+def _checkin(fecha, peso_kg):
+    return {"fecha": fecha, "peso_kg": peso_kg, "tipo": "Adherence check-in", "valoracion": None, "notas": ""}
+
+
+def test_flags_stalled_weight_for_a_fat_loss_goal():
+    historial = [_checkin("2026-08-01", 80.0), _checkin("2026-08-15", 79.9)]
+    resultado = tendencia_peso(historial, "perdida_grasa")
+    assert resultado is not None
+    assert "down" in resultado.lower()
+    assert "14 days" in resultado
+
+
+def test_no_flag_when_weight_is_trending_down_for_a_fat_loss_goal():
+    historial = [_checkin("2026-08-01", 80.0), _checkin("2026-08-15", 78.5)]
+    assert tendencia_peso(historial, "perdida_grasa") is None
+
+
+def test_flags_stalled_weight_for_a_hypertrophy_goal():
+    historial = [_checkin("2026-08-01", 70.0), _checkin("2026-08-15", 70.1)]
+    resultado = tendencia_peso(historial, "hipertrofia")
+    assert resultado is not None
+    assert "up" in resultado.lower()
+
+
+def test_no_flag_when_weight_is_trending_up_for_a_hypertrophy_goal():
+    historial = [_checkin("2026-08-01", 70.0), _checkin("2026-08-15", 71.5)]
+    assert tendencia_peso(historial, "hipertrofia") is None
+
+
+def test_no_flag_for_goals_with_no_clear_weight_direction():
+    """recomposicion_corporal (fat loss + muscle gain can net to ~stable
+    weight) and salud_general (no specific weight target) deliberately
+    never get a trend check at all -- guessing would be worse than
+    silence, same discipline as the dietary-concern presets."""
+    historial = [_checkin("2026-08-01", 80.0), _checkin("2026-08-15", 80.0)]
+    assert tendencia_peso(historial, "recomposicion_corporal") is None
+    assert tendencia_peso(historial, "salud_general") is None
+    assert tendencia_peso(historial, None) is None
+
+
+def test_no_flag_with_fewer_than_two_weight_points():
+    assert tendencia_peso([_checkin("2026-08-01", 80.0)], "perdida_grasa") is None
+    assert tendencia_peso([], "perdida_grasa") is None
+
+
+def test_no_flag_when_the_window_is_too_short():
+    historial = [_checkin("2026-08-01", 80.0), _checkin("2026-08-05", 80.0)]
+    assert tendencia_peso(historial, "perdida_grasa") is None
+
+
+def test_rows_without_weight_are_ignored_not_counted():
+    historial = [
+        _checkin("2026-08-01", 80.0),
+        {"fecha": "2026-08-10", "peso_kg": None, "tipo": "x", "valoracion": "High", "notas": ""},
+        _checkin("2026-08-15", 79.9),
+    ]
+    resultado = tendencia_peso(historial, "perdida_grasa")
+    assert resultado is not None  # still computed from the two real weight points, 14 days apart
+
+
+def test_sorts_by_date_regardless_of_input_order():
+    """historial_checkins() returns most-recent-first -- this function
+    must not assume any particular input order."""
+    historial = [_checkin("2026-08-15", 79.9), _checkin("2026-08-01", 80.0)]
+    resultado = tendencia_peso(historial, "perdida_grasa")
+    assert resultado is not None
+    assert "80.0kg -> 79.9kg" in resultado
+
+
+def test_translates_for_spanish():
+    historial = [_checkin("2026-08-01", 80.0), _checkin("2026-08-15", 79.9)]
+    resultado = tendencia_peso(historial, "perdida_grasa", idioma="es")
+    assert "no ha bajado" in resultado.lower()
+
+
+def test_no_flag_when_a_date_is_malformed():
+    """Degrades to "nothing to flag" rather than crashing -- Notion data
+    should always be well-formed, but this is a nudge, not a safety gate,
+    so silence is the right failure mode if it somehow isn't."""
+    historial = [_checkin("not-a-date", 80.0), _checkin("2026-08-15", 79.9)]
+    assert tendencia_peso(historial, "perdida_grasa") is None
