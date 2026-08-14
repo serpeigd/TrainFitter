@@ -16,6 +16,12 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   (`125498425+serpeigd@users.noreply.github.com`). Already configured — new
   commits use it automatically.
 - Push future work to the `serpeigd/TrainFitter` GitHub repo (public, portfolio).
+- **Keep it short (2026-08-13, explicit request in chat).** Too much text, too much
+  explaining. Lead with the answer or the change; give reasoning only where it would
+  change a decision. Don't recap work already visible in the diff, don't restate the
+  question before answering it, and don't close with a summing-up line. Applies to
+  chat, commit messages and PR bodies. Reference docs (README, this file) can be
+  longer, but only where the length earns it.
 - Full chronological decision log with rationale lives in
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
