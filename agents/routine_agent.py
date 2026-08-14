@@ -195,17 +195,26 @@ STARTING POINT, not a final prescription.
   rather than prescribing a session they can't actually finish; and if they
   reported high stress or short sleep, keep volume a bit more conservative for
   this first block and say so in the summary.
-- `experiencia.nivel_compromiso` is a "how much detail/guidance do you want" dial
-  (basico/normal/avanzado/tryhard), not a training-intensity dial by itself. If
-  "basico", trim volume slightly for the simplest, easiest-to-sustain session; if
-  "tryhard" (the most complete level this project currently offers), volume can be
-  a bit higher and you may include more technically demanding exercise variants
-  where the client's equipment allows (e.g. Bulgarian split squats, weighted
-  pull-ups) -- say so in the summary either way. "avanzado" is deliberately a
-  no-op for the routine (same volume, same exercise pool as "normal") -- its extra
-  detail shows up in the client's diet (supplement basics), not in training
-  volume; still say so briefly in the summary so the client knows their choice
-  was received.
+- `experiencia.nivel_compromiso` (basico/normal/avanzado/tryhard) controls both
+  volume AND exercise complexity, going from simplest/least demanding at
+  "basico" to most specific/optimized at "tryhard" -- say so briefly in the
+  summary at every level so the client knows their choice was received.
+  - "basico": trim volume slightly (one fewer set) AND prefer the simplest,
+    least technically demanding exercise variants (machine-guided/bodyweight
+    over free-weight/barbell) for every slot, regardless of the client's own
+    training experience -- "essentials only" applies even to an experienced
+    lifter who picked this level.
+  - "normal": the default, no adjustment.
+  - "avanzado": same volume as "normal" -- its extra detail shows up in the
+    client's diet (supplement basics), not in training volume or exercise
+    choice.
+  - "tryhard" (the most complete level this project currently offers): volume
+    can be a bit higher (one extra set) AND you may lean toward more
+    technically demanding exercise variants (e.g. Bulgarian split squats,
+    weighted pull-ups) where the client's equipment allows -- UNLESS the
+    client is a genuine beginner (`experiencia.nivel == "principiante"`), in
+    which case keep the simpler variants regardless of "tryhard" -- training
+    experience is a safety signal that outranks a detail-level preference.
 - Give every session a one-sentence `nota_esfuerzo`: reps-in-reserve (RIR) guidance,
   not just a rep-count range. Compound/basic lifts should stay 1-2 reps short of
   failure; isolation work at the end of the session can go closer to failure

@@ -131,14 +131,20 @@ This repository is built phase by phase, as a learning project. Right now:
   selection (bilingual keyword matching, still free — see
   [`docs/decisiones.md`](docs/decisiones.md)), and a **commitment-level
   dial** (`basico`/`normal`/`avanzado`/`tryhard` — how much detail/
-  guidance the client wants, not how hard to push) adjusts set volume and
-  calorie aggressiveness at its `basico`/`tryhard` ends (magnitude only —
-  capped so `tryhard` never crosses into what the trainer's own method
-  calls an aggressive deficit; `avanzado` deliberately leaves those
-  numbers untouched), unlocks a small curated pool of more technically
-  demanding exercises/foods at the `tryhard` ceiling, and surfaces
-  evidence-based supplement tips (from `avanzado` up) that skip whatever
-  the client already reports taking. A client-reported supplement
+  guidance the client wants) shapes both engines end to end: set volume
+  and exercise complexity go from simplest (machine/bodyweight, `basico`
+  — stacking with, not replacing, the client's own training experience)
+  to most technically demanding (`tryhard`); calorie aggressiveness scales
+  the same way (magnitude only — capped so `tryhard` never crosses into
+  what the trainer's own method calls an aggressive deficit); food
+  choices lean toward common, everyday staples at `basico` versus
+  specialty items (tofu, tempeh, quinoa...); and absorption-synergy
+  pairing (plant iron + vitamin C, dinner's larger fat share) plus
+  evidence-based supplement tips only kick in from `avanzado` up, with a
+  small curated pool of niche exercises/foods reserved for the `tryhard`
+  ceiling. A genuine beginner who picks `tryhard` still gets the simpler
+  exercise variants — training experience is a safety signal that
+  outranks a detail-level preference. A client-reported supplement
   alongside regular medication forces enhanced review, the same
   defense-in-depth pattern
   used for allergies and injuries. Every session also carries a real,

@@ -67,8 +67,8 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g tomato, with 170g avocado. (Tomato adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 691,
+          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g mixed salad greens, with 170g avocado.",
+          "aprox_kcal": 693,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
           "carbohidrato": "Legumes (also a carb source)",
@@ -76,8 +76,8 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 212,
+          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 31g avocado.",
+          "aprox_kcal": 200,
           "tipo_interno": "snack",
           "proteina": "Tofu",
           "carbohidrato": "Legumes (also a carb source)",
@@ -90,17 +90,17 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "231g rice, 84g edamame, 31g avocado.",
-          "aprox_kcal": 452,
+          "descripcion": "77g oats, 53g tempeh, 31g avocado.",
+          "aprox_kcal": 451,
           "tipo_interno": "desayuno",
-          "proteina": "Edamame",
-          "carbohidrato": "Rice",
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
           "grasa": "Avocado"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "84g edamame, 77g oats, 100g broccoli, with 77g avocado. (Broccoli adds vitamin C to help absorb the iron in edamame.)",
-          "aprox_kcal": 559,
+          "descripcion": "84g edamame, 77g oats, 100g mixed salad greens, with 77g avocado.",
+          "aprox_kcal": 544,
           "tipo_interno": "comida",
           "proteina": "Edamame",
           "carbohidrato": "Oats",
@@ -108,21 +108,21 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "27g protein powder (plant-based), 121g whole wheat bread, 100g carrot, with 170g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 713,
+          "descripcion": "27g protein powder (plant-based), 121g whole wheat bread, 100g mixed salad greens, with 54g seeds (chia, flax).",
+          "aprox_kcal": 690,
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "grasa": "Seeds (chia, flax)"
         },
         {
           "tipo": "Snack",
-          "descripcion": "40g whole wheat bread, 29g lentils, 80g citrus (orange, lemon), 31g avocado.",
-          "aprox_kcal": 220,
+          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 6g extra virgin olive oil.",
+          "aprox_kcal": 204,
           "tipo_interno": "snack",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "proteina": "Tofu",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Extra virgin olive oil"
         }
       ]
     },
@@ -131,38 +131,38 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "227g legumes (also a carb source), 53g tempeh, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 479,
+          "descripcion": "227g legumes (also a carb source), 84g edamame, 31g avocado.",
+          "aprox_kcal": 451,
           "tipo_interno": "desayuno",
-          "proteina": "Tempeh",
+          "proteina": "Edamame",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g broccoli, with 77g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.)",
-          "aprox_kcal": 560,
+          "descripcion": "84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
+          "aprox_kcal": 565,
           "tipo_interno": "comida",
-          "proteina": "Tempeh",
+          "proteina": "Edamame",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado"
         },
         {
           "tipo": "Dinner",
-          "descripcion": "84g edamame, 121g whole wheat bread, 100g broccoli, with 170g avocado. (Broccoli adds vitamin C to help absorb the iron in edamame.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 708,
+          "descripcion": "27g protein powder (plant-based), 231g rice, 100g red bell pepper, with 170g avocado.",
+          "aprox_kcal": 704,
           "tipo_interno": "cena",
-          "proteina": "Edamame",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Rice",
           "grasa": "Avocado"
         },
         {
           "tipo": "Snack",
-          "descripcion": "26g oats, 9g seitan, 80g carrot, 31g avocado.",
-          "aprox_kcal": 217,
+          "descripcion": "40g whole wheat bread, 21g chickpeas, 31g avocado.",
+          "aprox_kcal": 183,
           "tipo_interno": "snack",
-          "proteina": "Seitan",
-          "carbohidrato": "Oats",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado"
         }
       ]
@@ -172,39 +172,39 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "250g quinoa, 28g seitan, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 481,
+          "descripcion": "231g rice, 88g lentils, 31g avocado.",
+          "aprox_kcal": 452,
           "tipo_interno": "desayuno",
-          "proteina": "Seitan",
-          "carbohidrato": "Quinoa",
+          "proteina": "Lentils",
+          "carbohidrato": "Rice",
           "grasa": "Avocado"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "71g tofu, 242g whole wheat pasta, 100g broccoli, with 77g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.)",
-          "aprox_kcal": 561,
+          "descripcion": "88g lentils, 227g legumes (also a carb source), 100g broccoli, with 77g avocado.",
+          "aprox_kcal": 560,
           "tipo_interno": "comida",
-          "proteina": "Tofu",
-          "carbohidrato": "Whole wheat pasta",
+          "proteina": "Lentils",
+          "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado"
         },
         {
           "tipo": "Dinner",
-          "descripcion": "53g tempeh, 121g whole wheat bread, 100g broccoli, with 170g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 708,
+          "descripcion": "84g edamame, 242g whole wheat pasta, 100g mixed salad greens, with 170g avocado.",
+          "aprox_kcal": 694,
           "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "Edamame",
+          "carbohidrato": "Whole wheat pasta",
           "grasa": "Avocado"
         },
         {
           "tipo": "Snack",
-          "descripcion": "40g whole wheat bread, 21g chickpeas, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 211,
+          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g broccoli, 6g extra virgin olive oil.",
+          "aprox_kcal": 216,
           "tipo_interno": "snack",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "proteina": "Tofu",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Extra virgin olive oil"
         }
       ]
     },
@@ -213,38 +213,38 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "242g whole wheat pasta, 62g chickpeas, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 479,
+          "descripcion": "77g oats, 71g tofu, 10g seeds (chia, flax).",
+          "aprox_kcal": 452,
           "tipo_interno": "desayuno",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "proteina": "Tofu",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g citrus (orange, lemon), with 14g extra virgin olive oil. (Citrus (orange, lemon) adds vitamin C to help absorb the iron in tempeh.)",
-          "aprox_kcal": 572,
+          "descripcion": "71g tofu, 121g whole wheat bread, 100g mixed salad greens, with 77g avocado.",
+          "aprox_kcal": 544,
           "tipo_interno": "comida",
-          "proteina": "Tempeh",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Extra virgin olive oil"
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "28g seitan, 77g oats, 100g tomato, with 170g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 693,
-          "tipo_interno": "cena",
-          "proteina": "Seitan",
-          "carbohidrato": "Oats",
+          "proteina": "Tofu",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado"
         },
         {
+          "tipo": "Dinner",
+          "descripcion": "84g edamame, 231g rice, 100g broccoli, with 31g extra virgin olive oil.",
+          "aprox_kcal": 711,
+          "tipo_interno": "cena",
+          "proteina": "Edamame",
+          "carbohidrato": "Rice",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 18g tempeh, 80g broccoli, 31g avocado.",
-          "aprox_kcal": 212,
+          "descripcion": "77g rice, 28g edamame, 80g carrot, 31g avocado.",
+          "aprox_kcal": 217,
           "tipo_interno": "snack",
-          "proteina": "Tempeh",
-          "carbohidrato": "Legumes (also a carb source)",
+          "proteina": "Edamame",
+          "carbohidrato": "Rice",
           "grasa": "Avocado"
         }
       ]
@@ -254,38 +254,38 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "242g whole wheat pasta, 28g seitan, 80g carrot, 31g avocado.",
-          "aprox_kcal": 486,
+          "descripcion": "121g whole wheat bread, 88g lentils, 31g avocado.",
+          "aprox_kcal": 451,
           "tipo_interno": "desayuno",
-          "proteina": "Seitan",
-          "carbohidrato": "Whole wheat pasta",
+          "proteina": "Lentils",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "62g chickpeas, 77g oats, 100g broccoli, with 77g avocado. (Broccoli adds vitamin C to help absorb the iron in chickpeas.)",
-          "aprox_kcal": 559,
+          "descripcion": "62g chickpeas, 227g legumes (also a carb source), 100g carrot, with 14g extra virgin olive oil.",
+          "aprox_kcal": 566,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
-          "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Extra virgin olive oil"
         },
         {
           "tipo": "Dinner",
-          "descripcion": "71g tofu, 231g rice, 100g broccoli, with 170g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 710,
+          "descripcion": "71g tofu, 121g whole wheat bread, 100g broccoli, with 170g avocado.",
+          "aprox_kcal": 708,
           "tipo_interno": "cena",
           "proteina": "Tofu",
-          "carbohidrato": "Rice",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado"
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 9g protein powder (plant-based), 31g avocado.",
-          "aprox_kcal": 183,
+          "descripcion": "40g whole wheat bread, 28g edamame, 80g carrot, 31g avocado.",
+          "aprox_kcal": 215,
           "tipo_interno": "snack",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Legumes (also a carb source)",
+          "proteina": "Edamame",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado"
         }
       ]
@@ -295,47 +295,44 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "250g quinoa, 53g tempeh, 31g avocado.",
-          "aprox_kcal": 451,
+          "descripcion": "242g whole wheat pasta, 88g lentils, 80g broccoli, 31g avocado.",
+          "aprox_kcal": 480,
           "tipo_interno": "desayuno",
-          "proteina": "Tempeh",
-          "carbohidrato": "Quinoa",
+          "proteina": "Lentils",
+          "carbohidrato": "Whole wheat pasta",
           "grasa": "Avocado"
         },
         {
           "tipo": "Lunch",
-          "descripcion": "71g tofu, 77g oats, 100g broccoli, with 77g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.)",
-          "aprox_kcal": 560,
+          "descripcion": "84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
+          "aprox_kcal": 565,
           "tipo_interno": "comida",
-          "proteina": "Tofu",
-          "carbohidrato": "Oats",
+          "proteina": "Edamame",
+          "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado"
         },
         {
           "tipo": "Dinner",
-          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g broccoli, with 170g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 708,
+          "descripcion": "28g seitan, 77g oats, 100g mixed salad greens, with 54g seeds (chia, flax).",
+          "aprox_kcal": 693,
           "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "proteina": "Seitan",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)"
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 28g edamame, 31g avocado.",
-          "aprox_kcal": 184,
+          "descripcion": "26g oats, 28g edamame, 80g mixed salad greens, 31g avocado.",
+          "aprox_kcal": 201,
           "tipo_interno": "snack",
           "proteina": "Edamame",
-          "carbohidrato": "Legumes (also a carb source)",
+          "carbohidrato": "Oats",
           "grasa": "Avocado"
         }
       ]
     }
   ],
   "consejos_sinergias": [
-    "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach).",
-    "Most of your iron comes from plant sources (non-heme), which absorb less well: combine lentils/spinach with a vitamin C source in the same meal (red pepper, lemon, kiwi) — it can multiply absorption 3-6x.",
-    "Keep coffee or tea at least 1-2 hours away from your main iron-rich meals: tannins significantly reduce iron absorption.",
     "With a mostly sedentary job, this plan leans on higher-fiber sources (legumes, oats, whole grains, vegetables) to help with satiety and digestion."
   ],
   "advertencias_revision_humana": [

@@ -1,7 +1,12 @@
 """Tests for the routine rule engine (agents/rutina_reglas.py)."""
 
 from exercise_bank import EXERCISE_BANK
-from rutina_reglas import MENSAJE_CLIENTE_RUTINA_VARIANTES, PROGRESION_VARIANTES, generar_borrador_rutina_reglas
+from rutina_reglas import (
+    MENSAJE_CLIENTE_RUTINA_VARIANTES,
+    PROGRESION_VARIANTES,
+    _complejidad,
+    generar_borrador_rutina_reglas,
+)
 
 INDICE_EJERCICIOS = {e["nombre"]: e for e in EXERCISE_BANK}
 
@@ -474,3 +479,68 @@ def test_liked_exercise_dropped_if_no_longer_a_valid_candidate(perfil_base):
     borrador = generar_borrador_rutina_reglas(perfil_base)
     nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
     assert "Barbell Bench Press" not in nombres
+
+
+# --- Exercise complexity by nivel_compromiso (real redesign, not a no-op) --
+
+
+def _proporcion_alta_complejidad(perfil_base, nivel_compromiso, n=20):
+    """Fraction of ALL picked exercises across n regenerations (varying
+    id_cliente) whose material is "alta" complejidad (barbell) -- a
+    statistical check, not a single-example read, same discipline as
+    test_liked_exercise_reappears_more_often_than_baseline above."""
+    perfil_base["experiencia"]["nivel"] = "intermedio"  # not principiante -- isolates nivel_compromiso's own effect
+    perfil_base["experiencia"]["nivel_compromiso"] = nivel_compromiso
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    ]
+    total, altas = 0, 0
+    for i in range(n):
+        perfil_base["id_cliente"] = f"complejidad_{nivel_compromiso}_{i}"
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        for sesion in borrador["sesiones"]:
+            for ejercicio in sesion["ejercicios"]:
+                info = INDICE_EJERCICIOS[ejercicio["nombre"]]
+                total += 1
+                if _complejidad(info) == "alta":
+                    altas += 1
+    return altas / total
+
+
+def test_basico_leans_toward_lower_complexity_exercises_than_tryhard(perfil_base):
+    """"basico" and "tryhard" now genuinely differ in exercise SELECTION,
+    not just set counts -- confirmed statistically since the client-seeded
+    shuffle still decides which specific exercise wins within a
+    complexity tier (see docs/decisiones.md)."""
+    proporcion_basico = _proporcion_alta_complejidad(perfil_base, "basico")
+    proporcion_tryhard = _proporcion_alta_complejidad(perfil_base, "tryhard")
+    assert proporcion_basico < proporcion_tryhard
+
+
+def test_basico_bias_applies_regardless_of_raw_training_experience(perfil_base):
+    """"basico" stacks with (isn't overridden by) an advanced client's own
+    training experience -- "essentials only" applies even to someone who
+    isn't a beginner (see docs/decisiones.md)."""
+    perfil_base["experiencia"]["nivel"] = "avanzado"
+    perfil_base["experiencia"]["nivel_compromiso"] = "basico"
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    ]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    primer_ejercicio = borrador["sesiones"][0]["ejercicios"][0]
+    assert _complejidad(INDICE_EJERCICIOS[primer_ejercicio["nombre"]]) != "alta"
+
+
+def test_tryhard_does_not_push_high_complexity_on_a_genuine_beginner(perfil_base):
+    """Training experience is a safety-relevant signal that outranks a
+    detail-level preference -- a true beginner who picks "tryhard" still
+    gets the low-complexity-first bias, not the high-complexity one (see
+    docs/decisiones.md)."""
+    perfil_base["experiencia"]["nivel"] = "principiante"
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    ]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    primer_ejercicio = borrador["sesiones"][0]["ejercicios"][0]
+    assert _complejidad(INDICE_EJERCICIOS[primer_ejercicio["nombre"]]) != "alta"

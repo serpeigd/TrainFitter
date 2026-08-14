@@ -661,6 +661,37 @@ dictionary key; fixed by sharing one label between both fields. 494
 tests passing (up from 487, largely renamed rather than net-new), lint
 clean, all six `examples/output_*.json` regenerated.
 
+The commitment dial now genuinely changes the routine and diet, not just
+the label — a direct follow-up the same day, after `avanzado` turned out
+to still be a functional no-op besides supplement tips.
+**Routine**: exercise complexity now stacks with training experience,
+not replaces it — `rutina_reglas._preferir_alta_complejidad_primero()`
+(the mirror of the existing low-complexity bias) reorders candidates
+toward more technically demanding variants for `tryhard`, and `basico`
+gets the low-complexity bias regardless of the client's own experience
+level. A genuine beginner who picks `tryhard` still gets the simple
+version — training experience is a safety signal that outranks a
+detail-level preference, confirmed by a dedicated test, not assumed.
+**Diet**: `food_bank.py` gained a `"comun"` tag (defaults to `True`,
+same pattern as `"nicho"`) marking tofu/tempeh/edamame/seitan/
+"Protein powder (plant-based)"/quinoa/seeds as specialty rather than
+everyday; new `planificador_comidas._sesgar_por_nivel_compromiso()`
+leans `basico`'s actual weekly picks toward the common ones ~85% of the
+time a match exists (bias, not exclusion — falls back to the full pool
+if nothing common is left). Separately, the mechanical iron+vitamin-C
+pairing, the "largest fat portion" dinner note, and
+`dieta_reglas._consejos_sinergias()`'s general nutrient-timing tips —
+previously shown to every client regardless of level — are now gated to
+`avanzado`/`tryhard` via a new `aplicar_sinergias` flag; a client's own
+explicit soft preferences (anti-inflammatory, more fiber, etc.) stay
+active at every level, since suppressing a direct request isn't the
+same thing as toning down automatic "friki" pairing logic. Both
+`motor="llm"` prompts were rewritten for the same behavior, keeping
+engine parity. 502 tests passing (up from 494), lint clean, all
+`examples/output_*.json` regenerated — diffs landed exactly where
+expected (client 1's `tryhard` routine changed, its diet didn't;
+clients 2/3's `normal` diets changed, their routines didn't).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

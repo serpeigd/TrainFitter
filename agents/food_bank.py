@@ -81,6 +81,20 @@ curated by the trainer/project, not something a client types in freely
 (see `fuentes_*_para()`'s own `tryhard` gate). Absent (defaults to `False`
 via `.get("nicho", False)`) on every pre-existing entry, so "basico"/
 "normal" (the default) behave exactly as before this was added.
+
+DESIGN — "comun" (common/everyday foods, added alongside a real redesign
+of the commitment dial -- see docs/decisiones.md): a softer version of
+"nicho" for a handful of foods that are genuinely valid, safe candidates
+at every level (never excluded, unlike "nicho") but read as more
+"specialty health food" than a supermarket staple -- tofu, tempeh,
+edamame, seitan, "Protein powder (plant-based)", quinoa, and seeds (chia,
+flax). `agents/planificador_comidas.py`'s `_sesgar_por_nivel_compromiso()`
+biases (never excludes -- same "prefer, don't force" pattern as
+`_sesgar_por_preferencias()`) a "basico" client's actual weekly picks
+toward the foods WITHOUT this tag, so a client who wants the simplest,
+least "friki" version still gets recognizable everyday food. Absent
+(defaults to `True` via `.get("comun", True)`) on every other entry, so
+every other level behaves exactly as before this was added.
 """
 
 import unicodedata
@@ -136,24 +150,25 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Tofu", "nombre_es": "Tofu",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"},
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
         "macros_100g": {"kcal": 144, "proteina_g": 15, "carbohidratos_g": 3, "grasa_g": 8},
     },
     {
         "nombre": "Tempeh", "nombre_es": "Tempeh",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"},
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
         "macros_100g": {"kcal": 192, "proteina_g": 20, "carbohidratos_g": 8, "grasa_g": 11},
     },
     {
         "nombre": "Edamame", "nombre_es": "Edamame",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"},
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
         "macros_100g": {"kcal": 121, "proteina_g": 12, "carbohidratos_g": 10, "grasa_g": 5},
     },
     {
         "nombre": "Seitan", "nombre_es": "Seitán",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"gluten"}, "sinergias": set(),
+        "comun": False,
         "macros_100g": {"kcal": 370, "proteina_g": 75, "carbohidratos_g": 14, "grasa_g": 1.9},
     },
     {
@@ -168,6 +183,7 @@ FUENTES_PROTEINA = [
         # the one specific brand/type recommended over any other.
         "nombre": "Protein powder (plant-based)", "nombre_es": "Proteína en polvo (vegetal)",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
+        "comun": False,
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },
     {
@@ -217,7 +233,7 @@ FUENTES_CARBOHIDRATO = [
     },
     {
         "nombre": "Quinoa", "nombre_es": "Quinoa",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"magnesio"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"magnesio"}, "comun": False,
         "macros_100g": {"kcal": 120, "proteina_g": 4.4, "carbohidratos_g": 21, "grasa_g": 1.9},
     },
     {
@@ -258,6 +274,7 @@ FUENTES_GRASA = [
     {
         "nombre": "Seeds (chia, flax)", "nombre_es": "Semillas (chía, lino)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "magnesio"},
+        "comun": False,
         "macros_100g": {"kcal": 500, "proteina_g": 18, "carbohidratos_g": 34, "grasa_g": 34},
     },
     # The one entry that ISN'T universally compatible -- omnivore only.

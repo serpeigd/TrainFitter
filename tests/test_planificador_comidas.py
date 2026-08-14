@@ -6,6 +6,7 @@ easier to pin down at this level: kcal-target accuracy, synergy pairing,
 and the two portion-realism fixes found by actually generating and reading
 a real week (see docs/decisiones.md)."""
 
+from food_bank import INDICE_ALIMENTOS
 from planificador_comidas import generar_plan_semanal
 from variacion import rng_para_cliente
 
@@ -55,18 +56,34 @@ def test_daily_kcal_lands_reasonably_close_to_target(perfil_base):
 def test_dinner_gets_more_fat_kcal_than_breakfast():
     """The one deliberate deviation from mirroring the day's overall
     ratios: dinner is "the day's fattiest meal" (docs/base_conocimiento/
-    sinergias_nutrientes.md), not just proportional to its own size."""
+    sinergias_nutrientes.md), not just proportional to its own size. The
+    fat-weighting itself is a portion-math choice, not a "synergy" -- it
+    applies at every nivel_compromiso; only the explanatory sentence is
+    gated to "avanzado"/"tryhard" (see docs/decisiones.md), so this test
+    explicitly picks that level to check for it."""
     perfil = {
         "id_cliente": "fixed-for-fat-check",
         "datos_basicos": {"nombre": "Fat Check"},
         "nutricion": {"tipo_dieta": "omnivora"},
         "salud": {"alergias_alimentarias": [], "intolerancias_alimentarias": []},
+        "experiencia": {"nivel_compromiso": "avanzado"},
     }
     plan = generar_plan_semanal(perfil, NECESIDADES, 4, "en", _rng(perfil))
     desayuno = next(c for c in plan[0]["comidas"] if c["tipo"] == "Breakfast")
     cena = next(c for c in plan[0]["comidas"] if c["tipo"] == "Dinner")
     assert "largest fat portion" in cena["descripcion"]
     assert "largest fat portion" not in desayuno["descripcion"]
+
+
+def test_dinner_fat_weighting_note_is_gated_to_avanzado_up(perfil_base):
+    """"basico"/"normal" keep the SAME fat-heavier-dinner distribution
+    (see test above) -- just without the explanatory sentence."""
+    perfil_base["nutricion"]["tipo_dieta"] = "omnivora"
+    for nivel in ("basico", "normal"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+        cena = next(c for c in plan[0]["comidas"] if c["tipo"] == "Dinner")
+        assert "largest fat portion" not in cena["descripcion"]
 
 
 def test_regenerating_the_same_client_reproduces_the_same_plan(perfil_base):
@@ -102,11 +119,24 @@ def test_declared_allergy_never_appears_in_the_plan(perfil_base):
 def test_iron_source_protein_gets_paired_with_a_vitamin_c_food(perfil_base):
     """Runs many days across a vegan profile (only non-heme iron sources
     for protein) so the pairing note is guaranteed to show up at least
-    once, rather than depending on a specific RNG draw."""
+    once, rather than depending on a specific RNG draw. Gated to
+    "avanzado"/"tryhard" (see docs/decisiones.md), so set explicitly."""
     perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
     plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
     notas = [c["descripcion"] for dia in plan for c in dia["comidas"] if "vitamin C" in c["descripcion"]]
     assert notas, "expected at least one iron+vitamin-C pairing note across a full week"
+
+
+def test_no_synergy_pairing_at_basico_or_normal(perfil_base):
+    """Same vegan profile as the test above -- confirms the pairing note
+    genuinely never appears below "avanzado", not just that it's rare."""
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    for nivel in ("basico", "normal"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+        notas = [c["descripcion"] for dia in plan for c in dia["comidas"] if "vitamin C" in c["descripcion"]]
+        assert notas == [], f"nivel_compromiso={nivel} should never show the synergy pairing note"
 
 
 def test_fruit_is_never_the_main_carb_in_a_full_meal(perfil_base):
@@ -297,3 +327,57 @@ def test_liked_meal_dropped_if_food_no_longer_a_valid_candidate(perfil_base):
     plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
     texto = str(plan).lower()
     assert "eggs" not in texto
+
+
+# --- Food commonality bias by nivel_compromiso (real redesign, not a no-op)
+
+
+def _proporcion_no_comun(perfil, nivel_compromiso, n=20):
+    """Fraction of all protein/carb/fat picks across n regenerations
+    (varying id_cliente) that are tagged "comun": False -- a statistical
+    check, not a single-example read, same discipline as the liked-meal
+    test above. Vegan diet forces tofu/tempeh/edamame/seitan/protein
+    powder into the candidate pool alongside common lentils/chickpeas, so
+    there's a real, non-trivial "less common" share to bias away from."""
+    perfil["nutricion"]["tipo_dieta"] = "vegana"
+    perfil["experiencia"]["nivel_compromiso"] = nivel_compromiso
+    total, no_comunes = 0, 0
+    for i in range(n):
+        perfil["id_cliente"] = f"comun_{nivel_compromiso}_{i}"
+        plan = generar_plan_semanal(perfil, NECESIDADES, 4, "en", _rng(perfil))
+        for dia in plan:
+            for comida in dia["comidas"]:
+                for clave in ("proteina", "carbohidrato", "grasa"):
+                    nombre = comida[clave]
+                    if nombre is None:
+                        continue
+                    total += 1
+                    if not INDICE_ALIMENTOS[nombre].get("comun", True):
+                        no_comunes += 1
+    return no_comunes / total
+
+
+def test_basico_leans_toward_common_foods_over_specialty_ones(perfil_base):
+    """"basico" now genuinely picks more recognizable, everyday foods
+    (chicken/rice/eggs-type staples) over specialty items (tofu/tempeh/
+    quinoa/...) than "normal" does, confirmed statistically -- see
+    docs/decisiones.md."""
+    proporcion_basico = _proporcion_no_comun(perfil_base, "basico")
+    proporcion_normal = _proporcion_no_comun(perfil_base, "normal")
+    assert proporcion_basico < proporcion_normal
+
+
+def test_basico_still_uses_specialty_foods_when_nothing_common_is_left(perfil_base):
+    """Bias, not exclusion: a vegan client whose ONLY protein candidates
+    are specialty items (every common option disliked) must still get a
+    real, valid meal rather than an empty/crashing plan."""
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    perfil_base["experiencia"]["nivel_compromiso"] = "basico"
+    # Dislike every common vegan-compatible protein, leaving only tofu/
+    # tempeh/edamame/seitan/protein powder (all "comun": False).
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["lentils", "chickpeas"]
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    assert plan  # still a real plan, not empty
+    proteinas = {c["proteina"] for dia in plan for c in dia["comidas"]}
+    assert proteinas  # at least one protein pick happened
+    assert all(not INDICE_ALIMENTOS[p].get("comun", True) for p in proteinas)

@@ -19,7 +19,7 @@
       "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Push-ups (standard)",
+          "nombre": "Barbell bench press",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 5,
@@ -46,7 +46,7 @@
           "notas": ""
         },
         {
-          "nombre": "Cable triceps pushdown (bar)",
+          "nombre": "Dumbbell skull crusher",
           "grupo": "triceps",
           "tipo": "aislamiento",
           "series": 4,
@@ -77,7 +77,7 @@
       "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
       "ejercicios": [
         {
-          "nombre": "Low step-up with dumbbells",
+          "nombre": "Barbell squat",
           "grupo": "pierna_cuadriceps",
           "tipo": "basico",
           "series": 5,
@@ -146,7 +146,7 @@
           "notas": ""
         },
         {
-          "nombre": "Parallel bar dips",
+          "nombre": "Incline dumbbell press",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 5,
@@ -164,7 +164,7 @@
           "notas": ""
         },
         {
-          "nombre": "Cable curl",
+          "nombre": "Dumbbell hammer curl",
           "grupo": "biceps",
           "tipo": "aislamiento",
           "series": 4,
@@ -173,7 +173,7 @@
           "notas": ""
         },
         {
-          "nombre": "Dumbbell skull crusher",
+          "nombre": "Cable triceps pushdown (bar)",
           "grupo": "triceps",
           "tipo": "aislamiento",
           "series": 4,
@@ -205,7 +205,7 @@
           "notas": ""
         },
         {
-          "nombre": "Bodyweight squat",
+          "nombre": "Low step-up with dumbbells",
           "grupo": "pierna_cuadriceps",
           "tipo": "basico",
           "series": 5,

@@ -4,6 +4,7 @@ from dieta_reglas import (
     DISTRIBUCION_VARIANTES,
     MENSAJE_CLIENTE_DIETA_VARIANTES,
     PROTEINA_G_POR_KG,
+    _consejos_sinergias,
     generar_borrador_dieta_reglas,
 )
 
@@ -27,15 +28,38 @@ def test_protein_target_matches_goal_ratio(perfil_base):
 
 
 def test_vegan_diet_gets_iron_absorption_tip(perfil_base):
+    """_consejos_sinergias() is gated to "avanzado"/"tryhard" (see
+    test_synergy_tips_only_shown_from_avanzado_up below) -- set explicitly
+    here since this test is about the vegan-specific content, not the gate
+    itself."""
     perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
     borrador = generar_borrador_dieta_reglas(perfil_base)
     assert any("iron" in consejo.lower() for consejo in borrador["consejos_sinergias"])
 
 
 def test_omnivore_diet_has_no_iron_tip(perfil_base):
     perfil_base["nutricion"]["tipo_dieta"] = "omnivora"
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
     borrador = generar_borrador_dieta_reglas(perfil_base)
     assert not any("iron" in consejo.lower() for consejo in borrador["consejos_sinergias"])
+
+
+def test_synergy_tips_only_shown_from_avanzado_up(perfil_base):
+    """_consejos_sinergias() (general nutrient-timing/pairing tips) is
+    gated to "avanzado"/"tryhard" -- unlike the client's own explicit
+    soft preferences (_consejos_por_preferencias_blandas(), still active
+    at every level), so this tests the gated function directly rather
+    than the combined consejos_sinergias list, which perfil_base's own
+    sedentary-job preference would otherwise also contribute to (see
+    docs/decisiones.md)."""
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    for nivel in ("basico", "normal"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        assert _consejos_sinergias(perfil_base) == []
+    for nivel in ("avanzado", "tryhard"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        assert _consejos_sinergias(perfil_base) != []
 
 
 def test_food_allergy_generates_human_review_warning(perfil_base):
@@ -68,6 +92,7 @@ def test_idioma_es_translates_narrative_text_only(perfil_base):
     fuentes_*_sugeridas stay canonical English -- the validator's allergy
     cross-check depends on it (see food_bank.py's module docstring)."""
     perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"  # consejos_sinergias is gated, see docs/decisiones.md
     borrador = generar_borrador_dieta_reglas(perfil_base, idioma="es")
 
     assert "Estimación de" in borrador["resumen_enfoque"]

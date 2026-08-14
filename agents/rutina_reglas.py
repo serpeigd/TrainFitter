@@ -285,6 +285,19 @@ def _preferir_baja_complejidad_primero(candidatos: list[dict]) -> list[dict]:
     return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
 
 
+def _preferir_alta_complejidad_primero(candidatos: list[dict]) -> list[dict]:
+    """The mirror of _preferir_baja_complejidad_primero(), for "tryhard"
+    nivel_compromiso (see generar_borrador_rutina_reglas()) -- reorders
+    toward more technically demanding variants first, same stable-sort-
+    within-an-already-shuffled-list behavior. Never applied to a genuine
+    beginner (nivel == "principiante") regardless of nivel_compromiso --
+    training experience is a safety-relevant signal that wins over a
+    detail-level preference, so a beginner who picks "tryhard" still gets
+    the low-complexity-first bias instead (see the call site)."""
+    orden = {"baja": 2, "media": 1, "alta": 0}
+    return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
+
+
 # Same bias-not-force philosophy and same probability as
 # planificador_comidas.PROBABILIDAD_REPETIR_FAVORITO -- a client who liked
 # an exercise should see it come back often, not have it locked into every
@@ -509,8 +522,16 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                 # from the client-seeded shuffle above, just biased toward
                 # machine/bodyweight/dumbbell options over barbell
                 # compound lifts when both are available for this slot.
-                if nivel == "principiante":
+                # nivel_compromiso="basico" stacks the same low-complexity
+                # bias on top of (never instead of) the beginner one --
+                # "keep it simple" applies regardless of raw experience.
+                # "tryhard" leans the other way, but only for a client
+                # who isn't a genuine beginner (see
+                # _preferir_alta_complejidad_primero()'s own docstring).
+                if nivel == "principiante" or nivel_compromiso == "basico":
                     candidatos = _preferir_baja_complejidad_primero(candidatos)
+                elif nivel_compromiso == "tryhard":
+                    candidatos = _preferir_alta_complejidad_primero(candidatos)
                 candidatos_por_slot[clave] = candidatos
             candidatos = candidatos_por_slot[clave]
             if not candidatos:

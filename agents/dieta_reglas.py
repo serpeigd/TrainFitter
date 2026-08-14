@@ -397,6 +397,15 @@ def _consejos_suplementos(perfil: dict, idioma: str = "en") -> list[str]:
 
 
 def _consejos_sinergias(perfil: dict, idioma: str = "en") -> list[str]:
+    """Gated to "avanzado"/"tryhard" (see docs/decisiones.md) -- "basico"/
+    "normal" still get a real, macro-matched, profile-adapted diet, just
+    without these general nutrient-timing/pairing tips. Mirrors
+    planificador_comidas.py's own aplicar_sinergias gate on the mechanical
+    iron+vitamin-C pairing in the actual weekly plan, so the flat tips
+    list and the plan itself never disagree about which level shows what."""
+    if perfil.get("experiencia", {}).get("nivel_compromiso") not in ("avanzado", "tryhard"):
+        return []
+
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
 
     if idioma == "es":

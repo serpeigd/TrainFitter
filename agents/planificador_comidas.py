@@ -31,6 +31,18 @@ that aren't practical to force structurally, e.g. tea/coffee timing).
 Dinner deliberately gets the day's largest share of fat for the same
 reason -- "vitamin D/E/K and omega-3s with the day's fattiest meal."
 
+DESIGN — the synergy pairing above (and dieta_reglas.py's own
+consejos_sinergias) is gated to `experiencia.nivel_compromiso` "avanzado"/
+"tryhard" (see `aplicar_sinergias` below and docs/decisiones.md) --
+"basico"/"normal" still get a real, macro-matched, profile-adapted meal
+(the fat-heavier-dinner WEIGHT itself is a distribution choice, not a
+"synergy," so it still applies at every level), just without the
+vitamin-C pairing or its explanatory sentence. `_sesgar_por_nivel_compromiso()`
+is the mirror on the food-SELECTION side: "basico" leans the actual food
+picks toward food_bank.py's non-"nicho", "comun"-tagged (recognizable,
+everyday) options -- bias, not exclusion, same "prefer, don't force"
+pattern as `_sesgar_por_preferencias()` right below it.
+
 DESIGN — vegetables/fruit are a flat, fixed portion (not solved from the
 macro targets): they're a fiber/micronutrient/synergy role, not one of the
 three tracked macros (method §0: protein first, fat/carb split what's
@@ -168,6 +180,32 @@ def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[
     return candidatos_categoria
 
 
+# Same bias-not-force pattern as _sesgar_por_preferencias() above, higher
+# probability on purpose: "basico" is meant to read as consistently
+# simple/everyday, not just occasionally -- a client who picked the
+# essentials-only level shouldn't see tofu/tempeh/quinoa most weeks anyway.
+PROBABILIDAD_PREFERIR_COMUN = 0.85
+
+
+def _sesgar_por_nivel_compromiso(
+    candidatos_categoria: list[str], nivel_compromiso: str | None, rng: random.Random,
+) -> list[str]:
+    """"basico" leans this category's picks toward food_bank.py's
+    non-"comun": False entries (recognizable, everyday foods) MOST of the
+    time, not always -- falls back to the untouched list when no
+    candidate is tagged "comun" (a diet-type/allergy combination that
+    happens to leave only specialty items for this slot, e.g. a vegan
+    client whose only protein options include tofu/tempeh) or when
+    nivel_compromiso isn't "basico" at all, a no-op for every other
+    level."""
+    if nivel_compromiso != "basico" or not candidatos_categoria:
+        return candidatos_categoria
+    comunes = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c].get("comun", True)]
+    if comunes and rng.random() < PROBABILIDAD_PREFERIR_COMUN:
+        return comunes
+    return candidatos_categoria
+
+
 # Probability a matching liked meal actually gets reused, mirroring
 # _sesgar_por_preferencias()'s own bias-not-force philosophy: a client who
 # liked a meal should see it come back often, not have it locked to every
@@ -254,7 +292,7 @@ def _elegir_verdura_para_sinergia(candidatos: list[str], requiere_vitamina_c: bo
 
 def _describir_comida_principal(
     tipo: str, proteina: dict, carbohidrato: dict, grasa: dict, verdura: str | None,
-    verdura_por_sinergia: bool, idioma: str,
+    verdura_por_sinergia: bool, aplicar_sinergias: bool, idioma: str,
 ) -> str:
     # Display-only translation (food_bank.nombre_mostrado()) -- the
     # ingredient-selection/lookup logic in _construir_comida() already ran
@@ -274,7 +312,7 @@ def _describir_comida_principal(
         descripcion = ", ".join(partes) + f", con {g_grasa}g de {nombre_grasa.lower()}."
         if verdura_por_sinergia:
             descripcion += f" ({verdura} aporta vitamina C para absorber mejor el hierro de {nombre_prot.lower()}.)"
-        if tipo == "cena":
+        if tipo == "cena" and aplicar_sinergias:
             descripcion += " (la comida con más grasa del día — mejor momento para vitamina D/E/K y omega-3.)"
         return descripcion
 
@@ -284,7 +322,7 @@ def _describir_comida_principal(
     descripcion = ", ".join(partes) + f", with {g_grasa}g {nombre_grasa.lower()}."
     if verdura_por_sinergia:
         descripcion += f" ({verdura} adds vitamin C to help absorb the iron in {nombre_prot.lower()}.)"
-    if tipo == "cena":
+    if tipo == "cena" and aplicar_sinergias:
         descripcion += " (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)"
     return descripcion
 
@@ -325,7 +363,8 @@ def _describir_desayuno_o_snack(
 
 def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
-    preferencias: set[str], comidas_favoritas: list[dict], idioma: str, rng: random.Random,
+    preferencias: set[str], comidas_favoritas: list[dict], nivel_compromiso: str | None,
+    idioma: str, rng: random.Random,
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -334,6 +373,7 @@ def _construir_comida(
     call) rather than derived from kcal_objetivo, so dinner ends up with
     the day's largest fat portion regardless of what the day's overall fat
     ratio alone would give this one meal by size."""
+    aplicar_sinergias = nivel_compromiso in ("avanzado", "tryhard")
     # Both filters are about kcal *budget* size, not meal identity: a snack
     # (small budget) is the only slot small enough that "Assorted fruit"
     # alone still yields a plausible portion as its carb pick, so
@@ -349,12 +389,24 @@ def _construir_comida(
 
     # Soft-preference bias (antiinflamatorio/magnesio/fibra_alta -- see
     # SESGO_POR_PREFERENCIA) applies on top of the realism filters above,
-    # to every category that can carry one of those tags.
+    # to every category that can carry one of those tags. This is driven
+    # by the client's own explicit request (inquietud_principal or
+    # structured lifestyle signals), so it's NOT gated by nivel_compromiso
+    # the way the automatic synergy pairing below is -- a client who asked
+    # for an anti-inflammatory approach still gets it at "basico".
     candidatos = {
         "proteina": _sesgar_por_preferencias(candidatos["proteina"], preferencias, rng),
         "carbohidrato": _sesgar_por_preferencias(candidatos["carbohidrato"], preferencias, rng),
         "grasa": _sesgar_por_preferencias(candidatos["grasa"], preferencias, rng),
         "verdura": _sesgar_por_preferencias(candidatos["verdura"], preferencias, rng),
+    }
+    # "basico" leans every category toward common/everyday foods (see
+    # _sesgar_por_nivel_compromiso()) -- applied after the preference bias
+    # above so an explicit request still narrows the field first, common-
+    # ness only breaks ties within whatever's left.
+    candidatos = {
+        categoria: _sesgar_por_nivel_compromiso(lista, nivel_compromiso, rng)
+        for categoria, lista in candidatos.items()
     }
 
     # A liked meal (see _sesgar_por_favoritos()) wins the protein/carb/fat
@@ -383,7 +435,10 @@ def _construir_comida(
     carbohidrato = _porcion(carbohidrato_nombre, "carbohidratos_g", kcal_carbohidrato)
     grasa = _porcion(grasa_nombre, "grasa_g", kcal_grasa) if grasa_nombre else {"nombre": None, "gramos": 0}
 
-    requiere_vitamina_c = "hierro_no_hemo" in INDICE_ALIMENTOS[proteina_nombre]["sinergias"]
+    # Gated by aplicar_sinergias -- "basico"/"normal" still pick a valid,
+    # macro-matched vegetable/fruit, just not deliberately narrowed to a
+    # vitamin-C source for iron absorption (see module docstring).
+    requiere_vitamina_c = aplicar_sinergias and "hierro_no_hemo" in INDICE_ALIMENTOS[proteina_nombre]["sinergias"]
 
     def _kcal_porcion(porcion: dict, alimento_nombre: str | None) -> float:
         if not alimento_nombre:
@@ -400,7 +455,7 @@ def _construir_comida(
         if candidatos["verdura"] and rng.random() < 0.7:  # not every breakfast/snack needs fruit
             fruta = _elegir_verdura_para_sinergia(candidatos["verdura"], requiere_vitamina_c, rng)
             aprox_kcal += round(INDICE_ALIMENTOS[fruta]["macros_100g"]["kcal"] * PORCION_FRUTA_SNACK_G / 100)
-        sinergia_probiotica = (
+        sinergia_probiotica = aplicar_sinergias and (
             "probiotico" in INDICE_ALIMENTOS[proteina_nombre]["sinergias"]
             and "prebiotico_fibra" in INDICE_ALIMENTOS[carbohidrato_nombre]["sinergias"]
         )
@@ -411,7 +466,7 @@ def _construir_comida(
             aprox_kcal += round(INDICE_ALIMENTOS[verdura]["macros_100g"]["kcal"] * PORCION_VERDURA_PRINCIPAL_G / 100)
         verdura_por_sinergia = bool(verdura) and requiere_vitamina_c and "vitamina_c" in INDICE_ALIMENTOS[verdura]["sinergias"]
         descripcion = _describir_comida_principal(
-            tipo, proteina, carbohidrato, grasa, verdura, verdura_por_sinergia, idioma,
+            tipo, proteina, carbohidrato, grasa, verdura, verdura_por_sinergia, aplicar_sinergias, idioma,
         )
 
     return {
@@ -485,6 +540,11 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     # (see docs/decisiones.md) -- absent for a brand-new client, same
     # "no field, no bias" degradation as every other optional signal here.
     comidas_favoritas = perfil.get("nutricion", {}).get("comidas_favoritas") or []
+    # Drives both _sesgar_por_nivel_compromiso() (food selection) and
+    # aplicar_sinergias (pairing/explanatory text) inside _construir_comida()
+    # -- read once here, same "no field, defaults to normal" degradation as
+    # every other nivel_compromiso read in this project.
+    nivel_compromiso = perfil.get("experiencia", {}).get("nivel_compromiso")
 
     kcal_dia = necesidades["calorias_objetivo_kcal"]
     macros = necesidades["macros"]
@@ -508,7 +568,8 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
             kcal_objetivo = kcal_dia * (peso_kcal / total_peso_kcal)
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
             comida = _construir_comida(
-                tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas, idioma, rng,
+                tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas,
+                nivel_compromiso, idioma, rng,
             )
             if tipo == "snack" and slots.count("snack") > 1:
                 contador_snack += 1
