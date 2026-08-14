@@ -609,6 +609,23 @@ catches a blank-but-structurally-intact checklist before it's ever
 logged as fabricated adherence data. 471 tests passing (up from 439),
 97% coverage.
 
+The supplement-interaction warning is now specific, not just generic: new
+`agents/suplementos_interacciones.py` holds a curated (not exhaustive)
+table of 12 supplement categories mapped to the medication classes they
+have a documented interaction with (vitamin K/anticoagulants, iron/
+calcium/magnesium/zinc chelating antibiotics or levothyroxine, high-dose
+omega-3/vitamin E/turmeric raising bleeding risk with anticoagulants,
+vitamin D/thiazides/digoxin, ashwagandha, St. John's Wort, quercetin —
+each verified against real sources: NIH ODS, NCCIH, PubMed/PMC, MDedge,
+patient.info). `pares_interaccion_declarados()` adds a specific, named
+message on top of `validator_agent.py`'s existing generic "supplements +
+medication → flag" check when a recognized pair matches — the generic
+check still always fires regardless, so an unrecognized combination is
+never silently let through. Creatine/protein powder/beta-alanine/
+collagen (this project's actual recommended supplements) are absent from
+the table on purpose — no relevant interaction at normal doses. 487 tests
+passing (up from 471), 100% coverage on the new module, 97% overall.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
@@ -630,6 +647,7 @@ if the user explicitly opts in to spending money.
 | Validator | `agents/validator_agent.py` |
 | Orchestrator | `agents/orchestrator.py` |
 | Exercise/food banks | `agents/exercise_bank.py`, `agents/food_bank.py` |
+| Supplement-medication interaction pairs | `agents/suplementos_interacciones.py` |
 | Bloodwork parser | `agents/analytics_parser.py` |
 | Diet/checklist PDF generation + reading | `agents/pdf_generador.py` |
 | Intake PDF generation + reading | `agents/pdf_intake.py` |

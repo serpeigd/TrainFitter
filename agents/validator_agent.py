@@ -18,18 +18,25 @@ flagged themselves correctly. It re-reads the client's raw profile
 independently, and it also cross-checks the drafts' actual exercises/foods
 against the declared injuries/allergies — in case a future LLM engine ever
 gets its self-assessment wrong. Same reasoning applies to
-`suplementos_actuales`: this project doesn't attempt a real
+`suplementos_actuales`: this project doesn't attempt a real, exhaustive
 supplement-drug interaction database (out of scope, and a false sense of
 completeness would be worse than none), so declaring both supplements AND
-regular medication together always forces enhanced review instead —
+regular medication together always forces enhanced review regardless —
 docs/base_conocimiento/suplementacion.md's own "Safety rule" section is
 explicit that any possible interaction should be flagged for a human,
-never silently allowed through.
+never silently allowed through. `suplementos_interacciones.
+pares_interaccion_declarados()` ADDS a more specific, named explanation
+on top of that coarse check when the declared supplement/medication pair
+matches one of a curated set of well-documented pairs (see that module's
+own docstring and the knowledge base's "Known interaction pairs" table)
+— it never replaces the coarse check, so an unrecognized combination is
+still always flagged, just without the extra detail.
 """
 
 from exercise_bank import EXERCISE_BANK
 from food_bank import FUENTES_CARBOHIDRATO, FUENTES_GRASA, FUENTES_PROTEINA, FUENTES_VERDURA, etiquetas_excluidas
 from perfil_utils import tags_lesiones
+from suplementos_interacciones import pares_interaccion_declarados
 
 
 def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
@@ -54,6 +61,7 @@ def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
                 f"El perfil declara suplementos ({', '.join(salud['suplementos_actuales'])}) junto con "
                 "medicación habitual — posible interacción, revisar antes de recomendar nada más."
             )
+            motivos += pares_interaccion_declarados(perfil, idioma)
         for marcador in salud.get("analitica_adjunta", {}).get("marcadores", []):
             if marcador.get("fuera_de_rango"):
                 motivos.append(
@@ -78,6 +86,7 @@ def _motivos_desde_perfil(perfil: dict, idioma: str = "en") -> list[str]:
             f"The profile declares supplements ({', '.join(salud['suplementos_actuales'])}) alongside "
             "regular medication — possible interaction, review before recommending anything further."
         )
+        motivos += pares_interaccion_declarados(perfil, idioma)
     if salud.get("alergias_alimentarias"):
         motivos.append(
             f"The profile declares food allerg(y/ies): {', '.join(salud['alergias_alimentarias'])}."

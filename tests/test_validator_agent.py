@@ -240,3 +240,31 @@ def test_idioma_es_translates_supplement_interaction_motivo(perfil_base):
     dieta = generar_borrador_dieta_reglas(perfil_base)
     veredicto = validar_borradores(perfil_base, rutina, dieta, idioma="es")
     assert any("suplemento" in motivo.lower() for motivo in veredicto["motivos"])
+
+
+def test_a_recognized_pair_adds_a_specific_motivo_alongside_the_generic_one(perfil_base):
+    """suplementos_interacciones.pares_interaccion_declarados() is
+    additive: a recognized pair (vitamin K + an anticoagulant) still
+    keeps the generic 'supplements alongside medication' motivo AND adds
+    a more specific one naming the actual mechanism."""
+    perfil_base["salud"]["suplementos_actuales"] = ["Vitamin K"]
+    perfil_base["salud"]["medicacion_habitual"] = ["Warfarin"]
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert any("supplements" in m.lower() and "alongside" in m.lower() for m in veredicto["motivos"])
+    assert any("known interaction" in m.lower() for m in veredicto["motivos"])
+
+
+def test_an_unrecognized_pair_still_forces_review_without_a_specific_motivo(perfil_base):
+    """Creatine has no known relevant interaction -- validar_borradores()
+    must still force revision_reforzada off the generic check alone,
+    exactly as before this feature existed."""
+    perfil_base["salud"]["suplementos_actuales"] = ["creatine"]
+    perfil_base["salud"]["medicacion_habitual"] = ["ibuprofen"]
+    rutina = generar_borrador_rutina_reglas(perfil_base)
+    dieta = generar_borrador_dieta_reglas(perfil_base)
+    veredicto = validar_borradores(perfil_base, rutina, dieta)
+    assert veredicto["veredicto"] == "revision_reforzada"
+    assert not any("known interaction" in m.lower() for m in veredicto["motivos"])
