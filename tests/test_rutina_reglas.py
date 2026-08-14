@@ -544,3 +544,29 @@ def test_tryhard_does_not_push_high_complexity_on_a_genuine_beginner(perfil_base
     borrador = generar_borrador_rutina_reglas(perfil_base)
     primer_ejercicio = borrador["sesiones"][0]["ejercicios"][0]
     assert _complejidad(INDICE_EJERCICIOS[primer_ejercicio["nombre"]]) != "alta"
+
+
+def test_avanzado_leans_toward_medium_complexity(perfil_base):
+    """"avanzado" is a real middle step (see docs/decisiones.md): its
+    share of "media" (dumbbell) picks should be clearly higher than
+    "normal"'s unbiased baseline."""
+    perfil_base["experiencia"]["nivel"] = "intermedio"
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    ]
+
+    def proporcion_media(nivel_compromiso, n=20):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel_compromiso
+        total, medias = 0, 0
+        for i in range(n):
+            perfil_base["id_cliente"] = f"media_{nivel_compromiso}_{i}"
+            borrador = generar_borrador_rutina_reglas(perfil_base)
+            for sesion in borrador["sesiones"]:
+                for ejercicio in sesion["ejercicios"]:
+                    info = INDICE_EJERCICIOS[ejercicio["nombre"]]
+                    total += 1
+                    if _complejidad(info) == "media":
+                        medias += 1
+        return medias / total
+
+    assert proporcion_media("avanzado") > proporcion_media("normal")

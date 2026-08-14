@@ -2002,6 +2002,13 @@ Direct, pointed follow-up the same day: the previous session renamed the four ti
 
 12 new tests (exercise-complexity statistical/behavioral, food-commonality statistical + degrade-gracefully, synergy-gating behavioral at both the flat-tips and actual-plan level), 502 tests passing (up from 494), lint clean, all `examples/output_*.json` regenerated — confirmed the diffs land exactly where expected (client 1's `tryhard` routine changed via the new complexity bias, its diet didn't since `tryhard` already had synergies before and after; clients 2/3's `normal` diets changed by losing the now-gated general tips, their routines didn't since `normal` was never touched numerically).
 
+**Follow-up the same session: `avanzado` was still too close to `normal`.** Confirmed directly (not assumed) that `avanzado` should be a genuine middle step, not "normal + supplement tips." Three more targeted questions, all answered "yes, add the real gradient":
+- Routine: new `_preferir_complejidad_media_primero()` leans `avanzado` toward dumbbell-level exercises — a real 4-step complexity spectrum (`basico`→baja, `normal`→no bias, `avanzado`→media, `tryhard`→alta), never touching the curated `"nicho"` pool that stays `tryhard`-exclusive.
+- Diet: `_sesgar_por_nivel_compromiso()` now biases both directions — `basico` toward `"comun"` foods (85% pull, unchanged), `avanzado` toward the `"comun": False` specialty ones (50% pull, new) — a real step toward `tryhard`'s separate `"nicho"` list without using it directly.
+- Both `resumen_enfoque` sentences for `avanzado` were stale after this (still claimed "no training/food change") — caught and fixed before shipping, not after.
+
+3 more tests (statistical), 505 passing, lint clean, examples regenerated.
+
 ---
 
 ## Fitness content disclaimer

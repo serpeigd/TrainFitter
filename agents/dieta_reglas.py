@@ -569,8 +569,8 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             resumen += " Modo básico: el ritmo hacia tu objetivo es más suave, quedándonos con lo esencial."
         elif nivel_compromiso == "avanzado":
             resumen += (
-                " Modo avanzado: mismo ritmo que el normal, con más detalle — consejos de "
-                "suplementación básica y guía más específica sobre sinergias."
+                " Modo avanzado: mismo ritmo que el normal, con alimentos algo más variados, sinergias "
+                "de absorción y consejos de suplementación básica."
             )
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
@@ -589,8 +589,8 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             resumen += " Basic mode: the pace toward your goal is gentler, keeping things down to the essentials."
         elif nivel_compromiso == "avanzado":
             resumen += (
-                " Advanced mode: same pace as normal, with more detail — basic supplement tips and "
-                "more specific synergy guidance."
+                " Advanced mode: same pace as normal, with a bit more food variety, absorption synergies, "
+                "and basic supplement tips."
             )
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 

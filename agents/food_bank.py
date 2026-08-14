@@ -91,10 +91,12 @@ edamame, seitan, "Protein powder (plant-based)", quinoa, and seeds (chia,
 flax). `agents/planificador_comidas.py`'s `_sesgar_por_nivel_compromiso()`
 biases (never excludes -- same "prefer, don't force" pattern as
 `_sesgar_por_preferencias()`) a "basico" client's actual weekly picks
-toward the foods WITHOUT this tag, so a client who wants the simplest,
-least "friki" version still gets recognizable everyday food. Absent
-(defaults to `True` via `.get("comun", True)`) on every other entry, so
-every other level behaves exactly as before this was added.
+toward the foods WITHOUT this tag (recognizable, everyday), and an
+"avanzado" client's picks the other way, toward these specialty foods --
+a real middle step toward "tryhard"'s own separate "nicho" pool, without
+touching it directly. Absent (defaults to `True` via `.get("comun",
+True)`) on every other entry, so "normal"/"tryhard" behave exactly as
+before this was added.
 """
 
 import unicodedata

@@ -381,3 +381,41 @@ def test_basico_still_uses_specialty_foods_when_nothing_common_is_left(perfil_ba
     proteinas = {c["proteina"] for dia in plan for c in dia["comidas"]}
     assert proteinas  # at least one protein pick happened
     assert all(not INDICE_ALIMENTOS[p].get("comun", True) for p in proteinas)
+
+
+def test_avanzado_leans_toward_specialty_foods_over_normal(perfil_base):
+    """"avanzado" is a real middle step toward "tryhard"'s niche foods,
+    without touching that curated list -- confirmed statistically (see
+    docs/decisiones.md)."""
+
+    def proporcion_no_comun(nivel_compromiso, n=20):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel_compromiso
+        total, no_comunes = 0, 0
+        for i in range(n):
+            perfil_base["id_cliente"] = f"avz_comun_{nivel_compromiso}_{i}"
+            plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+            for dia in plan:
+                for comida in dia["comidas"]:
+                    for clave in ("proteina", "carbohidrato", "grasa"):
+                        nombre = comida[clave]
+                        if nombre is None:
+                            continue
+                        total += 1
+                        if not INDICE_ALIMENTOS[nombre].get("comun", True):
+                            no_comunes += 1
+        return no_comunes / total
+
+    assert proporcion_no_comun("avanzado") > proporcion_no_comun("normal")
+
+
+def test_avanzado_never_uses_true_nicho_foods(perfil_base):
+    """"avanzado"'s specialty lean stays within "comun": False -- the
+    separate, more curated "nicho" pool (kimchi, natto, farro, algae oil)
+    stays tryhard-exclusive."""
+    from food_bank import fuentes_proteina_para
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    nombres = {c[clave] for dia in plan for c in dia["comidas"] for clave in ("proteina", "carbohidrato", "grasa")}
+    assert "Natto" not in nombres
+    assert "Natto" not in fuentes_proteina_para(perfil_base)

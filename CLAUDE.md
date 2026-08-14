@@ -692,6 +692,16 @@ engine parity. 502 tests passing (up from 494), lint clean, all
 expected (client 1's `tryhard` routine changed, its diet didn't;
 clients 2/3's `normal` diets changed, their routines didn't).
 
+Same-day follow-up: `avanzado` still read as "normal + supplement tips,"
+not a real middle step. Now: routine exercises lean toward dumbbell
+("media") complexity via `_preferir_complejidad_media_primero()`, a
+real 4-step spectrum with `basico`/`normal`/`tryhard`; diet picks lean
+toward `food_bank.py`'s `"comun": False` specialty foods (50% pull,
+mirroring `basico`'s 85% pull the other way) — both stop short of the
+curated `"nicho"` pool, which stays `tryhard`-exclusive. Caught and
+fixed two now-stale `resumen_enfoque` sentences that still claimed
+`avanzado` didn't touch training/food choice. 505 tests passing.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

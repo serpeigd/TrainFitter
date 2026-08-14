@@ -298,6 +298,16 @@ def _preferir_alta_complejidad_primero(candidatos: list[dict]) -> list[dict]:
     return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
 
 
+def _preferir_complejidad_media_primero(candidatos: list[dict]) -> list[dict]:
+    """A genuine middle step between the two functions above, for
+    "avanzado" -- dumbbell-level variants first, then barbell, then
+    bodyweight/machine last. Confirmed directly: "avanzado" should read
+    as a real step between "normal" and "tryhard", not just "normal" plus
+    unrelated supplement tips (see docs/decisiones.md)."""
+    orden = {"media": 0, "alta": 1, "baja": 2}
+    return sorted(candidatos, key=lambda ej: orden[_complejidad(ej)])
+
+
 # Same bias-not-force philosophy and same probability as
 # planificador_comidas.PROBABILIDAD_REPETIR_FAVORITO -- a client who liked
 # an exercise should see it come back often, not have it locked into every
@@ -525,11 +535,14 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                 # nivel_compromiso="basico" stacks the same low-complexity
                 # bias on top of (never instead of) the beginner one --
                 # "keep it simple" applies regardless of raw experience.
-                # "tryhard" leans the other way, but only for a client
-                # who isn't a genuine beginner (see
+                # "avanzado"/"tryhard" lean the other way, a real 4-step
+                # progression (baja -> no bias -> media -> alta), but only
+                # for a client who isn't a genuine beginner (see
                 # _preferir_alta_complejidad_primero()'s own docstring).
                 if nivel == "principiante" or nivel_compromiso == "basico":
                     candidatos = _preferir_baja_complejidad_primero(candidatos)
+                elif nivel_compromiso == "avanzado":
+                    candidatos = _preferir_complejidad_media_primero(candidatos)
                 elif nivel_compromiso == "tryhard":
                     candidatos = _preferir_alta_complejidad_primero(candidatos)
                 candidatos_por_slot[clave] = candidatos
@@ -644,8 +657,8 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += " Modo básico: una serie menos por ejercicio, para quedarte solo con lo esencial."
         elif nivel_compromiso == "avanzado":
             resumen += (
-                " Modo avanzado: mismo volumen que el modo normal — el detalle extra aquí aparece en la "
-                "guía de suplementación de tu dieta, no en la intensidad del entreno."
+                " Modo avanzado: mismo volumen que el modo normal, con variantes de mancuerna que piden algo "
+                "más de control técnico — el resto del detalle extra está en tu dieta."
             )
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
@@ -675,8 +688,8 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += " Basic mode: one fewer set per exercise, to keep it down to just the essentials."
         elif nivel_compromiso == "avanzado":
             resumen += (
-                " Advanced mode: same volume as normal mode — the extra detail here shows up in your "
-                "diet's supplement guidance, not in training intensity."
+                " Advanced mode: same volume as normal mode, leaning toward dumbbell variants that ask a "
+                "bit more technical control — the rest of the extra detail is in your diet."
             )
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"

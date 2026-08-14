@@ -39,9 +39,12 @@ consejos_sinergias) is gated to `experiencia.nivel_compromiso` "avanzado"/
 "synergy," so it still applies at every level), just without the
 vitamin-C pairing or its explanatory sentence. `_sesgar_por_nivel_compromiso()`
 is the mirror on the food-SELECTION side: "basico" leans the actual food
-picks toward food_bank.py's non-"nicho", "comun"-tagged (recognizable,
-everyday) options -- bias, not exclusion, same "prefer, don't force"
-pattern as `_sesgar_por_preferencias()` right below it.
+picks toward food_bank.py's "comun"-tagged (recognizable, everyday)
+options, "avanzado" leans the other way toward the "comun": False
+specialty ones (tofu, tempeh, quinoa...) -- a real middle step toward
+"tryhard"'s own "nicho" foods, without touching that pool directly.
+Bias, not exclusion, same "prefer, don't force" pattern as
+`_sesgar_por_preferencias()` right below it.
 
 DESIGN — vegetables/fruit are a flat, fixed portion (not solved from the
 macro targets): they're a fiber/micronutrient/synergy role, not one of the
@@ -180,29 +183,39 @@ def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[
     return candidatos_categoria
 
 
-# Same bias-not-force pattern as _sesgar_por_preferencias() above, higher
-# probability on purpose: "basico" is meant to read as consistently
-# simple/everyday, not just occasionally -- a client who picked the
-# essentials-only level shouldn't see tofu/tempeh/quinoa most weeks anyway.
+# Same bias-not-force pattern as _sesgar_por_preferencias() above.
+# "basico"'s pull toward "comun" is strong and deliberate -- it's meant to
+# read as consistently simple/everyday, not just occasionally. "avanzado"
+# leans the OPPOSITE direction (toward specialty items -- tofu, tempeh,
+# quinoa...), a real middle step toward "tryhard"'s true "nicho" foods,
+# but weaker than "basico"'s pull -- confirmed directly rather than left
+# as a no-op (see docs/decisiones.md).
 PROBABILIDAD_PREFERIR_COMUN = 0.85
+PROBABILIDAD_PREFERIR_NO_COMUN = 0.5
 
 
 def _sesgar_por_nivel_compromiso(
     candidatos_categoria: list[str], nivel_compromiso: str | None, rng: random.Random,
 ) -> list[str]:
     """"basico" leans this category's picks toward food_bank.py's
-    non-"comun": False entries (recognizable, everyday foods) MOST of the
-    time, not always -- falls back to the untouched list when no
-    candidate is tagged "comun" (a diet-type/allergy combination that
-    happens to leave only specialty items for this slot, e.g. a vegan
-    client whose only protein options include tofu/tempeh) or when
-    nivel_compromiso isn't "basico" at all, a no-op for every other
-    level."""
-    if nivel_compromiso != "basico" or not candidatos_categoria:
+    "comun" entries (recognizable, everyday foods); "avanzado" leans
+    toward the "comun": False ones (specialty, but still not "nicho" --
+    that stays tryhard-exclusive). Both bias, never exclude: fall back to
+    the untouched list when no candidate on the wanted side exists for
+    this slot (e.g. a vegan client's only protein options are all
+    specialty), or when nivel_compromiso is "normal"/"tryhard" (a no-op
+    for both -- "tryhard" already gets true "nicho" foods separately, see
+    food_bank.py's fuentes_*_para())."""
+    if not candidatos_categoria:
         return candidatos_categoria
-    comunes = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c].get("comun", True)]
-    if comunes and rng.random() < PROBABILIDAD_PREFERIR_COMUN:
-        return comunes
+    if nivel_compromiso == "basico":
+        comunes = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c].get("comun", True)]
+        if comunes and rng.random() < PROBABILIDAD_PREFERIR_COMUN:
+            return comunes
+    elif nivel_compromiso == "avanzado":
+        no_comunes = [c for c in candidatos_categoria if not INDICE_ALIMENTOS[c].get("comun", True)]
+        if no_comunes and rng.random() < PROBABILIDAD_PREFERIR_NO_COMUN:
+            return no_comunes
     return candidatos_categoria
 
 

@@ -173,12 +173,15 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   - "avanzado": calorie target exactly as "normal" (no extra aggressiveness).
     From here up, DO apply absorption synergies when they fit the profile
     (e.g. plant iron + vitamin C in vegetarian/vegan diets) and explain them
-    in `consejos_sinergias` -- this is the level's actual extra detail,
-    alongside the supplement tips below.
+    in `consejos_sinergias`. Also lean toward the specialty foods listed
+    above (tofu/tempeh/quinoa/...) over the plainest common option -- a real
+    middle step toward "tryhard"'s niche foods below, without using that
+    curated niche list itself.
   - "tryhard" (the most complete level this project currently offers): the
     calorie target can be a bit more assertive (never crossing into an
-    aggressive deficit/surplus), and you may suggest niche/specialty foods on
-    top of everything "avanzado" already does.
+    aggressive deficit/surplus), and you may suggest niche foods (the
+    project's own curated list -- kimchi, natto, farro, algae oil) on top of
+    everything "avanzado" already does.
 - For "avanzado" or "tryhard" specifically, you may include general evidence-based
   supplement tips (creatine, protein powder, magnesium, omega-3, and — "tryhard"
   only — caffeine) -- skip any supplement the client already listed under

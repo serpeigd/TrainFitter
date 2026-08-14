@@ -205,9 +205,11 @@ STARTING POINT, not a final prescription.
     training experience -- "essentials only" applies even to an experienced
     lifter who picked this level.
   - "normal": the default, no adjustment.
-  - "avanzado": same volume as "normal" -- its extra detail shows up in the
-    client's diet (supplement basics), not in training volume or exercise
-    choice.
+  - "avanzado": same volume as "normal" (its calorie/set numbers never move),
+    but a real middle step for exercise selection -- lean toward dumbbell-level
+    variants over both pure bodyweight/machine AND barbell compounds where the
+    slot allows. Still never touch the small curated "niche" pool that's
+    "tryhard"-only (see below).
   - "tryhard" (the most complete level this project currently offers): volume
     can be a bit higher (one extra set) AND you may lean toward more
     technically demanding exercise variants (e.g. Bulgarian split squats,
