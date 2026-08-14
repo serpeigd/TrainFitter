@@ -195,11 +195,17 @@ STARTING POINT, not a final prescription.
   rather than prescribing a session they can't actually finish; and if they
   reported high stress or short sleep, keep volume a bit more conservative for
   this first block and say so in the summary.
-- If `experiencia.nivel_compromiso` is "chill", trim volume slightly for an easier,
-  more sustainable session; if "tryhard", volume can be a bit higher and you may
-  include more technically demanding exercise variants where the client's equipment
-  allows (e.g. Bulgarian split squats, weighted pull-ups) -- say so in the summary
-  either way.
+- `experiencia.nivel_compromiso` is a "how much detail/guidance do you want" dial
+  (basico/normal/avanzado/tryhard), not a training-intensity dial by itself. If
+  "basico", trim volume slightly for the simplest, easiest-to-sustain session; if
+  "tryhard" (the most complete level this project currently offers), volume can be
+  a bit higher and you may include more technically demanding exercise variants
+  where the client's equipment allows (e.g. Bulgarian split squats, weighted
+  pull-ups) -- say so in the summary either way. "avanzado" is deliberately a
+  no-op for the routine (same volume, same exercise pool as "normal") -- its extra
+  detail shows up in the client's diet (supplement basics), not in training
+  volume; still say so briefly in the summary so the client knows their choice
+  was received.
 - Give every session a one-sentence `nota_esfuerzo`: reps-in-reserve (RIR) guidance,
   not just a rep-count range. Compound/basic lifts should stay 1-2 reps short of
   failure; isolation work at the end of the session can go closer to failure

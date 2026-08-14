@@ -13,11 +13,10 @@
     "Eggs",
     "Lentils",
     "Chickpeas",
-    "Tofu",
     "Tempeh",
     "Edamame",
     "Seitan",
-    "Pea protein (powder)"
+    "Protein powder (plant-based)"
   ],
   "fuentes_carbohidrato_sugeridas": [
     "Rice",
@@ -35,11 +34,250 @@
     "Nuts (walnuts, almonds)",
     "Seeds (chia, flax)"
   ],
+  "fuentes_verdura_sugeridas": [
+    "Broccoli",
+    "Spinach",
+    "Red bell pepper",
+    "Tomato",
+    "Carrot",
+    "Mixed salad greens",
+    "Kiwi",
+    "Citrus (orange, lemon)"
+  ],
+  "plan_semanal": [
+    {
+      "dia": "Monday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "135g whole wheat bread, 137g chickpeas, 12g nuts (walnuts, almonds).",
+          "aprox_kcal": 630,
+          "tipo_interno": "desayuno",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Nuts (walnuts, almonds)"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "137g chickpeas, 278g quinoa, 100g kiwi, with 108g avocado. (Kiwi adds vitamin C to help absorb the iron in chickpeas.)",
+          "aprox_kcal": 792,
+          "tipo_interno": "comida",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Quinoa",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "137g chickpeas, 278g quinoa, 100g tomato, with 237g avocado. (Tomato adds vitamin C to help absorb the iron in chickpeas.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 955,
+          "tipo_interno": "cena",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Quinoa",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Tuesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "383g potato / sweet potato, 137g chickpeas, 80g citrus (orange, lemon), 14g seeds (chia, flax).",
+          "aprox_kcal": 666,
+          "tipo_interno": "desayuno",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Potato / sweet potato",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "117g tempeh, 86g oats, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds). (Citrus (orange, lemon) adds vitamin C to help absorb the iron in tempeh.)",
+          "aprox_kcal": 780,
+          "tipo_interno": "comida",
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
+          "grasa": "Nuts (walnuts, almonds)"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "117g tempeh, 253g legumes (also a carb source), 100g tomato, with 43g extra virgin olive oil. (Tomato adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 957,
+          "tipo_interno": "cena",
+          "proteina": "Tempeh",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Extra virgin olive oil"
+        }
+      ]
+    },
+    {
+      "dia": "Wednesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "383g potato / sweet potato, 60g protein powder (plant-based), 8g extra virgin olive oil.",
+          "aprox_kcal": 628,
+          "tipo_interno": "desayuno",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Potato / sweet potato",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "117g tempeh, 86g oats, 100g red bell pepper, with 20g extra virgin olive oil. (Red bell pepper adds vitamin C to help absorb the iron in tempeh.)",
+          "aprox_kcal": 767,
+          "tipo_interno": "comida",
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "193g lentils, 253g legumes (also a carb source), 100g citrus (orange, lemon), with 76g seeds (chia, flax). (Citrus (orange, lemon) adds vitamin C to help absorb the iron in lentils.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 985,
+          "tipo_interno": "cena",
+          "proteina": "Lentils",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Seeds (chia, flax)"
+        }
+      ]
+    },
+    {
+      "dia": "Thursday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "269g whole wheat pasta, 193g lentils, 80g kiwi, 8g extra virgin olive oil.",
+          "aprox_kcal": 677,
+          "tipo_interno": "desayuno",
+          "proteina": "Lentils",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "193g lentils, 86g oats, 100g tomato, with 20g extra virgin olive oil. (Tomato adds vitamin C to help absorb the iron in lentils.)",
+          "aprox_kcal": 753,
+          "tipo_interno": "comida",
+          "proteina": "Lentils",
+          "carbohidrato": "Oats",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "137g chickpeas, 135g whole wheat bread, 100g kiwi, with 237g avocado. (Kiwi adds vitamin C to help absorb the iron in chickpeas.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 998,
+          "tipo_interno": "cena",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Friday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "135g whole wheat bread, 137g chickpeas, 80g kiwi, 43g avocado.",
+          "aprox_kcal": 676,
+          "tipo_interno": "desayuno",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "185g edamame, 278g quinoa, 100g citrus (orange, lemon), with 20g extra virgin olive oil. (Citrus (orange, lemon) adds vitamin C to help absorb the iron in edamame.)",
+          "aprox_kcal": 781,
+          "tipo_interno": "comida",
+          "proteina": "Edamame",
+          "carbohidrato": "Quinoa",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "117g tempeh, 278g quinoa, 100g red bell pepper, with 63g nuts (walnuts, almonds). (Red bell pepper adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 967,
+          "tipo_interno": "cena",
+          "proteina": "Tempeh",
+          "carbohidrato": "Quinoa",
+          "grasa": "Nuts (walnuts, almonds)"
+        }
+      ]
+    },
+    {
+      "dia": "Saturday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "253g legumes (also a carb source), 185g edamame, 80g kiwi, 43g avocado.",
+          "aprox_kcal": 676,
+          "tipo_interno": "desayuno",
+          "proteina": "Edamame",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "185g edamame, 253g legumes (also a carb source), 100g red bell pepper, with 108g avocado. (Red bell pepper adds vitamin C to help absorb the iron in edamame.)",
+          "aprox_kcal": 762,
+          "tipo_interno": "comida",
+          "proteina": "Edamame",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "193g lentils, 86g oats, 100g kiwi, with 76g seeds (chia, flax). (Kiwi adds vitamin C to help absorb the iron in lentils.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 999,
+          "tipo_interno": "cena",
+          "proteina": "Lentils",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)"
+        }
+      ]
+    },
+    {
+      "dia": "Sunday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "278g quinoa, 117g tempeh, 80g red bell pepper, 14g seeds (chia, flax).",
+          "aprox_kcal": 653,
+          "tipo_interno": "desayuno",
+          "proteina": "Tempeh",
+          "carbohidrato": "Quinoa",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "137g chickpeas, 135g whole wheat bread, 100g tomato, with 34g seeds (chia, flax). (Tomato adds vitamin C to help absorb the iron in chickpeas.)",
+          "aprox_kcal": 746,
+          "tipo_interno": "comida",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "117g tempeh, 269g whole wheat pasta, 100g red bell pepper, with 63g nuts (walnuts, almonds). (Red bell pepper adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 967,
+          "tipo_interno": "cena",
+          "proteina": "Tempeh",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Nuts (walnuts, almonds)"
+        }
+      ]
+    }
+  ],
   "consejos_sinergias": [
     "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach).",
     "Most of your iron comes from plant sources (non-heme), which absorb less well: combine lentils/spinach with a vitamin C source in the same meal (red pepper, lemon, kiwi) — it can multiply absorption 3-6x.",
     "Keep coffee or tea at least 1-2 hours away from your main iron-rich meals: tannins significantly reduce iron absorption.",
-    "Combining legumes with egg or dairy in the same meal improves how well your body can use the zinc and iron."
+    "Combining legumes with egg or dairy in the same meal improves how well your body can use the zinc and iron.",
+    "You asked for an anti-inflammatory approach: this plan leans on olive oil, avocado, nuts/seeds, and deeply colored vegetables and fruit.",
+    "Given the stress/sleep you reported, this plan leans on magnesium-rich sources (legumes, nuts, seeds, quinoa).",
+    "With a mostly sedentary job, this plan leans on higher-fiber sources (legumes, oats, whole grains, vegetables) to help with satiety and digestion."
   ],
   "advertencias_revision_humana": [
     "The client hasn't attached bloodwork, but there's a relevant unverified note: \"Client mentions feeling tired frequently lately. Hasn't provided bloodwork yet; still need to ask for it at follow-up.\" — ask for it at follow-up so the diet can be modulated with real data."

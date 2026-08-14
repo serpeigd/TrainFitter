@@ -1,6 +1,6 @@
 {
   "cliente_id": "cliente_002",
-  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward body recomposition. Exercises selected based on the client's available equipment and adapted for a declared injury in: knee.",
+  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward body recomposition. Exercises selected based on the client's available equipment and adapted for a declared injury in: knee. Volume kept a bit more conservative for this first block, given the stress/sleep you reported — we'll build it back up based on how you're actually recovering.",
   "nivel_asumido": "principiante",
   "split": "full_body",
   "dias_por_semana": 3,
@@ -23,48 +23,61 @@
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
-          "series": 4,
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Machine chest press",
-          "series": 4,
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Pull-ups (assisted if needed)",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Lying leg curl (machine)",
-          "series": 3,
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Machine reverse fly (rear delt)",
-          "series": 3,
+          "grupo": "hombro",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
           "nombre": "Cable Pallof press",
-          "series": 3,
+          "grupo": "core",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 2 — Full Body",
@@ -80,48 +93,61 @@
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
-          "series": 4,
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Push-ups (standard)",
-          "series": 4,
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Lat pulldown",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Single-leg glute bridge",
-          "series": 3,
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Dumbbell front raise",
-          "series": 3,
+          "grupo": "hombro",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
           "nombre": "Front plank",
-          "series": 3,
+          "grupo": "core",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 3 — Full Body",
@@ -137,48 +163,61 @@
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
-          "series": 4,
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Parallel bar dips",
-          "series": 4,
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "High cable row (close grip)",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 2,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Machine hip adduction",
-          "series": 3,
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": "Chosen because it's more tolerable for your knee injury. Work in a controlled range (avoid very deep flexion) at a moderate effort (you could probably do 2-3 more reps than listed); stop if you feel joint pain, not just muscle fatigue."
         },
         {
           "nombre": "Dumbbell lateral raise",
-          "series": 3,
+          "grupo": "hombro",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         },
         {
           "nombre": "Cable crunch",
-          "series": 3,
+          "grupo": "core",
+          "tipo": "aislamiento",
+          "series": 2,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min.",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     }
   ],
   "progresion": "Think in terms of the rep range, not the weight on the bar. Add reps first; once you're maxing out every set for an exercise, then add a little weight and drop back to the bottom of the range. Sticking with the same routine week after week — not switching it up — is what makes the numbers move.",

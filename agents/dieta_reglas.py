@@ -56,18 +56,24 @@ AJUSTE_CALORICO = {
 
 PORCENTAJE_GRASA_CALORIAS = 0.27
 
-# Commitment-level personalization (experiencia.nivel_compromiso, added
-# alongside rutina_reglas.py's own AJUSTE_SERIES_POR_COMPROMISO -- see
-# docs/decisiones.md): scales AJUSTE_CALORICO's magnitude, not its sign --
-# "tryhard" never turns a mild deficit into a crash diet, it pushes toward
-# the more assertive end of what the method already considers moderate
+# Commitment-level personalization (experiencia.nivel_compromiso, a
+# client-chosen "how much detail/guidance do you want" dial -- see
+# rutina_reglas.py's own AJUSTE_SERIES_POR_COMPROMISO and
+# docs/decisiones.md for the full basico/normal/avanzado/tryhard design):
+# scales AJUSTE_CALORICO's magnitude, not its sign -- "tryhard" never
+# turns a mild deficit into a crash diet, it pushes toward the more
+# assertive end of what the method already considers moderate
 # (perdida_grasa: -18% normal -> ~-23% tryhard, still short of the
-# "aggressive" deficits the method explicitly warns against). "chill" is
-# the mirror: a gentler, easier-to-sustain version of the same direction.
-# "normal" (the default) is 1.0 -- a no-op, so existing clients are
-# unaffected. salud_general's 0.0 adjustment stays 0.0 regardless (there's
-# no direction to scale).
-AJUSTE_COMPROMISO_MULTIPLICADOR = {"chill": 0.6, "normal": 1.0, "tryhard": 1.3}
+# "aggressive" deficits the method explicitly warns against). "basico" is
+# the mirror: a gentler target, the simplest version to follow. "normal"
+# (the default) is 1.0 -- a no-op, so existing clients are unaffected.
+# "avanzado" is ALSO 1.0: its extra detail is food/supplement guidance
+# (see _consejos_suplementos() below), not a harder calorie push -- detail
+# and physical demand are different axes, and this project has no real
+# nutritional basis for scaling one just because the other increased.
+# salud_general's 0.0 adjustment stays 0.0 regardless (there's no
+# direction to scale).
+AJUSTE_COMPROMISO_MULTIPLICADOR = {"basico": 0.6, "normal": 1.0, "avanzado": 1.0, "tryhard": 1.3}
 
 # Display-only label for the goal, used when building the human-readable
 # "resumen_enfoque" text (the schema value itself stays in Spanish — see
@@ -300,11 +306,19 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
 
 
 # Evidence-based supplement tips (docs/base_conocimiento/suplementacion.md),
-# only ever surfaced in "tryhard" mode (see AJUSTE_COMPROMISO_MULTIPLICADOR
+# surfaced in "avanzado" and "tryhard" mode (see AJUSTE_COMPROMISO_MULTIPLICADOR
 # above) -- deliberately short, generic dose/timing basics, not a
-# personalized protocol. The real safety-relevant check (supplements +
-# medication together -> enhanced review) lives in validator_agent.py.
-_SUPLEMENTOS_TRYHARD_TEXTOS = {
+# personalized protocol. Creatine/protein/magnesium/omega-3 are the exact
+# "basic supplements if needed" set "avanzado" was scoped around (see
+# docs/decisiones.md) and are shown for BOTH "avanzado" and "tryhard";
+# caffeine is deliberately tryhard-only -- a performance/pre-workout aid,
+# one level more specific than the general-health basics above it. "tryhard"
+# also gets the niche food/exercise unlocks "avanzado" never does -- the
+# literal ceiling of detail this project currently offers. The real
+# safety-relevant check (supplements + medication together -> enhanced
+# review, refined further by suplementos_interacciones.py) lives in
+# validator_agent.py.
+_SUPLEMENTOS_TEXTOS = {
     "en": {
         "creatina": (
             "Creatine monohydrate, 3-5 g/day, any time, taken consistently -- the best-backed "
@@ -313,6 +327,15 @@ _SUPLEMENTOS_TRYHARD_TEXTOS = {
         "proteina_polvo": (
             "A whey or plant protein powder is a convenient way to hit your protein target if food "
             "alone doesn't get you there -- not essential if it already does."
+        ),
+        "magnesio": (
+            "Food covers most people's needs (leafy greens, legumes, nuts, seeds) -- a 200-400 mg/day "
+            "supplement is a reasonable add-on if diet is limited, or if stress is high or sleep is "
+            "short."
+        ),
+        "omega3": (
+            "250-500 mg/day combined EPA+DHA is the general-health range if you don't eat oily fish "
+            "2-3x/week -- no need for higher doses without a specific medical reason."
         ),
         "cafeina": (
             "3-6 mg/kg about 45-60 min before training can help performance -- avoid it too close to "
@@ -328,6 +351,15 @@ _SUPLEMENTOS_TRYHARD_TEXTOS = {
             "Un suplemento de proteína (whey o vegetal) es una forma cómoda de llegar a tu objetivo "
             "de proteína si la comida sola no basta -- no es imprescindible si ya llegas."
         ),
+        "magnesio": (
+            "La comida cubre la mayoría de las necesidades (verdura de hoja, legumbres, frutos secos, "
+            "semillas) -- un suplemento de 200-400 mg/día es razonable si la dieta se queda corta, o "
+            "si el estrés es alto o el sueño es escaso."
+        ),
+        "omega3": (
+            "250-500 mg/día de EPA+DHA combinados es el rango de salud general si no comes pescado "
+            "azul 2-3 veces/semana -- no hace falta más sin un motivo médico específico."
+        ),
         "cafeina": (
             "3-6 mg/kg unos 45-60 min antes de entrenar puede ayudar al rendimiento -- evítala cerca "
             "de la hora de dormir, ya que el sueño es la base de la que depende todo lo demás."
@@ -337,8 +369,13 @@ _SUPLEMENTOS_TRYHARD_TEXTOS = {
 _PALABRAS_CLAVE_SUPLEMENTO = {
     "creatina": ("creatina", "creatine"),
     "proteina_polvo": ("proteina en polvo", "protein powder", "whey", "proteina"),
+    "magnesio": ("magnesio", "magnesium"),
+    "omega3": ("omega 3", "omega-3", "omega3", "aceite de pescado", "fish oil"),
     "cafeina": ("cafeina", "caffeine"),
 }
+# Only surfaced in "tryhard" mode -- see the comment above _SUPLEMENTOS_TEXTOS
+# for why caffeine is treated differently from the other four.
+_SUPLEMENTOS_SOLO_TRYHARD = {"cafeina"}
 
 
 def _consejos_suplementos(perfil: dict, idioma: str = "en") -> list[str]:
@@ -346,14 +383,16 @@ def _consejos_suplementos(perfil: dict, idioma: str = "en") -> list[str]:
     salud.suplementos_actuales (bilingual, accent-insensitive match, same
     technique as food_bank.alimentos_no_deseados()) -- no point
     "recommending" creatine to someone who already takes it."""
-    if perfil.get("experiencia", {}).get("nivel_compromiso") != "tryhard":
+    nivel_compromiso = perfil.get("experiencia", {}).get("nivel_compromiso")
+    if nivel_compromiso not in ("avanzado", "tryhard"):
         return []
 
     ya_toma = _sin_acentos(" ".join(perfil.get("salud", {}).get("suplementos_actuales", [])).lower())
     return [
-        _SUPLEMENTOS_TRYHARD_TEXTOS[idioma][clave]
+        _SUPLEMENTOS_TEXTOS[idioma][clave]
         for clave, palabras in _PALABRAS_CLAVE_SUPLEMENTO.items()
-        if not any(_sin_acentos(palabra) in ya_toma for palabra in palabras)
+        if (nivel_compromiso == "tryhard" or clave not in _SUPLEMENTOS_SOLO_TRYHARD)
+        and not any(_sin_acentos(palabra) in ya_toma for palabra in palabras)
     ]
 
 
@@ -517,8 +556,13 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
                 " Modo tryhard: el ritmo hacia tu objetivo es algo más exigente, e incluye "
                 "alimentos y consejos de suplementación más específicos."
             )
-        elif nivel_compromiso == "chill":
-            resumen += " Modo chill: el ritmo hacia tu objetivo es más suave, para que sea más fácil de sostener."
+        elif nivel_compromiso == "basico":
+            resumen += " Modo básico: el ritmo hacia tu objetivo es más suave, quedándonos con lo esencial."
+        elif nivel_compromiso == "avanzado":
+            resumen += (
+                " Modo avanzado: mismo ritmo que el normal, con más detalle — consejos de "
+                "suplementación básica y guía más específica sobre sinergias."
+            )
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
         resumen = (
@@ -532,8 +576,13 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
                 " Tryhard mode: the pace toward your goal is a bit more demanding, and includes "
                 "more specific foods and supplement tips."
             )
-        elif nivel_compromiso == "chill":
-            resumen += " Chill mode: the pace toward your goal is gentler, to make it easier to sustain."
+        elif nivel_compromiso == "basico":
+            resumen += " Basic mode: the pace toward your goal is gentler, keeping things down to the essentials."
+        elif nivel_compromiso == "avanzado":
+            resumen += (
+                " Advanced mode: same pace as normal, with more detail — basic supplement tips and "
+                "more specific synergy guidance."
+            )
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 
     return {

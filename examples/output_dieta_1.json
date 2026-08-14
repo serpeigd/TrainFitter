@@ -1,11 +1,11 @@
 {
   "cliente_id": "cliente_001",
-  "resumen_enfoque": "Estimated 2125 kcal/day for hypertrophy, with 136 g of protein as the priority. It's a starting point that gets adjusted based on real weight and energy over the first few weeks.",
-  "calorias_objetivo_kcal": 2125,
+  "resumen_enfoque": "Estimated 2183 kcal/day for hypertrophy, with 136 g of protein as the priority. It's a starting point that gets adjusted based on real weight and energy over the first few weeks. Tryhard mode: the pace toward your goal is a bit more demanding, and includes more specific foods and supplement tips.",
+  "calorias_objetivo_kcal": 2183,
   "macros": {
     "proteina_g": 136,
-    "grasa_g": 64,
-    "carbohidratos_g": 252
+    "grasa_g": 66,
+    "carbohidratos_g": 262
   },
   "comidas_al_dia": 4,
   "distribucion_comidas": "Divide this across 4 meals, each one with some protein in it. How you split it is flexible — the only thing that matters is that it actually fits your day.",
@@ -14,7 +14,6 @@
     "Turkey",
     "Lean beef",
     "White fish (hake, sole)",
-    "Salmon / oily fish",
     "Eggs",
     "Greek yogurt / whipped fresh cheese",
     "Lentils",
@@ -23,7 +22,8 @@
     "Tempeh",
     "Edamame",
     "Seitan",
-    "Pea protein (powder)"
+    "Protein powder (plant-based)",
+    "Natto"
   ],
   "fuentes_carbohidrato_sugeridas": [
     "Rice",
@@ -33,17 +33,323 @@
     "Whole wheat pasta",
     "Quinoa",
     "Legumes (also a carb source)",
-    "Assorted fruit"
+    "Assorted fruit",
+    "Farro"
   ],
   "fuentes_grasa_sugeridas": [
     "Extra virgin olive oil",
     "Avocado",
     "Nuts (walnuts, almonds)",
     "Seeds (chia, flax)",
-    "Oily fish (EPA/DHA)"
+    "Algae oil (vegan omega-3)"
+  ],
+  "fuentes_verdura_sugeridas": [
+    "Broccoli",
+    "Spinach",
+    "Red bell pepper",
+    "Tomato",
+    "Carrot",
+    "Mixed salad greens",
+    "Kiwi",
+    "Citrus (orange, lemon)",
+    "Kimchi"
+  ],
+  "plan_semanal": [
+    {
+      "dia": "Monday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "127g whole wheat bread, 44g protein powder (plant-based), 80g mixed salad greens, 7g algae oil (vegan omega-3).",
+          "aprox_kcal": 556,
+          "tipo_interno": "desayuno",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Algae oil (vegan omega-3)"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "85g tempeh, 254g whole wheat pasta, 100g tomato, with 30g seeds (chia, flax). (Tomato adds vitamin C to help absorb the iron in tempeh.)",
+          "aprox_kcal": 646,
+          "tipo_interno": "comida",
+          "proteina": "Tempeh",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "80g lean beef, 127g whole wheat bread, 100g broccoli, with 37g extra virgin olive oil. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 840,
+          "tipo_interno": "cena",
+          "proteina": "Lean beef",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "27g oats, 28g tempeh, 80g broccoli, 37g avocado.",
+          "aprox_kcal": 246,
+          "tipo_interno": "snack",
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Tuesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "262g quinoa, 113g tofu, 37g avocado.",
+          "aprox_kcal": 536,
+          "tipo_interno": "desayuno",
+          "proteina": "Tofu",
+          "carbohidrato": "Quinoa",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "105g eggs, 238g legumes (also a carb source), 100g broccoli, with 93g avocado.",
+          "aprox_kcal": 661,
+          "tipo_interno": "comida",
+          "proteina": "Eggs",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "85g tempeh, 81g oats, 100g broccoli, with 37g extra virgin olive oil. (Broccoli adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 840,
+          "tipo_interno": "cena",
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
+          "grasa": "Extra virgin olive oil"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "120g potato / sweet potato, 47g lentils, 80g kiwi, 37g avocado.",
+          "aprox_kcal": 267,
+          "tipo_interno": "snack",
+          "proteina": "Lentils",
+          "carbohidrato": "Potato / sweet potato",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Wednesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "81g oats, 100g chickpeas, 80g broccoli, 37g avocado.",
+          "aprox_kcal": 566,
+          "tipo_interno": "desayuno",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "141g lentils, 81g oats, 100g broccoli, with 30g seeds (chia, flax). (Broccoli adds vitamin C to help absorb the iron in lentils.)",
+          "aprox_kcal": 664,
+          "tipo_interno": "comida",
+          "proteina": "Lentils",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "113g tofu, 127g whole wheat bread, 100g broccoli, with 204g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 838,
+          "tipo_interno": "cena",
+          "proteina": "Tofu",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "27g oats, 92g greek yogurt / whipped fresh cheese, 80g carrot, 37g avocado. (a probiotic + prebiotic-fiber combo.)",
+          "aprox_kcal": 252,
+          "tipo_interno": "snack",
+          "proteina": "Greek yogurt / whipped fresh cheese",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Thursday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "254g whole wheat pasta, 77g natto, 37g avocado.",
+          "aprox_kcal": 537,
+          "tipo_interno": "desayuno",
+          "proteina": "Natto",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "80g lean beef, 361g potato / sweet potato, 100g broccoli, with 93g avocado.",
+          "aprox_kcal": 662,
+          "tipo_interno": "comida",
+          "proteina": "Lean beef",
+          "carbohidrato": "Potato / sweet potato",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "181g white fish (hake, sole), 254g whole wheat pasta, 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 845,
+          "tipo_interno": "cena",
+          "proteina": "White fish (hake, sole)",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "27g oats, 45g edamame, 80g broccoli, 37g avocado.",
+          "aprox_kcal": 247,
+          "tipo_interno": "snack",
+          "proteina": "Edamame",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Friday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "81g oats, 77g natto, 80g broccoli, 37g avocado. (a probiotic + prebiotic-fiber combo.)",
+          "aprox_kcal": 566,
+          "tipo_interno": "desayuno",
+          "proteina": "Natto",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "277g greek yogurt / whipped fresh cheese, 254g whole wheat pasta, 100g kimchi, with 93g avocado.",
+          "aprox_kcal": 642,
+          "tipo_interno": "comida",
+          "proteina": "Greek yogurt / whipped fresh cheese",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "121g turkey, 238g legumes (also a carb source), 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 845,
+          "tipo_interno": "cena",
+          "proteina": "Turkey",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "42g whole wheat bread, 33g chickpeas, 80g broccoli, 37g avocado.",
+          "aprox_kcal": 245,
+          "tipo_interno": "snack",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Saturday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "254g whole wheat pasta, 85g tempeh, 37g avocado.",
+          "aprox_kcal": 537,
+          "tipo_interno": "desayuno",
+          "proteina": "Tempeh",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "113g tofu, 81g oats, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.)",
+          "aprox_kcal": 662,
+          "tipo_interno": "comida",
+          "proteina": "Tofu",
+          "carbohidrato": "Oats",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "44g protein powder (plant-based), 238g legumes (also a carb source), 100g carrot, with 65g seeds (chia, flax). (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 844,
+          "tipo_interno": "cena",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Seeds (chia, flax)"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "79g legumes (also a carb source), 47g lentils, 37g avocado.",
+          "aprox_kcal": 218,
+          "tipo_interno": "snack",
+          "proteina": "Lentils",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        }
+      ]
+    },
+    {
+      "dia": "Sunday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "238g legumes (also a carb source), 105g eggs, 37g avocado.",
+          "aprox_kcal": 536,
+          "tipo_interno": "desayuno",
+          "proteina": "Eggs",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "85g tempeh, 185g farro, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.)",
+          "aprox_kcal": 661,
+          "tipo_interno": "comida",
+          "proteina": "Tempeh",
+          "carbohidrato": "Farro",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "77g natto, 238g legumes (also a carb source), 100g tomato, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 822,
+          "tipo_interno": "cena",
+          "proteina": "Natto",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "79g legumes (also a carb source), 45g edamame, 80g red bell pepper, 37g avocado.",
+          "aprox_kcal": 243,
+          "tipo_interno": "snack",
+          "proteina": "Edamame",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado"
+        }
+      ]
+    }
   ],
   "consejos_sinergias": [
-    "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach)."
+    "Vitamins D, E, K and omega-3s are absorbed better when taken with the day's meal with the most healthy fat (never on an empty stomach).",
+    "With a mostly sedentary job, this plan leans on higher-fiber sources (legumes, oats, whole grains, vegetables) to help with satiety and digestion.",
+    "A whey or plant protein powder is a convenient way to hit your protein target if food alone doesn't get you there -- not essential if it already does.",
+    "Food covers most people's needs (leafy greens, legumes, nuts, seeds) -- a 200-400 mg/day supplement is a reasonable add-on if diet is limited, or if stress is high or sleep is short.",
+    "250-500 mg/day combined EPA+DHA is the general-health range if you don't eat oily fish 2-3x/week -- no need for higher doses without a specific medical reason.",
+    "3-6 mg/kg about 45-60 min before training can help performance -- avoid it too close to bedtime, since sleep is the foundation everything else depends on."
   ],
   "advertencias_revision_humana": [],
   "mensaje_para_el_cliente": "Hi Marta, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent."

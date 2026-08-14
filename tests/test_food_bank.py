@@ -66,6 +66,23 @@ def test_vegan_diet_filters_out_animal_protein(perfil_base):
     assert "Lentils" in fuentes
 
 
+def test_protein_powder_entry_is_named_generically_not_pea_specifically(perfil_base):
+    """Named "Protein powder (plant-based)", not "Pea protein" -- the
+    macros are still real pea-protein-isolate values (a common,
+    representative plant powder), but the display name doesn't imply this
+    is the one specific brand/type recommended over any other (see
+    docs/decisiones.md). Still available to every diet type, including
+    vegan, which is the concrete reason it's plant-based at all rather
+    than whey."""
+    assert "Protein powder (plant-based)" in [f["nombre"] for f in FUENTES_PROTEINA]
+    # Substring match, not bare "pea"/"guisante" -- "Chickpeas" legitimately
+    # contains "pea" and must not trip this check.
+    assert not any("pea protein" in f["nombre"].lower() for f in FUENTES_PROTEINA)
+    assert not any("proteina de guisante" in f["nombre_es"].lower() for f in FUENTES_PROTEINA)
+    perfil_base["nutricion"]["tipo_dieta"] = "vegana"
+    assert "Protein powder (plant-based)" in fuentes_proteina_para(perfil_base)
+
+
 def test_vegan_diet_filters_fish_out_of_fat_sources(perfil_base):
     """Regression test: fuentes_grasa_para() had no diet-type filter at
     all until this was fixed -- a vegan/vegetarian client's diet draft was

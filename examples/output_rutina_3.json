@@ -1,6 +1,6 @@
 {
   "cliente_id": "cliente_003",
-  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward general health. Exercises selected based on the client's available equipment.",
+  "resumen_enfoque": "'full body' split for beginner level, 3 days/week, geared toward general health. Exercises selected based on the client's available equipment. Trimmed to fewer exercises per session to fit your 40-minute window.",
   "nivel_asumido": "principiante",
   "split": "full_body",
   "dias_por_semana": 3,
@@ -20,28 +20,36 @@
       "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Dumbbell lunges",
-          "series": 4,
+          "nombre": "Bodyweight squat",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Incline dumbbell press",
-          "series": 4,
+          "nombre": "Parallel bar dips",
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Pull-ups (assisted if needed)",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Single-leg glute bridge",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -49,20 +57,16 @@
         },
         {
           "nombre": "Dumbbell front raise",
-          "series": 3,
-          "repeticiones": "10-15",
-          "descanso_seg": 60,
-          "notas": ""
-        },
-        {
-          "nombre": "Hanging / lying leg raise",
+          "grupo": "hombro",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 2 — Full Body",
@@ -77,28 +81,36 @@
       "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Low step-up with dumbbells",
-          "series": 4,
+          "nombre": "Dumbbell lunges",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Parallel bar dips",
-          "series": 4,
+          "nombre": "Push-ups (standard)",
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Inverted row (bodyweight)",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Single-leg glute bridge",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -106,20 +118,16 @@
         },
         {
           "nombre": "Dumbbell lateral raise",
-          "series": 3,
-          "repeticiones": "10-15",
-          "descanso_seg": 60,
-          "notas": ""
-        },
-        {
-          "nombre": "Front plank",
+          "grupo": "hombro",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 3 — Full Body",
@@ -134,28 +142,36 @@
       "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Goblet squat",
-          "series": 4,
+          "nombre": "Low step-up with dumbbells",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
-          "nombre": "Push-ups (standard)",
-          "series": 4,
+          "nombre": "Incline dumbbell press",
+          "grupo": "pecho",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "One-arm dumbbell row",
-          "series": 4,
+          "grupo": "espalda",
+          "tipo": "basico",
+          "series": 3,
           "repeticiones": "5-8",
           "descanso_seg": 150,
           "notas": ""
         },
         {
           "nombre": "Single-leg glute bridge",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -163,20 +179,16 @@
         },
         {
           "nombre": "Dumbbell front raise",
-          "series": 3,
-          "repeticiones": "10-15",
-          "descanso_seg": 60,
-          "notas": ""
-        },
-        {
-          "nombre": "Hanging / lying leg raise",
+          "grupo": "hombro",
+          "tipo": "aislamiento",
           "series": 3,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min.",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     }
   ],
   "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",

@@ -333,15 +333,25 @@ SERIES_MINIMAS = 2  # never go below this regardless of how many adjustments sta
 
 # Commitment-level personalization (experiencia.nivel_compromiso, added
 # alongside dieta_reglas.py's own AJUSTE_COMPROMISO_MULTIPLICADOR -- see
-# docs/decisiones.md): a client-chosen "how demanding do you want this"
-# dial, separate from nivel (training experience, which the client doesn't
-# get to just pick). "chill" trims a set for a gentler, easier-to-sustain
-# session; "tryhard" adds one AND unlocks the small "nicho" pool of more
-# technically demanding exercise variants (see exercise_bank.py); "normal"
-# (the default) is a no-op, so existing clients are unaffected. Stacks with
-# (doesn't replace) the level/stress-sleep adjustments above, all clamped
-# together by the same SERIES_MINIMAS floor.
-AJUSTE_SERIES_POR_COMPROMISO = {"chill": -1, "normal": 0, "tryhard": 1}
+# docs/decisiones.md): a client-chosen "how much detail/guidance do you
+# want" dial, separate from nivel (training experience, which the client
+# doesn't get to just pick), and renamed from an earlier "how demanding"
+# framing to this one (basico/normal/avanzado/tryhard -- see
+# docs/decisiones.md for why). "basico" trims a set for the simplest,
+# easiest-to-sustain session -- the fewest moving parts, matching "I want
+# the essentials, nothing extra" at this end of the scale. "avanzado" (the
+# level between normal and tryhard) is a no-op here on purpose: more
+# detail/guidance shows up in dieta_reglas.py's supplement tips, not in
+# training volume -- detail and physical intensity are different axes,
+# and conflating them would mean inventing a training-volume justification
+# this project has no real backing for. "tryhard" is the literal ceiling:
+# it adds a set AND unlocks the small "nicho" pool of more technically
+# demanding exercise variants (see exercise_bank.py) -- the most this
+# project can currently offer. "normal" (the default) is a no-op, so
+# existing clients are unaffected. Stacks with (doesn't replace) the
+# level/stress-sleep adjustments above, all clamped together by the same
+# SERIES_MINIMAS floor.
+AJUSTE_SERIES_POR_COMPROMISO = {"basico": -1, "normal": 0, "avanzado": 0, "tryhard": 1}
 
 
 def _ajuste_series_por_estilo_de_vida(perfil: dict) -> int:
@@ -609,8 +619,13 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += f" Ajustado a menos ejercicios por sesión para caber en tus {disponibilidad['minutos_por_sesion']} minutos disponibles."
         if nivel_compromiso == "tryhard":
             resumen += " Modo tryhard: una serie extra por ejercicio y variantes más exigentes cuando el material lo permite."
-        elif nivel_compromiso == "chill":
-            resumen += " Modo chill: una serie menos por ejercicio para que sea más fácil de sostener."
+        elif nivel_compromiso == "basico":
+            resumen += " Modo básico: una serie menos por ejercicio, para quedarte solo con lo esencial."
+        elif nivel_compromiso == "avanzado":
+            resumen += (
+                " Modo avanzado: mismo volumen que el modo normal — el detalle extra aquí aparece en la "
+                "guía de suplementación de tu dieta, no en la intensidad del entreno."
+            )
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
@@ -635,8 +650,13 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             resumen += f" Trimmed to fewer exercises per session to fit your {disponibilidad['minutos_por_sesion']}-minute window."
         if nivel_compromiso == "tryhard":
             resumen += " Tryhard mode: one extra set per exercise, and more demanding variants where equipment allows."
-        elif nivel_compromiso == "chill":
-            resumen += " Chill mode: one fewer set per exercise, to make it easier to sustain."
+        elif nivel_compromiso == "basico":
+            resumen += " Basic mode: one fewer set per exercise, to keep it down to just the essentials."
+        elif nivel_compromiso == "avanzado":
+            resumen += (
+                " Advanced mode: same volume as normal mode — the extra detail here shows up in your "
+                "diet's supplement guidance, not in training intensity."
+            )
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 

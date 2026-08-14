@@ -14,7 +14,7 @@ technically demanding variants (Bulgarian split squat, Nordic hamstring
 curl, weighted pull-up...) that are only ever candidates for a client whose
 `experiencia.nivel_compromiso` is `"tryhard"` — see rutina_reglas.py's
 `_candidatos()`. Absent (defaults to `False` via `.get("nicho", False)`) on
-every pre-existing entry, so "chill"/"normal" (the default) behave exactly
+every pre-existing entry, so "basico"/"normal" (the default) behave exactly
 as before this was added.
 
 Note on scope: the "nombre" (name) values are the exercise's CANONICAL

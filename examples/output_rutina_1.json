@@ -20,6 +20,8 @@
       "ejercicios": [
         {
           "nombre": "Push-ups (standard)",
+          "grupo": "pecho",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -27,6 +29,8 @@
         },
         {
           "nombre": "One-arm dumbbell row",
+          "grupo": "espalda",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -34,6 +38,8 @@
         },
         {
           "nombre": "Single-arm dumbbell push press",
+          "grupo": "hombro",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -41,6 +47,8 @@
         },
         {
           "nombre": "Cable triceps pushdown (bar)",
+          "grupo": "triceps",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -48,13 +56,16 @@
         },
         {
           "nombre": "Dumbbell curl",
+          "grupo": "biceps",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 2 — Lower A",
@@ -67,6 +78,8 @@
       "ejercicios": [
         {
           "nombre": "Low step-up with dumbbells",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -74,6 +87,8 @@
         },
         {
           "nombre": "Barbell Romanian deadlift",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -81,6 +96,8 @@
         },
         {
           "nombre": "Wall sit (isometric squat)",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -88,6 +105,8 @@
         },
         {
           "nombre": "Machine hip abduction",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -95,13 +114,16 @@
         },
         {
           "nombre": "Hanging / lying leg raise",
+          "grupo": "core",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 3 — Upper B",
@@ -116,6 +138,8 @@
       "ejercicios": [
         {
           "nombre": "Inverted row (bodyweight)",
+          "grupo": "espalda",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -123,6 +147,8 @@
         },
         {
           "nombre": "Parallel bar dips",
+          "grupo": "pecho",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -130,6 +156,8 @@
         },
         {
           "nombre": "Dumbbell front raise",
+          "grupo": "hombro",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -137,6 +165,8 @@
         },
         {
           "nombre": "Cable curl",
+          "grupo": "biceps",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -144,13 +174,16 @@
         },
         {
           "nombre": "Dumbbell skull crusher",
+          "grupo": "triceps",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": ""
+      "cardio_opcional": "",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     },
     {
       "dia": "Day 4 — Lower B",
@@ -164,6 +197,8 @@
       "ejercicios": [
         {
           "nombre": "Barbell hip thrust",
+          "grupo": "pierna_isquios_gluteo",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -171,6 +206,8 @@
         },
         {
           "nombre": "Bodyweight squat",
+          "grupo": "pierna_cuadriceps",
+          "tipo": "basico",
           "series": 5,
           "repeticiones": "5-8",
           "descanso_seg": 150,
@@ -178,6 +215,8 @@
         },
         {
           "nombre": "Standing machine calf raise",
+          "grupo": "gemelos",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
@@ -185,13 +224,16 @@
         },
         {
           "nombre": "Cable Pallof press",
+          "grupo": "core",
+          "tipo": "aislamiento",
           "series": 4,
           "repeticiones": "10-15",
           "descanso_seg": 60,
           "notas": ""
         }
       ],
-      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min."
+      "cardio_opcional": "Zone 2 cardio (comfortable pace, you can hold a conversation), 30-40 min.",
+      "nota_esfuerzo": "Effort cue: leave 1-2 reps in the tank (RIR) on the compound/basic lifts -- you should feel you could do 1-2 more with good form. The isolation work at the end of the session can go closer to failure (0-1 reps left)."
     }
   ],
   "progresion": "Think in terms of the rep range, not the weight on the bar. Add reps first; once you're maxing out every set for an exercise, then add a little weight and drop back to the bottom of the range. Sticking with the same routine week after week — not switching it up — is what makes the numbers move.",

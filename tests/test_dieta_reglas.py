@@ -224,30 +224,30 @@ def test_disliked_food_never_triggers_enhanced_review(perfil_base):
     assert borrador["advertencias_revision_humana"] == []
 
 
-def test_tryhard_pushes_calories_further_from_maintenance_than_chill(perfil_base):
+def test_tryhard_pushes_calories_further_from_maintenance_than_basico(perfil_base):
     perfil_base["objetivo"]["principal"] = "perdida_grasa"
 
-    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
-    chill = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "basico"
+    basico = generar_borrador_dieta_reglas(perfil_base)
     perfil_base["experiencia"]["nivel_compromiso"] = "normal"
     normal = generar_borrador_dieta_reglas(perfil_base)
     perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
     tryhard = generar_borrador_dieta_reglas(perfil_base)
 
     # perdida_grasa is a deficit (fewer kcal = more aggressive), so tryhard
-    # (larger-magnitude deficit) lands BELOW normal, chill lands ABOVE it.
-    assert tryhard["calorias_objetivo_kcal"] < normal["calorias_objetivo_kcal"] < chill["calorias_objetivo_kcal"]
+    # (larger-magnitude deficit) lands BELOW normal, basico lands ABOVE it.
+    assert tryhard["calorias_objetivo_kcal"] < normal["calorias_objetivo_kcal"] < basico["calorias_objetivo_kcal"]
 
 
 def test_maintenance_goal_is_unaffected_by_commitment_level(perfil_base):
-    """salud_general's 0% adjustment has no direction to scale -- chill/
+    """salud_general's 0% adjustment has no direction to scale -- basico/
     tryhard must not invent one."""
     perfil_base["objetivo"]["principal"] = "salud_general"
-    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
-    chill = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "basico"
+    basico = generar_borrador_dieta_reglas(perfil_base)
     perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
     tryhard = generar_borrador_dieta_reglas(perfil_base)
-    assert chill["calorias_objetivo_kcal"] == tryhard["calorias_objetivo_kcal"]
+    assert basico["calorias_objetivo_kcal"] == tryhard["calorias_objetivo_kcal"]
 
 
 def test_commitment_mode_note_appears_in_summary(perfil_base):
@@ -269,13 +269,48 @@ def test_niche_foods_only_suggested_in_tryhard_mode(perfil_base):
     assert "Natto" in tryhard["fuentes_proteina_sugeridas"]
 
 
-def test_supplement_tips_only_shown_in_tryhard_mode(perfil_base):
+def test_niche_foods_not_suggested_in_avanzado_mode(perfil_base):
+    """"avanzado" is deliberately NOT "tryhard" -- niche foods stay
+    exclusive to tryhard, the literal ceiling of detail this project
+    offers (see docs/decisiones.md)."""
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    avanzado = generar_borrador_dieta_reglas(perfil_base)
+    assert "Natto" not in avanzado["fuentes_proteina_sugeridas"]
+
+
+def test_supplement_tips_shown_in_tryhard_mode(perfil_base):
     normal = generar_borrador_dieta_reglas(perfil_base)
     assert not any("creatine" in c.lower() for c in normal["consejos_sinergias"])
 
     perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
     tryhard = generar_borrador_dieta_reglas(perfil_base)
     assert any("creatine" in c.lower() for c in tryhard["consejos_sinergias"])
+
+
+def test_avanzado_calorie_target_matches_normal(perfil_base):
+    """"avanzado" is scoped around more detailed food/supplement guidance,
+    never a harder calorie push -- that's what sets it apart from
+    "tryhard" (see docs/decisiones.md)."""
+    perfil_base["objetivo"]["principal"] = "perdida_grasa"
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    normal = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    avanzado = generar_borrador_dieta_reglas(perfil_base)
+    assert avanzado["calorias_objetivo_kcal"] == normal["calorias_objetivo_kcal"]
+
+
+def test_supplement_tips_shown_in_avanzado_mode_except_caffeine(perfil_base):
+    """Creatine/protein/magnesium/omega-3 are the "basic supplements" set
+    "avanzado" was scoped around; caffeine (a performance/pre-workout aid,
+    one level more specific) stays tryhard-only (see docs/decisiones.md)."""
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    avanzado = generar_borrador_dieta_reglas(perfil_base)
+    consejos = " ".join(avanzado["consejos_sinergias"]).lower()
+    assert "creatine" in consejos
+    assert "protein powder" in consejos
+    assert "magnesium" in consejos or "200-400 mg" in consejos
+    assert "epa" in consejos or "omega" in consejos
+    assert "before training" not in consejos  # the caffeine tip's own distinguishing phrase
 
 
 def test_supplement_tips_skip_what_the_client_already_takes(perfil_base):
@@ -300,6 +335,15 @@ def test_commitment_mode_note_appears_in_summary_es(perfil_base):
     tryhard = generar_borrador_dieta_reglas(perfil_base, idioma="es")
     assert "tryhard" in tryhard["resumen_enfoque"].lower()
 
-    perfil_base["experiencia"]["nivel_compromiso"] = "chill"
-    chill = generar_borrador_dieta_reglas(perfil_base, idioma="es")
-    assert "chill" in chill["resumen_enfoque"].lower()
+    perfil_base["experiencia"]["nivel_compromiso"] = "basico"
+    basico = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert "básico" in basico["resumen_enfoque"].lower()
+
+
+def test_avanzado_mode_note_appears_in_summary(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    en = generar_borrador_dieta_reglas(perfil_base)
+    assert "advanced" in en["resumen_enfoque"].lower()
+
+    es = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert "avanzado" in es["resumen_enfoque"].lower()

@@ -90,9 +90,9 @@ def test_a_supplement_match_with_no_overlapping_medication_category_is_silent():
 
 def test_creatine_and_protein_powder_have_no_specific_pair():
     """The two most common supplements this project actually recommends
-    (see dieta_reglas._SUPLEMENTOS_TRYHARD_TEXTOS) have no known
-    clinically relevant medication interaction at normal doses -- absent
-    from the curated list on purpose, not an oversight."""
+    (see dieta_reglas._SUPLEMENTOS_TEXTOS) have no known clinically
+    relevant medication interaction at normal doses -- absent from the
+    curated list on purpose, not an oversight."""
     assert pares_interaccion_declarados(_perfil(["Creatine"], ["Warfarin"])) == []
     assert pares_interaccion_declarados(_perfil(["Whey protein"], ["Warfarin"])) == []
 

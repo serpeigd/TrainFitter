@@ -130,13 +130,17 @@ This repository is built phase by phase, as a learning project. Right now:
   disliked foods and lifestyle signals (stress/sleep, job type) bias diet
   selection (bilingual keyword matching, still free — see
   [`docs/decisiones.md`](docs/decisiones.md)), and a **commitment-level
-  dial** (`chill`/`normal`/`tryhard`) adjusts set volume and calorie
-  aggressiveness (magnitude only — capped so `tryhard` never crosses into
-  what the trainer's own method calls an aggressive deficit), unlocks a
-  small curated pool of more technically demanding exercises/foods, and
-  surfaces evidence-based supplement tips that skip whatever the client
-  already reports taking. A client-reported supplement alongside regular
-  medication forces enhanced review, the same defense-in-depth pattern
+  dial** (`basico`/`normal`/`avanzado`/`tryhard` — how much detail/
+  guidance the client wants, not how hard to push) adjusts set volume and
+  calorie aggressiveness at its `basico`/`tryhard` ends (magnitude only —
+  capped so `tryhard` never crosses into what the trainer's own method
+  calls an aggressive deficit; `avanzado` deliberately leaves those
+  numbers untouched), unlocks a small curated pool of more technically
+  demanding exercises/foods at the `tryhard` ceiling, and surfaces
+  evidence-based supplement tips (from `avanzado` up) that skip whatever
+  the client already reports taking. A client-reported supplement
+  alongside regular medication forces enhanced review, the same
+  defense-in-depth pattern
   used for allergies and injuries. Every session also carries a real,
   evidence-grounded effort cue (reps-in-reserve guidance — compounds
   1-2 RIR, isolation 0-1 RIR), backed by two sources verified for this

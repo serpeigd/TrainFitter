@@ -79,7 +79,7 @@ entries (kimchi, natto, farro, algae oil) that are only ever candidates for
 a client whose `experiencia.nivel_compromiso` is `"tryhard"` -- these are
 curated by the trainer/project, not something a client types in freely
 (see `fuentes_*_para()`'s own `tryhard` gate). Absent (defaults to `False`
-via `.get("nicho", False)`) on every pre-existing entry, so "chill"/
+via `.get("nicho", False)`) on every pre-existing entry, so "basico"/
 "normal" (the default) behave exactly as before this was added.
 """
 
@@ -157,7 +157,16 @@ FUENTES_PROTEINA = [
         "macros_100g": {"kcal": 370, "proteina_g": 75, "carbohidratos_g": 14, "grasa_g": 1.9},
     },
     {
-        "nombre": "Pea protein (powder)", "nombre_es": "Proteína de guisante (en polvo)",
+        # Named generically, not "Pea protein" specifically -- the concrete
+        # reason it's plant-based at all (rather than whey, this project's
+        # other protein-powder recommendation, see
+        # docs/base_conocimiento/suplementacion.md) is that it needs to be
+        # a candidate for every diet type INCLUDING vegan (tipos_dieta
+        # below), which whey (a dairy product) structurally can't be. The
+        # macros are still real pea-protein-isolate values -- a common,
+        # representative plant protein powder -- just not implying this is
+        # the one specific brand/type recommended over any other.
+        "nombre": "Protein powder (plant-based)", "nombre_es": "Proteína en polvo (vegetal)",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },

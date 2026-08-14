@@ -219,7 +219,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "sec_experiencia": "3. Experiencia de entrenamiento",
             "nivel": "Nivel", "anios": "Años entrenando (aprox.)",
             "exp_detalle": "Cuéntame un poco más (opcional)",
-            "nivel_compromiso": "¿Qué tan exigente quieres el plan?",
+            "nivel_compromiso": "¿Cuánto detalle quieres en el plan?",
             "sec_disponibilidad": "4. Disponibilidad",
             "dias": "Días disponibles por semana", "minutos": "Minutos por sesión",
             "lugar": "Dónde entrenarás", "material": "Material disponible",
@@ -252,7 +252,10 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             ("recomposicion_corporal", "Recomposición"), ("salud_general", "Salud general"),
         ]
         opciones_nivel = [("principiante", "Principiante"), ("intermedio", "Intermedio"), ("avanzado", "Avanzado")]
-        opciones_compromiso = [("chill", "Chill (más suave)"), ("normal", "Normal"), ("tryhard", "Tryhard (más exigente)")]
+        opciones_compromiso = [
+            ("basico", "Básico (solo lo esencial)"), ("normal", "Normal"),
+            ("avanzado", "Avanzado (más detalle)"), ("tryhard", "Tryhard (lo más completo)"),
+        ]
         opciones_lugar = [
             ("gimnasio_completo", "Gimnasio completo"), ("gimnasio_pequeno", "Gimnasio pequeño"),
             ("casa_con_material", "Casa con material"), ("casa_sin_material", "Casa sin material"),
@@ -275,7 +278,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             "sec_experiencia": "3. Training experience",
             "nivel": "Level", "anios": "Years training (approx.)",
             "exp_detalle": "Tell me a bit more (optional)",
-            "nivel_compromiso": "How demanding do you want the plan?",
+            "nivel_compromiso": "How much detail do you want in the plan?",
             "sec_disponibilidad": "4. Availability",
             "dias": "Days available per week", "minutos": "Minutes per session",
             "lugar": "Where you'll train", "material": "Available equipment",
@@ -308,7 +311,10 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
             ("recomposicion_corporal", "Recomposition"), ("salud_general", "General health"),
         ]
         opciones_nivel = [("principiante", "Beginner"), ("intermedio", "Intermediate"), ("avanzado", "Advanced")]
-        opciones_compromiso = [("chill", "Chill (easier)"), ("normal", "Normal"), ("tryhard", "Tryhard (more demanding)")]
+        opciones_compromiso = [
+            ("basico", "Basic (essentials only)"), ("normal", "Normal"),
+            ("avanzado", "Advanced (more detail)"), ("tryhard", "Tryhard (most complete)"),
+        ]
         opciones_lugar = [
             ("gimnasio_completo", "Full gym"), ("gimnasio_pequeno", "Small gym"),
             ("casa_con_material", "Home with equipment"), ("casa_sin_material", "Home, no equipment"),
@@ -336,10 +342,13 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
     f.seccion(t["sec_objetivo"])
     f.radio(CAMPO_OBJETIVO, t["objetivo"], opciones_objetivo)
     f.texto(CAMPO_OBJETIVO_TEXTO, t["objetivo_texto"], multiline=True)
+    # Lives here, not in "Training experience" below -- it's about how
+    # much detail/guidance the GOAL should come with, not about training
+    # background. Moved per direct request; see ui/app.py's matching move.
+    f.radio(CAMPO_NIVEL_COMPROMISO, t["nivel_compromiso"], opciones_compromiso)
 
     f.seccion(t["sec_experiencia"])
     f.radio(CAMPO_NIVEL, t["nivel"], opciones_nivel)
-    f.radio(CAMPO_NIVEL_COMPROMISO, t["nivel_compromiso"], opciones_compromiso)
     f.texto(CAMPO_ANIOS_ENTRENANDO, t["anios"])
     f.texto(CAMPO_EXPERIENCIA_DETALLE, t["exp_detalle"], multiline=True)
 

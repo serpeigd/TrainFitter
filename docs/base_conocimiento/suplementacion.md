@@ -41,6 +41,32 @@
 - **Known side effect:** tingling (paresthesia), harmless; reduced by splitting the
   dose.
 
+## Magnesium
+- **What it does:** cofactor in hundreds of enzymatic reactions — muscle/nerve
+  function, blood sugar regulation, blood pressure, protein/bone/DNA synthesis.
+- **Food first:** leafy greens, legumes, nuts, seeds, whole grains cover most
+  people's needs (RDA ~400-420 mg/day for men, ~310-320 mg/day for women).
+- **When a supplement makes sense:** diet doesn't reliably cover it, or as a
+  practical add-on when reported stress is high or sleep is short (see
+  `estilo_vida_longevidad.md`) — 200-400 mg/day, glycinate or citrate forms are
+  usually better tolerated than oxide.
+- **Caution:** see `Known interaction pairs` below — chelates with several
+  antibiotics/levothyroxine/bisphosphonates, and can accumulate with a
+  potassium-sparing diuretic if kidney function is impaired.
+
+## Omega-3 (EPA/DHA)
+- **What it does:** anti-inflammatory balance, cardiovascular and cognitive
+  health support.
+- **Food first:** 2-3 servings/week of oily fish (salmon, sardines, mackerel)
+  covers general-health needs for most people.
+- **When a supplement makes sense:** diet doesn't include oily fish regularly
+  (or is vegan — see `Algae oil` in `food_bank.py`) — 250-500 mg/day combined
+  EPA+DHA is the general-health range; higher doses (1 g+/day) are for specific
+  cardiovascular indications under medical guidance, not a default recommendation
+  here.
+- **Caution:** see `Known interaction pairs` below — at high doses (≥2-3
+  g/day) can add to an anticoagulant/antiplatelet's bleeding risk.
+
 ## Safety rule
 Any supplement with a possible interaction with medication or a condition (e.g.
 blood thinners ↔ vitamin K, iron/calcium ↔ certain drugs) → **flag for human
@@ -77,7 +103,9 @@ project recommends — see the sections above.
 - [ISSN Position Stand: Beta-Alanine](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4501114/)
 - [NIH ODS — Dietary Supplements for Exercise and Athletic Performance](https://ods.od.nih.gov/factsheets/ExerciseAndAthleticPerformance-HealthProfessional/)
 - [NIH ODS — Vitamin K Health Professional Fact Sheet](https://ods.od.nih.gov/factsheets/VitaminK-HealthProfessional/) (vitamin K ↔ anticoagulants)
-- [NIH ODS — Magnesium Health Professional Fact Sheet](https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/) (magnesium ↔ potassium-sparing diuretics, renal function)
+- [NIH ODS — Magnesium Health Professional Fact Sheet](https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/) (RDA, UL, magnesium ↔ potassium-sparing diuretics, renal function)
+- [Harvard T.H. Chan — The Nutrition Source: Magnesium](https://nutritionsource.hsph.harvard.edu/magnesium/) (food sources, general dosing)
+- [NIH ODS — Omega-3 Fatty Acids Health Professional Fact Sheet](https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/) (general-health EPA/DHA dose range, high-dose bleeding-risk caution)
 - Mineral chelation with tetracyclines/quinolones: standard clinical pharmacology reference, cross-checked via [Drugs.com interaction reports](https://www.drugs.com/drug-interactions/magnesium-glycinate-with-tetracycline-3906-0-2173-0.html)
 - Iron/calcium ↔ levothyroxine timing: [patient.info — Levothyroxine and calcium interaction](https://patient.info/medication-interactions/levothyroxine-and-calcium-interaction), [patient.info — Iron and levothyroxine interaction](https://patient.info/medication-interactions/iron-and-levothyroxine-interaction)
 - Vitamin D ↔ thiazides/digoxin: [MDedge — Hypercalcemia From Diuretics and Vitamin D](https://www.mdedge.com/fedprac/article/87711/hypercalcemia-diuretics-and-vitamin-d)

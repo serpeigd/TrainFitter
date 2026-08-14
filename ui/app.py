@@ -803,14 +803,17 @@ TRANSLATIONS = {
         "sec_goal": "2. Goal",
         "goal_main": "Main goal",
         "goal_in_words": "In their own words (optional)",
+        "commitment_level": "How much detail do they want in the plan?",
+        "commitment_level_caption": (
+            "Basic = just the essentials (one fewer set, a milder calorie target). Normal = the "
+            "default. Advanced = same pace as normal, plus basic supplement tips (creatine, protein, "
+            "magnesium, omega-3) and more specific synergy guidance. Tryhard = the most complete "
+            "version currently possible: one extra set, more demanding exercise variants, a more "
+            "assertive calorie target, full supplement tips, and niche foods/exercises."
+        ),
         "sec_experience": "3. Training experience",
         "level": "Level",
         "years_training": "Years training (approx.)",
-        "commitment_level": "How demanding do they want the plan?",
-        "commitment_level_caption": (
-            "Chill = a bit gentler (one fewer set, a milder calorie target). Tryhard = one extra set, "
-            "more demanding exercise variants, a more assertive calorie target, and supplement tips."
-        ),
         "experience_details": "Details on their experience (optional)",
         "sec_availability": "4. Availability",
         "days_per_week": "Days available per week",
@@ -1050,15 +1053,18 @@ TRANSLATIONS = {
         "sec_goal": "2. Objetivo",
         "goal_main": "Objetivo principal",
         "goal_in_words": "En sus propias palabras (opcional)",
+        "commitment_level": "¿Cuánto detalle quiere en el plan?",
+        "commitment_level_caption": (
+            "Básico = solo lo esencial (una serie menos, objetivo calórico más suave). Normal = el "
+            "punto de partida. Avanzado = mismo ritmo que el normal, más consejos de suplementación "
+            "básica (creatina, proteína, magnesio, omega-3) y guía más específica sobre sinergias. "
+            "Tryhard = la versión más completa posible ahora mismo: una serie más, variantes de "
+            "ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos de "
+            "suplementación, y alimentos/ejercicios de nicho."
+        ),
         "sec_experience": "3. Experiencia entrenando",
         "level": "Nivel",
         "years_training": "Años entrenando (aprox.)",
-        "commitment_level": "¿Qué tan exigente quiere el plan?",
-        "commitment_level_caption": (
-            "Chill = algo más suave (una serie menos, objetivo calórico más moderado). Tryhard = una "
-            "serie más, variantes de ejercicio más exigentes, objetivo calórico más agresivo y "
-            "consejos de suplementación."
-        ),
         "experience_details": "Detalle de su experiencia (opcional)",
         "sec_availability": "4. Disponibilidad",
         "days_per_week": "Días disponibles a la semana",
@@ -1230,8 +1236,15 @@ OPTION_LABELS = {
         "mujer": "Female", "hombre": "Male",
         "hipertrofia": "Build muscle (hypertrophy)", "perdida_grasa": "Lose fat",
         "recomposicion_corporal": "Recomposition (lose fat & build muscle)", "salud_general": "General health",
+        # "avanzado" is shared with experiencia.nivel's own "Advanced" below --
+        # OPTION_LABELS is one flat lookup across every selectbox in this file
+        # (see opt()), not namespaced per field, and nivel_compromiso happens
+        # to reuse the same word for a different field. One shared label is
+        # correct here (both mean "advanced"); commitment_level_caption is
+        # what explains the nivel_compromiso-specific meaning underneath the
+        # widget, so nothing is lost by not having a second, longer label.
         "principiante": "Beginner", "intermedio": "Intermediate", "avanzado": "Advanced",
-        "chill": "Chill (easier)", "normal": "Normal", "tryhard": "Tryhard (more demanding)",
+        "basico": "Basic (essentials only)", "normal": "Normal", "tryhard": "Tryhard (most complete)",
         "gimnasio_completo": "Full gym", "gimnasio_pequeno": "Small gym / limited equipment",
         "casa_con_material": "Home with some equipment", "casa_sin_material": "Home with no equipment",
         "maquinas_guiadas": "Guided machines", "poleas": "Cables", "barras_y_discos": "Barbell & plates",
@@ -1249,7 +1262,7 @@ OPTION_LABELS = {
         "hipertrofia": "Ganar músculo (hipertrofia)", "perdida_grasa": "Perder grasa",
         "recomposicion_corporal": "Recomposición (perder grasa y ganar músculo)", "salud_general": "Salud general",
         "principiante": "Principiante", "intermedio": "Intermedio", "avanzado": "Avanzado",
-        "chill": "Chill (más suave)", "normal": "Normal", "tryhard": "Tryhard (más exigente)",
+        "basico": "Básico (solo lo esencial)", "normal": "Normal", "tryhard": "Tryhard (lo más completo)",
         "gimnasio_completo": "Gimnasio completo", "gimnasio_pequeno": "Gimnasio pequeño / material limitado",
         "casa_con_material": "Casa con algo de material", "casa_sin_material": "Casa sin material",
         "maquinas_guiadas": "Máquinas guiadas", "poleas": "Poleas", "barras_y_discos": "Barras y discos",
@@ -1608,6 +1621,15 @@ def _formulario_ficha_nueva() -> dict | None:
     clave_objetivo, indice_objetivo = _clave_selectbox("objetivo", OBJETIVOS, OBJETIVOS[0])
     principal = st.selectbox(t("goal_main"), OBJETIVOS, format_func=opt, index=indice_objetivo, key=clave_objetivo)
     en_sus_palabras = st.text_area(t("goal_in_words"), key="en_sus_palabras")
+    # Lives here, not in "Training experience" below, since it's really
+    # about how much detail/guidance the *goal* should come with, not
+    # about training background -- moved per direct request.
+    niveles_compromiso = ["basico", "normal", "avanzado", "tryhard"]
+    clave_compromiso, indice_compromiso = _clave_selectbox("nivel_compromiso", niveles_compromiso, "normal")
+    nivel_compromiso = st.selectbox(
+        t("commitment_level"), niveles_compromiso, format_func=opt, index=indice_compromiso, key=clave_compromiso,
+    )
+    st.caption(t("commitment_level_caption"))
 
     st.subheader(t("sec_experience"))
     c6, c7 = st.columns(2)
@@ -1615,12 +1637,6 @@ def _formulario_ficha_nueva() -> dict | None:
     clave_nivel, indice_nivel = _clave_selectbox("nivel", niveles, "principiante")
     nivel = c6.selectbox(t("level"), niveles, format_func=opt, index=indice_nivel, key=clave_nivel)
     anios_entrenando = c7.number_input(t("years_training"), min_value=0.0, max_value=50.0, value=0.5, step=0.5, key="anios")
-    niveles_compromiso = ["chill", "normal", "tryhard"]
-    clave_compromiso, indice_compromiso = _clave_selectbox("nivel_compromiso", niveles_compromiso, "normal")
-    nivel_compromiso = st.selectbox(
-        t("commitment_level"), niveles_compromiso, format_func=opt, index=indice_compromiso, key=clave_compromiso,
-    )
-    st.caption(t("commitment_level_caption"))
     detalle_experiencia = st.text_area(t("experience_details"), key="detalle_experiencia")
 
     st.subheader(t("sec_availability"))

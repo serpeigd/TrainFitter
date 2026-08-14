@@ -626,6 +626,35 @@ collagen (this project's actual recommended supplements) are absent from
 the table on purpose — no relevant interaction at normal doses. 487 tests
 passing (up from 471), 100% coverage on the new module, 97% overall.
 
+The commitment dial's naming/framing changed after a direct correction
+mid-implementation: `experiencia.nivel_compromiso`'s values are now
+**`basico`/`normal`/`avanzado`/`tryhard`** (was `chill`/`normal`/
+`tryhard`, with a `saludable` fourth tier briefly added and renamed
+before shipping — see `docs/decisiones.md`), reframed around "how much
+detail/guidance do you want" rather than "how demanding," with `tryhard`
+explicitly confirmed as the literal ceiling (the most complete
+routine+diet this project can currently produce). `avanzado` unlocks the
+same creatine/protein/magnesium/omega-3 supplement tips
+`dieta_reglas._consejos_suplementos()` already had (caffeine stays
+`tryhard`-only); numbers (`AJUSTE_SERIES_POR_COMPROMISO`,
+`AJUSTE_COMPROMISO_MULTIPLICADOR`) deliberately stay a no-op for
+`avanzado` — detail and physical demand are treated as different axes,
+not coupled just because one increased. The field itself moved from
+"Training experience" to "Goal" in both intake paths (`ui/app.py`,
+`agents/pdf_intake.py`) — it's about how the client wants to pursue the
+goal, not their training background. Separately, `food_bank.py`'s
+"Pea protein (powder)" became "Protein powder (plant-based)" — generic
+per direct request, with the concrete reason (it's the one candidate
+that's plant-based rather than animal-derived, unlike whey, which is why
+it's a vegan-diet candidate at all) now in a code comment instead of
+implied by the name. A real bug the linter caught (not a human review):
+adding a second `"avanzado"` key to `ui/app.py`'s flat, cross-field
+`OPTION_LABELS` dict silently overwrote `experiencia.nivel`'s own
+existing "Advanced" entry — `ruff`'s `F601` flagged the repeated
+dictionary key; fixed by sharing one label between both fields. 494
+tests passing (up from 487, largely renamed rather than net-new), lint
+clean, all six `examples/output_*.json` regenerated.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
