@@ -205,8 +205,8 @@ STARTING POINT, not a final prescription.
     training experience -- "essentials only" applies even to an experienced
     lifter who picked this level.
   - "normal": the default, no adjustment.
-  - "avanzado": same volume as "normal" (its calorie/set numbers never move),
-    but a real middle step for exercise selection -- lean toward dumbbell-level
+  - "avanzado": same volume as "normal" (its set count never moves), but a
+    real middle step for exercise selection -- lean toward dumbbell-level
     variants over both pure bodyweight/machine AND barbell compounds where the
     slot allows. Still never touch the small curated "niche" pool that's
     "tryhard"-only (see below).

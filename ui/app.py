@@ -805,11 +805,12 @@ TRANSLATIONS = {
         "goal_in_words": "In their own words (optional)",
         "commitment_level": "How much detail do they want in the plan?",
         "commitment_level_caption": (
-            "Basic = just the essentials (one fewer set, a milder calorie target). Normal = the "
-            "default. Advanced = same pace as normal, plus basic supplement tips (creatine, protein, "
-            "magnesium, omega-3) and more specific synergy guidance. Tryhard = the most complete "
-            "version currently possible: one extra set, more demanding exercise variants, a more "
-            "assertive calorie target, full supplement tips, and niche foods/exercises."
+            "Basic = just the essentials (one fewer set, a milder calorie target, common everyday "
+            "foods). Normal = the default. Advanced = same pace as normal, but leaning toward dumbbell "
+            "exercise variants and more specialty foods, plus supplement tips and synergy guidance. "
+            "Tryhard = the most complete version currently possible: one extra set, more demanding "
+            "exercise variants, a more assertive calorie target, full supplement tips, and niche "
+            "foods/exercises."
         ),
         "sec_experience": "3. Training experience",
         "level": "Level",
@@ -1055,12 +1056,12 @@ TRANSLATIONS = {
         "goal_in_words": "En sus propias palabras (opcional)",
         "commitment_level": "¿Cuánto detalle quiere en el plan?",
         "commitment_level_caption": (
-            "Básico = solo lo esencial (una serie menos, objetivo calórico más suave). Normal = el "
-            "punto de partida. Avanzado = mismo ritmo que el normal, más consejos de suplementación "
-            "básica (creatina, proteína, magnesio, omega-3) y guía más específica sobre sinergias. "
-            "Tryhard = la versión más completa posible ahora mismo: una serie más, variantes de "
-            "ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos de "
-            "suplementación, y alimentos/ejercicios de nicho."
+            "Básico = solo lo esencial (una serie menos, objetivo calórico más suave, alimentos "
+            "comunes). Normal = el punto de partida. Avanzado = mismo ritmo que el normal, pero con "
+            "variantes de mancuerna y alimentos algo más variados, más consejos de suplementación y "
+            "guía de sinergias. Tryhard = la versión más completa posible ahora mismo: una serie más, "
+            "variantes de ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos "
+            "de suplementación, y alimentos/ejercicios de nicho."
         ),
         "sec_experience": "3. Experiencia entrenando",
         "level": "Nivel",

@@ -131,20 +131,21 @@ This repository is built phase by phase, as a learning project. Right now:
   selection (bilingual keyword matching, still free — see
   [`docs/decisiones.md`](docs/decisiones.md)), and a **commitment-level
   dial** (`basico`/`normal`/`avanzado`/`tryhard` — how much detail/
-  guidance the client wants) shapes both engines end to end: set volume
-  and exercise complexity go from simplest (machine/bodyweight, `basico`
-  — stacking with, not replacing, the client's own training experience)
-  to most technically demanding (`tryhard`); calorie aggressiveness scales
-  the same way (magnitude only — capped so `tryhard` never crosses into
-  what the trainer's own method calls an aggressive deficit); food
-  choices lean toward common, everyday staples at `basico` versus
-  specialty items (tofu, tempeh, quinoa...); and absorption-synergy
-  pairing (plant iron + vitamin C, dinner's larger fat share) plus
-  evidence-based supplement tips only kick in from `avanzado` up, with a
-  small curated pool of niche exercises/foods reserved for the `tryhard`
-  ceiling. A genuine beginner who picks `tryhard` still gets the simpler
-  exercise variants — training experience is a safety signal that
-  outranks a detail-level preference. A client-reported supplement
+  guidance the client wants) shapes both engines end to end: exercise
+  complexity is a real 4-step spectrum (`basico`→machine/bodyweight,
+  `normal`→no bias, `avanzado`→dumbbell, `tryhard`→barbell/technical,
+  stacking with — never replacing — the client's own training
+  experience); food choices bias toward common everyday staples at
+  `basico` and toward specialty items (tofu, tempeh, quinoa...) at
+  `avanzado`, both short of the curated niche pool reserved for
+  `tryhard`; calorie aggressiveness scales at the `basico`/`tryhard`
+  ends only (magnitude only — capped so `tryhard` never crosses into
+  what the trainer's own method calls an aggressive deficit); and
+  absorption-synergy pairing (plant iron + vitamin C, dinner's larger
+  fat share) plus evidence-based supplement tips kick in from
+  `avanzado` up. A genuine beginner who picks `tryhard` still gets the
+  simpler exercise variants — training experience is a safety signal
+  that outranks a detail-level preference. A client-reported supplement
   alongside regular medication forces enhanced review, the same
   defense-in-depth pattern
   used for allergies and injuries. Every session also carries a real,
