@@ -5,7 +5,10 @@ but real coverage of the request-building and response-handling logic
 that tests/test_gmail_client.py's pure-logic-only tests don't reach.
 _obtener_credenciales() is monkeypatched to skip the real OAuth flow
 entirely; everything downstream of it (message building, PDF generation,
-response parsing) runs for real against the mock."""
+response parsing) runs for real against the mock. The one exception is
+the credential-refresh test near the end of this file, which exercises
+_obtener_credenciales() itself against a mocked Credentials object --
+still no real network or OAuth consent screen involved."""
 
 import base64
 from email import message_from_bytes
@@ -573,3 +576,32 @@ def test_enviar_formulario_intake_wraps_http_error(monkeypatch):
     )
     with pytest.raises(GmailClientError):
         gmail_client.enviar_formulario_intake("prospect@example.com")
+
+
+def test_expired_and_revoked_token_wraps_as_gmail_client_error(monkeypatch, tmp_path):
+    """Regression test for a real production crash: a revoked/expired
+    refresh token makes credenciales.refresh() raise google.auth.exceptions
+    .RefreshError, which used to propagate past _obtener_credenciales()
+    uncaught and crash the whole Streamlit app (only GmailClientError,
+    ImportError, ModuleNotFoundError are handled by the caller)."""
+    from google.auth.exceptions import RefreshError
+
+    ruta_token = tmp_path / "token.json"
+    ruta_token.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(gmail_client, "RUTA_TOKEN", ruta_token)
+    monkeypatch.setattr(gmail_client, "RUTA_CREDENCIALES", tmp_path / "credentials.json")
+
+    credenciales_falsas = MagicMock()
+    credenciales_falsas.valid = False
+    credenciales_falsas.expired = True
+    credenciales_falsas.refresh_token = "a-refresh-token"
+    credenciales_falsas.refresh.side_effect = RefreshError(
+        "invalid_grant: Token has been expired or revoked."
+    )
+    monkeypatch.setattr(
+        "google.oauth2.credentials.Credentials.from_authorized_user_file",
+        lambda *a, **k: credenciales_falsas,
+    )
+
+    with pytest.raises(GmailClientError, match="expired or been revoked"):
+        gmail_client._obtener_credenciales()

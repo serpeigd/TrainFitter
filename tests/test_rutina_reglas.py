@@ -45,6 +45,37 @@ def test_bodyweight_only_when_no_equipment(perfil_base):
             assert info["material"] <= {"peso_corporal"}
 
 
+def test_casa_sin_material_ignores_stale_gym_equipment(perfil_base):
+    """A client training at home with no equipment can't also have gym
+    equipment on file -- lugar_entreno wins over whatever
+    material_disponible says (defense-in-depth, see
+    rutina_reglas._material_cliente()'s docstring)."""
+    perfil_base["disponibilidad"]["lugar_entreno"] = "casa_sin_material"
+    perfil_base["disponibilidad"]["material_disponible"] = ["barras_y_discos", "maquinas_guiadas"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        for ejercicio in sesion["ejercicios"]:
+            info = INDICE_EJERCICIOS[ejercicio["nombre"]]
+            assert info["material"] <= {"peso_corporal", "objetos_caseros"}
+
+
+def test_objetos_caseros_available_when_training_at_home(perfil_base):
+    """A home client (with or without gym-style equipment) gets access to
+    the household-object exercise pool -- gym clients don't."""
+    for lugar in ("casa_con_material", "casa_sin_material"):
+        perfil_base["disponibilidad"]["lugar_entreno"] = lugar
+        perfil_base["disponibilidad"]["material_disponible"] = []
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+        assert any(INDICE_EJERCICIOS[n]["material"] == {"objetos_caseros"} for n in nombres)
+
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = []
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert not any(INDICE_EJERCICIOS[n]["material"] == {"objetos_caseros"} for n in nombres)
+
+
 def test_knee_injury_excludes_contraindicated_exercises(perfil_base):
     perfil_base["salud"]["lesiones"] = [
         {"zona": "left knee", "descripcion": "old ACL injury", "estado": "antigua_controlada", "activa_actualmente": False}

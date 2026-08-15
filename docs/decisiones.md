@@ -2011,6 +2011,61 @@ Direct, pointed follow-up the same day: the previous session renamed the four ti
 
 ---
 
+## Equipment/location consistency, creative home training, and a Gmail crash fix
+
+Four follow-ups from live use of the deployed app, shipped together.
+
+**A real, reported bug**: `ui/app.py`'s "Where they train" and "Available
+equipment" fields were independent widgets, so picking "Home with no
+equipment" left whatever gym equipment was last selected (or the
+all-selected default) untouched — a submitted profile could claim a
+barbell at home with none. Fixed at the UI layer (clearing and disabling
+the multiselect for that option) and, more importantly, at the rule-engine
+layer: `rutina_reglas._material_cliente()` now ignores `material_disponible`
+outright whenever `lugar_entreno` is `"casa_sin_material"`, the same
+defense-in-depth reasoning `validator_agent.py` already applies elsewhere
+(don't trust an upstream field when a more authoritative one contradicts
+it) — this also covers the PDF-intake and "Revise client" pre-fill paths,
+which the UI-only fix wouldn't have reached.
+
+**Creative home training, requested directly** ("se creativo, ej: coger
+garrafas de agua"): a new `"objetos_caseros"` equipment tag represents
+household improvised weights (water jugs, a loaded backpack, a towel),
+auto-added by `_material_cliente()` for any client training at home —
+with or without gym-style equipment — mirroring how `"peso_corporal"` is
+always implicitly available. One exercise per muscle group in
+`exercise_bank.py` (9 total), none marked `"nicho"` since the goal is
+variety at every commitment level, not gating behind `"tryhard"`.
+`routine_agent.py`'s `motor="llm"` prompt got the matching instruction,
+keeping engine parity.
+
+**A real production crash, reported with the exact traceback**: a
+revoked/expired Gmail refresh token makes
+`google.auth.exceptions.RefreshError` bubble out of
+`_obtener_credenciales()`'s `credenciales.refresh()` call — previously
+uncaught, so it propagated past `ui/app.py`'s narrow
+`except (GmailClientError, ImportError, ModuleNotFoundError)` and crashed
+the whole app instead of just failing the draft/send action. Same failure
+shape as the earlier PDF-generation crash (see the "Making the commitment
+dial actually change the routine and diet" section above); fixed the same
+way — wrapped into `GmailClientError` with an actionable message (delete
+`token.json`, re-run the OAuth flow, update the `GMAIL_TOKEN_JSON` secret
+on Streamlit Cloud). Re-authorizing itself still needs the project owner
+to actually do it; the fix only stops it from taking the app down.
+
+**The commitment-level caption** became a real per-tier bullet list
+(`- **Basic:** ...` / `**Normal:**` / `**Advanced:**` / `**Tryhard:**`)
+instead of one run-on sentence, in both languages.
+
+3 new tests (equipment/lugar_entreno interaction, objetos_caseros
+availability by location, the RefreshError regression), 508 passing (up
+from 505), lint clean, `examples/output_rutina_3.json` regenerated (the
+only example client who trains at home). The equipment auto-clear was
+also confirmed live in the browser (multiselect empties and disables,
+caption appears) rather than by test coverage alone.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

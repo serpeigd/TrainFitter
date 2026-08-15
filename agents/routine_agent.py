@@ -183,6 +183,11 @@ STARTING POINT, not a final prescription.
 # RULES WHEN DESIGNING THE ROUTINE
 - Adapt days/week, session length, and equipment to the client's real availability.
   Don't propose anything they can't do with what they have.
+- If the client trains at home with little or no gym equipment (`lugar_entreno`
+  "casa_con_material"/"casa_sin_material"), don't default to bodyweight-only:
+  mix in creative household substitutes (water jugs/bottles as dumbbells, a
+  loaded backpack for rows/squats/lunges, a towel on a smooth floor as a
+  sliding surface) alongside genuine bodyweight work.
 - If the profile mentions an injury, a health condition, pregnancy/breastfeeding, or
   any pain: adapt the exercises to avoid what's contraindicated (e.g. avoid deep free
   squats if there's a knee injury) and add the exact reason to

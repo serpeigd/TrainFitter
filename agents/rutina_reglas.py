@@ -242,8 +242,27 @@ NOTA_ESFUERZO_SESION = {
 
 
 def _material_cliente(perfil: dict) -> set[str]:
-    material = set(perfil.get("disponibilidad", {}).get("material_disponible", []))
+    disponibilidad = perfil.get("disponibilidad", {})
+    lugar = disponibilidad.get("lugar_entreno")
+    # Defense-in-depth, same reasoning as validator_agent.py re-deriving
+    # risk from the raw profile instead of trusting an upstream flag: a
+    # client training at home with no equipment can't have gym-style
+    # equipment on file, regardless of what material_disponible says (stale
+    # UI state, a hand-built profile, a parsed intake PDF, or a loaded
+    # revision) -- lugar_entreno is the authoritative signal, not the
+    # equipment list. ui/app.py's form also prevents this contradiction at
+    # entry (see _formulario_ficha_nueva()), but that's a UX nicety, not
+    # the safety net.
+    material = set() if lugar == "casa_sin_material" else set(disponibilidad.get("material_disponible", []))
     material.add("peso_corporal")  # the body is always available
+    if lugar in ("casa_con_material", "casa_sin_material"):
+        # Household objects (water jugs, a loaded backpack, a towel) are
+        # always available for a client training at home -- see
+        # exercise_bank.py's "objetos_caseros"-tagged entries. Not exposed
+        # as a manual MATERIAL_OPCIONES pick in ui/app.py: like
+        # peso_corporal, it's implied by training location, not something
+        # the trainer selects.
+        material.add("objetos_caseros")
     return material
 
 

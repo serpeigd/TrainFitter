@@ -805,12 +805,14 @@ TRANSLATIONS = {
         "goal_in_words": "In their own words (optional)",
         "commitment_level": "How much detail do they want in the plan?",
         "commitment_level_caption": (
-            "Basic = just the essentials (one fewer set, a milder calorie target, common everyday "
-            "foods). Normal = the default. Advanced = same pace as normal, but leaning toward dumbbell "
-            "exercise variants and more specialty foods, plus supplement tips and synergy guidance. "
-            "Tryhard = the most complete version currently possible: one extra set, more demanding "
-            "exercise variants, a more assertive calorie target, full supplement tips, and niche "
-            "foods/exercises."
+            "- **Basic:** just the essentials — one fewer set, a milder calorie target, common "
+            "everyday foods.\n"
+            "- **Normal:** the default, no adjustment.\n"
+            "- **Advanced:** same pace as normal, but leaning toward dumbbell exercise variants and "
+            "more specialty foods, plus supplement tips and synergy guidance.\n"
+            "- **Tryhard:** the most complete version currently possible — one extra set, more "
+            "demanding exercise variants, a more assertive calorie target, full supplement tips, "
+            "and niche foods/exercises."
         ),
         "sec_experience": "3. Training experience",
         "level": "Level",
@@ -821,6 +823,10 @@ TRANSLATIONS = {
         "minutes_per_session": "Minutes per session",
         "training_location": "Where they train",
         "available_equipment": "Available equipment",
+        "no_equipment_home_caption": (
+            "No gym-style equipment for this option — the routine will lean on bodyweight work "
+            "plus creative household substitutes (water jugs, a loaded backpack, a towel...) instead."
+        ),
         "sec_health": "5. Health",
         "sec_health_caption": "None of this closes any doors — the more we know, the better we can look after the plan.",
         "has_injury": "Do they have any injury (current or old)?",
@@ -1056,12 +1062,14 @@ TRANSLATIONS = {
         "goal_in_words": "En sus propias palabras (opcional)",
         "commitment_level": "¿Cuánto detalle quiere en el plan?",
         "commitment_level_caption": (
-            "Básico = solo lo esencial (una serie menos, objetivo calórico más suave, alimentos "
-            "comunes). Normal = el punto de partida. Avanzado = mismo ritmo que el normal, pero con "
-            "variantes de mancuerna y alimentos algo más variados, más consejos de suplementación y "
-            "guía de sinergias. Tryhard = la versión más completa posible ahora mismo: una serie más, "
-            "variantes de ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos "
-            "de suplementación, y alimentos/ejercicios de nicho."
+            "- **Básico:** solo lo esencial — una serie menos, objetivo calórico más suave, "
+            "alimentos comunes.\n"
+            "- **Normal:** el punto de partida, sin ajustes.\n"
+            "- **Avanzado:** mismo ritmo que el normal, pero con variantes de mancuerna y alimentos "
+            "algo más variados, más consejos de suplementación y guía de sinergias.\n"
+            "- **Tryhard:** la versión más completa posible ahora mismo — una serie más, variantes "
+            "de ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos de "
+            "suplementación, y alimentos/ejercicios de nicho."
         ),
         "sec_experience": "3. Experiencia entrenando",
         "level": "Nivel",
@@ -1072,6 +1080,11 @@ TRANSLATIONS = {
         "minutes_per_session": "Minutos por sesión",
         "training_location": "Dónde entrena",
         "available_equipment": "Material disponible",
+        "no_equipment_home_caption": (
+            "Sin material de gimnasio para esta opción — la rutina se apoyará en trabajo con peso "
+            "corporal más sustitutos caseros creativos (garrafas de agua, una mochila cargada, "
+            "una toalla...)."
+        ),
         "sec_health": "5. Salud",
         "sec_health_caption": "Nada de esto le cierra puertas — cuanto más sepamos, mejor podemos cuidar el plan.",
         "has_injury": "¿Tiene alguna lesión (actual o antigua)?",
@@ -1650,9 +1663,23 @@ def _formulario_ficha_nueva() -> dict | None:
         t("training_location"), lugares_entreno, format_func=opt, index=indice_lugar, key=clave_lugar,
     )
     clave_material, valor_material = _clave_multiselect("material", MATERIAL_OPCIONES)
+    # A client training at home with no equipment can't also have gym
+    # equipment on file -- previously this multiselect kept whatever was
+    # last picked (or defaulted to every option) regardless of
+    # lugar_entreno, so switching to "casa_sin_material" silently left
+    # stale/nonsensical equipment selected. Pre-clearing session_state
+    # before the widget is instantiated is the standard Streamlit way to
+    # override a widget's value programmatically; disabled=True stops the
+    # trainer from re-adding equipment that contradicts the chosen location.
+    sin_material = lugar_entreno == "casa_sin_material"
+    if sin_material:
+        st.session_state[clave_material] = []
     material_disponible = st.multiselect(
-        t("available_equipment"), MATERIAL_OPCIONES, default=valor_material, format_func=opt, key=clave_material,
+        t("available_equipment"), MATERIAL_OPCIONES, default=valor_material, format_func=opt,
+        key=clave_material, disabled=sin_material,
     )
+    if sin_material:
+        st.caption(t("no_equipment_home_caption"))
 
     st.subheader(t("sec_health"))
     st.caption(t("sec_health_caption"))

@@ -352,6 +352,7 @@ def _obtener_credenciales():
             "(see mcp/gmail_client.py's module docstring for the full steps)."
         )
 
+    from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from google_auth_oauthlib.flow import InstalledAppFlow
@@ -362,7 +363,25 @@ def _obtener_credenciales():
 
     if not credenciales or not credenciales.valid:
         if credenciales and credenciales.expired and credenciales.refresh_token:
-            credenciales.refresh(Request())
+            try:
+                credenciales.refresh(Request())
+            except RefreshError as exc:
+                # A revoked/expired refresh token (Google access revoked,
+                # password change, >6 months unused) surfaces as this raw
+                # exception -- previously uncaught here, so it propagated
+                # past ui/app.py's narrow `except (GmailClientError,
+                # ImportError, ModuleNotFoundError)` and crashed the whole
+                # app instead of just failing the draft/send action. Wrapped
+                # into the one exception type the caller already handles,
+                # same fix shape as the PDF-generation bug documented above
+                # crear_borrador(). Re-authorizing needs a real human (the
+                # OAuth consent screen), not something this function can do
+                # on its own -- see this module's docstring for the steps.
+                raise GmailClientError(
+                    "Gmail access has expired or been revoked -- re-authorize locally "
+                    f"(delete {RUTA_TOKEN.name} and rerun the OAuth flow) and, on "
+                    "Streamlit Cloud, update the GMAIL_TOKEN_JSON secret with the new token."
+                ) from exc
         else:
             if not RUTA_CREDENCIALES.exists():
                 raise GmailClientError(

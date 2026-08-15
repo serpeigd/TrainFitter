@@ -20,7 +20,7 @@
       "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Bodyweight squat",
+          "nombre": "Loaded backpack goblet squat",
           "grupo": "pierna_cuadriceps",
           "tipo": "basico",
           "series": 3,
@@ -38,7 +38,7 @@
           "notas": ""
         },
         {
-          "nombre": "Pull-ups (assisted if needed)",
+          "nombre": "Loaded backpack row",
           "grupo": "espalda",
           "tipo": "basico",
           "series": 3,
@@ -56,7 +56,7 @@
           "notas": ""
         },
         {
-          "nombre": "Dumbbell front raise",
+          "nombre": "Water jug lateral raise",
           "grupo": "hombro",
           "tipo": "aislamiento",
           "series": 3,
@@ -81,7 +81,7 @@
       "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
-          "nombre": "Dumbbell lunges",
+          "nombre": "Bodyweight squat",
           "grupo": "pierna_cuadriceps",
           "tipo": "basico",
           "series": 3,
@@ -151,7 +151,7 @@
           "notas": ""
         },
         {
-          "nombre": "Incline dumbbell press",
+          "nombre": "Water jug floor press",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 3,
@@ -160,7 +160,7 @@
           "notas": ""
         },
         {
-          "nombre": "One-arm dumbbell row",
+          "nombre": "Pull-ups (assisted if needed)",
           "grupo": "espalda",
           "tipo": "basico",
           "series": 3,

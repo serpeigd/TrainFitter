@@ -702,6 +702,33 @@ curated `"nicho"` pool, which stays `tryhard`-exclusive. Caught and
 fixed two now-stale `resumen_enfoque` sentences that still claimed
 `avanzado` didn't touch training/food choice. 505 tests passing.
 
+Four follow-ups from live use, all shipped together. The commitment-level
+caption in `ui/app.py` is now a real per-tier bullet list
+(`- **Basic:** ...`) instead of one run-on sentence. A real bug: the
+"Where they train" and "Available equipment" fields were two independent
+widgets, so picking "Home with no equipment" silently kept whatever gym
+equipment was last selected (or the all-selected default) — a client
+profile could claim a barbell at home with nothing in it.
+`_formulario_ficha_nueva()` now clears and disables the equipment
+multiselect for that option; `rutina_reglas._material_cliente()` also
+ignores `material_disponible` outright when `lugar_entreno` is
+"casa_sin_material", regardless of what's on the profile (defense-in-depth,
+covering the PDF-intake and "Revise client" paths too, not just this one
+form). Home training also got more creative: a new `"objetos_caseros"`
+equipment tag (water jugs, a loaded backpack, a towel) auto-applies for
+both "casa_con_material" and "casa_sin_material" — one exercise per
+muscle group in `exercise_bank.py`, none marked `"nicho"` so they're
+available at every commitment level; `routine_agent.py`'s prompt got the
+matching instruction for engine parity. And a real production crash:
+`google.auth.exceptions.RefreshError` (a revoked/expired Gmail token) was
+raised uncaught from `_obtener_credenciales()`'s `credenciales.refresh()`
+call, past `ui/app.py`'s narrow `except (GmailClientError, ImportError,
+ModuleNotFoundError)` clause — same failure shape as the earlier PDF-
+generation crash, fixed the same way: wrapped into `GmailClientError`
+with an actionable re-authorization message. 508 tests passing (up from
+505), lint clean, `examples/output_rutina_3.json` regenerated (the one
+example client who trains at home).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
