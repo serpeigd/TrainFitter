@@ -10,7 +10,7 @@ import httpx
 import notion_connector
 import pytest
 from notion_client.errors import APIErrorCode, APIResponseError
-from notion_connector import NotionClientError
+from notion_connector import NotionClientError, PortalTokenError
 
 
 def _api_error(message="error"):
@@ -338,6 +338,7 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
         "objetivo": None,
         "plan_semanal": [],
         "sesiones": [],
+        "idioma": "en",
     }
     cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
 
@@ -544,6 +545,114 @@ def test_buscar_cliente_por_email_wraps_api_error(monkeypatch):
     cliente.databases.retrieve.side_effect = _api_error()
     with pytest.raises(NotionClientError):
         notion_connector.buscar_cliente_por_email("client@example.com")
+
+
+# --- generar_referencia_portal() / resolver_referencia_portal() -------------
+
+
+def test_generar_referencia_portal_writes_email_and_reference(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}  # no collision on the first try
+
+    codigo = notion_connector.generar_referencia_portal("page-1", "client@example.com")
+
+    assert isinstance(codigo, str) and len(codigo) >= 6
+    _args, kwargs = cliente.pages.update.call_args
+    assert kwargs["page_id"] == "page-1"
+    assert kwargs["properties"]["Email"] == {"email": "client@example.com"}
+    assert kwargs["properties"]["Portal Reference"]["rich_text"][0]["text"]["content"] == codigo
+    assert "start" in kwargs["properties"]["Portal Reference Expires"]["date"]
+
+
+def test_generar_referencia_portal_retries_on_a_collision(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    # First candidate collides with an existing client's code, second doesn't.
+    cliente.data_sources.query.side_effect = [{"results": [{"id": "someone-else"}]}, {"results": []}]
+
+    codigo = notion_connector.generar_referencia_portal("page-1", "client@example.com")
+
+    assert isinstance(codigo, str)
+    assert cliente.data_sources.query.call_count == 2
+
+
+def test_generar_referencia_portal_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.generar_referencia_portal("page-1", "client@example.com")
+
+
+def test_resolver_referencia_portal_returns_email_and_page(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [{
+            "id": "page-1",
+            "properties": {
+                "Email": {"email": "client@example.com"},
+                "Portal Reference Expires": {"date": {"start": "2099-01-01T00:00:00+00:00"}},
+            },
+        }]
+    }
+
+    carga = notion_connector.resolver_referencia_portal("abc12345")
+
+    assert carga == {"email": "client@example.com", "pagina": "page-1"}
+
+
+def test_resolver_referencia_portal_raises_when_not_found(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {"results": []}
+
+    with pytest.raises(PortalTokenError, match="isn't valid"):
+        notion_connector.resolver_referencia_portal("doesnotexist")
+
+
+def test_resolver_referencia_portal_raises_when_expired(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [{
+            "id": "page-1",
+            "properties": {
+                "Email": {"email": "client@example.com"},
+                "Portal Reference Expires": {"date": {"start": "2000-01-01T00:00:00+00:00"}},
+            },
+        }]
+    }
+
+    with pytest.raises(PortalTokenError, match="expired"):
+        notion_connector.resolver_referencia_portal("abc12345")
+
+
+def test_resolver_referencia_portal_raises_when_email_missing(monkeypatch):
+    """Defensive: a matching record with no Email on file (shouldn't
+    happen in practice -- generar_referencia_portal() always backfills it
+    -- but a hand-edited Notion record could still trigger this)."""
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.return_value = {"data_sources": [{"id": "ds-clients"}]}
+    cliente.data_sources.query.return_value = {
+        "results": [{
+            "id": "page-1",
+            "properties": {
+                "Email": {},
+                "Portal Reference Expires": {"date": {"start": "2099-01-01T00:00:00+00:00"}},
+            },
+        }]
+    }
+
+    with pytest.raises(PortalTokenError, match="isn't valid"):
+        notion_connector.resolver_referencia_portal("abc12345")
+
+
+def test_resolver_referencia_portal_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.databases.retrieve.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.resolver_referencia_portal("abc12345")
 
 
 # --- historial_checkins() ---------------------------------------------------

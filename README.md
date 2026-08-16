@@ -189,9 +189,13 @@ This repository is built phase by phase, as a learning project. Right now:
   a public deployment the same way "Revisar cliente" is.
 - A **client-facing portal** (magic link, no password): the trainer can send a
   client a private link to view a summary of their plan and log a check-in
-  directly — no PDF round-trip needed. Links are signed, stateless, and
-  self-expiring (see [`agents/portal_tokens.py`](agents/portal_tokens.py)), so
-  no separate database of issued links is needed. Sessions completed can
+  directly — no PDF round-trip needed. Links are a short, opaque reference
+  code (`?ref=...`, ~8 characters) resolved against the client's own Notion
+  record — see
+  [`mcp/notion_connector.py`](mcp/notion_connector.py)'s
+  `generar_referencia_portal()`/`resolver_referencia_portal()` — so no
+  separate token database is needed, and links still self-expire (7 days by
+  default). Sessions completed can
   exceed what was planned (an explicit "I trained more than planned" checkbox
   covers a genuine extra session); diet days followed can't exceed the check-in
   period, since that bound is definitional rather than a target. The moment a
@@ -305,15 +309,14 @@ actually been verified:
   markers* from that PDF are stored in Notion's "Full Profile (JSON)" and carried forward
   automatically on a revision (verified live — a carried-forward out-of-range marker still
   forces `revision_reforzada`) — only the raw file itself isn't recoverable.
-- **The client portal's "view your plan" screen is bounded by a truncated summary**, not
-  the full generated routine/diet JSON — it reads back the same ≤2000-character summary
-  `guardar_registro_cliente()` saves to Notion's Clients database, by design (see
-  `docs/decisiones.md`'s portal entry): no second full-plan storage layer was added just
-  for that screen.
-- **A magic link can't be revoked individually once issued.** `agents/portal_tokens.py`'s
-  tokens are stateless (no database to remove one from) — the only ways to invalidate a
-  link early are its own expiry (7 days by default) or rotating `PORTAL_SECRET_KEY`,
-  which invalidates *every* outstanding link at once.
+- **A magic link can be revoked early, but only by hand in Notion** — clearing the
+  client's "Portal Reference" property invalidates it immediately. There's no
+  "revoke" button in the app itself; the default is still its own expiry (7 days).
+- **A liked meal/exercise in the client portal can't be un-liked from the portal
+  itself.** The 🤍/❤️ button is one-way by design (see `ui/app.py`'s
+  `_vista_portal_cliente()`) — `agregar_comida_favorita()`/`agregar_ejercicio_favorito()`
+  only ever append; removing one means editing "Liked Meals (JSON)"/"Liked Exercises
+  (JSON)" in Notion directly.
 - **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
   after a period of no traffic triggers a cold start (can take up to a minute); this is a
   hosting trade-off, not an application bug.
@@ -359,7 +362,6 @@ no PDF/Gmail/Notion features) needs none of them. Copy [`.env.example`](.env.exa
 | `ANTHROPIC_API_KEY` | `motor="llm"` (optional generative-AI engine) | Pay-per-token — see [Free-only by design](#free-only-by-design) |
 | `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `NOTION_CHECKINS_DATABASE_ID` | Notion connector (`mcp/notion_connector.py`) | Free Notion integration token; `NOTION_DATABASE_ID` is "Clients", `NOTION_CHECKINS_DATABASE_ID` is the separate "Check-ins" database |
 | `APP_APPROVAL_PASSWORD` | Gating the "Approve" button, plus the "Revise client" and "Clients" sections, on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail or browse real clients' personal data |
-| `PORTAL_SECRET_KEY` | Client portal magic links (`agents/portal_tokens.py`) | Any long random string; rotating it invalidates every outstanding link |
 | `PORTAL_BASE_URL` | Building a clickable portal link | Defaults to `http://localhost:8501`; set to the real deployment URL in production |
 | `TRAINER_NOTIFICATION_EMAIL` | Automatic trainer notification on a client check-in | Optional; unset = notification skipped entirely, the check-in itself still saves |
 
@@ -392,8 +394,8 @@ of how directly they follow from what's already disclosed above:
   designed but untested for real) to compare draft quality against the rule engine.
 - Widen `buscar_intakes_nuevos()`'s real-inbox test coverage if a safe way to do so is
   found that doesn't require broadening the Gmail OAuth scope beyond what it needs.
-- A way to revoke a single portal magic link early, without rotating the shared secret
-  key for every client at once.
+- A self-serve "revoke this link" button in the app itself — currently only possible by
+  clearing the client's "Portal Reference" property in Notion by hand.
 - Expanding the knowledge base (`docs/base_conocimiento/`) — see the `update-knowledge-base`
   project skill for the process already used to add the adherence/behavior-change note.
 

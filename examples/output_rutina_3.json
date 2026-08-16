@@ -29,7 +29,7 @@
           "notas": ""
         },
         {
-          "nombre": "Parallel bar dips",
+          "nombre": "Push-ups (standard)",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 3,
@@ -38,7 +38,7 @@
           "notas": ""
         },
         {
-          "nombre": "Loaded backpack row",
+          "nombre": "Inverted row (bodyweight)",
           "grupo": "espalda",
           "tipo": "basico",
           "series": 3,
@@ -90,7 +90,7 @@
           "notas": ""
         },
         {
-          "nombre": "Push-ups (standard)",
+          "nombre": "Water jug floor press",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 3,
@@ -99,7 +99,7 @@
           "notas": ""
         },
         {
-          "nombre": "Inverted row (bodyweight)",
+          "nombre": "Loaded backpack row",
           "grupo": "espalda",
           "tipo": "basico",
           "series": 3,
@@ -117,7 +117,7 @@
           "notas": ""
         },
         {
-          "nombre": "Dumbbell lateral raise",
+          "nombre": "Dumbbell front raise",
           "grupo": "hombro",
           "tipo": "aislamiento",
           "series": 3,
@@ -151,7 +151,7 @@
           "notas": ""
         },
         {
-          "nombre": "Water jug floor press",
+          "nombre": "Incline dumbbell press",
           "grupo": "pecho",
           "tipo": "basico",
           "series": 3,
@@ -160,7 +160,7 @@
           "notas": ""
         },
         {
-          "nombre": "Pull-ups (assisted if needed)",
+          "nombre": "One-arm dumbbell row",
           "grupo": "espalda",
           "tipo": "basico",
           "series": 3,
@@ -178,7 +178,7 @@
           "notas": ""
         },
         {
-          "nombre": "Dumbbell front raise",
+          "nombre": "Dumbbell lateral raise",
           "grupo": "hombro",
           "tipo": "aislamiento",
           "series": 3,

@@ -36,8 +36,9 @@ trainer-triggered with fixed, non-improvised content, or aimed at the
 trainer's own inbox rather than a client's — never a client receiving
 unsolicited, trainer-unreviewed content: enviar_enlace_portal() sends a
 real message (via messages().send(), not drafts().create()) containing
-nothing but a signed magic link (see agents/portal_tokens.py) to the
-client portal — never plan content, never anything the trainer hasn't
+nothing but a magic link (see mcp/notion_connector.py's
+generar_referencia_portal()) to the client portal — never plan content,
+never anything the trainer hasn't
 already approved. This is a real, considered trade-off against the
 draft-only principle above, made explicitly by the project owner (not a
 default), because a magic link is only useful if it actually reaches the
@@ -225,12 +226,22 @@ def _construir_cuerpo_email(
     together as one wall of text, with its own baked-in greeting stripped
     (see _quitar_saludo()) and replaced by one shared greeting up top --
     the client's name used to open three lines in a row before this.
+    Greets by first name only (see _quitar_saludo()'s own splitting logic)
+    -- reads warmer than the full name every time.
 
     Adds one genuinely useful, skimmable line per section straight from
     the plan itself (borrador_rutina["progresion"], the diet's first
     consejos_sinergias entry) rather than making the client open a PDF
     just to see the single most actionable tip -- a real request, not
     cosmetic: "easy to read, key points, without much text."
+
+    DESIGN -- wrapper text was rewritten from a bulleted "📎 Attached: •
+    X • Y" list and "👉" arrow-prefixed tip callouts into plain sentences
+    (real feedback: it read too much like an automated assistant, not a
+    trainer). Kept: the 🏋️/🍽️ section labels (a real scannability request
+    from earlier, not cosmetic) and the reply/PDF-app instructions
+    (genuinely needed information, just phrased as one person telling
+    another how to do something instead of a numbered caveat list).
 
     Args:
         incluir_checklist: whether the adherence checklist PDF was
@@ -245,6 +256,7 @@ def _construir_cuerpo_email(
     trainer had selected when the plan was created (see
     rutina_reglas.py/dieta_reglas.py), so this just needs to match that,
     not translate anything itself."""
+    primer_nombre = nombre_cliente.split()[0] if nombre_cliente.strip() else nombre_cliente
     mensaje_rutina = _quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
     mensaje_dieta = _quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
     tip_rutina = borrador_rutina.get("progresion", "")
@@ -252,49 +264,45 @@ def _construir_cuerpo_email(
     tip_dieta = tips_dieta[0] if tips_dieta else ""
 
     if idioma == "es":
-        adjuntos = ["🏋️ Tu rutina (PDF)", "🍽️ Tu dieta (PDF)"]
-        if incluir_checklist:
-            adjuntos.append("✅ Checklist de seguimiento (PDF, rellenable)")
-        cierre = "📎 Adjunto:\n" + "\n".join(f"• {a}" for a in adjuntos)
+        cierre = "Te adjunto tu rutina y tu dieta en PDF"
+        cierre += ", más el checklist para que lo rellenes cuando empieces." if incluir_checklist else "."
         if incluir_checklist:
             cierre += (
-                "\n\nDentro de unas semanas, cuando ya hayas empezado, rellena el checklist y "
-                "RESPONDE A ESTE EMAIL con el PDF adjunto de nuevo — al responder, el archivo "
-                "no se adjunta solo, así que tendrás que volver a adjuntarlo tú."
+                "\n\nDentro de unas semanas, cuando ya hayas arrancado, rellénalo y respóndeme a "
+                "este mismo correo con el PDF adjunto otra vez (al responder no se adjunta solo, "
+                "así que tendrás que volver a añadirlo tú)."
             )
         cierre += (
-            "\n\nSi el visor de tu correo/Drive no te deja escribir en los campos de un PDF, "
+            "\n\nSi el visor de tu correo o de Drive no te deja escribir en los campos del PDF, "
             "descárgalo y ábrelo con Adobe Acrobat Reader (gratis) u otra app de PDF."
         )
         return (
-            f"Hola {nombre_cliente},\n\n"
+            f"Hola {primer_nombre},\n\n"
             f"🏋️ Tu rutina\n{mensaje_rutina}\n"
-            + (f"👉 {tip_rutina}\n" if tip_rutina else "")
+            + (f"\n{tip_rutina}\n" if tip_rutina else "")
             + f"\n🍽️ Tu dieta\n{mensaje_dieta}\n"
-            + (f"👉 {tip_dieta}\n" if tip_dieta else "")
+            + (f"\n{tip_dieta}\n" if tip_dieta else "")
             + f"\n{cierre}"
         )
 
-    adjuntos = ["🏋️ Your routine (PDF)", "🍽️ Your diet (PDF)"]
-    if incluir_checklist:
-        adjuntos.append("✅ Adherence checklist (PDF, fillable)")
-    cierre = "📎 Attached:\n" + "\n".join(f"• {a}" for a in adjuntos)
+    cierre = "I've attached your routine and diet as PDFs"
+    cierre += ", plus the checklist to fill in once you've started." if incluir_checklist else "."
     if incluir_checklist:
         cierre += (
-            "\n\nIn a few weeks, once you've actually started, fill in the checklist and REPLY "
-            "TO THIS EMAIL with the PDF attached again — replying doesn't carry the attachment "
-            "over automatically, so you'll need to attach it yourself."
+            "\n\nIn a few weeks, once you've actually started, fill it in and reply to this same "
+            "email with the PDF attached again (replying doesn't carry the attachment over "
+            "automatically, so you'll need to add it back yourself)."
         )
     cierre += (
-        "\n\nIf your mail/Drive preview won't let you type into a PDF's fields, download it and "
-        "open it in Adobe Acrobat Reader (free) or another PDF app."
+        "\n\nIf your mail or Drive preview won't let you type into the PDF's fields, download it "
+        "and open it in Adobe Acrobat Reader (free) or another PDF app."
     )
     return (
-        f"Hi {nombre_cliente},\n\n"
+        f"Hi {primer_nombre},\n\n"
         f"🏋️ Your routine\n{mensaje_rutina}\n"
-        + (f"👉 {tip_rutina}\n" if tip_rutina else "")
+        + (f"\n{tip_rutina}\n" if tip_rutina else "")
         + f"\n🍽️ Your diet\n{mensaje_dieta}\n"
-        + (f"👉 {tip_dieta}\n" if tip_dieta else "")
+        + (f"\n{tip_dieta}\n" if tip_dieta else "")
         + f"\n{cierre}"
     )
 
@@ -506,24 +514,28 @@ def _construir_cuerpo_portal(nombre_cliente: str, url_portal: str, idioma: str =
     """Fixed, code-defined template with exactly one variable slot (the
     link itself) -- see the module docstring's DESIGN note on gmail.send
     for why that matters specifically for this one function. Pure
-    formatting, no I/O, trivially unit-testable."""
+    formatting, no I/O, trivially unit-testable.
+
+    Greets by first name only, same as _construir_cuerpo_email() -- real
+    feedback that every client-facing email should read less formal/
+    automated, more like one person writing to another."""
+    primer_nombre = nombre_cliente.split()[0] if nombre_cliente.strip() else nombre_cliente
     if idioma == "es":
         return (
-            f"Hola {nombre_cliente},\n\n"
+            f"Hola {primer_nombre},\n\n"
             f"Aquí tienes tu enlace personal al portal de TrainFitter, donde "
-            f"puedes ver un resumen de tu plan y registrar cómo te va:\n\n"
+            f"puedes ver tu plan de esta semana y contarme cómo te va:\n\n"
             f"{url_portal}\n\n"
-            f"Este enlace es solo tuyo — no lo compartas. Caduca pasados unos "
-            f"días; si deja de funcionar, pídele a tu entrenador/a uno nuevo."
+            f"Es solo tuyo, así que mejor no lo compartas. Caduca pasados "
+            f"unos días — si deja de funcionar, pídeme uno nuevo."
         )
     return (
-        f"Hi {nombre_cliente},\n\n"
+        f"Hi {primer_nombre},\n\n"
         f"Here's your personal link to the TrainFitter client portal, where "
-        f"you can see a summary of your plan and log how it's going:\n\n"
+        f"you can see this week's plan and let me know how it's going:\n\n"
         f"{url_portal}\n\n"
-        f"This link is just for you — please don't share it. It expires "
-        f"after a few days; ask your trainer for a new one if it stops "
-        f"working."
+        f"It's just for you, so best not to share it. It expires after a "
+        f"few days — if it stops working, just ask me for a new one."
     )
 
 
@@ -538,7 +550,8 @@ def enviar_enlace_portal(destinatario: str, nombre_cliente: str, url_portal: str
         destinatario: the client's email.
         nombre_cliente: used only for the greeting.
         url_portal: the full, already-built portal URL (see
-            agents/portal_tokens.py + ui/app.py for how it's assembled).
+            mcp/notion_connector.py's generar_referencia_portal() + ui/app.py
+            for how it's assembled).
         idioma: "en" (default) or "es" — this email's own wrapper text.
 
     Raises:

@@ -84,14 +84,16 @@ Two paths run alongside the core flow above, both reusing the same underlying
 pieces rather than duplicating them:
 
 - **Client portal (magic link):** instead of the trainer confirming a send, the
-  trainer can send the client a signed, self-expiring link
-  (`agents/portal_tokens.py`) via `gmail_client.enviar_enlace_portal()` — the one
-  function in the codebase allowed to call `messages().send()` for a client-facing
-  message. The client opens `ui/app.py` with a `?portal_token=...` query param,
-  sees a summary read back from the same Notion "Clients" record, and can log a
-  check-in themselves (feeding the same `crear_registro_checkin()` the PDF-based
-  loop uses) — including their own check-in history and, optionally, their
-  current weight.
+  trainer can send the client a short, self-expiring reference link
+  (`notion_connector.generar_referencia_portal()`, resolved by
+  `resolver_referencia_portal()`) via `gmail_client.enviar_enlace_portal()` — the
+  one function in the codebase allowed to call `messages().send()` for a
+  client-facing message. The client opens `ui/app.py` with a `?ref=...` query
+  param, sees their current week's plan read back from the same Notion "Clients"
+  record (in whichever language it was generated in — see the "Language"
+  property), and can log a check-in themselves (feeding the same
+  `crear_registro_checkin()` the PDF-based loop uses) — including their own
+  check-in history and, optionally, their current weight.
 - **Revise client:** the trainer looks up a past client by email
   (`notion_connector.buscar_cliente_por_email()`), and the same intake form used
   for a brand-new client reopens pre-filled with their stored `perfil_cliente`.
@@ -224,7 +226,7 @@ a pipeline as fast as the rule engine.
 | Gmail connector (draft + send-detection) | `mcp/gmail_client.py` | 5 | **Done** |
 | Automatic trigger (adherence + new intakes) | `main.py` + `.github/workflows/inbox_trigger.yml` | 6 | **Done** |
 | Intake PDF (generate + read) | `agents/pdf_intake.py` | 6 | **Done** |
-| Client portal (magic link) | `agents/portal_tokens.py`, `ui/app.py`'s `_vista_portal_cliente()` | 6+ | **Done** |
+| Client portal (magic link) | `notion_connector.py`'s `generar_referencia_portal()`, `ui/app.py`'s `_vista_portal_cliente()` | 6+ | **Done** |
 | Revise client (Notion-backed full profile) | `notion_connector.py`'s `buscar_cliente_por_email()`/`actualizar_registro_cliente()`, `ui/app.py`'s `_cargar_ficha_para_revisar()` | 6+ | **Done** |
 | Client roster + trend charts | `notion_connector.py`'s `listar_clientes()`/`ultimo_checkin_por_cliente()`, `ui/app.py`'s `_panel_todos_los_clientes()`/`_render_grafico_tendencia()` | 6+ | **Done** |
 

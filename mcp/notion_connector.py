@@ -69,9 +69,44 @@ scope or a separate state file. Only main.py's automated "Adherence
 check-in" rows set it — the existing "Plan sent" (ui/app.py) and manual
 rows the trainer types in Notion directly have no message ID to attach.
 
+DESIGN — "Language" records which UI language (en/es) a plan was actually
+generated in, straight from st.session_state.lang at save time: the
+client portal used to always render its own chrome in English regardless
+of what language the client's routine/diet text itself was written in
+(real complaint from live use), because a fresh client browser session
+has no way to know which language the trainer used. Read back by
+_vista_portal_cliente() to set the page's own language before rendering
+anything, exactly like the trainer's own language toggle already does for
+the rest of this file's translated strings. Defaults to "en" for older
+records saved before this property existed, matching this project's
+existing "en" default everywhere idioma is threaded through.
+
+DESIGN — generar_referencia_portal()/resolver_referencia_portal() replaced
+agents/portal_tokens.py's stateless, signed HMAC token entirely: that
+design encoded the client's email + Notion page ID + expiry directly into
+the URL, base64'd and hex-signed, which produced a genuinely unusable
+~250-character link (real complaint from live use — "queda algo raro").
+The fix trades the "verifiable with zero network calls" property for a
+short, opaque ~8-character code (`secrets.token_urlsafe`) stored on the
+client's own Clients record ("Portal Reference"/"Portal Reference
+Expires") and resolved with one Notion lookup — a real trade against the
+project's general "avoid new backend state" bias, but a narrow one: no
+new database, just two more properties on a record that already exists
+per client, and the portal already makes a Notion call immediately after
+resolving the link anyway (obtener_registro_cliente()), so "zero network
+calls to verify" was never actually saving a round trip in practice.
+Tamper-resistance doesn't need a signature here either — the code is
+random and opaque, not a payload a client could edit to point elsewhere;
+guessing another valid code is exactly as hard as guessing a signed
+token of comparable length. Genuine trade-offs, disclosed rather than
+glossed over: (1) a portal link sent under the old format stops working
+the moment this shipped — no backward-compat shim, a fresh link is one
+click away; (2) the trainer can now revoke a link early by clearing the
+Notion property by hand, something the old design explicitly couldn't do.
+
 DESIGN — obtener_registro_cliente() feeds the client portal without
 needing the full profile: a client following their own magic link (see
-agents/portal_tokens.py) only ever needs to see a short "your plan"
+generar_referencia_portal() above) only ever needs to see a short "your plan"
 summary, so it reads back the same summarized fields
 guardar_registro_cliente() already saved for the trainer's own panel —
 nothing client-facing reads "Full Profile (JSON)" (below), and it never
@@ -144,7 +179,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Email (email), Source message ID (text),
        Full Profile (JSON) (text), Weekly Meal Plan (JSON) (text),
        Liked Meals (JSON) (text), Weekly Routine (JSON) (text),
-       Liked Exercises (JSON) (text)
+       Liked Exercises (JSON) (text), Portal Reference (text),
+       Portal Reference Expires (date), Language (select: en/es)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
@@ -159,9 +195,13 @@ Setup (one-time, free, done by the project owner — never by this code):
 
 import json
 import os
+import secrets
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+DIAS_VALIDEZ_REFERENCIA_POR_DEFECTO = 7
 
 # database_id -> data_source_id, populated lazily by
 # _id_fuente_datos_checkins() below. A database's data source doesn't
@@ -197,6 +237,16 @@ class NotionClientError(Exception):
     credentials or a Notion API failure. The UI is expected to catch this
     and skip silently rather than interrupt the trainer's flow over a
     best-effort background save."""
+
+
+class PortalTokenError(Exception):
+    """Raised when a client portal link's reference code doesn't resolve --
+    missing, mistyped, unknown, or expired. ui/app.py is expected to catch
+    this and show a plain "this link isn't valid" message instead of
+    crashing. Lives here (not in a dedicated module) because resolving a
+    reference now IS a Notion lookup -- see generar_referencia_portal()'s
+    docstring for why the earlier stateless-signed-token design (agents/
+    portal_tokens.py, removed) was replaced."""
 
 
 def _construir_resumen(borrador_rutina: dict, borrador_dieta: dict) -> str:
@@ -242,6 +292,7 @@ def _unir_bloques_notion(propiedad: dict) -> str:
 
 def _construir_propiedades_pagina(
     perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict, id_mensaje: str | None = None,
+    idioma: str = "en",
 ) -> dict:
     """Builds the Notion page "properties" payload matching the database
     schema documented in this module's docstring. Pure function: no I/O,
@@ -252,7 +303,10 @@ def _construir_propiedades_pagina(
     mcp.gmail_client.buscar_intakes_nuevos()) -- lets
     existe_cliente_para_mensaje() dedupe a re-scanned inbox the same way
     Check-ins already does for adherence replies. A trainer approving a
-    plan manually through ui/app.py never sets this."""
+    plan manually through ui/app.py never sets this.
+
+    idioma: "en" (default) or "es" -- the UI language the plan was
+    generated in (see this module's "Language" DESIGN note above)."""
     datos = perfil_cliente["datos_basicos"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     nivel = perfil_cliente["experiencia"]["nivel"]
@@ -264,6 +318,7 @@ def _construir_propiedades_pagina(
         "Level": {"select": {"name": NIVEL_LABELS.get(nivel, nivel)}},
         "Verdict": {"select": {"name": VEREDICTO_LABELS.get(veredicto["veredicto"], veredicto["veredicto"])}},
         "Summary": {"rich_text": [{"text": {"content": _construir_resumen(borrador_rutina, borrador_dieta)}}]},
+        "Language": {"select": {"name": idioma}},
         "Email Sent": {"checkbox": False},
         "Full Profile (JSON)": {
             "rich_text": _dividir_bloques_notion(json.dumps(perfil_cliente, ensure_ascii=False))
@@ -303,6 +358,7 @@ def _credenciales() -> tuple[str, str]:
 
 def guardar_registro_cliente(
     perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict, id_mensaje: str | None = None,
+    idioma: str = "en",
 ) -> dict:
     """
     Saves a summarized record of this client's plan as a new page in the
@@ -315,6 +371,9 @@ def guardar_registro_cliente(
             mcp.gmail_client.buscar_intakes_nuevos()); ui/app.py's manual
             approval flow never does. See
             _construir_propiedades_pagina()'s docstring for why it exists.
+        idioma: "en" (default) or "es" — passed straight to
+            _construir_propiedades_pagina() (see this module's "Language"
+            DESIGN note).
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it}. The ID
@@ -336,7 +395,9 @@ def guardar_registro_cliente(
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto, id_mensaje)
+    propiedades = _construir_propiedades_pagina(
+        perfil_cliente, borrador_rutina, borrador_dieta, veredicto, id_mensaje, idioma,
+    )
 
     try:
         cliente = Client(auth=api_key)
@@ -397,6 +458,7 @@ def marcar_email_enviado(pagina_id: str) -> None:
 
 def actualizar_registro_cliente(
     pagina_id: str, perfil_cliente: dict, borrador_rutina: dict, borrador_dieta: dict, veredicto: dict,
+    idioma: str = "en",
 ) -> dict:
     """
     Overwrites an existing Clients record in place with a revised plan --
@@ -410,6 +472,9 @@ def actualizar_registro_cliente(
     guardar_registro_cliente() call -- revising a client doesn't undo
     whatever the trainer already confirmed about the original plan's
     send status.
+
+    idioma: "en" (default) or "es" — same as guardar_registro_cliente();
+    a revision regenerated in a different language updates "Language" too.
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it} --
@@ -426,7 +491,7 @@ def actualizar_registro_cliente(
     from notion_client import Client
     from notion_client.errors import APIResponseError
 
-    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto)
+    propiedades = _construir_propiedades_pagina(perfil_cliente, borrador_rutina, borrador_dieta, veredicto, idioma=idioma)
     del propiedades["Email Sent"]
 
     try:
@@ -466,6 +531,9 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
     fecha = (propiedades.get("Date", {}).get("date") or {}).get("start")
     objetivo_label = (propiedades.get("Goal", {}).get("select") or {}).get("name")
     objetivo = _LABEL_A_OBJETIVO.get(objetivo_label)
+    # Defaults to "en" for a record saved before "Language" existed --
+    # matches every other idioma default in this project.
+    idioma = (propiedades.get("Language", {}).get("select") or {}).get("name") or "en"
     texto_plan = _unir_bloques_notion(propiedades.get("Weekly Meal Plan (JSON)", {}))
     try:
         plan_semanal = json.loads(texto_plan) if texto_plan else []
@@ -478,15 +546,123 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
         sesiones = []
     return {
         "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
-        "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones,
+        "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones, "idioma": idioma,
     }
+
+
+def generar_referencia_portal(
+    pagina_id: str, email: str, dias_validez: int = DIAS_VALIDEZ_REFERENCIA_POR_DEFECTO,
+) -> str:
+    """
+    Issues a short, opaque reference code identifying one client's portal
+    session, stored on their own Clients record -- the short-link
+    replacement for agents/portal_tokens.py's removed signed-token design
+    (see this module's DESIGN note above for the full reasoning). Returns
+    a URL-safe string meant to go straight into a `?ref=...` query param.
+
+    Also backfills the "Email" property (the same write
+    actualizar_email_cliente() already does elsewhere) so
+    resolver_referencia_portal() can always read it back -- the trainer
+    has already typed this address into the panel section that triggers
+    this call, regardless of whether a Gmail draft was ever created for
+    this client.
+
+    Raises:
+        NotionClientError: missing credentials, a Notion API failure, or
+            (astronomically unlikely with 48 bits of entropy) 5
+            consecutive collisions against existing codes.
+    """
+    api_key, database_id = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        data_source_id = _id_fuente_datos(cliente, database_id)
+
+        codigo = None
+        for _intento in range(5):
+            candidato = secrets.token_urlsafe(6)
+            resultado = cliente.data_sources.query(
+                data_source_id=data_source_id,
+                filter={"property": "Portal Reference", "rich_text": {"equals": candidato}},
+                page_size=1,
+            )
+            if not resultado["results"]:
+                codigo = candidato
+                break
+        if codigo is None:
+            raise NotionClientError("Could not generate a unique portal reference after 5 attempts.")
+
+        expira = (datetime.now(timezone.utc) + timedelta(days=dias_validez)).isoformat()
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={
+                "Email": {"email": email},
+                "Portal Reference": {"rich_text": [{"text": {"content": codigo}}]},
+                "Portal Reference Expires": {"date": {"start": expira}},
+            },
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    return codigo
+
+
+def resolver_referencia_portal(codigo: str) -> dict:
+    """
+    Resolves a client portal reference code (from a `?ref=...` query
+    param) back to the client's email and Notion page ID -- the read side
+    of generar_referencia_portal() above, and the direct replacement for
+    agents/portal_tokens.py's removed verificar_token_portal().
+
+    Returns:
+        {"email": ..., "pagina": the Notion page ID}.
+
+    Raises:
+        PortalTokenError: the code doesn't match any record, the matching
+            record has no reference expiry on file, or it's expired.
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, database_id = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        resultado = cliente.data_sources.query(
+            data_source_id=_id_fuente_datos(cliente, database_id),
+            filter={"property": "Portal Reference", "rich_text": {"equals": codigo}},
+            page_size=1,
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+    if not resultado["results"]:
+        raise PortalTokenError("This portal link isn't valid.")
+
+    propiedades = resultado["results"][0]["properties"]
+    expira_str = (propiedades.get("Portal Reference Expires", {}).get("date") or {}).get("start")
+    if not expira_str or datetime.fromisoformat(expira_str) < datetime.now(timezone.utc):
+        raise PortalTokenError("This portal link has expired -- ask your trainer for a new one.")
+
+    email = (propiedades.get("Email", {}) or {}).get("email")
+    if not email:
+        raise PortalTokenError("This portal link isn't valid.")
+
+    return {"email": email, "pagina": resultado["results"][0]["id"]}
 
 
 def obtener_registro_cliente(pagina_id: str) -> dict:
     """
     Reads back a Clients record's client-facing fields -- what the portal
-    (a client following their own magic link, see agents/portal_tokens.py)
-    shows as "your plan". Reads the routine+diet summary (name, verdict,
+    (a client following their own magic link, see
+    generar_referencia_portal()/resolver_referencia_portal() above) shows
+    as "your plan". Reads the routine+diet summary (name, verdict,
     admission date, "Summary"'s 2000-char truncated content -- see this
     module's docstring) PLUS the full "Weekly Meal Plan (JSON)"/"Weekly
     Routine (JSON)" -- a deliberate, later reversal of this function's
@@ -500,11 +676,11 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
 
     Args:
         pagina_id: the Notion page ID returned by guardar_registro_cliente()
-            (embedded in the magic link's signed payload, not typed by
-            the client).
+            (resolved from the magic link's reference code via
+            resolver_referencia_portal(), never typed by the client).
 
     Returns:
-        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones"}.
+        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones", "idioma"}.
 
     Raises:
         NotionClientError: missing credentials, the page doesn't exist

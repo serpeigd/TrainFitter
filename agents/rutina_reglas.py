@@ -263,6 +263,14 @@ def _material_cliente(perfil: dict) -> set[str]:
         # peso_corporal, it's implied by training location, not something
         # the trainer selects.
         material.add("objetos_caseros")
+    if lugar in ("gimnasio_completo", "gimnasio_pequeno"):
+        # A pull-up bar / dip station is close to universal gym equipment,
+        # unlike a genuine home setup -- see exercise_bank.py's
+        # "estructura_fija" DESIGN note for the real bug this fixes
+        # (pull-ups/dips were being suggested to clients with no bar or
+        # dip station at home, since "peso_corporal" alone doesn't capture
+        # needing something to hang or push off of).
+        material.add("estructura_fija")
     return material
 
 

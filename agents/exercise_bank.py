@@ -28,6 +28,22 @@ this tag whenever `lugar_entreno` is "casa_con_material" or
 None of these are "nicho": they're meant to add variety at every
 commitment level, not gate behind "tryhard".
 
+DESIGN — "estructura_fija" (fixed anchor point: a pull-up bar, dip bars,
+or equivalent), split out from "peso_corporal": a real, reported bug —
+"peso_corporal" was treated as always available (see
+rutina_reglas.py's _material_cliente()'s "the body is always available"
+comment), which is true for push-ups or a bodyweight squat but NOT for
+a pull-up or a dip, both of which genuinely need something to hang or
+push off of that most homes don't have. Pull-ups/dips/anything else that
+needs a real anchor now require BOTH "peso_corporal" AND
+"estructura_fija" — _material_cliente() grants "estructura_fija" for gym
+locations (a pull-up bar/dip station is close to universal gym
+equipment) but NOT for either home location, so a "casa_sin_material" or
+"casa_con_material" client no longer gets pull-ups/dips suggested. Each
+affected muscle group still keeps at least one genuine zero-equipment
+"basico" candidate (push-ups for chest, inverted rows for back), so this
+is a narrowing, not a dead end.
+
 Note on scope: the "nombre" (name) values are the exercise's CANONICAL
 name — English, and deliberately never swapped for Spanish even when the UI
 language is Spanish. rutina_reglas.py selects exercises by this value, and
@@ -50,7 +66,7 @@ EXERCISE_BANK = [
     {"nombre": "Incline dumbbell press", "nombre_es": "Press inclinado con mancuernas", "grupo": "pecho", "material": {"mancuernas", "bancos"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Machine chest press", "nombre_es": "Press de pecho en máquina", "grupo": "pecho", "material": {"maquinas_guiadas"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "High cable crossover / flye", "nombre_es": "Cruce de poleas altas / aperturas", "grupo": "pecho", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
-    {"nombre": "Parallel bar dips", "nombre_es": "Fondos en paralelas", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
+    {"nombre": "Parallel bar dips", "nombre_es": "Fondos en paralelas", "grupo": "pecho", "material": {"peso_corporal", "estructura_fija"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
     {"nombre": "Push-ups (standard)", "nombre_es": "Flexiones (estándar)", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Deficit push-up", "nombre_es": "Flexión en déficit", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
     {"nombre": "Water jug floor press", "nombre_es": "Press de suelo con garrafas de agua", "grupo": "pecho", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": set()},
@@ -59,11 +75,11 @@ EXERCISE_BANK = [
     {"nombre": "High cable row (close grip)", "nombre_es": "Remo en polea alta (agarre cerrado)", "grupo": "espalda", "material": {"poleas"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Lat pulldown", "nombre_es": "Jalón al pecho", "grupo": "espalda", "material": {"poleas"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "One-arm dumbbell row", "nombre_es": "Remo a una mano con mancuerna", "grupo": "espalda", "material": {"mancuernas", "bancos"}, "tipo": "basico", "contraindicaciones": set()},
-    {"nombre": "Pull-ups (assisted if needed)", "nombre_es": "Dominadas (asistidas si hace falta)", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
+    {"nombre": "Pull-ups (assisted if needed)", "nombre_es": "Dominadas (asistidas si hace falta)", "grupo": "espalda", "material": {"peso_corporal", "estructura_fija"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
     {"nombre": "Cable pullover", "nombre_es": "Pullover en polea", "grupo": "espalda", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Face pull", "nombre_es": "Face pull (jalón a la cara)", "grupo": "espalda", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Inverted row (bodyweight)", "nombre_es": "Remo invertido (peso corporal)", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
-    {"nombre": "Weighted pull-up", "nombre_es": "Dominada lastrada", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
+    {"nombre": "Weighted pull-up", "nombre_es": "Dominada lastrada", "grupo": "espalda", "material": {"peso_corporal", "estructura_fija"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
     {"nombre": "Loaded backpack row", "nombre_es": "Remo con mochila cargada", "grupo": "espalda", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": set()},
 
     # --- SHOULDERS ---
@@ -123,7 +139,7 @@ EXERCISE_BANK = [
     {"nombre": "Cable crunch", "nombre_es": "Crunch en polea", "grupo": "core", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Hanging / lying leg raise", "nombre_es": "Elevación de piernas (colgado o tumbado)", "grupo": "core", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Cable Pallof press", "nombre_es": "Pallof press en polea", "grupo": "core", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}},
-    {"nombre": "Dragon flag", "nombre_es": "Dragon flag", "grupo": "core", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}, "nicho": True},
+    {"nombre": "Dragon flag", "nombre_es": "Dragon flag", "grupo": "core", "material": {"peso_corporal", "estructura_fija"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}, "nicho": True},
     {"nombre": "Towel sliding mountain climbers", "nombre_es": "Escaladores con toalla deslizante", "grupo": "core", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": set()},
 ]
 

@@ -162,26 +162,33 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   and how much specialty/niche food shows up.
   - "basico": keep the calorie target gentler than usual. Favor common,
     everyday foods (chicken, rice, eggs, broccoli-type staples) over
-    specialty items (tofu/tempeh/edamame/seitan/quinoa/plant protein powder/
-    chia-flax seeds) whenever an equally valid common option exists for the
-    profile. Do NOT apply absorption-synergy pairing (e.g. plant iron +
-    vitamin C in the same meal) or mention it in `consejos_sinergias` -- keep
-    the diet simple and unexplained beyond "this is healthy and fits your
-    macros."
+    specialty items (quinoa/plant protein powder/chia-flax seeds, or --
+    for a vegetarian/vegan profile -- tofu/tempeh/edamame/seitan) whenever
+    an equally valid common option exists for the profile. Do NOT apply
+    absorption-synergy pairing (e.g. plant iron + vitamin C in the same
+    meal) or mention it in `consejos_sinergias` -- keep the diet simple
+    and unexplained beyond "this is healthy and fits your macros."
   - "normal": the default -- same food variety as today, still no synergy
     pairing/explanation.
   - "avanzado": calorie target exactly as "normal" (no extra aggressiveness).
     From here up, DO apply absorption synergies when they fit the profile
     (e.g. plant iron + vitamin C in vegetarian/vegan diets) and explain them
-    in `consejos_sinergias`. Also lean toward the specialty foods listed
-    above (tofu/tempeh/quinoa/...) over the plainest common option -- a real
-    middle step toward "tryhard"'s niche foods below, without using that
-    curated niche list itself.
+    in `consejos_sinergias`. Also lean toward specialty foods (quinoa,
+    plant protein powder, chia/flax) over the plainest common option -- a
+    real middle step toward "tryhard"'s niche foods below, without using
+    that curated niche list itself.
   - "tryhard" (the most complete level this project currently offers): the
     calorie target can be a bit more assertive (never crossing into an
     aggressive deficit/surplus), and you may suggest niche foods (the
     project's own curated list -- kimchi, natto, farro, algae oil) on top of
     everything "avanzado" already does.
+  - Tofu/tempeh/edamame/seitan/plant protein powder are a special case:
+    for an OMNIVORE client (`nutricion.tipo_dieta == "omnivora"`), treat
+    them like the "tryhard" niche list above -- genuinely out of place at
+    "basico"/"normal"/"avanzado" (real feedback: "cosas muy raras para una
+    dieta normal"), only suggest them at "tryhard". For a vegetarian/vegan
+    profile they stay available at every level, same as before -- there
+    they're a genuine protein staple, not a specialty item.
 - For "avanzado" or "tryhard" specifically, you may include general evidence-based
   supplement tips (creatine, protein powder, magnesium, omega-3, and — "tryhard"
   only — caffeine) -- skip any supplement the client already listed under

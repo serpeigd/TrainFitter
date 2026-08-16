@@ -729,6 +729,42 @@ with an actionable re-authorization message. 508 tests passing (up from
 505), lint clean, `examples/output_rutina_3.json` regenerated (the one
 example client who trains at home).
 
+The client portal's magic link went from a ~250-character signed HMAC
+token (`agents/portal_tokens.py`, deleted) to a short ~8-character
+reference code stored on the client's own Notion record
+(`notion_connector.generar_referencia_portal()`/
+`resolver_referencia_portal()`, two new schema properties) — a real
+complaint from live use, verified end-to-end against the real workspace.
+A new "Language" property makes the portal render in whichever language
+the plan was actually generated in, instead of always defaulting to
+English. The portal page itself dropped its old opening prose summary
+and merged two expanders into one, open by default — "minimalista, pocos
+clicks," a direct request. `nivel_compromiso`'s "avanzado" option now
+shows "(PRO)" in that one dropdown only (`_opt_compromiso()`, avoids the
+shared-label collision with `experiencia.nivel`). Every Gmail template
+was rewritten for a warmer, less automated-sounding tone (first-name
+greetings, no bulleted attachment lists, first-person portal-link
+wording) — "que parezcan mucho menos IA," also a direct request. 508
+tests passing, lint clean, no example diffs (none of this touches the
+rule engines). See `docs/decisiones.md` for the full write-up, including
+the un-like limitation disclosed rather than built speculatively.
+
+Two more real personalization bugs fixed the same week, both reported
+directly. Routine: pull-ups/dips were tagged `"peso_corporal"` only,
+treated as always available — true for a push-up, not for something
+that needs a bar most homes don't have. New `"estructura_fija"` tag,
+granted only for gym locations. Diet: tofu/tempeh/edamame/seitan/plant
+protein powder were equally likely for an omnivore as for a vegetarian/
+vegan client at every non-tryhard level — "cosas muy raras para una
+dieta normal." New `"nicho_omnivoro"` tag makes them tryhard-exclusive
+specifically for `tipo_dieta == "omnivora"`, unaffected for vegetarian/
+vegan. A much bigger ask (grounding the whole diet in real, branded
+Mercadona/Lidl/Consum/Aldi products) was scoped down to this instead,
+confirmed directly with the project owner first — no public API for
+3 of those 4 chains, and product data would go stale without upkeep;
+left open as a later phase. 512 tests passing, lint clean, one example
+diff (`output_rutina_3.json`).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
@@ -754,10 +790,9 @@ if the user explicitly opts in to spending money.
 | Bloodwork parser | `agents/analytics_parser.py` |
 | Diet/checklist PDF generation + reading | `agents/pdf_generador.py` |
 | Intake PDF generation + reading | `agents/pdf_intake.py` |
-| Client portal magic-link tokens (signed, stateless) | `agents/portal_tokens.py` |
 | Adherence summary formatting (rating, Notion text, suggested next step) | `agents/adherencia_parser.py` |
 | Gmail connector (draft + portal-link send + adherence-reply/new-intake search) | `mcp/gmail_client.py` |
-| Notion connector (auto-save + check-ins) | `mcp/notion_connector.py` |
+| Notion connector (auto-save + check-ins + portal reference codes) | `mcp/notion_connector.py` |
 | Automatic inbox trigger (cron; adherence + new intakes) | `main.py`, `.github/workflows/inbox_trigger.yml` |
 | Streamlit UI | `ui/app.py` |
 | Tests | `tests/` (`conftest.py` fixture + `test_*.py` per module) |

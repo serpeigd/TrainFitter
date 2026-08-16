@@ -37,12 +37,17 @@ def test_four_days_alternates_upper_lower(perfil_base):
 
 
 def test_bodyweight_only_when_no_equipment(perfil_base):
+    """perfil_base trains at a gym (the fixture's default lugar_entreno),
+    so "estructura_fija" (a pull-up bar / dip station -- near-universal
+    gym equipment, see exercise_bank.py's DESIGN note) is still granted
+    even with material_disponible emptied out; only actual pickable
+    equipment (dumbbells, machines...) is excluded here."""
     perfil_base["disponibilidad"]["material_disponible"] = []
     borrador = generar_borrador_rutina_reglas(perfil_base)
     for sesion in borrador["sesiones"]:
         for ejercicio in sesion["ejercicios"]:
             info = INDICE_EJERCICIOS[ejercicio["nombre"]]
-            assert info["material"] <= {"peso_corporal"}
+            assert info["material"] <= {"peso_corporal", "estructura_fija"}
 
 
 def test_casa_sin_material_ignores_stale_gym_equipment(perfil_base):
@@ -57,6 +62,39 @@ def test_casa_sin_material_ignores_stale_gym_equipment(perfil_base):
         for ejercicio in sesion["ejercicios"]:
             info = INDICE_EJERCICIOS[ejercicio["nombre"]]
             assert info["material"] <= {"peso_corporal", "objetos_caseros"}
+
+
+def test_home_clients_never_get_pull_ups_or_dips(perfil_base):
+    """Real reported bug: pull-ups/dips were tagged material={"peso_corporal"}
+    only, so they were treated as always available -- true for a push-up,
+    not for something that needs a bar or dip station most homes don't
+    have. Neither home location (with or without other equipment) should
+    ever suggest them."""
+    ejercicios_con_estructura_fija = {
+        n for n, info in INDICE_EJERCICIOS.items() if "estructura_fija" in info["material"]
+    }
+    for lugar in ("casa_con_material", "casa_sin_material"):
+        perfil_base["disponibilidad"]["lugar_entreno"] = lugar
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+        assert not (nombres & ejercicios_con_estructura_fija)
+
+
+def test_gym_clients_can_still_get_pull_ups(perfil_base):
+    """Guards against overcorrecting -- a real gym (unlike a home setup)
+    is assumed to have a pull-up bar / dip station, so "estructura_fija"
+    should still be reachable there."""
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = []
+    encontrado = False
+    for id_cliente in range(30):
+        perfil_base["id_cliente"] = f"cliente_test_{id_cliente}"
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+        if "Pull-ups (assisted if needed)" in nombres:
+            encontrado = True
+            break
+    assert encontrado
 
 
 def test_objetos_caseros_available_when_training_at_home(perfil_base):

@@ -159,7 +159,7 @@ def test_enviar_enlace_portal_sends_not_drafts(monkeypatch):
     servicio = _mock_service(monkeypatch)
     servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {"id": "msg-1"}
 
-    gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://trainfitter.streamlit.app/?portal_token=abc.def")
+    gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://trainfitter.streamlit.app/?ref=abc12345")
 
     servicio.users.return_value.messages.return_value.send.assert_called_once()
     servicio.users.return_value.drafts.return_value.create.assert_not_called()
@@ -171,7 +171,7 @@ def test_enviar_enlace_portal_sends_not_drafts(monkeypatch):
     raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
     mensaje = message_from_bytes(raw)
     assert mensaje["to"] == "client@example.com"
-    assert "portal_token=abc.def" in mensaje.get_payload(decode=True).decode("utf-8")
+    assert "ref=abc12345" in mensaje.get_payload(decode=True).decode("utf-8")
 
 
 def test_enviar_enlace_portal_wraps_http_error(monkeypatch):
@@ -180,7 +180,7 @@ def test_enviar_enlace_portal_wraps_http_error(monkeypatch):
         _FakeResp(500), b"server error"
     )
     with pytest.raises(GmailClientError):
-        gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://example.com/?portal_token=abc.def")
+        gmail_client.enviar_enlace_portal("client@example.com", "Ana", "https://example.com/?ref=abc12345")
 
 
 # --- enviar_notificacion_checkin() -------------------------------------------

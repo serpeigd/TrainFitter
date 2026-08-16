@@ -350,6 +350,37 @@ def test_niche_foods_still_respect_allergy_exclusion_in_tryhard_mode(perfil_base
     assert "Natto" not in fuentes_proteina_para(perfil_base)
 
 
+def test_plant_protein_alternatives_excluded_for_omnivore_below_tryhard(perfil_base):
+    """Real reported bug: tofu/tempeh/edamame/seitan/plant protein powder
+    declare tipos_dieta including "omnivora" (needed so they're genuine
+    candidates for a vegetarian/vegan client), which also made them
+    equally likely for a meat-eating client at every level -- "cosas muy
+    raras para una dieta normal". Now tryhard-exclusive specifically for
+    omnivore, same as a true "nicho" food."""
+    perfil_base["nutricion"]["tipo_dieta"] = "omnivora"
+    for nivel in (None, "basico", "normal", "avanzado"):
+        if nivel:
+            perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        fuentes = fuentes_proteina_para(perfil_base)
+        for raro in ("Tofu", "Tempeh", "Edamame", "Seitan", "Protein powder (plant-based)"):
+            assert raro not in fuentes, f"{raro!r} should be excluded at nivel_compromiso={nivel!r}"
+
+    perfil_base["experiencia"]["nivel_compromiso"] = "tryhard"
+    tryhard = fuentes_proteina_para(perfil_base)
+    for disponible in ("Tofu", "Tempeh", "Edamame", "Seitan", "Protein powder (plant-based)"):
+        assert disponible in tryhard
+
+
+def test_plant_protein_alternatives_stay_available_for_vegetarian_and_vegan(perfil_base):
+    """The same foods are genuine staples, not "raro", for a vegetarian/
+    vegan client -- the nicho_omnivoro gate must only apply to omnivore."""
+    for tipo in ("vegetariana_ovolacto", "vegana"):
+        perfil_base["nutricion"]["tipo_dieta"] = tipo
+        fuentes = fuentes_proteina_para(perfil_base)
+        assert "Tofu" in fuentes
+        assert "Protein powder (plant-based)" in fuentes
+
+
 def test_categoria_inquietud_conocida_matches_antiinflamatorio():
     assert categoria_inquietud_conocida("anti-inflammatory") == "antiinflamatorio"
     assert categoria_inquietud_conocida("Antiinflamatoria") == "antiinflamatorio"

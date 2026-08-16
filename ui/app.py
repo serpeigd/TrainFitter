@@ -142,11 +142,11 @@ def _verificar_password(intento: str | None) -> bool:
     return False
 
 
-# Needed to build a full, clickable portal URL (generar_token_portal() only
-# returns the token itself) -- defaults to local dev's own address; set to
-# the real deployed URL (e.g. https://trainfitter.streamlit.app) via env
-# var / Streamlit secret on any real deployment, same pattern as every
-# other optional secret here.
+# Needed to build a full, clickable portal URL (generar_referencia_portal()
+# only returns the reference code itself) -- defaults to local dev's own
+# address; set to the real deployed URL (e.g. https://trainfitter.streamlit.app)
+# via env var / Streamlit secret on any real deployment, same pattern as
+# every other optional secret here.
 PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "http://localhost:8501")
 # Optional -- the trainer's own inbox, notified automatically the moment a
 # client submits a portal check-in (see gmail_client.py's DESIGN note on
@@ -215,23 +215,25 @@ from gmail_client import (  # noqa: E402
 )
 from notion_connector import (  # noqa: E402
     NotionClientError,
+    PortalTokenError,
     actualizar_email_cliente,
     actualizar_registro_cliente,
     agregar_comida_favorita,
     agregar_ejercicio_favorito,
     buscar_cliente_por_email,
     crear_registro_checkin,
+    generar_referencia_portal,
     guardar_registro_cliente,
     historial_checkins,
     listar_clientes,
     marcar_email_enviado,
     obtener_registro_cliente,
+    resolver_referencia_portal,
     ultimo_checkin_por_cliente,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import DIAS_SEMANA_DIETA  # noqa: E402
 from pdf_intake import es_intake_pdf, leer_intake_pdf  # noqa: E402
-from portal_tokens import PortalTokenError, generar_token_portal, verificar_token_portal  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
@@ -951,12 +953,13 @@ TRANSLATIONS = {
         "portal_load_error": "Could not load your plan: {error}",
         "portal_welcome": "Hi {nombre} 👋",
         "portal_since_label": "Client since {fecha}",
-        "portal_meals_header": "🍽️ Your meals this week",
+        "portal_plan_header": "📋 Your plan this week",
+        "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": (
             "Loved a meal? Tap 🤍 to like it — liked meals show up more often in your future plans."
         ),
         "portal_meal_like_error": "Could not save that: {error}",
-        "portal_routine_header": "🏋️ Your routine this week",
+        "portal_routine_header": "🏋️ Routine",
         "portal_routine_caption": (
             "Loved an exercise? Tap 🤍 to like it — liked exercises show up more often in your future routines."
         ),
@@ -1322,6 +1325,16 @@ def opt(key: str) -> str:
     return OPTION_LABELS[st.session_state.lang].get(key, key)
 
 
+def _opt_compromiso(valor: str) -> str:
+    """Same as opt(), except the commitment-level selectbox's "avanzado"
+    option gets a "(PRO)" suffix -- opt()'s own "avanzado" entry is shared
+    with experiencia.nivel's unrelated "Advanced" (see the comment above
+    OPTION_LABELS), so the suffix can't live in that shared dict without
+    leaking onto the training-experience field too."""
+    etiqueta = opt(valor)
+    return f"{etiqueta} (PRO)" if valor == "avanzado" else etiqueta
+
+
 # Preset dropdown for nutricion.inquietud_principal (see docs/decisiones.md):
 # each preset maps to a natural-language phrase food_bank.py's
 # _PALABRAS_CLAVE_PREFERENCIA_BLANDA already recognizes for that category --
@@ -1641,7 +1654,8 @@ def _formulario_ficha_nueva() -> dict | None:
     niveles_compromiso = ["basico", "normal", "avanzado", "tryhard"]
     clave_compromiso, indice_compromiso = _clave_selectbox("nivel_compromiso", niveles_compromiso, "normal")
     nivel_compromiso = st.selectbox(
-        t("commitment_level"), niveles_compromiso, format_func=opt, index=indice_compromiso, key=clave_compromiso,
+        t("commitment_level"), niveles_compromiso, format_func=_opt_compromiso, index=indice_compromiso,
+        key=clave_compromiso,
     )
     st.caption(t("commitment_level_caption"))
 
@@ -2160,11 +2174,12 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
             if es_revision:
                 resultado = actualizar_registro_cliente(
                     st.session_state["revisar_pagina_id"], perfil, estado.borrador_rutina, estado.borrador_dieta,
-                    estado.veredicto,
+                    estado.veredicto, idioma=st.session_state.lang,
                 )
             else:
                 resultado = guardar_registro_cliente(
                     perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto,
+                    idioma=st.session_state.lang,
                 )
             st.session_state["notion_guardado_para"] = id(perfil)
             # Kept for the Gmail section below: it can't know the Notion
@@ -2441,13 +2456,13 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
         st.caption(t("portal_section_caption"))
         if st.button(t("send_portal_link_button"), disabled=not (aprobado and email_cliente)):
             try:
-                token = generar_token_portal(email_cliente, st.session_state["notion_pagina_id"])
-                url_portal = f"{PORTAL_BASE_URL}?portal_token={token}"
+                codigo = generar_referencia_portal(st.session_state["notion_pagina_id"], email_cliente)
+                url_portal = f"{PORTAL_BASE_URL}?ref={codigo}"
                 enviar_enlace_portal(
                     email_cliente, perfil["datos_basicos"]["nombre"], url_portal, idioma=st.session_state.lang,
                 )
                 st.success(t("portal_link_sent_success"))
-            except (GmailClientError, PortalTokenError, ImportError, ModuleNotFoundError) as exc:
+            except (GmailClientError, PortalTokenError, NotionClientError, ImportError, ModuleNotFoundError) as exc:
                 st.error(t("portal_link_error").format(error=str(exc)))
 
     # Independent of the Gmail draft state above: once an email is typed
@@ -2461,17 +2476,24 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             _render_historial_checkins(email_cliente, perfil["objetivo"]["principal"])
 
 
-def _vista_portal_cliente(token: str) -> None:
+def _vista_portal_cliente(codigo: str) -> None:
     """The entire page for a client who followed their own magic link
-    (?portal_token=..., see agents/portal_tokens.py) -- rendered instead
-    of the trainer's whole panel (sidebar, New Client/Example Client
-    sections, approval password gate) when that query param is present.
-    A client here never sees any of that; this function is a dead end,
-    not a sub-section of the trainer's page."""
+    (?ref=..., see mcp/notion_connector.py's generar_referencia_portal()/
+    resolver_referencia_portal()) -- rendered instead of the trainer's
+    whole panel (sidebar, New Client/Example Client sections, approval
+    password gate) when that query param is present. A client here never
+    sees any of that; this function is a dead end, not a sub-section of
+    the trainer's page.
+
+    Kept deliberately minimal (real feedback from live use: the old
+    version opened on a long prose summary and split "this week" into two
+    separate expanders) -- no summary text, one combined "your plan"
+    section open by default so the main reason a client follows this link
+    needs zero clicks, and only "your history" stays collapsed."""
     st.title("TrainFitter")
 
     try:
-        carga = verificar_token_portal(token)
+        carga = resolver_referencia_portal(codigo)
     except PortalTokenError as exc:
         st.error(t("portal_invalid_link").format(error=str(exc)))
         return
@@ -2482,80 +2504,86 @@ def _vista_portal_cliente(token: str) -> None:
         st.error(t("portal_load_error").format(error=str(exc)))
         return
 
+    # The portal is a fresh, standalone session for the client (never
+    # shares state with the trainer's own panel) -- rendering it in
+    # whatever language the plan itself was generated in, rather than
+    # always defaulting to English, is exactly what st.session_state.lang
+    # already drives for every t()/opt() call below.
+    st.session_state.lang = registro.get("idioma") or "en"
+
     nombre = registro["nombre"] or carga["email"]
     st.header(t("portal_welcome").format(nombre=nombre))
     if registro["fecha"]:
         st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
-    if registro["resumen"]:
-        st.markdown(registro["resumen"])
 
-    # "plan_semanal" is empty for a record saved before this property
-    # existed -- degrades to no section at all, same spirit as every
-    # other best-effort read in this file. Session-scoped "already liked"
-    # tracking is purely a UI nicety (swap 🤍 -> ❤️, disable the button
-    # after one click) -- agregar_comida_favorita() itself already dedupes
-    # server-side, so a page reload losing this local state can't double
-    # up a favorite.
+    # "plan_semanal"/"sesiones" are empty for a record saved before those
+    # properties existed -- degrades to no section at all, same spirit as
+    # every other best-effort read in this file. Session-scoped "already
+    # liked" tracking is purely a UI nicety (swap 🤍 -> ❤️, disable the
+    # button after one click) -- agregar_comida_favorita()/
+    # agregar_ejercicio_favorito() already dedupe server-side, so a page
+    # reload losing this local state can't double up a favorite.
     plan_semanal = registro.get("plan_semanal") or []
-    if plan_semanal:
-        with st.expander(t("portal_meals_header")):
-            st.caption(t("portal_meals_caption"))
-            comidas_marcadas = st.session_state.setdefault("comidas_marcadas", set())
-            for indice_dia, dia_info in enumerate(plan_semanal):
-                st.markdown(f"**{dia_info['dia']}**")
-                for indice_comida, comida in enumerate(dia_info.get("comidas", [])):
-                    clave = f"like_{indice_dia}_{indice_comida}"
-                    col_texto, col_boton = st.columns([6, 1])
-                    col_texto.markdown(f"{comida['tipo']}: {comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
-                    ya_marcada = clave in comidas_marcadas
-                    if col_boton.button("❤️" if ya_marcada else "🤍", key=clave, disabled=ya_marcada):
-                        try:
-                            agregar_comida_favorita(carga["pagina"], {
-                                "tipo": comida.get("tipo_interno"),
-                                "proteina": comida.get("proteina"),
-                                "carbohidrato": comida.get("carbohidrato"),
-                                "grasa": comida.get("grasa"),
-                            })
-                            comidas_marcadas.add(clave)
-                            st.rerun()
-                        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                            st.error(t("portal_meal_like_error").format(error=str(exc)))
-
-    # Same shape as the meals section above, mirrored for the routine
-    # side -- "sesiones" is empty for a record saved before this property
-    # existed. Its own session-scoped "already liked" set (separate key
-    # namespace from comidas_marcadas' button keys, so the two sections
-    # can't collide) -- agregar_ejercicio_favorito() itself already
-    # dedupes server-side.
     sesiones = registro.get("sesiones") or []
-    if sesiones:
-        with st.expander(t("portal_routine_header")):
-            st.caption(t("portal_routine_caption"))
-            ejercicios_marcados = st.session_state.setdefault("ejercicios_marcados", set())
-            for indice_dia, sesion in enumerate(sesiones):
-                st.markdown(f"**{sesion['dia']}**")
-                for indice_ej, ejercicio in enumerate(sesion.get("ejercicios", [])):
-                    clave = f"like_ej_{indice_dia}_{indice_ej}"
-                    col_texto, col_boton = st.columns([6, 1])
-                    nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
-                    col_texto.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
-                    ya_marcado = clave in ejercicios_marcados
-                    if col_boton.button("❤️" if ya_marcado else "🤍", key=clave, disabled=ya_marcado):
-                        try:
-                            agregar_ejercicio_favorito(carga["pagina"], {
-                                "grupo": ejercicio.get("grupo"),
-                                "tipo": ejercicio.get("tipo"),
-                                "nombre": ejercicio.get("nombre"),
-                            })
-                            ejercicios_marcados.add(clave)
-                            st.rerun()
-                        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                            st.error(t("portal_exercise_like_error").format(error=str(exc)))
+    if plan_semanal or sesiones:
+        with st.expander(t("portal_plan_header"), expanded=True):
+            if plan_semanal:
+                st.markdown(f"**{t('portal_meals_header')}**")
+                st.caption(t("portal_meals_caption"))
+                comidas_marcadas = st.session_state.setdefault("comidas_marcadas", set())
+                for indice_dia, dia_info in enumerate(plan_semanal):
+                    st.markdown(f"**{dia_info['dia']}**")
+                    for indice_comida, comida in enumerate(dia_info.get("comidas", [])):
+                        clave = f"like_{indice_dia}_{indice_comida}"
+                        col_texto, col_boton = st.columns([6, 1])
+                        col_texto.markdown(
+                            f"{comida['tipo']}: {comida['descripcion']} (~{comida['aprox_kcal']} kcal)"
+                        )
+                        ya_marcada = clave in comidas_marcadas
+                        if col_boton.button("❤️" if ya_marcada else "🤍", key=clave, disabled=ya_marcada):
+                            try:
+                                agregar_comida_favorita(carga["pagina"], {
+                                    "tipo": comida.get("tipo_interno"),
+                                    "proteina": comida.get("proteina"),
+                                    "carbohidrato": comida.get("carbohidrato"),
+                                    "grasa": comida.get("grasa"),
+                                })
+                                comidas_marcadas.add(clave)
+                                st.rerun()
+                            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                                st.error(t("portal_meal_like_error").format(error=str(exc)))
+
+            if sesiones:
+                if plan_semanal:
+                    st.divider()
+                st.markdown(f"**{t('portal_routine_header')}**")
+                st.caption(t("portal_routine_caption"))
+                ejercicios_marcados = st.session_state.setdefault("ejercicios_marcados", set())
+                for indice_dia, sesion in enumerate(sesiones):
+                    st.markdown(f"**{sesion['dia']}**")
+                    for indice_ej, ejercicio in enumerate(sesion.get("ejercicios", [])):
+                        clave = f"like_ej_{indice_dia}_{indice_ej}"
+                        col_texto, col_boton = st.columns([6, 1])
+                        nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
+                        col_texto.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
+                        ya_marcado = clave in ejercicios_marcados
+                        if col_boton.button("❤️" if ya_marcado else "🤍", key=clave, disabled=ya_marcado):
+                            try:
+                                agregar_ejercicio_favorito(carga["pagina"], {
+                                    "grupo": ejercicio.get("grupo"),
+                                    "tipo": ejercicio.get("tipo"),
+                                    "nombre": ejercicio.get("nombre"),
+                                })
+                                ejercicios_marcados.add(clave)
+                                st.rerun()
+                            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                                st.error(t("portal_exercise_like_error").format(error=str(exc)))
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own
-    # history (carga["email"] comes from the signed token, never typed in),
-    # same best-effort degrade-on-error behavior as everywhere else here.
+    # history (carga["email"] comes from the resolved reference, never
+    # typed in), same best-effort degrade-on-error behavior as everywhere
+    # else here.
     with st.expander(t("portal_history_header")):
         _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
@@ -2832,9 +2860,9 @@ def _panel_todos_los_clientes() -> None:
 # behind APP_APPROVAL_PASSWORD. Checked before any of that renders, not
 # nested inside it, so there's no path where a client's browser ever
 # builds the trainer-facing DOM at all.
-_token_portal = st.query_params.get("portal_token")
-if _token_portal:
-    _vista_portal_cliente(_token_portal)
+_referencia_portal = st.query_params.get("ref")
+if _referencia_portal:
+    _vista_portal_cliente(_referencia_portal)
     st.stop()
 
 with st.sidebar:

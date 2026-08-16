@@ -187,7 +187,12 @@ STARTING POINT, not a final prescription.
   "casa_con_material"/"casa_sin_material"), don't default to bodyweight-only:
   mix in creative household substitutes (water jugs/bottles as dumbbells, a
   loaded backpack for rows/squats/lunges, a towel on a smooth floor as a
-  sliding surface) alongside genuine bodyweight work.
+  sliding surface) alongside genuine bodyweight work. Don't prescribe pull-ups,
+  dips, or anything else that needs a real bar/anchor to hang or push off of
+  unless the client explicitly reported having one -- most homes don't, even
+  when the client otherwise has some equipment. Use an inverted row against a
+  sturdy table or push-ups instead of a pull-up/dip, the same substitution the
+  rule engine makes.
 - If the profile mentions an injury, a health condition, pregnancy/breastfeeding, or
   any pain: adapt the exercises to avoid what's contraindicated (e.g. avoid deep free
   squats if there's a knee injury) and add the exact reason to

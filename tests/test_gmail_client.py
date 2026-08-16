@@ -68,8 +68,7 @@ def test_email_body_always_lists_both_the_routine_and_diet_pdfs():
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
-    assert "Your routine (PDF)" in cuerpo
-    assert "Your diet (PDF)" in cuerpo
+    assert "routine" in cuerpo.lower() and "diet" in cuerpo.lower() and "PDFs" in cuerpo
 
 
 def test_email_body_omits_the_checklist_by_default():
@@ -90,7 +89,7 @@ def test_email_body_explains_re_attaching_the_checklist_when_included():
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, incluir_checklist=True)
-    assert "Adherence checklist (PDF, fillable)" in cuerpo
+    assert "checklist" in cuerpo.lower()
     assert "doesn't carry the attachment over automatically" in cuerpo
 
 
@@ -110,7 +109,7 @@ def test_email_body_includes_the_top_routine_and_diet_tips():
 
 def test_email_body_tolerates_missing_tips():
     """A minimal/older borrador (no progresion/consejos_sinergias key at
-    all) must still render, just without the 👉 lines."""
+    all) must still render, just without the extra tip line."""
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
@@ -155,6 +154,25 @@ def test_quitar_saludo_leaves_message_untouched_if_greeting_does_not_match():
     assert _quitar_saludo(mensaje, "Ana", "en") == mensaje
 
 
+def test_email_body_greets_by_first_name_only():
+    """Reads warmer than the full name every time -- real feedback that the
+    plan email should sound less like an automated assistant."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana Garcia", borrador_rutina, borrador_dieta)
+    assert cuerpo.startswith("Hi Ana,")
+
+
+def test_email_body_has_no_bulleted_attachment_list():
+    """The wrapper text was rewritten away from a "📎 Attached: • X • Y"
+    bulleted list into a plain sentence -- same real feedback as above."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, incluir_checklist=True)
+    assert "•" not in cuerpo
+    assert "📎" not in cuerpo
+
+
 def test_email_body_wrapper_text_translates_for_spanish():
     """idioma="es" only needs to translate this template's own wrapper text
     (greeting, attachment list, footer) -- mensaje_para_el_cliente is
@@ -166,7 +184,7 @@ def test_email_body_wrapper_text_translates_for_spanish():
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, idioma="es", incluir_checklist=True)
     assert cuerpo.startswith("Hola Ana,")
     assert "aquí tienes tu rutina" in cuerpo
-    assert "responde a este email" in cuerpo.lower()
+    assert "respóndeme a este mismo correo" in cuerpo.lower()
 
 
 def test_scopes_include_send_for_the_portal_link_exception():
@@ -182,15 +200,15 @@ def test_portal_email_body_contains_only_the_link_as_variable_content():
     module docstring) uses a fixed template with exactly one variable
     slot -- the link itself, never free text a trainer or client could
     inject content into."""
-    cuerpo = _construir_cuerpo_portal("Ana", "https://trainfitter.streamlit.app/?portal_token=abc.def")
-    assert "https://trainfitter.streamlit.app/?portal_token=abc.def" in cuerpo
+    cuerpo = _construir_cuerpo_portal("Ana", "https://trainfitter.streamlit.app/?ref=abc12345")
+    assert "https://trainfitter.streamlit.app/?ref=abc12345" in cuerpo
     assert "Ana" in cuerpo
 
 
 def test_portal_email_body_wrapper_text_translates_for_spanish():
-    cuerpo = _construir_cuerpo_portal("Ana", "https://example.com/?portal_token=abc.def", idioma="es")
+    cuerpo = _construir_cuerpo_portal("Ana", "https://example.com/?ref=abc12345", idioma="es")
     assert cuerpo.startswith("Hola Ana,")
-    assert "https://example.com/?portal_token=abc.def" in cuerpo
+    assert "https://example.com/?ref=abc12345" in cuerpo
 
 
 def test_intake_form_email_body_has_no_variable_content():

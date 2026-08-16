@@ -97,6 +97,21 @@ a real middle step toward "tryhard"'s own separate "nicho" pool, without
 touching it directly. Absent (defaults to `True` via `.get("comun",
 True)`) on every other entry, so "normal"/"tryhard" behave exactly as
 before this was added.
+
+DESIGN — "nicho_omnivoro" (real, reported bug: "cosas muy raras para una
+dieta normal"): tofu, tempeh, edamame, seitan, and "Protein powder
+(plant-based)" all declare `tipos_dieta` including "omnivora" -- needed
+so a vegetarian/vegan client can get them as genuine protein staples, but
+that also made them equally likely candidates for a meat-eating client at
+every commitment level, where they read as out of place rather than
+"specialty" ("comun": False alone wasn't enough -- that only biases
+selection at "basico"/"avanzado", "normal" applies no bias at all). This
+tag makes `fuentes_proteina_para()` treat these exactly like a true
+"nicho" food (tryhard-only), but ONLY when `tipo_dieta == "omnivora"` --
+a vegetarian/vegan client still sees them at every level, same as before,
+since they're not exotic there, they're often necessary. Natto stays
+plain "nicho" (unconditionally tryhard-only): being unusual has nothing
+to do with diet type there, unlike these soy/gluten protein alternatives.
 """
 
 import unicodedata
@@ -152,25 +167,25 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Tofu", "nombre_es": "Tofu",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
         "macros_100g": {"kcal": 144, "proteina_g": 15, "carbohidratos_g": 3, "grasa_g": 8},
     },
     {
         "nombre": "Tempeh", "nombre_es": "Tempeh",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
         "macros_100g": {"kcal": 192, "proteina_g": 20, "carbohidratos_g": 8, "grasa_g": 11},
     },
     {
         "nombre": "Edamame", "nombre_es": "Edamame",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
-        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False,
+        "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
         "macros_100g": {"kcal": 121, "proteina_g": 12, "carbohidratos_g": 10, "grasa_g": 5},
     },
     {
         "nombre": "Seitan", "nombre_es": "Seitán",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"gluten"}, "sinergias": set(),
-        "comun": False,
+        "comun": False, "nicho_omnivoro": True,
         "macros_100g": {"kcal": 370, "proteina_g": 75, "carbohidratos_g": 14, "grasa_g": 1.9},
     },
     {
@@ -185,7 +200,7 @@ FUENTES_PROTEINA = [
         # the one specific brand/type recommended over any other.
         "nombre": "Protein powder (plant-based)", "nombre_es": "Proteína en polvo (vegetal)",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
-        "comun": False,
+        "comun": False, "nicho_omnivoro": True,
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },
     {
@@ -573,6 +588,21 @@ def _tryhard(perfil: dict) -> bool:
     return perfil.get("experiencia", {}).get("nivel_compromiso") == "tryhard"
 
 
+def _demasiado_nicho(f: dict, tipo_dieta: str, tryhard: bool) -> bool:
+    """True if this food should be excluded as too niche for the client's
+    commitment level -- either a true "nicho" food (tryhard-exclusive
+    regardless of diet type) or a "nicho_omnivoro" one (a plant-protein
+    alternative that's a genuine staple for a vegetarian/vegan diet but
+    reads as out of place in an omnivore's, see this module's DESIGN
+    note). tryhard=True bypasses both, same as a plain "nicho" check
+    already did."""
+    if tryhard:
+        return False
+    if f.get("nicho", False):
+        return True
+    return f.get("nicho_omnivoro", False) and tipo_dieta == "omnivora"
+
+
 def fuentes_proteina_para(perfil: dict) -> list[str]:
     tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
     evitar = _etiquetas_a_evitar(perfil)
@@ -581,7 +611,7 @@ def fuentes_proteina_para(perfil: dict) -> list[str]:
     return [
         f["nombre"] for f in FUENTES_PROTEINA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
-        and (tryhard or not f.get("nicho", False))
+        and not _demasiado_nicho(f, tipo_dieta, tryhard)
     ]
 
 
@@ -593,7 +623,7 @@ def fuentes_carbohidrato_para(perfil: dict) -> list[str]:
     return [
         f["nombre"] for f in FUENTES_CARBOHIDRATO
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
-        and (tryhard or not f.get("nicho", False))
+        and not _demasiado_nicho(f, tipo_dieta, tryhard)
     ]
 
 
@@ -605,7 +635,7 @@ def fuentes_grasa_para(perfil: dict) -> list[str]:
     return [
         f["nombre"] for f in FUENTES_GRASA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
-        and (tryhard or not f.get("nicho", False))
+        and not _demasiado_nicho(f, tipo_dieta, tryhard)
     ]
 
 
@@ -617,5 +647,5 @@ def fuentes_verdura_para(perfil: dict) -> list[str]:
     return [
         f["nombre"] for f in FUENTES_VERDURA
         if tipo_dieta in f["tipos_dieta"] and not (f["etiquetas"] & evitar) and f["nombre"] not in no_deseados
-        and (tryhard or not f.get("nicho", False))
+        and not _demasiado_nicho(f, tipo_dieta, tryhard)
     ]

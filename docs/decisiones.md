@@ -2066,6 +2066,149 @@ caption appears) rather than by test coverage alone.
 
 ---
 
+## Short portal links, a minimalist client portal, and less "AI-sounding" emails
+
+A real, blunt complaint the same day: the client portal link was ~250
+characters and "queda algo raro." Traced to `agents/portal_tokens.py`'s
+design — a stateless, HMAC-signed token carrying the client's email +
+Notion page ID + expiry, base64'd and hex-signed. Replaced entirely
+(not shrunk) with a short, opaque ~8-character reference code
+(`secrets.token_urlsafe`) stored on the client's own Notion record —
+new `mcp/notion_connector.generar_referencia_portal()`/
+`resolver_referencia_portal()`, two new schema properties added via
+Notion's API (`Portal Reference`, `Portal Reference Expires`, same
+non-manual approach as earlier schema additions). `agents/portal_tokens.py`
+and its test file were deleted outright rather than left as dead code;
+`PortalTokenError` moved into `notion_connector.py`, the only module that
+raises it now. Trade-offs, disclosed rather than glossed over: the design
+gives up "verifiable with zero network calls" (the portal already hits
+Notion immediately after resolving the link anyway, so this was never a
+real round-trip saving), and every already-sent link under the old format
+stops working — no backward-compat shim, a fresh link is one click away.
+A genuine upside: the trainer can now revoke a link early by hand
+(clearing the Notion property), which the old design explicitly couldn't
+do. Verified against the real workspace, not just mocked tests: created
+throwaway test records, issued and resolved real reference codes,
+confirmed the round trip and the 7-day expiry check, opened the actual
+generated `?ref=...` URLs in a live browser session, then archived the
+test records.
+
+**A new "Language" property closes a real gap**: the portal used to
+always render its own chrome (headers, captions, the check-in form) in
+English, regardless of what language the client's plan was actually
+generated in — no way for a fresh client browser session to know which
+language the trainer had selected. `guardar_registro_cliente()`/
+`actualizar_registro_cliente()` now save `st.session_state.lang` at
+approval time; `_vista_portal_cliente()` reads it back and sets the
+page's language before rendering anything. Verified live with two real
+test records (one `idioma="en"`, one `idioma="es"`) — each portal link
+rendered fully in its own saved language.
+
+**The portal page itself was rebuilt to be more minimal**, a direct
+complaint ("tiene un texto enorme al principio... elimínalo,
+minimalista, con pocos clicks"): the ≤2000-character prose summary
+(`registro["resumen"]`) that used to open the page is gone outright —
+the client's actual current-week meals/routine (already read back in
+full) already cover what a client needs to see, better than a truncated
+paragraph ever did. The two separate "Your meals"/"Your routine"
+expanders were merged into one "📋 Your plan this week" section,
+expanded by default — the main reason a client follows the link now
+needs zero clicks instead of one-or-two.
+
+**`experiencia.nivel_compromiso`'s "avanzado" option now shows "(PRO)"**
+in the commitment-level dropdown specifically — not through the shared
+`OPTION_LABELS` dict (that would leak onto `experiencia.nivel`'s own
+unrelated "Advanced" label, the exact F601 collision fixed earlier this
+project), but via a small dedicated `_opt_compromiso()` format function
+used only for that one selectbox.
+
+**Every client-facing (and the trainer-notification) email template in
+`mcp/gmail_client.py` was rewritten to read less like an automated
+assistant**, a direct, general request ("que parezcan mucho menos IA").
+The plan email (`_construir_cuerpo_email()`) lost its bulleted
+"📎 Attached: • X • Y" list and "👉"-prefixed tip callouts in favor of
+plain sentences, and now greets by first name only
+(`nombre_cliente.split()[0]`) instead of the client's full name — reads
+warmer every time. The portal-link email switched from third-person
+("ask your trainer for a new one") to first-person ("just ask me") —
+a real trainer sending their own email wouldn't refer to themselves in
+the third person; that phrasing was itself an automated-system tell.
+Kept deliberately: the 🏋️/🍽️ section labels (a real prior scannability
+request, not cosmetic) and every piece of actually load-bearing
+information (what's attached, how to re-attach a reply, how to open a
+PDF whose fields won't fill in-browser) — personalizing the tone never
+meant cutting content the client actually needs.
+
+**Not built, deliberately flagged instead of silently ignored**: a
+direct observation that a liked meal/exercise "no se puede quitar ahora
+mismo" (can't currently be un-liked) is accurate and by design —
+`agregar_comida_favorita()`/`agregar_ejercicio_favorito()` only ever
+append. Documented as a known limitation in `README.md` rather than
+built speculatively, since removing a favorite wasn't an explicit
+request on its own.
+
+6 new/updated test files, 508 tests passing (unchanged count — net
+addition offset by the removed `test_portal_tokens.py`), lint clean, no
+`examples/output_*.json` diffs (none of this touches the rule engines).
+
+---
+
+## Two real personalization bugs: pull-ups with no bar, tofu for an omnivore
+
+Two concrete, reported bugs the same day — "los ejercicios de en casa sin
+equipamiento no funcionan... ponen dominadas, ponen fondos" and "aún
+tiene cosas muy raras para una dieta normal."
+
+**Routine**: `exercise_bank.py`'s `"peso_corporal"` tag conflated "needs
+literally nothing" (push-ups, bodyweight squats) with "needs a fixed
+anchor" (pull-ups, dips) — both were treated as always available since
+`_material_cliente()` grants `"peso_corporal"` unconditionally ("the body
+is always available"). Split out a new `"estructura_fija"` tag (pull-up
+bar / dip station); `_material_cliente()` grants it for gym locations
+(near-universal gym equipment) but not either home location. Pull-ups,
+weighted pull-ups, parallel bar dips, and dragon flag now require it.
+Each affected muscle group keeps a genuine zero-equipment "basico"
+alternative (push-ups, inverted rows), confirmed by regenerating
+`examples/output_rutina_3.json` (the one home-training example client):
+"Parallel bar dips" → "Push-ups (standard)".
+
+**Diet**: `food_bank.py`'s soy/gluten protein alternatives (tofu, tempeh,
+edamame, seitan, "Protein powder (plant-based)") declare `tipos_dieta`
+including `"omnivora"` — needed so a vegetarian/vegan client gets them as
+genuine protein staples, but that also made them equally likely
+candidates for a meat-eating client at "basico"/"normal"/"avanzado",
+where they read as out of place rather than "specialty" (the existing
+`"comun": False` tag only biases selection at basico/avanzado —
+"normal" applies no bias at all). Scoped directly with the project owner
+first (two questions: how "real" should groceries get — generic-common
+vs. actual branded supermarket products; keep exotic items for tryhard
+or drop them everywhere) before touching anything, since "ground the
+diet in real Mercadona/Lidl/Consum/Aldi products" was the original,
+much bigger ask — descoped to the tractable version: no branded product
+data, just fixing which existing foods are treated as common. New
+`"nicho_omnivoro"` tag + `food_bank._demasiado_nicho()` (replacing the
+inline nicho check in all four `fuentes_*_para()` functions) makes these
+five foods tryhard-exclusive specifically when `tipo_dieta == "omnivora"`
+— a vegetarian/vegan client still sees them at every level, unaffected.
+`diet_agent.py`'s `motor="llm"` prompt updated for parity. Natto stays a
+plain, unconditional `"nicho"` food (being fermented/unusual has nothing
+to do with diet type, unlike these).
+
+Branded, per-supermarket product data (the original, bigger ask) was
+deliberately not built this round — real product names/prices go stale
+without an ongoing maintenance source, and neither Lidl/Aldi/Consum
+expose a public API TrainFitter could query live. Left open as a
+possible later phase, gated on the project owner supplying real
+product/macro data or confirming a best-effort web-research pass is
+good enough.
+
+7 new tests (exercise-anchor exclusion at both home locations + gym
+regression check, plant-protein exclusion across every non-tryhard level
++ vegetarian/vegan unaffected), 512 passing (up from 508), lint clean,
+one example diff (`output_rutina_3.json`, expected).
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project
