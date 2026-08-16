@@ -26,7 +26,7 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (17 decisions, ~2 pages) — update it when a change adds
+  version of the same log (18 decisions, ~2 pages) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
 - **Scheduled documentation-sync runs (added 2026-08-07, explicit decision in
   chat): standing authorization to merge doc-only PRs from that recurring task

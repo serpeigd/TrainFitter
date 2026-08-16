@@ -440,7 +440,7 @@ TrainFitter/
 │   └── base_conocimiento/           Evidence-backed notes (training, nutrition, adherence, safety) the rule engines draw on
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
-├── agents/                          Routine, diet, weekly meal planner, validator, orchestrator, PDF generation (+ intake form), seeded variety, portal tokens
+├── agents/                          Routine, diet, weekly meal planner, validator, orchestrator, PDF generation (+ intake form), seeded variety
 ├── tests/                           Pytest suite (rule engines, validator, orchestrator, connectors)
 ├── ui/                              Trainer's panel (Streamlit)
 ├── mcp/                             Connectors: Gmail (draft + portal-link send + adherence-reply/intake detection), Notion (Clients + Check-ins)
