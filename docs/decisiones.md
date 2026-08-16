@@ -2262,6 +2262,79 @@ test record after.
 
 ---
 
+## Fewer gates, Spanish by default, and a much harder cut on client-facing text
+
+Five direct requests from live use, all shipped the same session.
+
+**Dropped the upfront password gate on "Revise client"/"Clients".** The
+trainer was hitting the password prompt twice to look up a client — once
+for `_gate_datos_clientes()`'s whole-section unlock, again for
+`_cargar_ficha_para_revisar()`'s own per-lookup re-check, which already
+independently protects the one action that actually reveals a client's
+health data. `_gate_datos_clientes()`/`_datos_clientes_desbloqueados()`
+deleted outright (no dead code left behind); the per-lookup check is now
+the only gate, and it was already the right one. Confirmed directly
+before removing "Clients"' gate too, since that section shows no
+per-client data at all (anonymized KPIs/charts only) — the project owner's
+own call, explicitly weighing that a public-demo visitor could now see
+the (anonymous) fleet dashboard with no password at all.
+
+**"Revise client" also dropped its collapsed `st.expander`** — direct
+request ("que se abra automáticamente o quítalo"): the email field is the
+first thing a trainer needs there, not worth an extra click to reveal.
+Rendered directly under a plain subheader now, same pattern the rest of
+this file already uses for primary content.
+
+**Default UI language switched from English to Spanish** —
+`st.session_state.lang` now initializes to `"es"`. One-line change; the
+language toggle itself, and per-client persistence via the portal's
+"Language" property, are unaffected.
+
+**Client-facing text (email, portal, and by extension anywhere else that
+reads from the same fields) got a much harder second cut.** The first
+"bullet the whole message" pass, shipped earlier the same day, still read
+as "MUY generales y mucho texto" against a pasted real example. The fix
+isn't more bulleting — it's less content: `mensaje_para_el_cliente` (the
+trainer's generic warm note) is now dropped from the email/portal
+entirely whenever a real tip exists (`progresion` for routine, the diet's
+first `consejos_sinergias` entry) — new
+`gmail_client.obtener_texto_cliente()` picks the tip over the message,
+falling back to the message's own first sentence only when no tip exists
+at all (a "normal"/"basico" diet has no consejos_sinergias — synergy tips
+are gated to avanzado+). Section labels dropped their 🏋️/🍽️ emoji too
+("Routine:"/"Diet:", plain), matching the exact minimal format given as a
+target. `notion_connector.py`'s "Routine Message"/"Diet Message" now
+store this same reduced text (not the raw message), reusing
+`obtener_texto_cliente()` — a second, deliberate cross-import from
+`gmail_client.py` (same pure-function reasoning as `dividir_en_puntos()`/
+`quitar_saludo()` before it) so the portal renders byte-identical content
+to the email, not a second, looser summary computed independently.
+`ui/app.py`'s portal notes section simplified to match: no more
+`quitar_saludo()` call there at all, since the stored text already
+arrives pre-stripped and pre-reduced.
+
+**The PDFs were deliberately left untouched.** Read `pdf_generador.py`
+before changing anything: unlike the email/portal, the PDF is already a
+properly structured, detailed reference document — one short intro
+paragraph, then macros, a full weekly table, and already-bulleted
+food-source/tip lists. It's not "mucho texto sin estructura," it's the
+place this project's own design already says the plan's real detail
+should live (see `_construir_cuerpo_email()`'s own docstring: "the plan's
+own detail lives in the attached PDFs now, not inlined here"). Stripping
+its intro note the same way would cut the one thing that makes the PDF
+feel personally written rather than a spec sheet, without the "too much
+text" problem the email/portal actually had.
+
+Verified live against the real running app and the real Notion
+workspace: default language loads as Spanish, "Revise client"/"Clients"
+render immediately with no password prompt, a real portal record shows
+the exact target format (`Rutina:` / two tip bullets / `Dieta:` / one
+synergy-tip bullet), confirmed byte-for-byte against the email's own
+output for the same borrador. 521 tests passing (up from 519), lint
+clean, no `examples/output_*.json` diffs.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

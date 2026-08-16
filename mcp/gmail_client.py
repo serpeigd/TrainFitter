@@ -234,6 +234,30 @@ def quitar_saludo(mensaje: str, nombre_cliente: str, idioma: str) -> str:
     return mensaje[len(saludo):] if mensaje.startswith(saludo) else mensaje
 
 
+def obtener_texto_cliente(mensaje_para_el_cliente: str, nombre_cliente: str, idioma: str, tip: str = "") -> str:
+    """The minimal, concrete text that should represent one plan section
+    (routine or diet) to the client -- `tip` itself if given (e.g.
+    borrador_rutina["progresion"], the diet's first consejos_sinergias
+    entry), otherwise the first sentence of the generic
+    mensaje_para_el_cliente (greeting-stripped). A section should never
+    show zero content, but the generic warm note is dropped whenever a
+    real, specific tip exists -- it's tone, not information (real,
+    pointed feedback: bulleting the whole message still read as "MUY
+    generales y mucho texto").
+
+    Shared by _construir_cuerpo_email() (the plan email) and
+    mcp/notion_connector.py (so the client portal shows the identical
+    content, not a second, looser summary) -- "aplica esto también al
+    portal" was a direct follow-up request. May still be multiple
+    sentences (a tip like `progresion` usually is) -- callers split it
+    further with dividir_en_puntos() for their own bullet rendering."""
+    if tip:
+        return tip
+    mensaje = quitar_saludo(mensaje_para_el_cliente, nombre_cliente, idioma)
+    puntos = dividir_en_puntos(mensaje)
+    return puntos[0] if puntos else ""
+
+
 def _construir_cuerpo_email(
     nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
     incluir_checklist: bool = False,
@@ -243,33 +267,21 @@ def _construir_cuerpo_email(
     inlined here. Pure formatting -- no network, no auth, trivially
     unit-testable.
 
-    Keeps borrador_rutina/borrador_dieta's own mensaje_para_el_cliente (the
-    trainer's personal, warm note, varied per client -- see
-    agents/variacion.py), each under a short section label instead of run
-    together as one wall of text, with its own baked-in greeting stripped
-    (see quitar_saludo()) and replaced by one shared greeting up top --
-    the client's name used to open three lines in a row before this.
-    Greets by first name only (see quitar_saludo()'s own splitting logic)
-    -- reads warmer than the full name every time.
-
-    Adds one genuinely useful, skimmable line per section straight from
-    the plan itself (borrador_rutina["progresion"], the diet's first
-    consejos_sinergias entry) rather than making the client open a PDF
-    just to see the single most actionable tip -- a real request, not
-    cosmetic: "easy to read, key points, without much text."
-
-    DESIGN -- the attachment/reply-instructions wrapper text was rewritten
-    from a bulleted "📎 Attached: • X • Y" list and "👉" arrow-prefixed tip
-    callouts into plain sentences (real feedback: it read too much like an
-    automated assistant, not a trainer). The trainer's OWN message/tip per
-    section is the opposite: split into real bullet points via
-    dividir_en_puntos(), not a flowing paragraph -- direct follow-up
-    feedback on the same email ("que sean como bullet points... si hay
-    mucho texto nadie se lo lee"). Kept: the 🏋️/🍽️ section labels (a real
-    scannability request from earlier, not cosmetic) and the reply/PDF-app
-    instructions (genuinely needed information, just phrased as one person
-    telling another how to do something instead of a numbered caveat
-    list).
+    DESIGN -- content was cut hard a second time, same day, after the
+    first "bullet the whole message" pass still read as "MUY generales y
+    mucho texto" against a pasted real example. The generic warm note
+    (mensaje_para_el_cliente -- "aquí tienes tu borrador... cuéntamelo y
+    lo solucionamos") is dropped from this email ENTIRELY now, not
+    bulleted: it's not information, it's tone, and the client already
+    gets tone from a short, direct email rather than from restating it.
+    What's left is ONLY the concrete, specific content -- progresion
+    (routine) and the diet's first consejos_sinergias entry -- each split
+    into bullet points via dividir_en_puntos(). Falls back to the first
+    sentence of mensaje_para_el_cliente (greeting-stripped) ONLY if that
+    tip is genuinely empty (e.g. "normal"/"basico" diets, where synergy
+    tips are gated off -- see dieta_reglas.py), so a section is never
+    left with zero bullets. Section labels dropped their 🏋️/🍽️ emoji too,
+    matching the exact plain-text example given.
 
     Args:
         incluir_checklist: whether the adherence checklist PDF was
@@ -285,20 +297,19 @@ def _construir_cuerpo_email(
     rutina_reglas.py/dieta_reglas.py), so this just needs to match that,
     not translate anything itself."""
     primer_nombre = nombre_cliente.split()[0] if nombre_cliente.strip() else nombre_cliente
-    mensaje_rutina = quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
-    mensaje_dieta = quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
-    tip_rutina = borrador_rutina.get("progresion", "")
     tips_dieta = borrador_dieta.get("consejos_sinergias") or []
-    tip_dieta = tips_dieta[0] if tips_dieta else ""
-
-    puntos_rutina = dividir_en_puntos(mensaje_rutina) + (dividir_en_puntos(tip_rutina) if tip_rutina else [])
-    puntos_dieta = dividir_en_puntos(mensaje_dieta) + (dividir_en_puntos(tip_dieta) if tip_dieta else [])
-    bullets_rutina = "\n".join(f"• {p}" for p in puntos_rutina)
-    bullets_dieta = "\n".join(f"• {p}" for p in puntos_dieta)
+    texto_rutina = obtener_texto_cliente(
+        borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma, borrador_rutina.get("progresion", ""),
+    )
+    texto_dieta = obtener_texto_cliente(
+        borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma, tips_dieta[0] if tips_dieta else "",
+    )
+    bullets_rutina = "\n".join(f"• {p}" for p in dividir_en_puntos(texto_rutina))
+    bullets_dieta = "\n".join(f"• {p}" for p in dividir_en_puntos(texto_dieta))
 
     if idioma == "es":
-        cierre = "Te adjunto tu rutina y tu dieta en PDF"
-        cierre += ", más el checklist para que lo rellenes cuando empieces." if incluir_checklist else "."
+        cierre = "Te adjunto los PDFs de tu rutina y tu dieta"
+        cierre += ", más el checklist para cuando empieces." if incluir_checklist else "."
         if incluir_checklist:
             cierre += (
                 "\n\nDentro de unas semanas, cuando ya hayas arrancado, rellénalo y respóndeme a "
@@ -311,13 +322,13 @@ def _construir_cuerpo_email(
         )
         return (
             f"Hola {primer_nombre},\n\n"
-            f"🏋️ Tu rutina\n{bullets_rutina}\n"
-            f"\n🍽️ Tu dieta\n{bullets_dieta}\n"
+            f"Rutina:\n{bullets_rutina}\n"
+            f"\nDieta:\n{bullets_dieta}\n"
             f"\n{cierre}"
         )
 
-    cierre = "I've attached your routine and diet as PDFs"
-    cierre += ", plus the checklist to fill in once you've started." if incluir_checklist else "."
+    cierre = "I've attached the PDFs for your routine and diet"
+    cierre += ", plus the checklist for once you've started." if incluir_checklist else "."
     if incluir_checklist:
         cierre += (
             "\n\nIn a few weeks, once you've actually started, fill it in and reply to this same "
@@ -330,8 +341,8 @@ def _construir_cuerpo_email(
     )
     return (
         f"Hi {primer_nombre},\n\n"
-        f"🏋️ Your routine\n{bullets_rutina}\n"
-        f"\n🍽️ Your diet\n{bullets_dieta}\n"
+        f"Routine:\n{bullets_rutina}\n"
+        f"\nDiet:\n{bullets_dieta}\n"
         f"\n{cierre}"
     )
 

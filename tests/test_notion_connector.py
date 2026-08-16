@@ -98,18 +98,39 @@ def test_page_properties_use_the_given_language(perfil_base, borrador_rutina, bo
     assert propiedades["Language"]["select"]["name"] == "es"
 
 
-def test_page_properties_save_the_trainers_message_per_section(perfil_base, borrador_dieta):
-    """The trainer's own note (not the technical "resumen_enfoque" behind
-    "Summary") is what the client portal now shows -- see this module's
-    "Routine Message"/"Diet Message" DESIGN note."""
+def test_page_properties_save_the_concrete_tip_per_section(perfil_base, borrador_dieta):
+    """The client portal now shows the same minimal, concrete content the
+    plan email does (real feedback: bulleting the whole generic message
+    still read as "MUY generales") -- a real tip (progresion/
+    consejos_sinergias) takes priority over mensaje_para_el_cliente when
+    one exists. See this module's "Routine Message"/"Diet Message"
+    DESIGN note."""
     borrador_rutina = {
-        "resumen_enfoque": "...", "mensaje_para_el_cliente": "Hi Ana, here's your routine.",
+        "resumen_enfoque": "...",
+        "mensaje_para_el_cliente": "Hi Test, here's your generic routine note.",
+        "progresion": "Add one rep before adding weight.",
     }
-    borrador_dieta["mensaje_para_el_cliente"] = "Hi Ana, here's your diet."
+    borrador_dieta["mensaje_para_el_cliente"] = "Hi Test, here's your generic diet note."
+    borrador_dieta["consejos_sinergias"] = ["Pair plant iron with vitamin C."]
     veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
-    assert propiedades["Routine Message"]["rich_text"][0]["text"]["content"] == "Hi Ana, here's your routine."
-    assert propiedades["Diet Message"]["rich_text"][0]["text"]["content"] == "Hi Ana, here's your diet."
+    assert propiedades["Routine Message"]["rich_text"][0]["text"]["content"] == "Add one rep before adding weight."
+    assert propiedades["Diet Message"]["rich_text"][0]["text"]["content"] == "Pair plant iron with vitamin C."
+
+
+def test_page_properties_fall_back_to_the_message_when_no_tip_exists(perfil_base, borrador_dieta):
+    """A "normal"/"basico" diet has no consejos_sinergias at all (synergy
+    tips are gated to avanzado+) -- falls back to the message's own
+    first, greeting-stripped sentence rather than saving nothing."""
+    borrador_rutina = {
+        "resumen_enfoque": "...",
+        "mensaje_para_el_cliente": "Hi Test, first sentence. Second sentence.",
+    }
+    borrador_dieta["mensaje_para_el_cliente"] = "Hi Test, diet first sentence. Diet second sentence."
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Routine Message"]["rich_text"][0]["text"]["content"] == "First sentence."
+    assert propiedades["Diet Message"]["rich_text"][0]["text"]["content"] == "Diet first sentence."
 
 
 def test_page_properties_message_defaults_to_empty_string_when_missing(perfil_base, borrador_rutina, borrador_dieta):

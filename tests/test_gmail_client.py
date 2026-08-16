@@ -133,12 +133,14 @@ def test_email_body_does_not_repeat_the_clients_name_in_the_greeting():
 
 def test_email_body_has_a_labeled_section_per_message():
     """Structure fix alongside the greeting dedup above -- two full
-    paragraphs run together read as one wall of text."""
+    paragraphs run together read as one wall of text. Plain "Routine:"/
+    "Diet:" labels, no emoji -- dropped to match an exact real-example
+    request for a much terser email."""
     borrador_rutina = {"mensaje_para_el_cliente": "Hi Ana, here's your routine."}
     borrador_dieta = {"mensaje_para_el_cliente": "Hi Ana, here's your diet."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
-    assert "Your routine" in cuerpo
-    assert "Your diet" in cuerpo
+    assert "Routine:" in cuerpo
+    assert "Diet:" in cuerpo
 
 
 def test_quitar_saludo_strips_a_matching_greeting():
@@ -179,19 +181,39 @@ def test_email_body_attachment_note_is_plain_prose_not_a_bulleted_list():
     assert "•" not in cierre
 
 
-def test_email_body_bullets_the_clients_message():
-    """Direct follow-up feedback: the trainer's own message/tip should
-    read as scannable bullet points, not a wall of prose -- "si hay mucho
-    texto nadie se lo lee"."""
+def test_email_body_drops_the_generic_message_when_a_tip_exists():
+    """Second, harder cut the same day: bulleting the WHOLE message still
+    read as "MUY generales y mucho texto" against a real pasted example.
+    Now mensaje_para_el_cliente (the generic warm note) is dropped
+    entirely whenever a real tip exists -- only the concrete content
+    (progresion / the diet's synergy tip) is bulleted."""
     borrador_rutina = {
-        "mensaje_para_el_cliente": "First sentence here. Second sentence here.",
+        "mensaje_para_el_cliente": "Some generic warm filler sentence here.",
         "progresion": "A tip sentence.",
     }
-    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {
+        "mensaje_para_el_cliente": "Another generic filler sentence.",
+        "consejos_sinergias": ["A diet tip sentence."],
+    }
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "• A tip sentence." in cuerpo
+    assert "• A diet tip sentence." in cuerpo
+    assert "generic warm filler" not in cuerpo
+    assert "generic filler" not in cuerpo
+
+
+def test_email_body_falls_back_to_the_message_when_no_tip_exists():
+    """A "normal"/"basico" diet has no consejos_sinergias at all (synergy
+    tips are gated to avanzado+ -- see dieta_reglas.py) -- a section must
+    never end up with zero bullets, so it falls back to the first
+    sentence of the generic message instead."""
+    borrador_rutina = {"mensaje_para_el_cliente": "First sentence here. Second sentence here."}
+    borrador_dieta = {"mensaje_para_el_cliente": "Diet first sentence. Diet second sentence."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
     assert "• First sentence here." in cuerpo
-    assert "• Second sentence here." in cuerpo
-    assert "• A tip sentence." in cuerpo
+    assert "Second sentence here" not in cuerpo
+    assert "• Diet first sentence." in cuerpo
+    assert "Diet second sentence" not in cuerpo
 
 
 def test_dividir_en_puntos_splits_on_sentence_boundaries():

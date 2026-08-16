@@ -104,22 +104,28 @@ the moment this shipped — no backward-compat shim, a fresh link is one
 click away; (2) the trainer can now revoke a link early by clearing the
 Notion property by hand, something the old design explicitly couldn't do.
 
-DESIGN — "Routine Message"/"Diet Message" bring the trainer's own
-mensaje_para_el_cliente back into the client portal, direct follow-up
-after "Aplica esto también al portal": the portal had shown a technical
-"resumen_enfoque" summary, then nothing at all once that was cut for
-being unreadable prose (see the reference-link DESIGN note above). The
-trainer's actual warm note is different -- it was already the one thing
-proven readable in the plan email (see mcp/gmail_client.py's
-_construir_cuerpo_email() and its dividir_en_puntos() bullet rendering).
-Storing it here lets _vista_portal_cliente() render the exact same
-bulleted note, reusing gmail_client.quitar_saludo()/dividir_en_puntos()
-rather than a second formatting implementation. Raw text (greeting
-still attached) — stripping it needs the client's name, which the
-portal already has from this same record, so it's stripped at render
-time, not save time. Plain rich_text, no chunking (see
-_dividir_bloques_notion() above) -- a personal note is always well
-under the 2000-char block limit, unlike "Full Profile (JSON)".
+DESIGN — "Routine Message"/"Diet Message" bring concrete, client-facing
+content back into the portal, direct follow-up after "Aplica esto
+también al portal": the portal had shown a technical "resumen_enfoque"
+summary, then nothing at all once that was cut for being unreadable
+prose (see the reference-link DESIGN note above). What's stored here
+ISN'T the raw mensaje_para_el_cliente (the trainer's generic warm note,
+e.g. "aquí tienes tu borrador... cuéntamelo y lo solucionamos") -- a
+second, same-day cut removed that from every client-facing surface,
+after bulleting the whole message still read as "MUY generales y mucho
+texto" against a real pasted example. gmail_client.obtener_texto_cliente()
+computes the same minimal, concrete text the plan email itself now
+shows (a real tip -- progresion/consejos_sinergias -- or, only if no tip
+exists, the message's own first sentence) and this stores THAT, so
+_vista_portal_cliente() renders the identical bullets the email does via
+dividir_en_puntos(), not a second, looser summary. Already
+greeting-stripped and reduced at save time (unlike an earlier version of
+this property, which stored the raw message and stripped it at render
+time) -- notion_connector.py needing the client's name for that is why
+this whole function takes `idioma` and reads `datos["nombre"]` before
+building "Routine Message"/"Diet Message". Plain rich_text, no chunking
+(see _dividir_bloques_notion() above) -- this is always well under the
+2000-char block limit, unlike "Full Profile (JSON)".
 
 DESIGN — obtener_registro_cliente() feeds the client portal without
 needing the full profile: a client following their own magic link (see
@@ -325,9 +331,18 @@ def _construir_propiedades_pagina(
 
     idioma: "en" (default) or "es" -- the UI language the plan was
     generated in (see this module's "Language" DESIGN note above)."""
+    from gmail_client import obtener_texto_cliente
+
     datos = perfil_cliente["datos_basicos"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     nivel = perfil_cliente["experiencia"]["nivel"]
+    tips_dieta = borrador_dieta.get("consejos_sinergias") or []
+    texto_rutina = obtener_texto_cliente(
+        borrador_rutina.get("mensaje_para_el_cliente", ""), datos["nombre"], idioma, borrador_rutina.get("progresion", ""),
+    )
+    texto_dieta = obtener_texto_cliente(
+        borrador_dieta.get("mensaje_para_el_cliente", ""), datos["nombre"], idioma, tips_dieta[0] if tips_dieta else "",
+    )
 
     propiedades = {
         "Name": {"title": [{"text": {"content": datos["nombre"]}}]},
@@ -351,12 +366,8 @@ def _construir_propiedades_pagina(
                 json.dumps(borrador_rutina.get("sesiones") or [], ensure_ascii=False)
             )
         },
-        "Routine Message": {
-            "rich_text": [{"text": {"content": borrador_rutina.get("mensaje_para_el_cliente", "")[:2000]}}]
-        },
-        "Diet Message": {
-            "rich_text": [{"text": {"content": borrador_dieta.get("mensaje_para_el_cliente", "")[:2000]}}]
-        },
+        "Routine Message": {"rich_text": [{"text": {"content": texto_rutina[:2000]}}]},
+        "Diet Message": {"rich_text": [{"text": {"content": texto_dieta[:2000]}}]},
     }
     if id_mensaje:
         propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}

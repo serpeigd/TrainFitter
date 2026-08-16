@@ -782,6 +782,26 @@ live ES test happened to use a client with no plan set. Fixed, and
 locked in with an EN/ES key-symmetry check. 519 tests passing, lint
 clean, no example diffs.
 
+Five more direct requests, same day. The password gate on "Revise
+client"/"Clients" dropped its upfront whole-section prompt — pure
+friction, since "Revise client"'s own per-lookup check already protects
+the actual sensitive action; "Clients" needs no password at all now
+(anonymized dashboard, confirmed explicitly with the project owner
+before removing it). "Revise client" also dropped its collapsed
+`st.expander` — renders directly now. Default UI language switched from
+English to Spanish. Client-facing text got a much harder second cut:
+`mensaje_para_el_cliente` (the generic warm note) is dropped from the
+email/portal entirely whenever a real tip exists (`progresion`/
+`consejos_sinergias`) — new `gmail_client.obtener_texto_cliente()`
+picks the tip over the message, falling back to the message's first
+sentence only when no tip exists. Plain "Routine:"/"Diet:" labels, no
+emoji. `notion_connector.py` now stores this same reduced text (a second
+cross-import from `gmail_client.py`), so the portal renders identical
+content to the email. The PDFs were deliberately left untouched — already
+a properly structured, detailed reference document, not the "wall of
+text" problem the email/portal had. 521 tests passing, lint clean, no
+example diffs. See `docs/decisiones.md` for the full write-up.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

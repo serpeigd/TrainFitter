@@ -212,7 +212,6 @@ from gmail_client import (  # noqa: E402
     enviar_enlace_portal,
     enviar_formulario_intake,
     enviar_notificacion_checkin,
-    quitar_saludo,
     verificar_envio,
 )
 from notion_connector import (  # noqa: E402
@@ -743,12 +742,6 @@ TRANSLATIONS = {
         "tab_new_intake": "📝 New Client",
         "tab_revise_client": "🔄 Revise client",
         "tab_clients": "👥 Clients",
-        "clients_gate_info": (
-            "This deployment requires the trainer's password to view real clients' personal data "
-            "(email, health details)."
-        ),
-        "clients_gate_password_label": "Password",
-        "clients_gate_unlock_button": "Unlock",
         "clients_panel_header": "### 👥 All clients",
         "clients_panel_caption": (
             "How your clients are doing at a glance, anonymized — headcounts and trends, no names or "
@@ -956,6 +949,8 @@ TRANSLATIONS = {
         "portal_welcome": "Hi {nombre} 👋",
         "portal_since_label": "Client since {fecha}",
         "portal_notes_header": "📝 Notes from your trainer",
+        "routine_label": "Routine:",
+        "diet_label": "Diet:",
         "portal_plan_header": "📋 Your plan this week",
         "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": (
@@ -1001,12 +996,6 @@ TRANSLATIONS = {
         "tab_new_intake": "📝 Cliente nuevo",
         "tab_revise_client": "🔄 Revisar cliente",
         "tab_clients": "👥 Clientes",
-        "clients_gate_info": (
-            "Este despliegue requiere la contraseña del entrenador para ver datos personales reales de "
-            "clientes (email, datos de salud)."
-        ),
-        "clients_gate_password_label": "Contraseña",
-        "clients_gate_unlock_button": "Desbloquear",
         "clients_panel_header": "### 👥 Todos los clientes",
         "clients_panel_caption": (
             "Cómo van tus clientes de un vistazo, anonimizado — totales y tendencias, sin nombres ni "
@@ -1217,6 +1206,8 @@ TRANSLATIONS = {
         "portal_welcome": "Hola {nombre} 👋",
         "portal_since_label": "Cliente desde {fecha}",
         "portal_notes_header": "📝 Notas de tu entrenador/a",
+        "routine_label": "Rutina:",
+        "diet_label": "Dieta:",
         "portal_plan_header": "📋 Tu plan esta semana",
         "portal_meals_header": "🍽️ Comidas",
         "portal_meals_caption": (
@@ -1319,7 +1310,7 @@ ETIQUETAS_ESTADO = {
 }
 
 if "lang" not in st.session_state:
-    st.session_state.lang = "en"
+    st.session_state.lang = "es"
 
 
 def t(key: str) -> str:
@@ -1887,51 +1878,58 @@ def _cargar_ficha_para_revisar() -> dict | None:
     the form's own widgets are instantiated fresh against that pre-seeded
     state, rather than relying on same-run ordering.
 
-    On top of _gate_datos_clientes()'s session-level unlock for this
-    section, the actual lookup re-checks APPROVAL_PASSWORD every single
-    time it runs (like _dialogo_aprobacion's per-click check, not a
-    one-time flag) -- the session unlock only proves the trainer knew the
+    No password gate wraps this whole section anymore (removed at the
+    project owner's direct request -- asking for the password once just
+    to reach the email field, then again right here, was pure friction).
+    This lookup's own re-check is the only gate that matters: it fires on
+    every single load, not a one-time session flag -- the session-level
+    unlock this used to sit behind only proved the trainer knew the
     password *once*; without this, anyone at an already-unlocked session
     (a shared screen, a laptop left open) could pull up *any* client's
     full health profile just by knowing their email, with nothing tying
     that specific lookup back to the trainer. Skipped entirely when
     APPROVAL_PASSWORD is unset, same "off" degradation as everywhere
-    else -- local dev stays exactly as friction-free as before."""
-    with st.expander(t("revise_client_header")):
-        st.caption(t("revise_client_caption"))
-        email_buscar = st.text_input(t("revise_client_email_label"), key="revisar_email")
-        password_buscar = (
-            st.text_input(t("revise_client_password_label"), type="password", key="revisar_password")
-            if APPROVAL_PASSWORD else None
-        )
-        if email_buscar and st.button(t("revise_client_load_button"), key="revisar_cargar"):
-            if APPROVAL_PASSWORD and _password_bloqueada():
-                st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
-            elif APPROVAL_PASSWORD and not _verificar_password(password_buscar):
-                # Deliberately doesn't call buscar_cliente_por_email() at all on a
-                # wrong password -- just shows the error and leaves any
-                # previously loaded client's form (if any) exactly as it was.
-                st.error(t("approval_password_wrong"))
-            else:
-                try:
-                    registro = buscar_cliente_por_email(email_buscar.strip())
-                except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                    st.error(t("revise_client_error").format(error=str(exc)))
-                    registro = None
+    else -- local dev stays exactly as friction-free as before.
 
-                if registro is None:
-                    st.warning(t("revise_client_not_found"))
-                else:
-                    for clave, valor in _campos_formulario_desde_perfil(registro["perfil"]).items():
-                        st.session_state[clave] = valor
-                    st.session_state["revisar_pagina_id"] = registro["id"]
-                    st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
-                    st.rerun()
-
-        if st.session_state.get("revisar_cargado_nombre"):
-            st.success(t("revise_client_loaded").format(nombre=st.session_state["revisar_cargado_nombre"]))
+    Rendered directly, not inside a collapsed st.expander -- another
+    direct request ("que se abra automáticamente o quítalo"): the email
+    field is the first thing a trainer needs here, not something worth
+    an extra click to reveal."""
+    st.subheader(t("revise_client_header"))
+    st.caption(t("revise_client_caption"))
+    email_buscar = st.text_input(t("revise_client_email_label"), key="revisar_email")
+    password_buscar = (
+        st.text_input(t("revise_client_password_label"), type="password", key="revisar_password")
+        if APPROVAL_PASSWORD else None
+    )
+    if email_buscar and st.button(t("revise_client_load_button"), key="revisar_cargar"):
+        if APPROVAL_PASSWORD and _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+        elif APPROVAL_PASSWORD and not _verificar_password(password_buscar):
+            # Deliberately doesn't call buscar_cliente_por_email() at all on a
+            # wrong password -- just shows the error and leaves any
+            # previously loaded client's form (if any) exactly as it was.
+            st.error(t("approval_password_wrong"))
         else:
-            st.info(t("revise_client_not_loaded"))
+            try:
+                registro = buscar_cliente_por_email(email_buscar.strip())
+            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                st.error(t("revise_client_error").format(error=str(exc)))
+                registro = None
+
+            if registro is None:
+                st.warning(t("revise_client_not_found"))
+            else:
+                for clave, valor in _campos_formulario_desde_perfil(registro["perfil"]).items():
+                    st.session_state[clave] = valor
+                st.session_state["revisar_pagina_id"] = registro["id"]
+                st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
+                st.rerun()
+
+    if st.session_state.get("revisar_cargado_nombre"):
+        st.success(t("revise_client_loaded").format(nombre=st.session_state["revisar_cargado_nombre"]))
+    else:
+        st.info(t("revise_client_not_loaded"))
 
     if not st.session_state.get("revisar_pagina_id"):
         return None
@@ -2521,20 +2519,26 @@ def _vista_portal_cliente(codigo: str) -> None:
     if registro["fecha"]:
         st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
 
-    # The trainer's own message per section, bulleted the same way the
-    # plan email is (see gmail_client.dividir_en_puntos()) -- direct
-    # follow-up request ("aplica esto también al portal") once bullets
-    # replaced the plan email's own wall of text. Empty for a record
-    # saved before "Routine Message"/"Diet Message" existed -- the
-    # section just doesn't render, same degrade-gracefully spirit as
-    # every other best-effort read here.
-    puntos_notas = []
-    for mensaje in (registro.get("mensaje_rutina"), registro.get("mensaje_dieta")):
-        if mensaje:
-            puntos_notas += dividir_en_puntos(quitar_saludo(mensaje, nombre, st.session_state.lang))
-    if puntos_notas:
+    # Same minimal, concrete content the plan email shows (a real tip,
+    # not the trainer's generic note -- see gmail_client.
+    # obtener_texto_cliente()), already reduced and greeting-stripped at
+    # save time (mcp/notion_connector.py), so only dividir_en_puntos()'s
+    # own bullet split is needed here. Same plain "Rutina:"/"Dieta:"
+    # labels as the email, no emoji -- direct follow-up request ("aplica
+    # esto también al portal") once bullets replaced the plan email's own
+    # wall of text. Empty for a record saved before "Routine Message"/
+    # "Diet Message" existed -- that section just doesn't render, same
+    # degrade-gracefully spirit as every other best-effort read here.
+    mensaje_rutina = registro.get("mensaje_rutina")
+    mensaje_dieta = registro.get("mensaje_dieta")
+    if mensaje_rutina or mensaje_dieta:
         st.markdown(f"**{t('portal_notes_header')}**")
-        st.markdown("\n".join(f"- {p}" for p in puntos_notas))
+        if mensaje_rutina:
+            st.markdown(f"**{t('routine_label')}**")
+            st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_rutina)))
+        if mensaje_dieta:
+            st.markdown(f"**{t('diet_label')}**")
+            st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_dieta)))
 
     # "plan_semanal"/"sesiones" are empty for a record saved before those
     # properties existed -- degrades to no section at all, same spirit as
@@ -2733,59 +2737,6 @@ def _vista_portal_cliente(codigo: str) -> None:
             )
         except (GmailClientError, ImportError, ModuleNotFoundError):
             pass
-
-
-def _datos_clientes_desbloqueados() -> bool:
-    """Whether the trainer has already unlocked the sections that expose
-    real clients' data this browser session. Unset APPROVAL_PASSWORD means
-    there's nothing to unlock -- same "off" degradation as every other
-    optional secret in this file (local dev, the common case, is never
-    gated).
-
-    Back to a single shared flag across "Revise client" and "Clients",
-    reverting an earlier per-section split -- the project owner's own
-    call, once "Clients" stopped showing any individual client's data at
-    all (see _panel_todos_los_clientes(): it's an anonymized, fleet-level
-    dashboard now, roster table removed). The original reason for
-    splitting the flag -- unlocking one used to silently unlock the other,
-    even though they exposed different kinds of personal data -- no longer
-    applies now that only "Revise client" shows anything personal."""
-    return (not APPROVAL_PASSWORD) or st.session_state.get("clientes_desbloqueado", False)
-
-
-def _gate_datos_clientes() -> bool:
-    """Password gate in front of "Revise client" (full client health
-    profiles) and "Clients" (an anonymized fleet dashboard, gated mainly
-    so a public-demo visitor can't tell whether real client data exists
-    at all) -- unlike every other section, both render just by clicking a
-    tab, with no button-click consequence to gate the way Approve's own
-    APPROVAL_PASSWORD dialog (_dialogo_aprobacion) does. Reuses that same
-    APPROVAL_PASSWORD rather than adding a second secret -- one password,
-    two things it protects; unset (local dev) means both sections render
-    exactly as before.
-
-    Unlocking is a session-level flag, not per-view like the approval
-    dialog: browsing either section is a "look around" action repeated
-    many times, not one consequential click, so re-prompting on every
-    rerun would be friction with no real safety benefit once the trainer
-    has proven who they are once this session. Returns True (nothing left
-    to render) once unlocked, False while the prompt itself is still
-    showing."""
-    if _datos_clientes_desbloqueados():
-        return True
-    st.info(t("clients_gate_info"))
-    password_ingresada = st.text_input(
-        t("clients_gate_password_label"), type="password", key="clientes_password_gate",
-    )
-    if st.button(t("clients_gate_unlock_button"), key="clientes_desbloquear_boton"):
-        if _password_bloqueada():
-            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
-        elif _verificar_password(password_ingresada):
-            st.session_state["clientes_desbloqueado"] = True
-            st.rerun()
-        else:
-            st.error(t("approval_password_wrong"))
-    return False
 
 
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:
@@ -3012,25 +2963,23 @@ if seccion_activa == "nueva":
         _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "revisar":
-    if _gate_datos_clientes():
-        perfil_revisado = _cargar_ficha_para_revisar()
-        if perfil_revisado is not None:
-            st.session_state["ultimo_perfil"] = perfil_revisado
-            st.session_state["ultimo_origen"] = "revisar"
-            # Correlates THIS exact submission to the Clients page being
-            # revised -- id() is stable for this specific dict object across
-            # reruns once stored in ultimo_perfil (same pattern
-            # notion_guardado_para/aprobado_para etc. already use below), and
-            # is captured at the one moment this dict is actually created, so
-            # it can't be confused with a different profile that happens to
-            # be submitted later in the same session.
-            st.session_state["revisar_perfil_id"] = id(perfil_revisado)
-        if st.session_state.get("ultimo_origen") == "revisar":
-            _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
+    perfil_revisado = _cargar_ficha_para_revisar()
+    if perfil_revisado is not None:
+        st.session_state["ultimo_perfil"] = perfil_revisado
+        st.session_state["ultimo_origen"] = "revisar"
+        # Correlates THIS exact submission to the Clients page being
+        # revised -- id() is stable for this specific dict object across
+        # reruns once stored in ultimo_perfil (same pattern
+        # notion_guardado_para/aprobado_para etc. already use below), and
+        # is captured at the one moment this dict is actually created, so
+        # it can't be confused with a different profile that happens to
+        # be submitted later in the same session.
+        st.session_state["revisar_perfil_id"] = id(perfil_revisado)
+    if st.session_state.get("ultimo_origen") == "revisar":
+        _ejecutar_y_mostrar(st.session_state["ultimo_perfil"], guardar_en_notion=True)
 
 elif seccion_activa == "clientes":
-    if _gate_datos_clientes():
-        _panel_todos_los_clientes()
+    _panel_todos_los_clientes()
 
 elif seccion_activa == "ejemplo":
     perfil_ejemplo = _selector_cliente_ejemplo()

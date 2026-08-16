@@ -245,16 +245,18 @@ This repository is built phase by phase, as a learning project. Right now:
   own) includes a simple trend chart for weight and adherence over time,
   reusing the same data already being logged.
 - **"Revise client"** displays a real client's full personal data (health
-  details included) — on the public demo it's gated behind the same shared
-  password that already protects the "Approve" button and "Clients," unlocked
-  once per browser session rather than re-checked on every click. Its actual
-  email lookup goes further: it re-checks that same password on every
-  single load (not just the once-per-session unlock), since a shared or
-  already-unlocked session shouldn't let anyone pull up any client's full
-  profile just by knowing their email. A shared brute-force counter also
-  fronts every one of these password checks (Approve included): 5 wrong
-  guesses locks the password out for 2 minutes, no matter which gate it
-  was tried on. Unset locally, same as everywhere else.
+  details included) — its email lookup re-checks the shared approval password
+  on every single load, since a shared or already-unlocked session shouldn't
+  let anyone pull up any client's full profile just by knowing their email.
+  There's no separate upfront section-wide gate in front of it anymore (a
+  real, requested simplification: it was pure friction, asking for the
+  password once just to reach the email field and again right there). "Clients"
+  needs no password at all — it's an anonymized fleet dashboard (KPI cards
+  and aggregate charts only, no per-client data), so there's nothing to gate.
+  A shared brute-force counter fronts every password check that remains
+  (Approve, "Revise client"'s lookup): 5 wrong guesses locks the password out
+  for 2 minutes, no matter which one it was tried on. Unset locally, same as
+  everywhere else.
 - Both rule engines now genuinely use most of what the intake form collects,
   instead of quietly ignoring several fields (a real, disclosed gap found by
   reading the code before writing any). **Routine:** volume and exercise
@@ -361,7 +363,7 @@ no PDF/Gmail/Notion features) needs none of them. Copy [`.env.example`](.env.exa
 |---|---|---|
 | `ANTHROPIC_API_KEY` | `motor="llm"` (optional generative-AI engine) | Pay-per-token — see [Free-only by design](#free-only-by-design) |
 | `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `NOTION_CHECKINS_DATABASE_ID` | Notion connector (`mcp/notion_connector.py`) | Free Notion integration token; `NOTION_DATABASE_ID` is "Clients", `NOTION_CHECKINS_DATABASE_ID` is the separate "Check-ins" database |
-| `APP_APPROVAL_PASSWORD` | Gating the "Approve" button, plus the "Revise client" and "Clients" sections, on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail or browse real clients' personal data |
+| `APP_APPROVAL_PASSWORD` | Gating the "Approve" button and "Revise client"'s email lookup on a public deployment | Leave unset for local dev; set on any public deployment so a random visitor can't write to real Notion/Gmail or pull up a real client's personal data |
 | `PORTAL_BASE_URL` | Building a clickable portal link | Defaults to `http://localhost:8501`; set to the real deployment URL in production |
 | `TRAINER_NOTIFICATION_EMAIL` | Automatic trainer notification on a client check-in | Optional; unset = notification skipped entirely, the check-in itself still saves |
 
