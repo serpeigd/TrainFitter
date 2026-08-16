@@ -208,9 +208,11 @@ from gmail_client import (  # noqa: E402
     GmailClientError,
     buscar_intakes_nuevos,
     crear_borrador,
+    dividir_en_puntos,
     enviar_enlace_portal,
     enviar_formulario_intake,
     enviar_notificacion_checkin,
+    quitar_saludo,
     verificar_envio,
 )
 from notion_connector import (  # noqa: E402
@@ -953,6 +955,7 @@ TRANSLATIONS = {
         "portal_load_error": "Could not load your plan: {error}",
         "portal_welcome": "Hi {nombre} 👋",
         "portal_since_label": "Client since {fecha}",
+        "portal_notes_header": "📝 Notes from your trainer",
         "portal_plan_header": "📋 Your plan this week",
         "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": (
@@ -1213,13 +1216,15 @@ TRANSLATIONS = {
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_welcome": "Hola {nombre} 👋",
         "portal_since_label": "Cliente desde {fecha}",
-        "portal_meals_header": "🍽️ Tus comidas esta semana",
+        "portal_notes_header": "📝 Notas de tu entrenador/a",
+        "portal_plan_header": "📋 Tu plan esta semana",
+        "portal_meals_header": "🍽️ Comidas",
         "portal_meals_caption": (
             "¿Te ha gustado una comida? Toca 🤍 para marcarla — las comidas marcadas aparecerán más "
             "a menudo en tus próximos planes."
         ),
         "portal_meal_like_error": "No se pudo guardar: {error}",
-        "portal_routine_header": "🏋️ Tu rutina esta semana",
+        "portal_routine_header": "🏋️ Rutina",
         "portal_routine_caption": (
             "¿Te ha gustado un ejercicio? Toca 🤍 para marcarlo — los ejercicios marcados aparecerán más "
             "a menudo en tus próximas rutinas."
@@ -2515,6 +2520,21 @@ def _vista_portal_cliente(codigo: str) -> None:
     st.header(t("portal_welcome").format(nombre=nombre))
     if registro["fecha"]:
         st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
+
+    # The trainer's own message per section, bulleted the same way the
+    # plan email is (see gmail_client.dividir_en_puntos()) -- direct
+    # follow-up request ("aplica esto también al portal") once bullets
+    # replaced the plan email's own wall of text. Empty for a record
+    # saved before "Routine Message"/"Diet Message" existed -- the
+    # section just doesn't render, same degrade-gracefully spirit as
+    # every other best-effort read here.
+    puntos_notas = []
+    for mensaje in (registro.get("mensaje_rutina"), registro.get("mensaje_dieta")):
+        if mensaje:
+            puntos_notas += dividir_en_puntos(quitar_saludo(mensaje, nombre, st.session_state.lang))
+    if puntos_notas:
+        st.markdown(f"**{t('portal_notes_header')}**")
+        st.markdown("\n".join(f"- {p}" for p in puntos_notas))
 
     # "plan_semanal"/"sesiones" are empty for a record saved before those
     # properties existed -- degrades to no section at all, same spirit as

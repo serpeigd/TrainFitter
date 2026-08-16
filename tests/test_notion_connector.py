@@ -77,6 +77,7 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
     assert set(propiedades) == {
         "Name", "Date", "Goal", "Level", "Verdict", "Summary", "Language", "Email Sent",
         "Full Profile (JSON)", "Weekly Meal Plan (JSON)", "Weekly Routine (JSON)",
+        "Routine Message", "Diet Message",
     }
     assert propiedades["Name"]["title"][0]["text"]["content"] == "Ana Test"
     assert propiedades["Date"]["date"]["start"] == "2026-01-15"
@@ -95,6 +96,27 @@ def test_page_properties_use_the_given_language(perfil_base, borrador_rutina, bo
     veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto, idioma="es")
     assert propiedades["Language"]["select"]["name"] == "es"
+
+
+def test_page_properties_save_the_trainers_message_per_section(perfil_base, borrador_dieta):
+    """The trainer's own note (not the technical "resumen_enfoque" behind
+    "Summary") is what the client portal now shows -- see this module's
+    "Routine Message"/"Diet Message" DESIGN note."""
+    borrador_rutina = {
+        "resumen_enfoque": "...", "mensaje_para_el_cliente": "Hi Ana, here's your routine.",
+    }
+    borrador_dieta["mensaje_para_el_cliente"] = "Hi Ana, here's your diet."
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Routine Message"]["rich_text"][0]["text"]["content"] == "Hi Ana, here's your routine."
+    assert propiedades["Diet Message"]["rich_text"][0]["text"]["content"] == "Hi Ana, here's your diet."
+
+
+def test_page_properties_message_defaults_to_empty_string_when_missing(perfil_base, borrador_rutina, borrador_dieta):
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Routine Message"]["rich_text"][0]["text"]["content"] == ""
+    assert propiedades["Diet Message"]["rich_text"][0]["text"]["content"] == ""
 
 
 def test_page_properties_full_profile_round_trips_through_json(perfil_base, borrador_rutina, borrador_dieta):
@@ -456,6 +478,8 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "plan_semanal": [],
         "sesiones": [],
         "idioma": "en",
+        "mensaje_rutina": "",
+        "mensaje_dieta": "",
     }
 
 
@@ -471,6 +495,22 @@ def test_fila_registro_cliente_reads_the_saved_language():
     }
     fila = _fila_registro_cliente_desde_pagina(pagina)
     assert fila["idioma"] == "es"
+
+
+def test_fila_registro_cliente_reads_the_saved_messages():
+    pagina = {
+        "properties": {
+            "Name": {"title": [{"plain_text": "Laura Fernandez"}]},
+            "Summary": {"rich_text": []},
+            "Verdict": {"select": {"name": "Auto-approved"}},
+            "Date": {"date": {"start": "2026-08-01"}},
+            "Routine Message": {"rich_text": [{"plain_text": "Hi Laura, here's your routine."}]},
+            "Diet Message": {"rich_text": [{"plain_text": "Hi Laura, here's your diet."}]},
+        }
+    }
+    fila = _fila_registro_cliente_desde_pagina(pagina)
+    assert fila["mensaje_rutina"] == "Hi Laura, here's your routine."
+    assert fila["mensaje_dieta"] == "Hi Laura, here's your diet."
 
 
 def test_fila_registro_cliente_maps_the_goal_label_back_to_the_internal_key():

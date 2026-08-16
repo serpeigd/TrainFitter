@@ -20,9 +20,10 @@ from gmail_client import (
     _extraer_checklist_pdf,
     _extraer_intake_pdf,
     _extraer_remitente,
-    _quitar_saludo,
     _recolectar_adjuntos_pdf,
     _validar_destinatario,
+    dividir_en_puntos,
+    quitar_saludo,
 )
 
 
@@ -57,8 +58,10 @@ def test_email_body_includes_the_clients_personal_messages():
     borrador_rutina = {"mensaje_para_el_cliente": "Hi Ana, here's your routine."}
     borrador_dieta = {"mensaje_para_el_cliente": "Hi Ana, here's your diet."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
-    assert "here's your routine" in cuerpo
-    assert "here's your diet" in cuerpo
+    # dividir_en_puntos() capitalizes each bullet -- the greeting-stripped
+    # remainder ("here's your routine.") starts lowercase otherwise.
+    assert "here's your routine" in cuerpo.lower()
+    assert "here's your diet" in cuerpo.lower()
 
 
 def test_email_body_always_lists_both_the_routine_and_diet_pdfs():
@@ -139,19 +142,19 @@ def test_email_body_has_a_labeled_section_per_message():
 
 
 def test_quitar_saludo_strips_a_matching_greeting():
-    assert _quitar_saludo("Hi Ana, here's your routine.", "Ana", "en") == "here's your routine."
-    assert _quitar_saludo("Hola Ana, aquí tienes tu rutina.", "Ana", "es") == "aquí tienes tu rutina."
+    assert quitar_saludo("Hi Ana, here's your routine.", "Ana", "en") == "here's your routine."
+    assert quitar_saludo("Hola Ana, aquí tienes tu rutina.", "Ana", "es") == "aquí tienes tu rutina."
 
 
 def test_quitar_saludo_uses_only_the_first_name():
-    assert _quitar_saludo("Hi Ana, here's your routine.", "Ana García", "en") == "here's your routine."
+    assert quitar_saludo("Hi Ana, here's your routine.", "Ana García", "en") == "here's your routine."
 
 
 def test_quitar_saludo_leaves_message_untouched_if_greeting_does_not_match():
     """Defensive: a hand-edited or unexpected message shouldn't get silently
     mangled just because it doesn't start with the exact expected prefix."""
     mensaje = "Coach's note: keep it light this week."
-    assert _quitar_saludo(mensaje, "Ana", "en") == mensaje
+    assert quitar_saludo(mensaje, "Ana", "en") == mensaje
 
 
 def test_email_body_greets_by_first_name_only():
@@ -163,14 +166,47 @@ def test_email_body_greets_by_first_name_only():
     assert cuerpo.startswith("Hi Ana,")
 
 
-def test_email_body_has_no_bulleted_attachment_list():
-    """The wrapper text was rewritten away from a "📎 Attached: • X • Y"
-    bulleted list into a plain sentence -- same real feedback as above."""
+def test_email_body_attachment_note_is_plain_prose_not_a_bulleted_list():
+    """The attachment/reply-instructions wrapper was rewritten away from a
+    "📎 Attached: • X • Y" bulleted list into a plain sentence -- unlike
+    the trainer's own message/tip above it, which IS bulleted (see
+    test_email_body_bullets_the_clients_message below)."""
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, incluir_checklist=True)
-    assert "•" not in cuerpo
     assert "📎" not in cuerpo
+    cierre = cuerpo.split("I've attached")[1]
+    assert "•" not in cierre
+
+
+def test_email_body_bullets_the_clients_message():
+    """Direct follow-up feedback: the trainer's own message/tip should
+    read as scannable bullet points, not a wall of prose -- "si hay mucho
+    texto nadie se lo lee"."""
+    borrador_rutina = {
+        "mensaje_para_el_cliente": "First sentence here. Second sentence here.",
+        "progresion": "A tip sentence.",
+    }
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "• First sentence here." in cuerpo
+    assert "• Second sentence here." in cuerpo
+    assert "• A tip sentence." in cuerpo
+
+
+def test_dividir_en_puntos_splits_on_sentence_boundaries():
+    assert dividir_en_puntos("One. Two! Three?") == ["One.", "Two!", "Three?"]
+
+
+def test_dividir_en_puntos_handles_a_single_sentence():
+    assert dividir_en_puntos("Just one sentence.") == ["Just one sentence."]
+
+
+def test_dividir_en_puntos_capitalizes_each_fragment():
+    """The first fragment is often the tail of a greeting quitar_saludo()
+    already stripped (e.g. "aquí tienes tu rutina...") -- shouldn't open a
+    bullet list lowercase."""
+    assert dividir_en_puntos("aquí tienes tu rutina. y algo más.") == ["Aquí tienes tu rutina.", "Y algo más."]
 
 
 def test_email_body_wrapper_text_translates_for_spanish():
@@ -183,7 +219,7 @@ def test_email_body_wrapper_text_translates_for_spanish():
     borrador_dieta = {"mensaje_para_el_cliente": "Hola Ana, aquí tienes tu dieta."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, idioma="es", incluir_checklist=True)
     assert cuerpo.startswith("Hola Ana,")
-    assert "aquí tienes tu rutina" in cuerpo
+    assert "aquí tienes tu rutina" in cuerpo.lower()
     assert "respóndeme a este mismo correo" in cuerpo.lower()
 
 

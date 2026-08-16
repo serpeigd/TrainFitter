@@ -104,6 +104,23 @@ the moment this shipped — no backward-compat shim, a fresh link is one
 click away; (2) the trainer can now revoke a link early by clearing the
 Notion property by hand, something the old design explicitly couldn't do.
 
+DESIGN — "Routine Message"/"Diet Message" bring the trainer's own
+mensaje_para_el_cliente back into the client portal, direct follow-up
+after "Aplica esto también al portal": the portal had shown a technical
+"resumen_enfoque" summary, then nothing at all once that was cut for
+being unreadable prose (see the reference-link DESIGN note above). The
+trainer's actual warm note is different -- it was already the one thing
+proven readable in the plan email (see mcp/gmail_client.py's
+_construir_cuerpo_email() and its dividir_en_puntos() bullet rendering).
+Storing it here lets _vista_portal_cliente() render the exact same
+bulleted note, reusing gmail_client.quitar_saludo()/dividir_en_puntos()
+rather than a second formatting implementation. Raw text (greeting
+still attached) — stripping it needs the client's name, which the
+portal already has from this same record, so it's stripped at render
+time, not save time. Plain rich_text, no chunking (see
+_dividir_bloques_notion() above) -- a personal note is always well
+under the 2000-char block limit, unlike "Full Profile (JSON)".
+
 DESIGN — obtener_registro_cliente() feeds the client portal without
 needing the full profile: a client following their own magic link (see
 generar_referencia_portal() above) only ever needs to see a short "your plan"
@@ -180,7 +197,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Full Profile (JSON) (text), Weekly Meal Plan (JSON) (text),
        Liked Meals (JSON) (text), Weekly Routine (JSON) (text),
        Liked Exercises (JSON) (text), Portal Reference (text),
-       Portal Reference Expires (date), Language (select: en/es)
+       Portal Reference Expires (date), Language (select: en/es),
+       Routine Message (text), Diet Message (text)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
@@ -332,6 +350,12 @@ def _construir_propiedades_pagina(
             "rich_text": _dividir_bloques_notion(
                 json.dumps(borrador_rutina.get("sesiones") or [], ensure_ascii=False)
             )
+        },
+        "Routine Message": {
+            "rich_text": [{"text": {"content": borrador_rutina.get("mensaje_para_el_cliente", "")[:2000]}}]
+        },
+        "Diet Message": {
+            "rich_text": [{"text": {"content": borrador_dieta.get("mensaje_para_el_cliente", "")[:2000]}}]
         },
     }
     if id_mensaje:
@@ -515,7 +539,9 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
     portal page (routine/diet summary, history) still renders; the
     "this week's meals"/"this week's routine" section just has nothing to
     show, same degrade-gracefully spirit as this module's other
-    best-effort reads.
+    best-effort reads. "mensaje_rutina"/"mensaje_dieta" default to ""
+    the same way, for a record saved before "Routine Message"/"Diet
+    Message" existed.
 
     "objetivo" is the internal Spanish key (via _LABEL_A_OBJETIVO), not
     the raw "Goal" select label -- a client's goal is already effectively
@@ -544,9 +570,12 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
         sesiones = json.loads(texto_rutina) if texto_rutina else []
     except ValueError:
         sesiones = []
+    mensaje_rutina = _unir_bloques_notion(propiedades.get("Routine Message", {}))
+    mensaje_dieta = _unir_bloques_notion(propiedades.get("Diet Message", {}))
     return {
         "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
         "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones, "idioma": idioma,
+        "mensaje_rutina": mensaje_rutina, "mensaje_dieta": mensaje_dieta,
     }
 
 
@@ -680,7 +709,8 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
             resolver_referencia_portal(), never typed by the client).
 
     Returns:
-        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones", "idioma"}.
+        {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones",
+        "idioma", "mensaje_rutina", "mensaje_dieta"}.
 
     Raises:
         NotionClientError: missing credentials, the page doesn't exist

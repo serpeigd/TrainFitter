@@ -765,6 +765,23 @@ confirmed directly with the project owner first — no public API for
 left open as a later phase. 512 tests passing, lint clean, one example
 diff (`output_rutina_3.json`).
 
+The plan email's message/tip now render as real bullet points
+(`gmail_client.dividir_en_puntos()`, sentence-split + capitalized),
+not a paragraph — a direct, pasted-example follow-up ("si hay mucho
+texto nadie se lo lee") to the earlier "less AI" pass. "Aplica esto
+también al portal" surfaced a real gap: the portal never showed the
+trainer's actual message at all, only a technical summary already cut
+for being unreadable. New "Routine Message"/"Diet Message" Notion
+properties store it; the portal reuses the same
+`quitar_saludo()`/`dividir_en_puntos()` (both made public, imported by
+`ui/app.py`) so both channels render identically. Also caught, live: the
+Spanish translation dict was missing a key added English-only in the
+prior portal-redesign round — a real `KeyError` waiting for the first
+Spanish client with an actual saved plan, missed because that round's
+live ES test happened to use a client with no plan set. Fixed, and
+locked in with an EN/ES key-symmetry check. 519 tests passing, lint
+clean, no example diffs.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

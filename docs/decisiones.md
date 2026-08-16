@@ -2209,6 +2209,59 @@ one example diff (`output_rutina_3.json`, expected).
 
 ---
 
+## Bullet points for the plan email, then the same treatment for the portal
+
+Direct, pasted-example follow-up the same day: the plan email's "less
+AI" pass earlier this session still read as unbroken paragraphs — "que
+sean como bullet points... si hay mucho texto nadie se lo lee." New
+`gmail_client.dividir_en_puntos()` splits `mensaje_para_el_cliente` (and
+its tip -- `progresion`/the first `consejos_sinergias` entry) into
+individual sentences, rendered as `• `-prefixed lines instead of a
+paragraph; the attachment/reply-instructions text stays plain prose on
+purpose (already short, doesn't need bulleting). Each fragment's first
+letter is capitalized -- the first one is often the tail of a greeting
+`quitar_saludo()` already stripped ("aquí tienes tu rutina..."), which
+would otherwise open a bullet list lowercase.
+
+**"Aplica esto también al portal"** surfaced a real, separate gap:
+`obtener_registro_cliente()` never read back `mensaje_para_el_cliente`
+at all — only the technical `resumen_enfoque`-based "Summary", which had
+already been cut from the portal for being unreadable prose (see the
+reference-link section above). The trainer's actual warm note had never
+reached the portal in any form. New "Routine Message"/"Diet Message"
+Notion properties (added via the API, same pattern as every prior schema
+addition) store it raw; `_vista_portal_cliente()` reuses
+`gmail_client.quitar_saludo()`/`dividir_en_puntos()` (both promoted from
+private to public functions, now imported by `ui/app.py` too) so the
+portal renders the exact same bulleted note the email does, with no
+second formatting implementation. `notion_connector.py` importing from
+`gmail_client.py` is a first for this project (previously two
+independent sibling connectors) — accepted since both functions are
+pure, dependency-free text formatting, not anything that drags in
+`googleapiclient`.
+
+**A real, live-caught bug along the way**: the Spanish translation dict
+was missing `"portal_plan_header"` entirely (added to English only, in
+the reference-link/portal-redesign round earlier this session), and
+`"portal_meals_header"`/`"portal_routine_header"` still carried their
+pre-redesign, un-shortened Spanish text. A Spanish-language client with
+an actual saved weekly plan would have hit a `KeyError` opening their
+own portal — missed originally because the one live-tested Spanish
+portal check that round happened to use a test client with no
+`plan_semanal`/`sesiones` set, so the broken code path never ran. Caught
+this time by a dedicated EN/ES key-symmetry check (parsing
+`TRANSLATIONS` via `ast` and diffing the two language's key sets)
+rather than by another lucky manual click-through — worth keeping as a
+real regression check, not a one-off script.
+
+10 new/updated tests, 519 passing (up from 512), lint clean, no example
+diffs. Verified against the real Notion workspace: saved a throwaway
+client with a real trainer message in Spanish, confirmed the portal
+rendered the correctly-stripped, correctly-bulleted note, archived the
+test record after.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

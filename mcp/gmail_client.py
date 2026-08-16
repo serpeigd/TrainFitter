@@ -194,7 +194,30 @@ def _validar_destinatario(destinatario: str) -> str:
     return destinatario
 
 
-def _quitar_saludo(mensaje: str, nombre_cliente: str, idioma: str) -> str:
+def dividir_en_puntos(texto: str) -> list[str]:
+    """Splits a trainer-written paragraph into individual sentences, for
+    rendering as bullet points instead of a wall of prose -- real,
+    direct feedback ("que sean como bullet points... si hay mucho texto
+    nadie se lo lee") on top of the earlier "less AI-sounding" pass.
+    Public (not underscore-prefixed) and deliberately kept here rather
+    than duplicated: ui/app.py's client portal imports this too, so the
+    plan email and the portal render the trainer's message the same way.
+
+    Splits on sentence-ending punctuation followed by whitespace -- safe
+    for this project's generated text (mensaje_para_el_cliente/
+    progresion/consejos_sinergias), which never uses periods for
+    abbreviations or decimals. Each fragment's first letter is
+    capitalized -- the very first one is often the tail of a greeting
+    stripped off by quitar_saludo() (e.g. "aquí tienes tu rutina..."),
+    which would otherwise open a bullet list lowercase. Returns plain
+    sentence strings, no bullet marker -- callers prefix however fits
+    their medium ("• " for a plain-text email, "- " for Streamlit
+    markdown)."""
+    fragmentos = re.split(r"(?<=[.!?])\s+", texto.strip())
+    return [f[:1].upper() + f[1:] for f in (frag.strip() for frag in fragmentos) if f]
+
+
+def quitar_saludo(mensaje: str, nombre_cliente: str, idioma: str) -> str:
     """rutina_reglas.py/dieta_reglas.py each bake their own "Hi {first_name}, "
     / "Hola {first_name}, " greeting directly into mensaje_para_el_cliente --
     by design, so the message reads naturally when shown standalone (the
@@ -224,9 +247,9 @@ def _construir_cuerpo_email(
     trainer's personal, warm note, varied per client -- see
     agents/variacion.py), each under a short section label instead of run
     together as one wall of text, with its own baked-in greeting stripped
-    (see _quitar_saludo()) and replaced by one shared greeting up top --
+    (see quitar_saludo()) and replaced by one shared greeting up top --
     the client's name used to open three lines in a row before this.
-    Greets by first name only (see _quitar_saludo()'s own splitting logic)
+    Greets by first name only (see quitar_saludo()'s own splitting logic)
     -- reads warmer than the full name every time.
 
     Adds one genuinely useful, skimmable line per section straight from
@@ -235,13 +258,18 @@ def _construir_cuerpo_email(
     just to see the single most actionable tip -- a real request, not
     cosmetic: "easy to read, key points, without much text."
 
-    DESIGN -- wrapper text was rewritten from a bulleted "📎 Attached: •
-    X • Y" list and "👉" arrow-prefixed tip callouts into plain sentences
-    (real feedback: it read too much like an automated assistant, not a
-    trainer). Kept: the 🏋️/🍽️ section labels (a real scannability request
-    from earlier, not cosmetic) and the reply/PDF-app instructions
-    (genuinely needed information, just phrased as one person telling
-    another how to do something instead of a numbered caveat list).
+    DESIGN -- the attachment/reply-instructions wrapper text was rewritten
+    from a bulleted "📎 Attached: • X • Y" list and "👉" arrow-prefixed tip
+    callouts into plain sentences (real feedback: it read too much like an
+    automated assistant, not a trainer). The trainer's OWN message/tip per
+    section is the opposite: split into real bullet points via
+    dividir_en_puntos(), not a flowing paragraph -- direct follow-up
+    feedback on the same email ("que sean como bullet points... si hay
+    mucho texto nadie se lo lee"). Kept: the 🏋️/🍽️ section labels (a real
+    scannability request from earlier, not cosmetic) and the reply/PDF-app
+    instructions (genuinely needed information, just phrased as one person
+    telling another how to do something instead of a numbered caveat
+    list).
 
     Args:
         incluir_checklist: whether the adherence checklist PDF was
@@ -257,11 +285,16 @@ def _construir_cuerpo_email(
     rutina_reglas.py/dieta_reglas.py), so this just needs to match that,
     not translate anything itself."""
     primer_nombre = nombre_cliente.split()[0] if nombre_cliente.strip() else nombre_cliente
-    mensaje_rutina = _quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
-    mensaje_dieta = _quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
+    mensaje_rutina = quitar_saludo(borrador_rutina["mensaje_para_el_cliente"], nombre_cliente, idioma)
+    mensaje_dieta = quitar_saludo(borrador_dieta["mensaje_para_el_cliente"], nombre_cliente, idioma)
     tip_rutina = borrador_rutina.get("progresion", "")
     tips_dieta = borrador_dieta.get("consejos_sinergias") or []
     tip_dieta = tips_dieta[0] if tips_dieta else ""
+
+    puntos_rutina = dividir_en_puntos(mensaje_rutina) + (dividir_en_puntos(tip_rutina) if tip_rutina else [])
+    puntos_dieta = dividir_en_puntos(mensaje_dieta) + (dividir_en_puntos(tip_dieta) if tip_dieta else [])
+    bullets_rutina = "\n".join(f"• {p}" for p in puntos_rutina)
+    bullets_dieta = "\n".join(f"• {p}" for p in puntos_dieta)
 
     if idioma == "es":
         cierre = "Te adjunto tu rutina y tu dieta en PDF"
@@ -278,11 +311,9 @@ def _construir_cuerpo_email(
         )
         return (
             f"Hola {primer_nombre},\n\n"
-            f"🏋️ Tu rutina\n{mensaje_rutina}\n"
-            + (f"\n{tip_rutina}\n" if tip_rutina else "")
-            + f"\n🍽️ Tu dieta\n{mensaje_dieta}\n"
-            + (f"\n{tip_dieta}\n" if tip_dieta else "")
-            + f"\n{cierre}"
+            f"🏋️ Tu rutina\n{bullets_rutina}\n"
+            f"\n🍽️ Tu dieta\n{bullets_dieta}\n"
+            f"\n{cierre}"
         )
 
     cierre = "I've attached your routine and diet as PDFs"
@@ -299,11 +330,9 @@ def _construir_cuerpo_email(
     )
     return (
         f"Hi {primer_nombre},\n\n"
-        f"🏋️ Your routine\n{mensaje_rutina}\n"
-        + (f"\n{tip_rutina}\n" if tip_rutina else "")
-        + f"\n🍽️ Your diet\n{mensaje_dieta}\n"
-        + (f"\n{tip_dieta}\n" if tip_dieta else "")
-        + f"\n{cierre}"
+        f"🏋️ Your routine\n{bullets_rutina}\n"
+        f"\n🍽️ Your diet\n{bullets_dieta}\n"
+        f"\n{cierre}"
     )
 
 

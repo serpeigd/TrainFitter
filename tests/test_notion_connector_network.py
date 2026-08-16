@@ -339,6 +339,8 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
         "plan_semanal": [],
         "sesiones": [],
         "idioma": "en",
+        "mensaje_rutina": "",
+        "mensaje_dieta": "",
     }
     cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
 
