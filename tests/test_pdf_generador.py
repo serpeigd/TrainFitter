@@ -195,6 +195,36 @@ def test_diet_pdf_omits_vegetable_section_when_absent(borrador_dieta):
     assert "Suggested vegetables" not in texto
 
 
+def test_diet_pdf_never_includes_the_generic_message(borrador_dieta):
+    """mensaje_para_el_cliente (the generic warm note) is dropped from
+    the PDF entirely, same cut already made to the plan email/portal --
+    it's tone, not information, and this document is concrete throughout."""
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "this is your draft diet" not in texto
+
+
+def test_diet_pdf_omits_the_redundant_sections_when_a_weekly_plan_exists(borrador_dieta):
+    """Once a real weekly table exists, the generic "meal distribution"
+    explanation and the "suggested sources" catalogs (every valid
+    candidate food, not a curated few) are redundant with it -- only
+    shown as a fallback when there's no table (see the other tests in
+    this file for that path, still covered)."""
+    from pypdf import PdfReader
+
+    borrador_dieta["plan_semanal"] = [
+        {"dia": "Monday", "comidas": [{"tipo": "Breakfast", "descripcion": "Oats.", "aprox_kcal": 300}]},
+    ]
+    pdf = generar_pdf_dieta(borrador_dieta, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Meal distribution" not in texto
+    assert "Spread these calories" not in texto
+    assert "Suggested protein sources" not in texto
+    assert "Chicken breast" not in texto
+
+
 # --- generar_pdf_rutina() ---------------------------------------------------
 
 
@@ -212,6 +242,19 @@ def test_routine_pdf_contains_sessions_exercises_and_progression(borrador_rutina
     assert "Barbell bench press" in texto
     assert "6-8" in texto
     assert "Add one rep before adding weight" in texto
+
+
+def test_routine_pdf_never_includes_the_generic_message(borrador_rutina):
+    """mensaje_para_el_cliente (the generic warm note) is dropped from
+    the PDF entirely, same cut already made to the plan email/portal --
+    "resumen_enfoque" stays, since unlike the generic note it states
+    real, plan-specific facts (split, level, days/week)."""
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "here's your first draft routine" not in texto
+    assert "Upper Lower" in texto
 
 
 def test_routine_pdf_includes_warmup_and_cardio_notes(borrador_rutina):

@@ -89,15 +89,31 @@ _COLOR_TABLA_BORDE = "#C7D9D5"
 def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "en") -> bytes:
     """
     Renders the diet draft as a plain, read-only PDF -- calories/macros, a
-    full 7-day meal plan (when present -- see below), suggested food
-    sources, and synergy tips. Never includes advertencias_revision_humana
-    (see module docstring).
+    full 7-day meal plan (when present -- see below), and synergy tips.
+    Never includes advertencias_revision_humana (see module docstring).
+
+    DESIGN -- cut hard, direct request ("bastante texto que puede
+    resumirse/eliminarse... solo la información relevante"), after the
+    same cut had already landed on the plan email/portal. Dropped
+    entirely: mensaje_para_el_cliente (the generic warm note -- already
+    dropped from the email/portal for the same reason) and the "Meal
+    distribution" section's generic 2-sentence explanation of splitting
+    calories across meals. The four "Suggested X sources" lists (every
+    valid candidate food per category, not a curated few) are now shown
+    ONLY when "plan_semanal" is absent -- when the real weekly table
+    exists, it already answers "what do I eat" concretely, and a second,
+    much longer catalog of every other valid option next to it is
+    genuinely redundant bulk, not information a client needs. Kept: daily
+    targets (kcal/macros -- concrete), the weekly table itself, and
+    consejos_sinergias (specific, evidence-based, already gated to
+    avanzado+ -- never generic filler to begin with).
 
     Args:
         borrador_dieta: same schema as agents/dieta_reglas.py's output.
             "plan_semanal" and "fuentes_verdura_sugeridas" are optional --
             a draft from before this fields existed (or a hand-built test
-            fixture) still renders correctly, just without that section.
+            fixture) still renders correctly, just falls back to the
+            "Suggested X sources" lists instead of a table.
         nombre_cliente: for the title and greeting.
         idioma: "en" (default) or "es" -- language of this document's own
             labels/headings. Food source names in the plain suggested-
@@ -184,14 +200,18 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
 
     contenido = [
         Paragraph(textos["titulo"], estilo_titulo),
-        Paragraph(borrador_dieta["mensaje_para_el_cliente"], estilo_cuerpo),
         Paragraph(textos["objetivos"], estilo_seccion),
         Paragraph(textos["objetivos_texto"], estilo_cuerpo),
-        Paragraph(textos["reparto"], estilo_seccion),
-        Paragraph(borrador_dieta["distribucion_comidas"], estilo_cuerpo),
     ]
 
     plan_semanal = borrador_dieta.get("plan_semanal") or []
+    if not plan_semanal:
+        # Only shown as a fallback -- the weekly table below already
+        # answers "how is this split across the day" concretely when
+        # it exists (see this function's DESIGN note).
+        contenido.append(Paragraph(textos["reparto"], estilo_seccion))
+        contenido.append(Paragraph(borrador_dieta["distribucion_comidas"], estilo_cuerpo))
+
     if plan_semanal:
         contenido.append(Paragraph(textos["plan_semanal"], estilo_seccion))
         estilo_tabla = TableStyle([
@@ -223,21 +243,25 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
             # page with its table starting fresh on the next one.
             contenido.append(KeepTogether([Paragraph(dia_info["dia"], estilo_dia), tabla]))
 
-    for clave, fuentes in (
-        ("proteina", borrador_dieta["fuentes_proteina_sugeridas"]),
-        ("carbohidrato", borrador_dieta["fuentes_carbohidrato_sugeridas"]),
-        ("grasa", borrador_dieta["fuentes_grasa_sugeridas"]),
-        ("verdura", borrador_dieta.get("fuentes_verdura_sugeridas", [])),
-    ):
-        if not fuentes:
-            continue
-        contenido.append(Paragraph(textos[clave], estilo_seccion))
-        contenido.append(
-            ListFlowable(
-                [ListItem(Paragraph(nombre_mostrado(f, idioma), estilo_item)) for f in fuentes],
-                bulletType="bullet",
+    if not plan_semanal:
+        # Fallback only -- see this function's DESIGN note. A real weekly
+        # table already shows concrete picks from these same pools, so
+        # printing every other valid candidate alongside it is redundant.
+        for clave, fuentes in (
+            ("proteina", borrador_dieta["fuentes_proteina_sugeridas"]),
+            ("carbohidrato", borrador_dieta["fuentes_carbohidrato_sugeridas"]),
+            ("grasa", borrador_dieta["fuentes_grasa_sugeridas"]),
+            ("verdura", borrador_dieta.get("fuentes_verdura_sugeridas", [])),
+        ):
+            if not fuentes:
+                continue
+            contenido.append(Paragraph(textos[clave], estilo_seccion))
+            contenido.append(
+                ListFlowable(
+                    [ListItem(Paragraph(nombre_mostrado(f, idioma), estilo_item)) for f in fuentes],
+                    bulletType="bullet",
+                )
             )
-        )
 
     if borrador_dieta["consejos_sinergias"]:
         contenido.append(Paragraph(textos["consejos"], estilo_seccion))
@@ -274,6 +298,14 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
     "here's your full plan" document the way the diet always had one --
     a real, disclosed asymmetry the project owner asked to close (see
     docs/decisiones.md).
+
+    DESIGN -- mensaje_para_el_cliente (the generic warm note) is dropped
+    entirely, same direct request/reasoning as generar_pdf_dieta()'s own
+    DESIGN note: it's tone, not information, and this document is already
+    concrete throughout (a real per-session table, an evidence-grounded
+    effort cue, a specific progression tip). "Overview" (resumen_enfoque)
+    stays -- unlike the generic note, it states real, plan-specific facts
+    (split type, level, days/week, why a set count changed), not filler.
 
     Args:
         borrador_rutina: same schema as agents/rutina_reglas.py's output.
@@ -338,10 +370,7 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
             "pie": "Draft prepared by TrainFitter — reviewed and sent by your trainer.",
         }
 
-    contenido = [
-        Paragraph(textos["titulo"], estilo_titulo),
-        Paragraph(borrador_rutina["mensaje_para_el_cliente"], estilo_cuerpo),
-    ]
+    contenido = [Paragraph(textos["titulo"], estilo_titulo)]
     if borrador_rutina.get("resumen_enfoque"):
         contenido.append(Paragraph(textos["resumen"], estilo_seccion))
         contenido.append(Paragraph(borrador_rutina["resumen_enfoque"], estilo_cuerpo))

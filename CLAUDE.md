@@ -797,10 +797,20 @@ picks the tip over the message, falling back to the message's first
 sentence only when no tip exists. Plain "Routine:"/"Diet:" labels, no
 emoji. `notion_connector.py` now stores this same reduced text (a second
 cross-import from `gmail_client.py`), so the portal renders identical
-content to the email. The PDFs were deliberately left untouched — already
-a properly structured, detailed reference document, not the "wall of
-text" problem the email/portal had. 521 tests passing, lint clean, no
-example diffs. See `docs/decisiones.md` for the full write-up.
+content to the email. The PDFs were deliberately left untouched at the
+time — already a properly structured, detailed reference document, not
+the "wall of text" problem the email/portal had. 521 tests passing, lint
+clean, no example diffs. See `docs/decisiones.md` for the full write-up.
+
+Same-day follow-up: asked directly to cut the PDFs too. Two real,
+specific cuts once actually compared: `mensaje_para_el_cliente` (the
+generic note) dropped from both PDFs entirely, same as the email/portal;
+the diet PDF's "Meal distribution" paragraph and its four "Suggested X
+sources" lists (every valid candidate food, often 20+ items total) now
+only render when `plan_semanal` is absent — redundant bulk once the real
+weekly table already answers "what do I eat" concretely. Verified by
+actually rendering a real PDF and reading its extracted text, not just
+the code. 524 tests passing, lint clean.
 
 ## Free-only guardrail
 

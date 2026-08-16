@@ -2335,6 +2335,46 @@ clean, no `examples/output_*.json` diffs.
 
 ---
 
+## The PDFs get the same cut
+
+Direct follow-up the same day: "recorta también el texto de los PDFs...
+hay bastante texto que puede resumirse/eliminarse." Read
+`pdf_generador.py` in full before changing anything, since the previous
+round had deliberately left the PDFs alone (judged them already
+well-structured). Two real things were still worth cutting once actually
+compared against the trimmed email/portal:
+
+- **`mensaje_para_el_cliente`** (the generic warm note) is dropped from
+  both PDFs entirely — same content, same reasoning as the email/portal
+  cut. `resumen_enfoque` ("Overview" in the routine PDF) stays: unlike
+  the generic note, it states real, plan-specific facts (split, level,
+  days/week, why a set count changed), not filler.
+- **The diet PDF's "Meal distribution" paragraph and its four "Suggested
+  X sources" lists** (every valid candidate food per category, not a
+  curated few — often 20+ items across all four) are now shown ONLY when
+  `plan_semanal` is absent. When the real weekly table exists, it already
+  answers "what do I eat" concretely, meal by meal; a second, much longer
+  catalog of every other valid option next to it was genuinely redundant
+  bulk, not something that helps the client. The fallback path (no weekly
+  table — an older draft format, a hand-built fixture) keeps both, since
+  without a table there'd be nothing concrete to eat at all otherwise.
+
+Kept everywhere: daily targets/macros, the weekly meal table itself,
+every per-session exercise table, the effort cue, optional cardio,
+`progresion` ("How to progress"), and `consejos_sinergias` ("Tips") —
+none of these were ever generic; they're the concrete, plan-specific
+content this document exists to deliver.
+
+Verified by actually generating and reading a real PDF (`output_dieta_3
+.json`/`output_rutina_3.json` fed through the real reportlab renderers),
+not just by reading the code: the diet PDF for a client with a real
+weekly plan is now title → daily targets → weekly table → tips → footer,
+with zero generic paragraphs. 5 new tests, 524 passing (up from 521),
+lint clean, no `examples/output_*.json` diffs (PDFs aren't part of that
+regeneration check; behavior confirmed by direct rendering instead).
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project
