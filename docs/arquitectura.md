@@ -9,8 +9,9 @@
 > below. Beyond the original phase plan, the project has since added a
 > client-facing magic-link portal, a "Revise client" flow that stores and reloads
 > a client's full profile from Notion, real-weight tracking through the
-> check-in loop, and a "Clients" roster tab with per-client trend charts (weight,
-> adherence rating) — see [`README.md`](../README.md) and
+> check-in loop, an anonymized fleet-level "Clients" dashboard, and per-client
+> trend charts (weight, adherence rating) in the check-in history views — see
+> [`README.md`](../README.md) and
 > [`docs/decisiones.md`](decisiones.md) for the full, current feature list; this
 > document focuses on the core pipeline's design, not a changelog of every
 > feature added on top of it.
@@ -157,13 +158,17 @@ the view back to the first tab (reproduced and confirmed while building this;
   form pre-filled with their stored `perfil_cliente`, to edit and regenerate;
   re-approving updates the existing Notion record in place instead of
   duplicating it (see "Revise client" below).
-- **"Clients" section (`_panel_todos_los_clientes()`):** a roster of every real
-  client (`notion_connector.listar_clientes()`), joined in Python with each
-  client's most recent Check-ins row (`ultimo_checkin_por_cliente()` — Notion
-  has no native "latest row per group" query) and flagged with ⚠️
-  (`_etiqueta_atencion()`) when that latest adherence rating is Low. The two
-  Notion queries are independently best-effort: if the Check-ins lookup fails,
-  the roster itself still renders, just without the adherence column.
+- **"Clients" section (`_panel_todos_los_clientes()`):** an anonymized,
+  fleet-level dashboard — headcount KPIs plus two bar charts (verdict mix,
+  latest-adherence mix), built from `notion_connector.listar_clientes()`
+  joined in Python with each client's most recent Check-ins row
+  (`ultimo_checkin_por_cliente()` — Notion has no native "latest row per
+  group" query). No per-client roster table — that used to live here (name,
+  email, goal, verdict, last check-in per row) and was removed at the
+  project owner's request; Notion's own database view is what the trainer
+  now uses to look up an individual record. The two Notion queries are
+  independently best-effort: if the Check-ins lookup fails, the KPIs and
+  verdict chart still render, just without the adherence-rating chart.
 - **"Example client" section:** pick one of the JSON files in `examples/`, preview
   the full intake, generate the plan.
 - **Live execution:** `st.status(...)` plus the `on_transition` callback show each
@@ -228,7 +233,7 @@ a pipeline as fast as the rule engine.
 | Intake PDF (generate + read) | `agents/pdf_intake.py` | 6 | **Done** |
 | Client portal (magic link) | `notion_connector.py`'s `generar_referencia_portal()`, `ui/app.py`'s `_vista_portal_cliente()` | 6+ | **Done** |
 | Revise client (Notion-backed full profile) | `notion_connector.py`'s `buscar_cliente_por_email()`/`actualizar_registro_cliente()`, `ui/app.py`'s `_cargar_ficha_para_revisar()` | 6+ | **Done** |
-| Client roster + trend charts | `notion_connector.py`'s `listar_clientes()`/`ultimo_checkin_por_cliente()`, `ui/app.py`'s `_panel_todos_los_clientes()`/`_render_grafico_tendencia()` | 6+ | **Done** |
+| Clients dashboard + trend charts | `notion_connector.py`'s `listar_clientes()`/`ultimo_checkin_por_cliente()`, `ui/app.py`'s `_panel_todos_los_clientes()`/`_render_grafico_tendencia()` | 6+ | **Done** |
 
 ## Clinical personalization layer (active modulation)
 
