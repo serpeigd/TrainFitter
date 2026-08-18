@@ -64,14 +64,17 @@ def test_email_body_includes_the_clients_personal_messages():
     assert "here's your diet" in cuerpo.lower()
 
 
-def test_email_body_always_lists_both_the_routine_and_diet_pdfs():
-    """Real gap fixed directly: the routine used to have no standalone
-    document at all, unlike the diet -- both are now always attached and
-    always listed, regardless of the checklist opt-in below."""
+def test_email_body_no_longer_mentions_the_attached_pdfs():
+    """Direct request ("quita este texto"): the fixed "I've attached the
+    PDFs..."/"If your mail or Drive preview won't let you type..."
+    closing is gone -- every mail client already shows its own
+    attachment indicator, so it added a sentence without adding
+    information."""
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
-    assert "routine" in cuerpo.lower() and "diet" in cuerpo.lower() and "PDFs" in cuerpo
+    assert "attached" not in cuerpo.lower()
+    assert "Acrobat" not in cuerpo
 
 
 def test_email_body_omits_the_checklist_by_default():
@@ -168,16 +171,17 @@ def test_email_body_greets_by_first_name_only():
     assert cuerpo.startswith("Hi Ana,")
 
 
-def test_email_body_attachment_note_is_plain_prose_not_a_bulleted_list():
-    """The attachment/reply-instructions wrapper was rewritten away from a
-    "📎 Attached: • X • Y" bulleted list into a plain sentence -- unlike
-    the trainer's own message/tip above it, which IS bulleted (see
-    test_email_body_bullets_the_clients_message below)."""
+def test_email_body_reply_instructions_are_plain_prose_not_a_bulleted_list():
+    """The reply-instructions paragraph (the one piece of the old closing
+    that's still genuinely functional -- without it a client's reply
+    carries no attachment for main.py to parse) was never a "📎 Attached:
+    • X • Y" bulleted list, unlike the trainer's own message/tip above it,
+    which IS bulleted (see test_email_body_drops_the_generic_message_when_a_tip_exists)."""
     borrador_rutina = {"mensaje_para_el_cliente": "..."}
     borrador_dieta = {"mensaje_para_el_cliente": "..."}
     cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, incluir_checklist=True)
     assert "📎" not in cuerpo
-    cierre = cuerpo.split("I've attached")[1]
+    cierre = cuerpo.split("In a few weeks")[1]
     assert "•" not in cierre
 
 

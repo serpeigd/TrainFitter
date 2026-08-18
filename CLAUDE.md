@@ -812,6 +812,25 @@ weekly table already answers "what do I eat" concretely. Verified by
 actually rendering a real PDF and reading its extracted text, not just
 the code. 524 tests passing, lint clean.
 
+The plan email's fixed closing ("I've attached the PDFs...") was
+removed outright — every mail client already shows its own attachment
+indicator; the checklist reply-instructions paragraph stays (genuinely
+functional) when a checklist is attached. Meal liking in the portal was
+rebuilt as a swipe-style flow (one meal at a time, big "Skip"/"Like it"
+buttons) instead of a heart icon buried in a long list — not literal
+touch gestures (no native Streamlit support, a custom JS component
+would be fragile on mobile), but the same "fast, one decision at a
+time" outcome. The un-like bug got a real fix for meals: new
+`notion_connector.quitar_comida_favorita()`, and the portal now reads
+real server-side like state (`obtener_registro_cliente()` gained
+`"comidas_favoritas"`) instead of session-local tracking a reload used
+to lose. Exercise liking was removed from the portal entirely (direct
+request) — the backend mechanism and any already-recorded likes were
+left untouched, only the portal's write path is gone. Verified live:
+liked a meal, reloaded in a fresh session, confirmed the like
+persisted, then un-liked it and confirmed that persisted too. 528 tests
+passing, lint clean.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

@@ -501,6 +501,7 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "idioma": "en",
         "mensaje_rutina": "",
         "mensaje_dieta": "",
+        "comidas_favoritas": [],
     }
 
 

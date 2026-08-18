@@ -2375,6 +2375,55 @@ regeneration check; behavior confirmed by direct rendering instead).
 
 ---
 
+## One more email cut, and a real swipe-style meal-liking redesign
+
+Three more direct requests.
+
+**The plan email's fixed closing was removed outright** ("quita este
+texto"): "I've attached the PDFs..."/"If your mail or Drive preview
+won't let you type into the PDF's fields..." added a paragraph without
+adding information — every mail client already shows its own attachment
+indicator. The checklist reply-instructions paragraph stays when
+`incluir_checklist=True` (genuinely functional: without it, a client's
+reply carries no attachment for `main.py` to parse), reworded to name
+the checklist itself ("el checklist que te adjunto") so it still reads
+standalone without the sentence that used to introduce it.
+
+**Meal liking was rebuilt as a real swipe-style flow**, direct request
+("rollo tinder... que no se pierda mucho tiempo"): `plan_semanal` is
+flattened into one ordered list and walked through via a session-scoped
+index, one meal at a time — big "➡️ Skip"/"❤️ Like it" buttons instead of
+a tiny heart icon buried in every row of a long list. Not a literal
+touch-swipe gesture — Streamlit has no native gesture support, and a
+custom JS component would be fragile across mobile browsers for little
+real gain over two buttons achieving the same "fast, one decision at a
+time" outcome reliably.
+
+**The un-like bug got a genuine fix, for meals** — new
+`notion_connector.quitar_comida_favorita()` (the inverse read-modify-
+write of `agregar_comida_favorita()`) actually removes a meal from
+"Liked Meals (JSON)". The swipe card now shows a real, server-derived
+like state (`obtener_registro_cliente()` gained `"comidas_favoritas"`,
+read fresh on every rerun) instead of the old session-local "already
+clicked" tracking that a page reload silently lost — the bug report was
+literally "no se puede quitar el corazón."
+
+**Exercise liking was removed entirely**, direct request ("quítalo para
+ejercicios"): the routine section of the portal is a plain read-only
+list again, no heart button. `agregar_ejercicio_favorito()` and the
+existing "Liked Exercises (JSON)" property/rule-engine bias were left in
+place — a deliberately narrow removal of the portal's write path only,
+not the underlying mechanism or any client's already-recorded likes.
+
+Verified live end to end against the real Notion workspace, including
+the part that matters most: liked a meal, reloaded the portal in a fresh
+session, confirmed it showed as already-liked (state genuinely
+persisted, not session-local), then un-liked it and confirmed that
+persisted too. 7 new/updated tests, 528 passing (up from 524), lint
+clean, no example diffs.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

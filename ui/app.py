@@ -220,7 +220,6 @@ from notion_connector import (  # noqa: E402
     actualizar_email_cliente,
     actualizar_registro_cliente,
     agregar_comida_favorita,
-    agregar_ejercicio_favorito,
     buscar_cliente_por_email,
     crear_registro_checkin,
     generar_referencia_portal,
@@ -229,6 +228,7 @@ from notion_connector import (  # noqa: E402
     listar_clientes,
     marcar_email_enviado,
     obtener_registro_cliente,
+    quitar_comida_favorita,
     resolver_referencia_portal,
     ultimo_checkin_por_cliente,
 )
@@ -953,15 +953,14 @@ TRANSLATIONS = {
         "diet_label": "Diet:",
         "portal_plan_header": "📋 Your plan this week",
         "portal_meals_header": "🍽️ Meals",
-        "portal_meals_caption": (
-            "Loved a meal? Tap 🤍 to like it — liked meals show up more often in your future plans."
-        ),
+        "portal_meals_caption": "Liked meals show up more often in your future plans.",
+        "portal_meal_skip_button": "➡️ Skip",
+        "portal_meal_like_button": "❤️ Like it",
+        "portal_meal_unlike_button": "💔 Remove like",
+        "portal_meals_done": "That's every meal this week — nicely done!",
+        "portal_meals_restart": "🔁 Go through them again",
         "portal_meal_like_error": "Could not save that: {error}",
         "portal_routine_header": "🏋️ Routine",
-        "portal_routine_caption": (
-            "Loved an exercise? Tap 🤍 to like it — liked exercises show up more often in your future routines."
-        ),
-        "portal_exercise_like_error": "Could not save that: {error}",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
@@ -1210,17 +1209,14 @@ TRANSLATIONS = {
         "diet_label": "Dieta:",
         "portal_plan_header": "📋 Tu plan esta semana",
         "portal_meals_header": "🍽️ Comidas",
-        "portal_meals_caption": (
-            "¿Te ha gustado una comida? Toca 🤍 para marcarla — las comidas marcadas aparecerán más "
-            "a menudo en tus próximos planes."
-        ),
+        "portal_meals_caption": "Las comidas que te gusten aparecerán más a menudo en tus próximos planes.",
+        "portal_meal_skip_button": "➡️ Pasar",
+        "portal_meal_like_button": "❤️ Me gusta",
+        "portal_meal_unlike_button": "💔 Quitar me gusta",
+        "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
+        "portal_meals_restart": "🔁 Verlas de nuevo",
         "portal_meal_like_error": "No se pudo guardar: {error}",
         "portal_routine_header": "🏋️ Rutina",
-        "portal_routine_caption": (
-            "¿Te ha gustado un ejercicio? Toca 🤍 para marcarlo — los ejercicios marcados aparecerán más "
-            "a menudo en tus próximas rutinas."
-        ),
-        "portal_exercise_like_error": "No se pudo guardar: {error}",
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
@@ -2479,6 +2475,66 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             _render_historial_checkins(email_cliente, perfil["objetivo"]["principal"])
 
 
+def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagina_id: str) -> None:
+    """One meal at a time, "sí/no" style, instead of a long list with a
+    tiny heart icon buried in every row -- a direct request ("rollo
+    tinder... que no se pierda mucho tiempo"). Real bug fixed alongside
+    it: liking used to be one-way (no way to undo a like), tracked only
+    in session state (lost on reload) -- both the un-like path
+    (quitar_comida_favorita()) and the liked/not-liked state itself
+    (`favoritas`, read fresh from Notion on every rerun via
+    obtener_registro_cliente()) are now real, not session-local.
+
+    Flattens every day's meals into one ordered list and walks through
+    it via a session-scoped index (`portal_comida_idx`) -- reset once the
+    end is reached, so the client can go through the week again. Not a
+    literal touch-swipe gesture (Streamlit has no native gesture support,
+    and a custom JS component would be fragile across mobile browsers for
+    little real gain) -- two big buttons achieve the same "fast, one
+    decision at a time" goal reliably instead."""
+    comidas_planas = [
+        (dia_info["dia"], comida) for dia_info in plan_semanal for comida in dia_info.get("comidas", [])
+    ]
+    total = len(comidas_planas)
+    indice = st.session_state.get("portal_comida_idx", 0)
+
+    if indice >= total:
+        st.success(t("portal_meals_done"))
+        if st.button(t("portal_meals_restart"), key="portal_comidas_reiniciar"):
+            st.session_state["portal_comida_idx"] = 0
+            st.rerun()
+        return
+
+    dia, comida = comidas_planas[indice]
+    eleccion = {
+        "tipo": comida.get("tipo_interno"),
+        "proteina": comida.get("proteina"),
+        "carbohidrato": comida.get("carbohidrato"),
+        "grasa": comida.get("grasa"),
+    }
+    ya_favorita = eleccion in favoritas
+
+    st.progress((indice + 1) / total, text=f"{indice + 1}/{total}")
+    st.markdown(f"**{dia} — {comida['tipo']}**")
+    st.markdown(f"{comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
+
+    col_no, col_si = st.columns(2)
+    if col_no.button(t("portal_meal_skip_button"), key=f"portal_skip_{indice}"):
+        st.session_state["portal_comida_idx"] = indice + 1
+        st.rerun()
+    etiqueta_si = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
+    if col_si.button(etiqueta_si, key=f"portal_like_{indice}", type="primary"):
+        try:
+            if ya_favorita:
+                quitar_comida_favorita(pagina_id, eleccion)
+            else:
+                agregar_comida_favorita(pagina_id, eleccion)
+            st.session_state["portal_comida_idx"] = indice + 1
+            st.rerun()
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.error(t("portal_meal_like_error").format(error=str(exc)))
+
+
 def _vista_portal_cliente(codigo: str) -> None:
     """The entire page for a client who followed their own magic link
     (?ref=..., see mcp/notion_connector.py's generar_referencia_portal()/
@@ -2542,11 +2598,7 @@ def _vista_portal_cliente(codigo: str) -> None:
 
     # "plan_semanal"/"sesiones" are empty for a record saved before those
     # properties existed -- degrades to no section at all, same spirit as
-    # every other best-effort read in this file. Session-scoped "already
-    # liked" tracking is purely a UI nicety (swap 🤍 -> ❤️, disable the
-    # button after one click) -- agregar_comida_favorita()/
-    # agregar_ejercicio_favorito() already dedupe server-side, so a page
-    # reload losing this local state can't double up a favorite.
+    # every other best-effort read in this file.
     plan_semanal = registro.get("plan_semanal") or []
     sesiones = registro.get("sesiones") or []
     if plan_semanal or sesiones:
@@ -2554,54 +2606,17 @@ def _vista_portal_cliente(codigo: str) -> None:
             if plan_semanal:
                 st.markdown(f"**{t('portal_meals_header')}**")
                 st.caption(t("portal_meals_caption"))
-                comidas_marcadas = st.session_state.setdefault("comidas_marcadas", set())
-                for indice_dia, dia_info in enumerate(plan_semanal):
-                    st.markdown(f"**{dia_info['dia']}**")
-                    for indice_comida, comida in enumerate(dia_info.get("comidas", [])):
-                        clave = f"like_{indice_dia}_{indice_comida}"
-                        col_texto, col_boton = st.columns([6, 1])
-                        col_texto.markdown(
-                            f"{comida['tipo']}: {comida['descripcion']} (~{comida['aprox_kcal']} kcal)"
-                        )
-                        ya_marcada = clave in comidas_marcadas
-                        if col_boton.button("❤️" if ya_marcada else "🤍", key=clave, disabled=ya_marcada):
-                            try:
-                                agregar_comida_favorita(carga["pagina"], {
-                                    "tipo": comida.get("tipo_interno"),
-                                    "proteina": comida.get("proteina"),
-                                    "carbohidrato": comida.get("carbohidrato"),
-                                    "grasa": comida.get("grasa"),
-                                })
-                                comidas_marcadas.add(clave)
-                                st.rerun()
-                            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                                st.error(t("portal_meal_like_error").format(error=str(exc)))
+                _render_swipe_comidas(plan_semanal, registro.get("comidas_favoritas") or [], carga["pagina"])
 
             if sesiones:
                 if plan_semanal:
                     st.divider()
                 st.markdown(f"**{t('portal_routine_header')}**")
-                st.caption(t("portal_routine_caption"))
-                ejercicios_marcados = st.session_state.setdefault("ejercicios_marcados", set())
-                for indice_dia, sesion in enumerate(sesiones):
+                for sesion in sesiones:
                     st.markdown(f"**{sesion['dia']}**")
-                    for indice_ej, ejercicio in enumerate(sesion.get("ejercicios", [])):
-                        clave = f"like_ej_{indice_dia}_{indice_ej}"
-                        col_texto, col_boton = st.columns([6, 1])
+                    for ejercicio in sesion.get("ejercicios", []):
                         nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
-                        col_texto.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
-                        ya_marcado = clave in ejercicios_marcados
-                        if col_boton.button("❤️" if ya_marcado else "🤍", key=clave, disabled=ya_marcado):
-                            try:
-                                agregar_ejercicio_favorito(carga["pagina"], {
-                                    "grupo": ejercicio.get("grupo"),
-                                    "tipo": ejercicio.get("tipo"),
-                                    "nombre": ejercicio.get("nombre"),
-                                })
-                                ejercicios_marcados.add(clave)
-                                st.rerun()
-                            except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                                st.error(t("portal_exercise_like_error").format(error=str(exc)))
+                        st.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own

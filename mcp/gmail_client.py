@@ -283,12 +283,26 @@ def _construir_cuerpo_email(
     left with zero bullets. Section labels dropped their 🏋️/🍽️ emoji too,
     matching the exact plain-text example given.
 
+    DESIGN -- third cut, same reasoning again: the fixed "I've attached
+    the PDFs..."/"If your mail or Drive preview won't let you type..."
+    closing was removed outright, direct request ("quita este texto").
+    Every mail client already shows its own attachment indicator, so
+    stating "I've attached X" added a sentence without adding
+    information; the PDF-viewer caveat covered a real but now-untold
+    fraction of readers, at the cost of a paragraph shown to everyone.
+    Nothing replaces it -- the email just ends after the bullets unless
+    a checklist is attached, in which case its own reply-instructions
+    paragraph is still needed (genuinely functional, not filler: without
+    it, a client's reply carries no attachment for main.py to parse) and
+    now names the checklist itself ("el checklist que te adjunto" /
+    "the attached checklist") so it reads standalone.
+
     Args:
         incluir_checklist: whether the adherence checklist PDF was
             attached this time (see crear_borrador()'s own docstring --
             opt-in, default False now that the client portal is the
             intended default way to log adherence). Only affects whether
-            the closing attachment list/reply instructions mention it.
+            the reply-instructions paragraph is appended at all.
 
     idioma only affects this template's own wrapper text (greeting, section
     labels, attachment list) — mensaje_para_el_cliente/progresion/
@@ -308,43 +322,23 @@ def _construir_cuerpo_email(
     bullets_dieta = "\n".join(f"• {p}" for p in dividir_en_puntos(texto_dieta))
 
     if idioma == "es":
-        cierre = "Te adjunto los PDFs de tu rutina y tu dieta"
-        cierre += ", más el checklist para cuando empieces." if incluir_checklist else "."
+        cuerpo = f"Hola {primer_nombre},\n\nRutina:\n{bullets_rutina}\n\nDieta:\n{bullets_dieta}\n"
         if incluir_checklist:
-            cierre += (
-                "\n\nDentro de unas semanas, cuando ya hayas arrancado, rellénalo y respóndeme a "
-                "este mismo correo con el PDF adjunto otra vez (al responder no se adjunta solo, "
-                "así que tendrás que volver a añadirlo tú)."
+            cuerpo += (
+                "\n\nDentro de unas semanas, cuando ya hayas arrancado, rellena el checklist que te "
+                "adjunto y respóndeme a este mismo correo con el PDF adjunto otra vez (al responder "
+                "no se adjunta solo, así que tendrás que volver a añadirlo tú)."
             )
-        cierre += (
-            "\n\nSi el visor de tu correo o de Drive no te deja escribir en los campos del PDF, "
-            "descárgalo y ábrelo con Adobe Acrobat Reader (gratis) u otra app de PDF."
-        )
-        return (
-            f"Hola {primer_nombre},\n\n"
-            f"Rutina:\n{bullets_rutina}\n"
-            f"\nDieta:\n{bullets_dieta}\n"
-            f"\n{cierre}"
-        )
+        return cuerpo
 
-    cierre = "I've attached the PDFs for your routine and diet"
-    cierre += ", plus the checklist for once you've started." if incluir_checklist else "."
+    cuerpo = f"Hi {primer_nombre},\n\nRoutine:\n{bullets_rutina}\n\nDiet:\n{bullets_dieta}\n"
     if incluir_checklist:
-        cierre += (
-            "\n\nIn a few weeks, once you've actually started, fill it in and reply to this same "
-            "email with the PDF attached again (replying doesn't carry the attachment over "
-            "automatically, so you'll need to add it back yourself)."
+        cuerpo += (
+            "\n\nIn a few weeks, once you've actually started, fill in the attached checklist and "
+            "reply to this same email with the PDF attached again (replying doesn't carry the "
+            "attachment over automatically, so you'll need to add it back yourself)."
         )
-    cierre += (
-        "\n\nIf your mail or Drive preview won't let you type into the PDF's fields, download it "
-        "and open it in Adobe Acrobat Reader (free) or another PDF app."
-    )
-    return (
-        f"Hi {primer_nombre},\n\n"
-        f"Routine:\n{bullets_rutina}\n"
-        f"\nDiet:\n{bullets_dieta}\n"
-        f"\n{cierre}"
-    )
+    return cuerpo
 
 
 def _construir_mensaje_raw(

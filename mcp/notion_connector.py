@@ -554,6 +554,13 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
     the same way, for a record saved before "Routine Message"/"Diet
     Message" existed.
 
+    "comidas_favoritas" (this record's current "Liked Meals (JSON)",
+    previously only read by _perfil_desde_propiedades() for the trainer's
+    "Revise client" flow) lets the portal's own meal-liking flow show
+    each meal's real like state and support un-liking, instead of relying
+    on session-local "already clicked" tracking that a page reload would
+    lose (see ui/app.py's _vista_portal_cliente()).
+
     "objetivo" is the internal Spanish key (via _LABEL_A_OBJETIVO), not
     the raw "Goal" select label -- a client's goal is already effectively
     visible in "resumen"'s own prose ("geared toward fat loss," etc.), so
@@ -583,10 +590,16 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
         sesiones = []
     mensaje_rutina = _unir_bloques_notion(propiedades.get("Routine Message", {}))
     mensaje_dieta = _unir_bloques_notion(propiedades.get("Diet Message", {}))
+    texto_favoritas = _unir_bloques_notion(propiedades.get("Liked Meals (JSON)", {}))
+    try:
+        comidas_favoritas = json.loads(texto_favoritas) if texto_favoritas else []
+    except ValueError:
+        comidas_favoritas = []
     return {
         "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
         "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones, "idioma": idioma,
         "mensaje_rutina": mensaje_rutina, "mensaje_dieta": mensaje_dieta,
+        "comidas_favoritas": comidas_favoritas,
     }
 
 
@@ -721,7 +734,7 @@ def obtener_registro_cliente(pagina_id: str) -> dict:
 
     Returns:
         {"nombre", "resumen", "veredicto", "fecha", "plan_semanal", "sesiones",
-        "idioma", "mensaje_rutina", "mensaje_dieta"}.
+        "idioma", "mensaje_rutina", "mensaje_dieta", "comidas_favoritas"}.
 
     Raises:
         NotionClientError: missing credentials, the page doesn't exist
@@ -788,6 +801,52 @@ def agregar_comida_favorita(pagina_id: str, comida: dict) -> None:
             favoritas = []  # corrupt existing data -- start fresh rather than blocking the like
         if comida not in favoritas:
             favoritas.append(comida)
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={
+                "Liked Meals (JSON)": {
+                    "rich_text": _dividir_bloques_notion(json.dumps(favoritas, ensure_ascii=False))
+                }
+            },
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
+def quitar_comida_favorita(pagina_id: str, comida: dict) -> None:
+    """
+    The inverse of agregar_comida_favorita() above -- removes one liked
+    meal from "Liked Meals (JSON)" if present. Real, reported bug fixed
+    directly: the portal's ❤️ was one-way, with no way to undo an
+    accidental or since-changed-their-mind like. Same read-modify-write
+    shape as the add path (exact-match on tipo/proteina/carbohidrato/
+    grasa), so a client's un-like can't race with a trainer's concurrent
+    edit either. A no-op (not an error) if the meal wasn't actually
+    liked -- the portal button's own state already prevents this in
+    practice, but a stale page shouldn't be able to trigger a crash.
+
+    Args:
+        pagina_id: the Notion page ID (from the portal's reference code).
+        comida: same shape as agregar_comida_favorita()'s own argument.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+        texto_actual = _unir_bloques_notion(pagina["properties"].get("Liked Meals (JSON)", {}))
+        try:
+            favoritas = json.loads(texto_actual) if texto_actual else []
+        except ValueError:
+            favoritas = []  # corrupt existing data -- nothing coherent to remove from
+        favoritas = [f for f in favoritas if f != comida]
         cliente.pages.update(
             page_id=pagina_id,
             properties={
