@@ -227,6 +227,15 @@ STARTING POINT, not a final prescription.
     client is a genuine beginner (`experiencia.nivel == "principiante"`), in
     which case keep the simpler variants regardless of "tryhard" -- training
     experience is a safety signal that outranks a detail-level preference.
+- `progresion` should match the client's `nivel_compromiso`, same as the volume/exercise
+  adjustments above: for "basico"/"normal", the simple rule ("chase one more rep before you
+  chase more weight, add load once every set tops out its range") is genuinely the right
+  level. For "avanzado"/"tryhard", that rule is beginner-level guidance they already know --
+  give them something they don't: MEV/MAV/MRV block progression (start near minimum effective
+  volume, add a set every week or two toward the maximum adaptive range, deload before hitting
+  the recoverable ceiling), how reps-in-reserve should calibrate every set rather than just
+  "add a rep," or training frequency (twice a week per muscle group at moderate volume usually
+  beats once a week at the same total volume).
 - Give every session a one-sentence `nota_esfuerzo`: reps-in-reserve (RIR) guidance,
   not just a rep-count range. Compound/basic lifts should stay 1-2 reps short of
   failure; isolation work at the end of the session can go closer to failure

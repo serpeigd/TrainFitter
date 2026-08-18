@@ -260,7 +260,7 @@ def obtener_texto_cliente(mensaje_para_el_cliente: str, nombre_cliente: str, idi
 
 def _construir_cuerpo_email(
     nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
-    incluir_checklist: bool = False,
+    incluir_checklist: bool = False, url_portal: str | None = None,
 ) -> str:
     """Brief, scannable plain-text email body -- the plan's own detail
     lives in the attached PDFs now (see agents/pdf_generador.py), not
@@ -303,6 +303,15 @@ def _construir_cuerpo_email(
             opt-in, default False now that the client portal is the
             intended default way to log adherence). Only affects whether
             the reply-instructions paragraph is appended at all.
+        url_portal: optional -- when given, appends one short paragraph
+            with a fresh portal link. Used by the check-in-driven
+            regeneration flow (ui/app.py's _vista_portal_cliente()): a
+            client's plan is rebuilt after they log adherence, and rather
+            than a second, separate email just for the new portal link,
+            it rides along in the same draft as the regenerated plan --
+            "dentro del mismo correo," a direct request. None (default)
+            for the normal new-plan draft, which has no reason to repeat
+            a link the trainer sends separately via enviar_enlace_portal().
 
     idioma only affects this template's own wrapper text (greeting, section
     labels, attachment list) — mensaje_para_el_cliente/progresion/
@@ -329,6 +338,8 @@ def _construir_cuerpo_email(
                 "adjunto y respóndeme a este mismo correo con el PDF adjunto otra vez (al responder "
                 "no se adjunta solo, así que tendrás que volver a añadirlo tú)."
             )
+        if url_portal:
+            cuerpo += f"\n\nTu enlace al portal, actualizado:\n{url_portal}"
         return cuerpo
 
     cuerpo = f"Hi {primer_nombre},\n\nRoutine:\n{bullets_rutina}\n\nDiet:\n{bullets_dieta}\n"
@@ -338,6 +349,8 @@ def _construir_cuerpo_email(
             "reply to this same email with the PDF attached again (replying doesn't carry the "
             "attachment over automatically, so you'll need to add it back yourself)."
         )
+    if url_portal:
+        cuerpo += f"\n\nYour updated portal link:\n{url_portal}"
     return cuerpo
 
 
@@ -440,7 +453,7 @@ def _obtener_credenciales():
 
 def crear_borrador(
     destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
-    incluir_checklist: bool = False,
+    incluir_checklist: bool = False, url_portal: str | None = None,
 ) -> dict:
     """
     Creates a Gmail draft (never sends it) with the approved plan: a brief
@@ -464,6 +477,9 @@ def crear_borrador(
             without portal access, or who prefers paper/PDF), triggered
             from ui/app.py's own checkbox next to "Create draft," not
             included by default.
+        url_portal: optional -- see _construir_cuerpo_email()'s own
+            docstring. Rides along in this same draft rather than a
+            second email; None (default) for the normal approval-flow draft.
 
     Returns:
         {"url": a gmail.com link to the created draft, "thread_id": the
@@ -512,7 +528,9 @@ def crear_borrador(
             adjuntos.append(
                 (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
             )
-        cuerpo_texto = _construir_cuerpo_email(nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist)
+        cuerpo_texto = _construir_cuerpo_email(
+            nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
+        )
     except Exception as exc:
         raise GmailClientError(f"Could not build the plan PDFs/email body: {exc}") from exc
 

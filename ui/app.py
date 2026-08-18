@@ -227,6 +227,7 @@ from notion_connector import (  # noqa: E402
     historial_checkins,
     listar_clientes,
     marcar_email_enviado,
+    obtener_perfil_completo,
     obtener_registro_cliente,
     quitar_comida_favorita,
     resolver_referencia_portal,
@@ -1990,11 +1991,33 @@ def _render_stepper(pasos: list[tuple[str, bool]], advertencia: bool = False) ->
     st.markdown(f'<div class="tf-stepper">{"".join(nodos)}</div>', unsafe_allow_html=True)
 
 
+def _idioma_del_perfil(perfil: dict) -> str:
+    """The language a specific plan was actually generated in, captured at
+    generation time below -- not necessarily st.session_state.lang right
+    now, which could have since changed if the trainer toggled the UI
+    language between generating a plan and approving/emailing it later in
+    the same session. Real, reported inconsistency: the portal-link email
+    used the toggle's current value, so a Spanish-generated plan could get
+    an English portal-link email if the toggle moved in between. Every
+    email-sending call site in _panel_aprobacion()/_ejecutar_aprobacion()
+    uses this instead of the raw toggle, so a client's plan, its PDFs, its
+    portal, and every email about it always agree on one language.
+    Keyed by id(perfil) (same pattern as aprobado_para/notion_guardado_para
+    elsewhere in this file) -- falls back to the current toggle if this
+    exact profile object was never generated through _ejecutar_y_mostrar()
+    (shouldn't happen in practice, but safer than a KeyError)."""
+    guardado = st.session_state.get("idioma_generado_para")
+    if guardado and guardado[0] == id(perfil):
+        return guardado[1]
+    return st.session_state.lang
+
+
 def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     with st.status(t("generating_status"), expanded=True) as status:
         def _al_transicionar(_cliente_id: str, nuevo_estado: str) -> None:
             status.write(f"✅ {ETIQUETAS_ESTADO[st.session_state.lang].get(nuevo_estado, nuevo_estado)}")
 
+        st.session_state["idioma_generado_para"] = (id(perfil), st.session_state.lang)
         estado = ejecutar_pipeline(perfil, on_transition=_al_transicionar, idioma=st.session_state.lang)
         status.update(
             label=t("plan_generated_status") if not estado.error else t("plan_error_status"),
@@ -2173,12 +2196,12 @@ def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
             if es_revision:
                 resultado = actualizar_registro_cliente(
                     st.session_state["revisar_pagina_id"], perfil, estado.borrador_rutina, estado.borrador_dieta,
-                    estado.veredicto, idioma=st.session_state.lang,
+                    estado.veredicto, idioma=_idioma_del_perfil(perfil),
                 )
             else:
                 resultado = guardar_registro_cliente(
                     perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto,
-                    idioma=st.session_state.lang,
+                    idioma=_idioma_del_perfil(perfil),
                 )
             st.session_state["notion_guardado_para"] = id(perfil)
             # Kept for the Gmail section below: it can't know the Notion
@@ -2366,7 +2389,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 perfil["datos_basicos"]["nombre"],
                 estado.borrador_rutina,
                 estado.borrador_dieta,
-                idioma=st.session_state.lang,
+                idioma=_idioma_del_perfil(perfil),
                 incluir_checklist=incluir_checklist,
             )
             st.success(t("draft_created_success").format(url=resultado_borrador["url"]))
@@ -2458,7 +2481,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 codigo = generar_referencia_portal(st.session_state["notion_pagina_id"], email_cliente)
                 url_portal = f"{PORTAL_BASE_URL}?ref={codigo}"
                 enviar_enlace_portal(
-                    email_cliente, perfil["datos_basicos"]["nombre"], url_portal, idioma=st.session_state.lang,
+                    email_cliente, perfil["datos_basicos"]["nombre"], url_portal, idioma=_idioma_del_perfil(perfil),
                 )
                 st.success(t("portal_link_sent_success"))
             except (GmailClientError, PortalTokenError, NotionClientError, ImportError, ModuleNotFoundError) as exc:
@@ -2752,6 +2775,45 @@ def _vista_portal_cliente(codigo: str) -> None:
             )
         except (GmailClientError, ImportError, ModuleNotFoundError):
             pass
+
+    # Best-effort regeneration + draft -- closes the loop directly
+    # requested by the project owner: a check-in should do more than sit
+    # in Notion. Rebuilds perfil_cliente from "Full Profile (JSON)" (same
+    # source _cargar_ficha_para_revisar() already reads), substitutes in
+    # the weight just logged above (if shared) so calorie targets actually
+    # react to it -- the real mechanism dieta_reglas.py's own message has
+    # always promised but, until "Weight (kg)" existed, nothing fed --
+    # reruns the full pipeline, overwrites the regenerated plan onto the
+    # same Clients record (actualizar_registro_cliente(), same "one master
+    # record per client" pattern "Revise client" already uses), and drops
+    # a Gmail DRAFT with the new plan plus a fresh portal link in the same
+    # email ("dentro del mismo correo," a direct request). Never
+    # auto-sent -- explicitly confirmed with the project owner:
+    # auto-regenerating is fine, auto-contacting a client is not, so the
+    # trainer still reviews and sends this draft themselves, same
+    # guarantee as every other outgoing email in this project. Best-effort
+    # like the trainer notification above: any failure here (a stale
+    # profile, a Gmail/Notion hiccup) never blocks the check-in already
+    # saved, and is silently skipped -- there's no UI surface in the
+    # client portal to report a trainer-side draft failure to a client.
+    try:
+        perfil_regenerado = obtener_perfil_completo(carga["pagina"])
+        if peso_kg:
+            perfil_regenerado.setdefault("datos_basicos", {})["peso_kg"] = peso_kg
+        idioma_plan = registro.get("idioma") or "en"
+        estado_regenerado = ejecutar_pipeline(perfil_regenerado, idioma=idioma_plan)
+        if not estado_regenerado.error:
+            actualizar_registro_cliente(
+                carga["pagina"], perfil_regenerado, estado_regenerado.borrador_rutina,
+                estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
+            )
+            nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
+            crear_borrador(
+                carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
+                idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}",
+            )
+    except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
+        pass
 
 
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:

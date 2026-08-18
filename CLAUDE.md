@@ -831,6 +831,41 @@ liked a meal, reloaded in a fresh session, confirmed the like
 persisted, then un-liked it and confirmed that persisted too. 528 tests
 passing, lint clean.
 
+Three more follow-ups. A real language-drift bug: `ui/app.py` read
+`st.session_state.lang` (the trainer's *current* UI toggle) at every
+email/PDF/portal call site, not the language a specific plan was
+actually generated in — toggling the language mid-session between
+generating and approving/emailing a plan could send it in the wrong
+one. Fixed by capturing `idioma` at generation time,
+`id(perfil)`-keyed into session state, with a new `_idioma_del_perfil()`
+helper every risky call site now uses instead of the raw toggle.
+Check-in-driven regeneration was requested as "regenerate the plan and
+auto-email the client the new plan + portal link" — surfaced directly
+that the auto-email half breaks "TrainFitter never contacts a client on
+its own," and built the safer version the project owner chose instead:
+a client's check-in now reloads their full profile
+(`notion_connector.obtener_perfil_completo()`), substitutes in the
+just-logged weight if shared (a real mechanism for the calorie
+recalculation `dieta_reglas.py`'s message has always promised),
+regenerates the plan, overwrites the same Clients record, and drops a
+Gmail **draft** (never sent) with the new plan plus a fresh portal link
+in the same email (`crear_borrador()`/`_construir_cuerpo_email()` gained
+an optional `url_portal` parameter for this) — the trainer still
+reviews and sends it themselves. And a genuinely advanced routine tip:
+`dieta_reglas.py`'s avanzado/tryhard-gated `_consejos_sinergias()` was
+pointed to directly as the model — the routine side had no equivalent,
+so every client got the same "add a rep, then add weight" text
+regardless of level. New `PROGRESION_AVANZADA_VARIANTES`, gated the same
+way, grounded in `docs/base_conocimiento/entrenamiento.md`'s own
+MEV/MAV/MRV and RIR sections rather than invented content;
+`routine_agent.py`'s LLM prompt got the matching instruction for engine
+parity. Verified live (client 1's tryhard example plan in Spanish).
+`examples/output_rutina_1.json` regenerated (the one avanzado/tryhard
+example client). 535 tests passing (up from 528), lint clean. See
+`docs/decisiones.md` for the full write-up, including why the
+regeneration flow's Gmail-draft path is unit-tested but not yet
+live-verified against the real workspace.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

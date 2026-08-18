@@ -118,6 +118,27 @@ def test_crear_borrador_attaches_the_checklist_when_requested(monkeypatch, borra
     assert nombres_adjuntos == {"routine-plan.pdf", "diet-plan.pdf", "adherence-checklist.pdf"}
 
 
+def test_crear_borrador_includes_the_portal_link_when_given(monkeypatch, borrador_rutina, borrador_dieta):
+    """The check-in-driven regeneration flow (ui/app.py's
+    _vista_portal_cliente()) passes url_portal so a fresh portal link
+    rides along in the same draft as the regenerated plan, instead of a
+    second email -- confirms it actually lands in the built message body."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.drafts.return_value.create.return_value.execute.return_value = {
+        "message": {"id": "draft-1", "threadId": "thread-1"}
+    }
+    gmail_client.crear_borrador(
+        "client@example.com", "Ana", borrador_rutina, borrador_dieta,
+        url_portal="https://example.com/?ref=abc123",
+    )
+
+    _args, kwargs = servicio.users.return_value.drafts.return_value.create.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    cuerpo = mensaje.get_payload()[0].get_payload(decode=True).decode("utf-8")
+    assert "https://example.com/?ref=abc123" in cuerpo
+
+
 def test_crear_borrador_wraps_http_error(monkeypatch, borrador_rutina, borrador_dieta):
     servicio = _mock_service(monkeypatch)
     servicio.users.return_value.drafts.return_value.create.return_value.execute.side_effect = HttpError(

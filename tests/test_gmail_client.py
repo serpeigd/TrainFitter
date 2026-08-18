@@ -235,6 +235,39 @@ def test_dividir_en_puntos_capitalizes_each_fragment():
     assert dividir_en_puntos("aquí tienes tu rutina. y algo más.") == ["Aquí tienes tu rutina.", "Y algo más."]
 
 
+def test_email_body_omits_the_portal_link_by_default():
+    """url_portal is None unless the caller passes it -- the normal
+    approval-flow draft has no reason to repeat a link the trainer sends
+    separately via enviar_enlace_portal()."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta)
+    assert "portal" not in cuerpo.lower()
+
+
+def test_email_body_includes_the_portal_link_when_given():
+    """Used by the check-in-driven regeneration flow (ui/app.py's
+    _vista_portal_cliente()) -- rather than a second, separate email just
+    for the new portal link, it rides along in the same draft as the
+    regenerated plan ("dentro del mismo correo")."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+    cuerpo = _construir_cuerpo_email(
+        "Ana", borrador_rutina, borrador_dieta, url_portal="https://example.com/?ref=abc123",
+    )
+    assert "https://example.com/?ref=abc123" in cuerpo
+
+
+def test_email_body_includes_the_portal_link_in_spanish():
+    borrador_rutina = {"mensaje_para_el_cliente": "Hola Ana, aquí tienes tu rutina."}
+    borrador_dieta = {"mensaje_para_el_cliente": "Hola Ana, aquí tienes tu dieta."}
+    cuerpo = _construir_cuerpo_email(
+        "Ana", borrador_rutina, borrador_dieta, idioma="es", url_portal="https://example.com/?ref=abc123",
+    )
+    assert "https://example.com/?ref=abc123" in cuerpo
+    assert "enlace al portal" in cuerpo.lower()
+
+
 def test_email_body_wrapper_text_translates_for_spanish():
     """idioma="es" only needs to translate this template's own wrapper text
     (greeting, attachment list, footer) -- mensaje_para_el_cliente is

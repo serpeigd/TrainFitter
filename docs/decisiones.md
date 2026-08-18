@@ -2424,6 +2424,89 @@ clean, no example diffs.
 
 ---
 
+## Three follow-ups: a language-drift bug, check-in-driven regeneration (as a draft, not a send), and a genuinely advanced routine tip
+
+Three direct requests, same conversation.
+
+**Language consistency.** A real, reported bug: every email/PDF/portal
+call site in `ui/app.py` read `st.session_state.lang` — the trainer's
+*current* UI toggle — at the moment each action ran, not the language the
+specific plan was actually generated in. Toggle the language after
+generating a plan but before approving/emailing it (same session), and
+the portal-link email, the Gmail draft, or the saved Notion record could
+end up in the wrong language relative to the PDFs already generated.
+Fixed by capturing `idioma` at generation time,
+`id(perfil)`-keyed into session state (same pattern as `aprobado_para`/
+`notion_guardado_para` elsewhere in this file), with a new
+`_idioma_del_perfil(perfil)` helper every downstream call site
+(`actualizar_registro_cliente`/`guardar_registro_cliente` in
+`_ejecutar_aprobacion()`, `crear_borrador`/`enviar_enlace_portal` in
+`_panel_aprobacion()`) now uses instead of the raw toggle.
+`enviar_notificacion_checkin()` needed no fix — `_vista_portal_cliente()`
+already sets the toggle from the plan's own saved `idioma` before that
+call runs.
+
+**Check-in-driven regeneration — scoped down from the literal ask, on
+purpose.** The request was: when a client checks in, regenerate the
+plan and automatically email the client the new plan plus a fresh
+portal link. Taken literally, that breaks this project's central
+guarantee — "TrainFitter never contacts a client on its own" — every
+other outgoing email in this codebase is either trainer-triggered or a
+narrow, previously-confirmed exception (`enviar_enlace_portal()`,
+`enviar_formulario_intake()`). Surfaced this directly instead of
+building it as asked or silently declining; the project owner chose
+"regenerate + draft" over "regenerate + really send." Implementation:
+`_vista_portal_cliente()`'s check-in handler, after saving the Check-ins
+row (best-effort, same as the existing trainer-notification block below
+it — a failure here never blocks the check-in already saved), reloads
+the client's full profile (`notion_connector.obtener_perfil_completo()`,
+the same source "Revise client" already reads), substitutes in the
+just-logged weight if the client shared one (a real mechanism for the
+calorie-recalculation promise `dieta_reglas.py`'s own message has always
+made — closes the same gap the "Weight (kg)" field closed for display
+purposes only), reruns the full pipeline, overwrites the Clients record
+in place (`actualizar_registro_cliente()`, one master record per client,
+same as a trainer-initiated revision), and drops a Gmail **draft**
+(never sent) with the regenerated plan. `crear_borrador()`/
+`_construir_cuerpo_email()` gained an optional `url_portal` parameter so
+the fresh portal link rides along in that same draft rather than a
+second email ("dentro del mismo correo," matching what was actually
+asked for once auto-send became auto-draft) — a fresh reference is
+generated (`generar_referencia_portal()`) each time, same as a
+trainer-sent portal link. The trainer still reviews and sends this
+draft themselves, same guarantee as everything else. Not yet live-tested
+against the real workspace (would need a real client with an existing
+portal reference) — covered by unit + mocked-network tests instead,
+disclosed rather than assumed working.
+
+**A genuinely advanced routine tip.** `dieta_reglas.py`'s
+`_consejos_sinergias()` (vitamin absorption timing, iron/vitamin-C
+pairing) was already gated to avanzado/tryhard — pointed to directly as
+the model to follow. The routine side had no equivalent: every client,
+regardless of `nivel_compromiso`, got the same "add a rep, then add
+weight" `progresion` text — genuinely the right level for basico/normal,
+but something an avanzado/tryhard client (who explicitly asked for more
+detail) already knows. New `PROGRESION_AVANZADA_VARIANTES`, gated the
+same way `_consejos_sinergias()` is, grounded in the same evidence
+`docs/base_conocimiento/entrenamiento.md` already cites rather than
+invented content: MEV/MAV/MRV block progression with a deload before the
+recoverable ceiling, reps-in-reserve as the thing that should calibrate
+every set (not just "add a rep"), and training frequency. `routine_agent.py`'s
+LLM prompt got the matching instruction for engine parity. The
+"avanzado" summary line's claim that "the rest of the extra detail is in
+your diet" was true before this and is no longer — reworded. Verified
+live: generating client 1's (tryhard) example plan in Spanish showed the
+frequency variant of the new advanced tip, correctly translated.
+`examples/output_rutina_1.json` regenerated — the only example client at
+avanzado/tryhard, so the only diff; `mensaje_para_el_cliente` also
+shifted to a different (pre-existing) variant for that same client, a
+side effect of the per-client RNG stream consuming a different number of
+values when the progresion pool it draws from changes size, not a
+content change. 7 new/updated tests, 535 passing (up from 528), lint
+clean.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

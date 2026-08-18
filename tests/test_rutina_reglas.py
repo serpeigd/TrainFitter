@@ -3,6 +3,7 @@
 from exercise_bank import EXERCISE_BANK
 from rutina_reglas import (
     MENSAJE_CLIENTE_RUTINA_VARIANTES,
+    PROGRESION_AVANZADA_VARIANTES,
     PROGRESION_VARIANTES,
     _complejidad,
     generar_borrador_rutina_reglas,
@@ -219,6 +220,37 @@ def test_different_clients_get_varied_narrative_text(perfil_base):
         assert borrador["progresion"] in PROGRESION_VARIANTES["en"]
         progresiones.add(borrador["progresion"])
     assert len(progresiones) > 1
+
+
+def test_basico_and_normal_keep_the_generic_progression_tip(perfil_base):
+    """Direct complaint: the generic "add a rep, then add weight" rule is
+    the right level for basico/normal, but too generic for a client who
+    explicitly asked for more detail -- basico/normal must keep getting it,
+    unchanged (mirrors dieta_reglas.py's own avanzado/tryhard-only gate on
+    _consejos_sinergias())."""
+    for nivel in ("basico", "normal"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        assert borrador["progresion"] in PROGRESION_VARIANTES["en"]
+        assert borrador["progresion"] not in PROGRESION_AVANZADA_VARIANTES["en"]
+
+
+def test_avanzado_and_tryhard_get_the_advanced_progression_tip(perfil_base):
+    """avanzado/tryhard clients already know "add a rep, then add weight" --
+    they get genuinely more advanced content instead (MEV/MAV/MRV block
+    progression, RIR calibration, frequency), grounded in
+    docs/base_conocimiento/entrenamiento.md."""
+    for nivel in ("avanzado", "tryhard"):
+        perfil_base["experiencia"]["nivel_compromiso"] = nivel
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        assert borrador["progresion"] in PROGRESION_AVANZADA_VARIANTES["en"]
+        assert borrador["progresion"] not in PROGRESION_VARIANTES["en"]
+
+
+def test_advanced_progression_tip_translates_for_spanish(perfil_base):
+    perfil_base["experiencia"]["nivel_compromiso"] = "avanzado"
+    borrador = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    assert borrador["progresion"] in PROGRESION_AVANZADA_VARIANTES["es"]
 
 
 def test_client_message_greeting_stays_fixed_around_the_varied_body(perfil_base):

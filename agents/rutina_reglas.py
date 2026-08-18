@@ -173,6 +173,49 @@ PROGRESION_VARIANTES = {
     ],
 }
 
+# Real follow-up to a direct complaint: PROGRESION_VARIANTES above (the
+# "add a rep, then add weight" rule) is beginner-level guidance that an
+# avanzado/tryhard client -- who explicitly asked for more detail, not
+# less -- already knows. Gated the same way dieta_reglas.py's own
+# _consejos_sinergias() is (avanzado/tryhard only; basico/normal keep the
+# generic rule above, which is genuinely the right level for them), and
+# grounded in the same evidence docs/base_conocimiento/entrenamiento.md
+# already cites (RP Strength's MEV/MAV/MRV landmarks, the RIR/RPE
+# autoregulation section, frequency) rather than invented content.
+PROGRESION_AVANZADA_VARIANTES = {
+    "en": [
+        "Progress in blocks, not sessions: start each block near your minimum effective volume "
+        "(MEV) and add a set to a lift every week or two as you're able to recover from it, "
+        "working up toward your maximum adaptive range (MAV) — then take a deload week (much "
+        "lighter, lower volume) before you'd hit the point where you can't recover between "
+        "sessions (MRV). Don't wait for performance to actually drop to take that week.",
+        "Reps in reserve (RIR) is what should calibrate every set, not just \"add a rep\": leave "
+        "1-2 reps in the tank on compound lifts, and get a bit closer to failure (0-1 RIR) on "
+        "isolation work. Training every set to the same RIR consistently — not just chasing a "
+        "number on the page — is what makes \"add a rep, then add weight\" actually mean the "
+        "same thing week to week.",
+        "Frequency matters as much as total weekly volume: hitting a muscle group twice a week "
+        "with moderate volume per session usually beats cramming the same total volume into one "
+        "session — each set arrives fresher, so more of your working sets actually count.",
+    ],
+    "es": [
+        "Progresa por bloques, no por sesión: empieza cada bloque cerca de tu volumen mínimo "
+        "efectivo (MEV) y añade una serie a un ejercicio cada semana o dos según lo vayas "
+        "recuperando, acercándote a tu rango máximo adaptativo (MAV) — y haz una semana de "
+        "descarga (mucho más ligera, menos volumen) antes de llegar al punto de no recuperar "
+        "entre sesiones (MRV). No esperes a que el rendimiento baje de verdad para hacerla.",
+        "Las repeticiones en reserva (RIR) son lo que debería calibrar cada serie, no solo "
+        "\"añade una repetición\": deja 1-2 repeticiones en el tanque en los ejercicios básicos, "
+        "y acércate algo más al fallo (0-1 RIR) en los de aislamiento. Entrenar cada serie al "
+        "mismo RIR de forma consistente — no solo perseguir un número en el papel — es lo que "
+        "hace que \"una repetición más, luego más peso\" signifique lo mismo semana a semana.",
+        "La frecuencia importa tanto como el volumen semanal total: entrenar un grupo muscular "
+        "dos veces por semana con volumen moderado en cada sesión suele funcionar mejor que meter "
+        "el mismo volumen total en una sola sesión — cada serie llega más fresca, así que más de "
+        "tus series de trabajo cuentan de verdad.",
+    ],
+}
+
 # Same idea for the closing client message: the greeting ("Hi {name}, " /
 # "Hola {name}, ") stays fixed and is prepended separately, so every
 # variant here starts lowercase, mid-sentence.
@@ -656,7 +699,10 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     # but equally on-voice, phrasing. Separate namespace from the
     # exercise-selection RNG above so picking one doesn't shift the other.
     rng_texto = rng_para_cliente(perfil_cliente, "rutina:texto")
-    progresion = elegir_variante(rng_texto, PROGRESION_VARIANTES[idioma])
+    if nivel_compromiso in ("avanzado", "tryhard"):
+        progresion = elegir_variante(rng_texto, PROGRESION_AVANZADA_VARIANTES[idioma])
+    else:
+        progresion = elegir_variante(rng_texto, PROGRESION_VARIANTES[idioma])
     cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_RUTINA_VARIANTES[idioma])
 
     if idioma == "es":
@@ -685,7 +731,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
         elif nivel_compromiso == "avanzado":
             resumen += (
                 " Modo avanzado: mismo volumen que el modo normal, con variantes de mancuerna que piden algo "
-                "más de control técnico — el resto del detalle extra está en tu dieta."
+                "más de control técnico y guía de progresión más detallada."
             )
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
@@ -716,7 +762,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
         elif nivel_compromiso == "avanzado":
             resumen += (
                 " Advanced mode: same volume as normal mode, leaning toward dumbbell variants that ask a "
-                "bit more technical control — the rest of the extra detail is in your diet."
+                "bit more technical control, with more detailed progression guidance."
             )
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
