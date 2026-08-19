@@ -16,7 +16,7 @@
         "pecho",
         "triceps"
       ],
-      "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
+      "calentamiento": "5 min: arm circles + banded external/internal rotations (rotator cuff activation) + wrist circles, then warm-up sets on the first exercise.",
       "ejercicios": [
         {
           "nombre": "Barbell bench press",
@@ -74,7 +74,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
+      "calentamiento": "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute bridges + ankle circles, then warm-up sets before the working load.",
       "ejercicios": [
         {
           "nombre": "Barbell squat",
@@ -134,7 +134,7 @@
         "pecho",
         "triceps"
       ],
-      "calentamiento": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
+      "calentamiento": "5 min: arm circles + banded external/internal rotations (rotator cuff activation) + wrist circles, then warm-up sets on the first exercise.",
       "ejercicios": [
         {
           "nombre": "Inverted row (bodyweight)",
@@ -193,7 +193,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
+      "calentamiento": "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute bridges + ankle circles, then warm-up sets before the working load.",
       "ejercicios": [
         {
           "nombre": "Barbell hip thrust",
@@ -237,5 +237,5 @@
     }
   ],
   "progresion": "Frequency matters as much as total weekly volume: hitting a muscle group twice a week with moderate volume per session usually beats cramming the same total volume into one session — each set arrives fresher, so more of your working sets actually count.",
-  "mensaje_para_el_cliente": "Hi Marta, here's your first draft routine. Take it one session at a time: learn the movement, then load it up — in that order. You don't need to nail it this week, just be able to repeat it. And if anything hurts rather than just feeling like effort, tell me right away so we can adjust."
+  "mensaje_para_el_cliente": "Hi Marta, here's your first draft routine. Take it one session at a time: learn the movement, then load it up — in that order. You don't need to nail it this week, just be able to repeat it. And if anything hurts rather than just feeling like effort, tell me right away so we can adjust. The focus is raising training volume little by little while eating enough to support it — without that, the work in the gym doesn't turn into new muscle."
 }

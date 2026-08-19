@@ -19,7 +19,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
@@ -89,7 +89,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
@@ -159,7 +159,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Leg press (controlled range)",
@@ -221,5 +221,5 @@
     }
   ],
   "progresion": "Think in terms of the rep range, not the weight on the bar. Add reps first; once you're maxing out every set for an exercise, then add a little weight and drop back to the bottom of the range. Sticking with the same routine week after week — not switching it up — is what makes the numbers move.",
-  "mensaje_para_el_cliente": "Hi Javier, here's your first draft routine. Take it one session at a time: learn the movement, then load it up — in that order. You don't need to nail it this week, just be able to repeat it. And if anything hurts rather than just feeling like effort, tell me right away so we can adjust."
+  "mensaje_para_el_cliente": "Hi Javier, here's your first draft routine. Take it one session at a time: learn the movement, then load it up — in that order. You don't need to nail it this week, just be able to repeat it. And if anything hurts rather than just feeling like effort, tell me right away so we can adjust. The priority is strength and technique on the basic lifts — that drives recomposition far more than volume or cardio does."
 }

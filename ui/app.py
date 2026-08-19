@@ -216,6 +216,7 @@ from gmail_client import (  # noqa: E402
     verificar_envio,
 )
 from notion_connector import (  # noqa: E402
+    VEREDICTO_LABELS,
     NotionClientError,
     PortalTokenError,
     actualizar_email_cliente,
@@ -419,6 +420,19 @@ def _inyectar_estilos() -> None:
             border-radius: 12px !important;
         }}
         [class*="st-key-portal-meal-card-"]:hover {{
+            border-color: rgba(5, 160, 129, 0.45);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            transform: translateY(-2px);
+        }}
+
+        /* Client portal routine cards, one per session day -- same
+        treatment as the meal cards above ("hazlo mas bonito visualmente"
+        applied to the routine section too). */
+        [class*="st-key-portal-routine-card-"] {{
+            transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
+            border-radius: 12px !important;
+        }}
+        [class*="st-key-portal-routine-card-"]:hover {{
             border-color: rgba(5, 160, 129, 0.45);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
             transform: translateY(-2px);
@@ -820,14 +834,13 @@ TRANSLATIONS = {
         "goal_in_words": "In their own words (optional)",
         "commitment_level": "How much detail do they want in the plan?",
         "commitment_level_caption": (
-            "- **Basic:** just the essentials — one fewer set, a milder calorie target, common "
-            "everyday foods.\n"
-            "- **Normal:** the default, no adjustment.\n"
-            "- **Advanced:** same pace as normal, but leaning toward dumbbell exercise variants and "
-            "more specialty foods, plus supplement tips and synergy guidance.\n"
-            "- **Tryhard:** the most complete version currently possible — one extra set, more "
-            "demanding exercise variants, a more assertive calorie target, full supplement tips, "
-            "and niche foods/exercises."
+            "- **Basic:** the essentials. Less volume, flexible calories, and everyday foods. "
+            "Ideal if you're short on time.\n"
+            "- **Normal:** the baseline experience — perfect for starting to see real results.\n"
+            "- **Advanced:** more variety. A wider range of exercises, optimized supplements, and "
+            "food synergies.\n"
+            "- **Tryhard:** maximum performance. High volume, optimized calories, advanced "
+            "supplementation, and niche techniques."
         ),
         "sec_experience": "3. Training experience",
         "level": "Level",
@@ -895,6 +908,8 @@ TRANSLATIONS = {
         "step_validation": "Validation",
         "step_ready": "Ready",
         "step_ready_warn": "Enhanced review",
+        "verdict_approved": "Approved",
+        "verdict_enhanced_review": "Enhanced review",
         "mini_step_approve": "Approve",
         "mini_step_email": "Email",
         "mini_step_confirm": "Confirm",
@@ -1094,14 +1109,13 @@ TRANSLATIONS = {
         "goal_in_words": "En sus propias palabras (opcional)",
         "commitment_level": "¿Cuánto detalle quiere en el plan?",
         "commitment_level_caption": (
-            "- **Básico:** solo lo esencial — una serie menos, objetivo calórico más suave, "
-            "alimentos comunes.\n"
-            "- **Normal:** el punto de partida, sin ajustes.\n"
-            "- **Avanzado:** mismo ritmo que el normal, pero con variantes de mancuerna y alimentos "
-            "algo más variados, más consejos de suplementación y guía de sinergias.\n"
-            "- **Tryhard:** la versión más completa posible ahora mismo — una serie más, variantes "
-            "de ejercicio más exigentes, objetivo calórico más agresivo, todos los consejos de "
-            "suplementación, y alimentos/ejercicios de nicho."
+            "- **Básico:** lo esencial. Menos volumen, calorías flexibles y alimentos del día a "
+            "día. Ideal si tienes poco tiempo.\n"
+            "- **Normal:** la experiencia base, perfecto para empezar a ver resultados reales.\n"
+            "- **Avanzado:** mayor variedad. Variedad de ejercicios, optimización de suplementos y "
+            "sinergias alimentarias.\n"
+            "- **Tryhard:** máximo rendimiento. Mucho volumen, calorías optimizadas, "
+            "suplementación avanzada y técnicas nicho."
         ),
         "sec_experience": "3. Experiencia entrenando",
         "level": "Nivel",
@@ -1171,6 +1185,8 @@ TRANSLATIONS = {
         "step_validation": "Validación",
         "step_ready": "Listo",
         "step_ready_warn": "Revisión reforzada",
+        "verdict_approved": "Aprobado",
+        "verdict_enhanced_review": "Revisión reforzada",
         "mini_step_approve": "Aprobar",
         "mini_step_email": "Enviar",
         "mini_step_confirm": "Confirmar",
@@ -1778,8 +1794,17 @@ def _formulario_ficha_nueva() -> dict | None:
     # override a widget's value programmatically; disabled=True stops the
     # trainer from re-adding equipment that contradicts the chosen location.
     sin_material = lugar_entreno == "casa_sin_material"
+    lugar_anterior = st.session_state.get("_lugar_entreno_anterior")
     if sin_material:
         st.session_state[clave_material] = []
+    elif lugar_anterior == "casa_sin_material":
+        # Coming back FROM "no equipment" -- the multiselect was just
+        # force-cleared above (possibly on an earlier rerun) and would
+        # otherwise stay silently empty now that it's enabled again. Reset
+        # to the full pool so the trainer starts from everything selected
+        # and trims down from there, same as a brand-new form.
+        st.session_state[clave_material] = list(MATERIAL_OPCIONES)
+    st.session_state["_lugar_entreno_anterior"] = lugar_entreno
     material_disponible = st.multiselect(
         t("available_equipment"), MATERIAL_OPCIONES, default=valor_material, format_func=opt,
         key=clave_material, disabled=sin_material,
@@ -2256,7 +2281,8 @@ def _mostrar_rutina(rutina: dict) -> None:
                 st.caption(f"{t('cardio_label')} {sesion['cardio_opcional']}")
 
     with st.expander(t("progression_and_message")):
-        st.markdown(f"{t('progression_label')} {rutina['progresion']}")
+        st.markdown(t("progression_label"))
+        st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(rutina["progresion"])))
         st.markdown(f"{t('for_client_label')} {rutina['mensaje_para_el_cliente']}")
 
     st.download_button(
@@ -3048,11 +3074,28 @@ def _vista_portal_cliente(codigo: str) -> None:
 
     if sesiones:
         with st.expander(t("portal_routine_header")):
-            for sesion in sesiones:
-                st.markdown(f"**{sesion['dia']}**")
-                for ejercicio in sesion.get("ejercicios", []):
-                    nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
-                    st.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
+            # Same card treatment as the meal section (bordered container +
+            # hover-lift CSS, see _inyectar_estilos()) -- direct request
+            # ("hazlo mas bonito visualmente"), and now shows the full
+            # session detail (warmup, rest, effort, cardio) the portal used
+            # to drop entirely, not just exercise names.
+            for indice, sesion in enumerate(sesiones):
+                with st.container(border=True, key=f"portal-routine-card-{indice}"):
+                    st.markdown(f"**🗓️ {sesion['dia']}**")
+                    if sesion.get("calentamiento"):
+                        st.caption(f"🔥 {sesion['calentamiento']}")
+                    for ejercicio in sesion.get("ejercicios", []):
+                        nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
+                        linea = f"**{nombre_es}** — {ejercicio['series']} x {ejercicio['repeticiones']}"
+                        if ejercicio.get("descanso_seg"):
+                            linea += f" ({t('col_rest')} {ejercicio['descanso_seg']}s)"
+                        st.markdown(linea)
+                        if ejercicio.get("notas"):
+                            st.caption(ejercicio["notas"])
+                    if sesion.get("nota_esfuerzo"):
+                        st.markdown(f"{t('effort_label')} {sesion['nota_esfuerzo']}")
+                    if sesion.get("cardio_opcional"):
+                        st.markdown(f"{t('cardio_label')} {sesion['cardio_opcional']}")
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own
@@ -3227,9 +3270,18 @@ def _vista_portal_cliente(codigo: str) -> None:
                     estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
                 )
                 nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
+                # This check-in was already saved above, so it's included in
+                # its own count -- 1 for a client's first-ever check-in, 2
+                # for their second, etc. Best-effort like the rest of this
+                # block: a history-fetch failure just omits the "Week N:"
+                # header rather than blocking the draft.
+                try:
+                    semana_actual = len(historial_checkins(carga["email"]))
+                except (NotionClientError, ImportError, ModuleNotFoundError):
+                    semana_actual = None
                 crear_borrador(
                     carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
-                    idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}",
+                    idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}", semana=semana_actual,
                 )
         except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
             pass
@@ -3260,11 +3312,23 @@ def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str,
         # this chart-rendering path needs pandas, not the rest of the app.
         import pandas as pd
 
+        # Verdict (list) stores VEREDICTO_LABELS' English text as a stable
+        # Notion select value -- same "canonical value, translated only for
+        # display" pattern as exercise/food nombre_mostrado(). Reverse-map it
+        # back through the same dict so this chart follows the trainer's own
+        # language toggle instead of always showing the raw stored English.
+        etiqueta_veredicto_traducida = {
+            "aprobado_automatico": t("verdict_approved"), "revision_reforzada": t("verdict_enhanced_review"),
+        }
+        veredicto_a_clave = {v: k for k, v in VEREDICTO_LABELS.items()}
+
         col_a, col_b = st.columns(2)
         with col_a:
             conteo_veredicto: dict[str, int] = {}
             for cliente in clientes:
-                clave = cliente["veredicto"] or t("dashboard_unknown")
+                veredicto_crudo = cliente["veredicto"]
+                clave_interna = veredicto_a_clave.get(veredicto_crudo)
+                clave = etiqueta_veredicto_traducida.get(clave_interna, veredicto_crudo) if veredicto_crudo else t("dashboard_unknown")
                 conteo_veredicto[clave] = conteo_veredicto.get(clave, 0) + 1
             if conteo_veredicto:
                 st.caption(t("dashboard_verdict_chart"))

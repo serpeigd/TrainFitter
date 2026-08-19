@@ -208,6 +208,57 @@ MENSAJE_CLIENTE_DIETA_VARIANTES = {
     ],
 }
 
+# One goal-specific sentence proposing the actual starting approach,
+# appended after the generic MENSAJE_CLIENTE_DIETA_VARIANTES text above --
+# direct request ("mensajes adaptados segun objetivos... propon un plan de
+# inicio, por ejemplo si se quiere perder peso: empezamos bajando kcal y
+# haciendo algo de cardio"). Diet-side framing only (routine's own version
+# lives in rutina_reglas.py's PLAN_INICIO_RUTINA) so the two don't repeat
+# each other's point when both land in the same email/portal view. Keys
+# match objetivo.principal exactly (see AJUSTE_CALORICO above).
+PLAN_INICIO_DIETA = {
+    "en": {
+        "perdida_grasa": (
+            "We're starting with a moderate deficit — not an aggressive one — so it's something "
+            "you can actually sustain week after week without constant hunger; we'll adjust it "
+            "as your real weight moves."
+        ),
+        "hipertrofia": (
+            "We're starting with a slight calorie surplus — just enough to grow without piling "
+            "on extra fat — and a bit more protein than usual to actually make use of it."
+        ),
+        "recomposicion_corporal": (
+            "We're starting with a very mild deficit, close to maintenance, and high protein — "
+            "the idea is to lose fat and build muscle at the same time, so don't expect the "
+            "scale to move fast."
+        ),
+        "salud_general": (
+            "We're starting around your maintenance calories — the goal here isn't losing or "
+            "gaining weight, it's making the diet sustainable and varied."
+        ),
+    },
+    "es": {
+        "perdida_grasa": (
+            "Empezamos con un déficit moderado — no agresivo — para que puedas mantenerlo semana "
+            "tras semana sin pasar hambre constantemente; lo ajustaremos según se mueva tu peso "
+            "real."
+        ),
+        "hipertrofia": (
+            "Empezamos con un ligero superávit calórico — solo lo necesario para crecer sin "
+            "acumular grasa de más — y algo más de proteína de lo habitual para aprovecharlo."
+        ),
+        "recomposicion_corporal": (
+            "Empezamos con un déficit muy suave, casi de mantenimiento, y proteína alta — la "
+            "idea es perder grasa y ganar músculo a la vez, así que no esperes que la báscula se "
+            "mueva rápido."
+        ),
+        "salud_general": (
+            "Empezamos en torno a tus calorías de mantenimiento — aquí el objetivo no es perder "
+            "ni ganar peso, sino que la alimentación sea sostenible y variada."
+        ),
+    },
+}
+
 
 def _bmr(peso_kg: float, altura_cm: float, edad: int, sexo: str) -> float:
     """Mifflin-St Jeor equation (standard basal metabolic rate estimate)."""
@@ -452,6 +503,70 @@ def _consejos_suplementos(perfil: dict, idioma: str = "en") -> list[str]:
     ]
 
 
+def _consejo_general(perfil: dict, idioma: str = "en") -> str:
+    """A real feedback fix, not a new "avanzado" feature: "basico"/"normal"
+    clients (where _consejos_sinergias() below returns []) used to end up
+    with an EMPTY consejos_sinergias list, which meant
+    gmail_client.obtener_texto_cliente() fell back to the first sentence of
+    the generic mensaje_para_el_cliente -- e.g. "aquí tienes tu dieta en
+    borrador," a useless line to show as "the tip" in the email/portal.
+    Direct request: "intenta siempre poner algun truco, sinergia, cosa util
+    ... busca informacion." One goal/diet-type-aware, genuinely actionable
+    tip, always non-empty -- simple enough to be right for a
+    basico/normal client (unlike _consejos_sinergias()'s nutrient-timing
+    detail, which stays avanzado/tryhard-gated on purpose)."""
+    objetivo = perfil.get("objetivo", {}).get("principal", "salud_general")
+    tipo_dieta = perfil.get("nutricion", {}).get("tipo_dieta", "omnivora")
+    es_vegetal = tipo_dieta in {"vegetariana_ovolacto", "vegana"}
+
+    if idioma == "es":
+        if objetivo == "perdida_grasa":
+            return (
+                "Prioriza proteína y verdura en cada comida — sacian mucho por pocas calorías, "
+                "lo que hace el déficit mucho más llevadero día a día."
+            )
+        if objetivo == "hipertrofia":
+            return (
+                "Si te cuesta llegar a las calorías, las calorías líquidas (batidos, leche, "
+                "zumo) entran mucho más fácil que más comida sólida."
+            )
+        if objetivo == "recomposicion_corporal":
+            return (
+                "Prioriza la proteína en cada comida — es lo que más ayuda a perder grasa y "
+                "conservar músculo a la vez con un déficit tan suave."
+            )
+        if es_vegetal:
+            return (
+                "Intenta que la mitad del plato sea verdura u hortaliza en las comidas "
+                "principales — es la forma más simple de mejorar la calidad de la dieta sin "
+                "contar nada."
+            )
+        return (
+            "Intenta que la mitad del plato sea verdura u hortaliza en las comidas principales "
+            "— es la forma más simple de mejorar la calidad de la dieta sin contar nada."
+        )
+
+    if objetivo == "perdida_grasa":
+        return (
+            "Prioritize protein and vegetables at each meal — they fill you up for very few "
+            "calories, which makes the deficit much easier to sustain day to day."
+        )
+    if objetivo == "hipertrofia":
+        return (
+            "If you're struggling to hit your calorie target, liquid calories (smoothies, "
+            "milk, juice) go down a lot easier than more solid food."
+        )
+    if objetivo == "recomposicion_corporal":
+        return (
+            "Prioritize protein at each meal — it's what helps most with losing fat and "
+            "keeping muscle at the same time on such a mild deficit."
+        )
+    return (
+        "Try to make half the plate vegetables at your main meals — it's the simplest way to "
+        "improve diet quality without counting anything."
+    )
+
+
 def _consejos_sinergias(perfil: dict, idioma: str = "en") -> list[str]:
     """Gated to "avanzado"/"tryhard" (see docs/decisiones.md) -- "basico"/
     "normal" still get a real, macro-matched, profile-adapted diet, just
@@ -606,6 +721,9 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
     rng_texto = rng_para_cliente(perfil_cliente, "dieta:texto")
     distribucion = elegir_variante(rng_texto, DISTRIBUCION_VARIANTES[idioma]).format(n=comidas_al_dia)
     cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_DIETA_VARIANTES[idioma])
+    plan_inicio = PLAN_INICIO_DIETA[idioma].get(objetivo, "")
+    if plan_inicio:
+        cuerpo_mensaje = f"{cuerpo_mensaje} {plan_inicio}"
 
     # Separate RNG namespace from rng_texto above -- picking meals never
     # shifts which narrative-text variant gets picked, and vice versa.
@@ -676,6 +794,13 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
             _consejos_sinergias(perfil_cliente, idioma)
             + _consejos_por_preferencias_blandas(perfil_cliente, idioma)
             + _consejos_suplementos(perfil_cliente, idioma)
+            # Always non-empty (see _consejo_general()'s own docstring) --
+            # appended last so it never displaces a more specific tip a
+            # higher commitment level or an active soft preference already
+            # earned; it's only ever the ONLY entry for basico/normal
+            # clients with no soft preference active, which is exactly the
+            # gap this closes.
+            or [_consejo_general(perfil_cliente, idioma)]
         ),
         "advertencias_revision_humana": _generar_advertencias(perfil_cliente, idioma),
         "mensaje_para_el_cliente": mensaje_para_el_cliente,

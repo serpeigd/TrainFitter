@@ -1002,6 +1002,67 @@ it needed filling in — now opens expanded by default with clearer
 copy and step dividers. Verified live against the real "PEPE" test
 client. 565 tests passing (up from 547), lint clean, no example diffs.
 
+A dense round of follow-ups, all shipped together. A real i18n bug: the
+"Clients" tab's verdict chart always showed "Approved"/"Enhanced review"
+in English regardless of the trainer's language toggle, because
+`notion_connector.VEREDICTO_LABELS` stores a stable English string as the
+actual Notion select value (by design, same as exercise/food canonical
+names) — `_render_dashboard_clientes()` was reading that raw stored value
+straight into the chart instead of translating it for display; fixed with
+a reverse-map through the same dict, verified live against the real
+workspace in both languages. The commitment-level caption
+(Basic/Normal/Advanced/Tryhard) got new copy, provided verbatim. A real
+UX bug: switching `lugar_entreno` away from "casa_sin_material" left the
+equipment multiselect silently empty instead of resetting to the full
+pool — fixed by tracking the previous location and re-selecting
+everything on the way back out, mirroring the existing force-clear logic
+for the other direction. Warm-ups are now mandatory (already true) but
+also specific and evidence-grounded (RAMP protocol): named exercises —
+banded external/internal rotation for rotator-cuff activation on
+shoulder-heavy days, hip circles/leg swings/glute bridges on leg-heavy
+days — replacing the previous generic "mobility" wording, in both
+languages and rendered in the PDF. `progresion` now renders as real
+bullets (a native reportlab `ListFlowable`, not a literal "•" prefix —
+caught by the PDF extraction test itself, which showed the bullet
+character extracting as a stray control byte under Helvetica) in the PDF,
+matching the email/portal's existing bullet treatment; the trainer panel
+got the same treatment via `dividir_en_puntos()`. Both routine and diet
+messages now close with one goal-specific "starting plan" sentence
+(`PLAN_INICIO_RUTINA`/`PLAN_INICIO_DIETA`, keyed by `objetivo.principal`)
+instead of purely generic encouragement — e.g. "we're starting with a
+moderate deficit, not an aggressive one" for `perdida_grasa`. A real gap
+in `dieta_reglas.py`: a "basico"/"normal" client with no active soft
+preference ended up with an EMPTY `consejos_sinergias` list, which made
+`gmail_client.obtener_texto_cliente()` fall back to the first sentence of
+the generic message — often literally "aquí tienes tu dieta en borrador,"
+useless as "the tip" shown in the email/portal. New `_consejo_general()`
+guarantees at least one genuinely useful, goal/diet-type-aware tip,
+appended only when the level-gated list would otherwise be empty. Meals
+in `plan_semanal` now open with a Wetaca-style named dish ("Lentejas con
+pollo: ...") before the ingredient breakdown, and a curated
+`CONSEJOS_COCINA` dict adds one real, optional prep tip per common
+protein/carb (e.g. "add cumin to lentils/chickpeas — helps digestion")
+when a recognized ingredient is in the meal — not exhaustive by design,
+real cooking advice rather than invented filler. The portal's routine
+section got the same visual pass the meal section already had: bordered,
+hover-lift cards per day (mirroring `_render_swipe_comidas()`'s own CSS),
+now showing the full session detail (warmup, rest, effort, cardio) it
+used to drop entirely, not just exercise names. The check-in-driven plan
+regeneration email gained an optional "Semana N:"/"Week N:" header (the
+check-in count so far, including the one that triggered it) — a direct,
+concrete request, threaded through `crear_borrador()`/
+`_preparar_envio_plan()`/`_construir_cuerpo_email()`'s new `semana`
+parameter, shown only together with `url_portal` since a client's very
+first plan has no "week" yet. `routine_agent.py`/`diet_agent.py` prompts
+were updated for engine parity on every content change above. Verified
+live: the commitment captions, adjustment captions, verdict i18n fix
+(round-tripped EN/ES against 7 real Notion clients), and the portal
+routine redesign all confirmed against the real workspace ("PEPE"'s
+stored plan predates the wetaca-style meal format, so that specific
+piece is unit-tested rather than visible on his stale saved plan). 574
+tests passing (up from 565), lint clean, `examples/output_rutina_*.json`
+and `output_dieta_*.json` regenerated for all three example clients.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

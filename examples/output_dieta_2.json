@@ -50,7 +50,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "135g whole wheat bread, 137g chickpeas, 12g nuts (walnuts, almonds).",
+          "descripcion": "Chickpeas with whole wheat bread: 135g whole wheat bread, 137g chickpeas, 12g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 630,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -59,7 +59,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "137g chickpeas, 278g quinoa, 100g citrus (orange, lemon), with 108g avocado.",
+          "descripcion": "Chickpeas with quinoa: 137g chickpeas, 278g quinoa, 100g citrus (orange, lemon), with 108g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 778,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
@@ -68,7 +68,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "137g chickpeas, 278g quinoa, 100g carrot, with 237g avocado.",
+          "descripcion": "Chickpeas with quinoa: 137g chickpeas, 278g quinoa, 100g carrot, with 237g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 978,
           "tipo_interno": "cena",
           "proteina": "Chickpeas",
@@ -82,7 +82,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "383g potato / sweet potato, 137g chickpeas, 80g tomato, 14g seeds (chia, flax).",
+          "descripcion": "Chickpeas with potato / sweet potato: 383g potato / sweet potato, 137g chickpeas, 80g tomato, 14g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 642,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -91,7 +91,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "137g chickpeas, 256g rice, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds).",
+          "descripcion": "Chickpeas with rice: 137g chickpeas, 256g rice, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 778,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
@@ -100,7 +100,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "117g tempeh, 253g legumes (also a carb source), 100g carrot, with 43g extra virgin olive oil.",
+          "descripcion": "Tempeh with legumes (also a carb source): 117g tempeh, 253g legumes (also a carb source), 100g carrot, with 43g extra virgin olive oil.",
           "aprox_kcal": 980,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
@@ -114,7 +114,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "383g potato / sweet potato, 60g protein powder (plant-based), 8g extra virgin olive oil.",
+          "descripcion": "Protein powder (plant-based) with potato / sweet potato: 383g potato / sweet potato, 60g protein powder (plant-based), 8g extra virgin olive oil. Optional: cook and cool it before eating, same trick as rice — same resistant-starch effect.",
           "aprox_kcal": 628,
           "tipo_interno": "desayuno",
           "proteina": "Protein powder (plant-based)",
@@ -123,7 +123,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "117g tempeh, 86g oats, 100g tomato, with 20g extra virgin olive oil.",
+          "descripcion": "Tempeh with oats: 117g tempeh, 86g oats, 100g tomato, with 20g extra virgin olive oil. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 754,
           "tipo_interno": "comida",
           "proteina": "Tempeh",
@@ -132,7 +132,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "193g lentils, 253g legumes (also a carb source), 100g citrus (orange, lemon), with 76g seeds (chia, flax).",
+          "descripcion": "Lentils with legumes (also a carb source): 193g lentils, 253g legumes (also a carb source), 100g citrus (orange, lemon), with 76g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 985,
           "tipo_interno": "cena",
           "proteina": "Lentils",
@@ -146,7 +146,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "86g oats, 117g tempeh, 80g kiwi, 12g nuts (walnuts, almonds).",
+          "descripcion": "Tempeh with oats: 86g oats, 117g tempeh, 80g kiwi, 12g nuts (walnuts, almonds). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 680,
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
@@ -155,7 +155,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "193g lentils, 86g oats, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds).",
+          "descripcion": "Lentils with oats: 193g lentils, 86g oats, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 779,
           "tipo_interno": "comida",
           "proteina": "Lentils",
@@ -164,7 +164,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "60g protein powder (plant-based), 135g whole wheat bread, 100g tomato, with 237g avocado.",
+          "descripcion": "Protein powder (plant-based) with whole wheat bread: 60g protein powder (plant-based), 135g whole wheat bread, 100g tomato, with 237g avocado.",
           "aprox_kcal": 954,
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
@@ -178,7 +178,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "135g whole wheat bread, 137g chickpeas, 80g kiwi, 43g avocado.",
+          "descripcion": "Chickpeas with whole wheat bread: 135g whole wheat bread, 137g chickpeas, 80g kiwi, 43g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 676,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -187,7 +187,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "185g edamame, 278g quinoa, 100g carrot, with 20g extra virgin olive oil.",
+          "descripcion": "Edamame with quinoa: 185g edamame, 278g quinoa, 100g carrot, with 20g extra virgin olive oil. Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
           "aprox_kcal": 775,
           "tipo_interno": "comida",
           "proteina": "Edamame",
@@ -196,7 +196,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "185g edamame, 269g whole wheat pasta, 100g red bell pepper, with 237g avocado.",
+          "descripcion": "Edamame with whole wheat pasta: 185g edamame, 269g whole wheat pasta, 100g red bell pepper, with 237g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 968,
           "tipo_interno": "cena",
           "proteina": "Edamame",
@@ -210,7 +210,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "135g whole wheat bread, 137g chickpeas, 80g red bell pepper, 14g seeds (chia, flax).",
+          "descripcion": "Chickpeas with whole wheat bread: 135g whole wheat bread, 137g chickpeas, 80g red bell pepper, 14g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 653,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -219,7 +219,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "137g chickpeas, 135g whole wheat bread, 100g carrot, with 29g nuts (walnuts, almonds).",
+          "descripcion": "Chickpeas with whole wheat bread: 137g chickpeas, 135g whole wheat bread, 100g carrot, with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 773,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
@@ -228,7 +228,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "185g edamame, 269g whole wheat pasta, 100g mixed salad greens, with 237g avocado.",
+          "descripcion": "Edamame with whole wheat pasta: 185g edamame, 269g whole wheat pasta, 100g mixed salad greens, with 237g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 957,
           "tipo_interno": "cena",
           "proteina": "Edamame",
@@ -242,7 +242,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "253g legumes (also a carb source), 137g chickpeas, 80g citrus (orange, lemon), 12g nuts (walnuts, almonds).",
+          "descripcion": "Chickpeas with legumes (also a carb source): 253g legumes (also a carb source), 137g chickpeas, 80g citrus (orange, lemon), 12g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 669,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -251,7 +251,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "137g chickpeas, 278g quinoa, 100g kiwi, with 29g nuts (walnuts, almonds).",
+          "descripcion": "Chickpeas with quinoa: 137g chickpeas, 278g quinoa, 100g kiwi, with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 793,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
@@ -260,7 +260,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "117g tempeh, 269g whole wheat pasta, 100g tomato, with 63g nuts (walnuts, almonds).",
+          "descripcion": "Tempeh with whole wheat pasta: 117g tempeh, 269g whole wheat pasta, 100g tomato, with 63g nuts (walnuts, almonds). Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 954,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
@@ -278,5 +278,5 @@
   "advertencias_revision_humana": [
     "The client hasn't attached bloodwork, but there's a relevant unverified note: \"Client mentions feeling tired frequently lately. Hasn't provided bloodwork yet; still need to ask for it at follow-up.\" — ask for it at follow-up so the diet can be modulated with real data."
   ],
-  "mensaje_para_el_cliente": "Hi Javier, here's your draft diet. No food is banned in this approach — amounts and context do the work. Judge it by whether you could still be doing this in three months, not whether it's perfect today. Anything that clashes with your day-to-day, let me know and we'll trade it for something equivalent."
+  "mensaje_para_el_cliente": "Hi Javier, here's your draft diet. No food is banned in this approach — amounts and context do the work. Judge it by whether you could still be doing this in three months, not whether it's perfect today. Anything that clashes with your day-to-day, let me know and we'll trade it for something equivalent. We're starting with a very mild deficit, close to maintenance, and high protein — the idea is to lose fat and build muscle at the same time, so don't expect the scale to move fast."
 }

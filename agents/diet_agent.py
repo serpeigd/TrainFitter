@@ -209,7 +209,20 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   meals repeated every day. Every food you mention in it must also appear in the
   matching fuentes_*_sugeridas list (protein/carbohydrate/fat/vegetable), so it never
   suggests something outside what's already been filtered for this client's diet
-  type and allergies.
+  type and allergies. Give each meal a short, named-dish description (Wetaca-style
+  ready meal, e.g. "Lentils with chicken: ...") followed by the ingredient
+  breakdown with grams, not just a flat ingredient list.
+- `consejos_sinergias` must never be empty. If the client's commitment level or soft
+  preferences don't already earn a nutrient-timing tip, include at least one genuinely
+  useful, goal-aware tip anyway (e.g. a real cooking/prep tip, like "add cumin to
+  lentils/chickpeas for digestion", or protein/vegetable prioritization for fat loss) --
+  never leave the client with zero real advice.
+- `mensaje_para_el_cliente` should end with one goal-specific sentence proposing the
+  actual starting approach (not just generic encouragement) -- e.g. for `perdida_grasa`,
+  something like "we're starting with a moderate deficit, not an aggressive one"; for
+  `hipertrofia`, "a slight surplus, just enough to grow without extra fat"; for
+  `recomposicion_corporal`, "a very mild deficit with high protein"; for
+  `salud_general`, "around maintenance calories, focused on sustainability."
 - The message to the client should sound like the trainer: warm, direct, pedagogical.
 - You must respond ONLY by calling the `entregar_borrador_dieta` tool."""
 

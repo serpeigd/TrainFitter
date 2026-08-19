@@ -297,7 +297,7 @@ def obtener_texto_cliente(mensaje_para_el_cliente: str, nombre_cliente: str, idi
 
 def _construir_cuerpo_email(
     nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
-    incluir_checklist: bool = False, url_portal: str | None = None,
+    incluir_checklist: bool = False, url_portal: str | None = None, semana: int | None = None,
 ) -> str:
     """Brief, scannable plain-text email body -- the plan's own detail
     lives in the attached PDFs now (see agents/pdf_generador.py), not
@@ -349,6 +349,12 @@ def _construir_cuerpo_email(
             "dentro del mismo correo," a direct request. None (default)
             for the normal new-plan draft, which has no reason to repeat
             a link the trainer sends separately via enviar_enlace_portal().
+        semana: optional -- the check-in count (1-indexed) that triggered
+            this regeneration, e.g. 2 for a client's second submitted
+            check-in. Only meaningful together with url_portal (a client's
+            very first plan has no "week" yet); prepends a short "Week N:"
+            header so a client who's re-reading this email later has an
+            immediate sense of which update it is, direct request.
 
     idioma only affects this template's own wrapper text (greeting, section
     labels, attachment list) — mensaje_para_el_cliente/progresion/
@@ -367,8 +373,12 @@ def _construir_cuerpo_email(
     bullets_rutina = "\n".join(f"• {p}" for p in dividir_en_puntos(texto_rutina))
     bullets_dieta = "\n".join(f"• {p}" for p in dividir_en_puntos(texto_dieta))
 
+    cabecera_semana = ""
+    if semana and url_portal:
+        cabecera_semana = f"Semana {semana}:\n\n" if idioma == "es" else f"Week {semana}:\n\n"
+
     if idioma == "es":
-        cuerpo = f"Hola {primer_nombre},\n\nRutina:\n{bullets_rutina}\n\nDieta:\n{bullets_dieta}\n"
+        cuerpo = f"{cabecera_semana}Hola {primer_nombre},\n\nRutina:\n{bullets_rutina}\n\nDieta:\n{bullets_dieta}\n"
         if incluir_checklist:
             cuerpo += (
                 "\n\nDentro de unas semanas, cuando ya hayas arrancado, rellena el checklist que te "
@@ -379,7 +389,7 @@ def _construir_cuerpo_email(
             cuerpo += f"\n\nTu enlace al portal, actualizado:\n{url_portal}"
         return cuerpo
 
-    cuerpo = f"Hi {primer_nombre},\n\nRoutine:\n{bullets_rutina}\n\nDiet:\n{bullets_dieta}\n"
+    cuerpo = f"{cabecera_semana}Hi {primer_nombre},\n\nRoutine:\n{bullets_rutina}\n\nDiet:\n{bullets_dieta}\n"
     if incluir_checklist:
         cuerpo += (
             "\n\nIn a few weeks, once you've actually started, fill in the attached checklist and "
@@ -490,7 +500,7 @@ def _obtener_credenciales():
 
 def _preparar_envio_plan(
     nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str, incluir_checklist: bool,
-    url_portal: str | None,
+    url_portal: str | None, semana: int | None = None,
 ) -> tuple[str, list[tuple[str, bytes]], str]:
     """Shared by crear_borrador() (draft) and enviar_plan() (real send) --
     both build the exact same subject/attachments/body, they only differ
@@ -538,7 +548,7 @@ def _preparar_envio_plan(
                 (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
             )
         cuerpo_texto = _construir_cuerpo_email(
-            nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
+            nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal, semana,
         )
     except Exception as exc:
         raise GmailClientError(f"Could not build the plan PDFs/email body: {exc}") from exc
@@ -548,7 +558,7 @@ def _preparar_envio_plan(
 
 def crear_borrador(
     destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
-    incluir_checklist: bool = False, url_portal: str | None = None,
+    incluir_checklist: bool = False, url_portal: str | None = None, semana: int | None = None,
 ) -> dict:
     """
     Creates a Gmail draft (never sends it) with the approved plan: a brief
@@ -579,6 +589,7 @@ def crear_borrador(
         url_portal: optional -- see _construir_cuerpo_email()'s own
             docstring. Rides along in this same draft rather than a
             second email; None (default) for the normal approval-flow draft.
+        semana: optional -- see _construir_cuerpo_email()'s own docstring.
 
     Returns:
         {"url": a gmail.com link to the created draft, "thread_id": the
@@ -591,7 +602,7 @@ def crear_borrador(
             the user needs to re-authorize, or a Gmail API failure.
     """
     asunto, adjuntos, cuerpo_texto = _preparar_envio_plan(
-        nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
+        nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal, semana,
     )
     cuerpo = _construir_mensaje_raw(destinatario, asunto=asunto, cuerpo_texto=cuerpo_texto, adjuntos=adjuntos)
 

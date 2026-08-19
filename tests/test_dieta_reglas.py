@@ -3,6 +3,7 @@
 from dieta_reglas import (
     DISTRIBUCION_VARIANTES,
     MENSAJE_CLIENTE_DIETA_VARIANTES,
+    PLAN_INICIO_DIETA,
     PROTEINA_G_POR_KG,
     _consejos_sinergias,
     generar_borrador_dieta_reglas,
@@ -148,6 +149,32 @@ def test_synergy_tips_only_shown_from_avanzado_up(perfil_base):
         assert _consejos_sinergias(perfil_base) != []
 
 
+def test_consejos_sinergias_never_empty_even_with_no_active_preference(perfil_base):
+    """Real bug fix: a "basico"/"normal" client with no active soft
+    preference used to end up with an EMPTY consejos_sinergias list, which
+    made gmail_client.obtener_texto_cliente() fall back to the first
+    sentence of the generic mensaje_para_el_cliente (e.g. "aquí tienes tu
+    dieta en borrador," useless as "the tip" in the email/portal). See
+    _consejo_general()'s own docstring."""
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    perfil_base["nutricion"]["inquietud_principal"] = None
+    perfil_base["estilo_de_vida"] = {}
+    assert _consejos_sinergias(perfil_base) == []  # confirms the gate is still what's empty
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert borrador["consejos_sinergias"] != []
+
+
+def test_client_message_includes_goal_specific_starting_plan(perfil_base):
+    """Direct request: "propon un plan de inicio" adapted to objetivo,
+    appended after the generic MENSAJE_CLIENTE_DIETA_VARIANTES text."""
+    perfil_base["objetivo"]["principal"] = "perdida_grasa"
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert PLAN_INICIO_DIETA["en"]["perdida_grasa"] in borrador["mensaje_para_el_cliente"]
+
+    borrador_es = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert PLAN_INICIO_DIETA["es"]["perdida_grasa"] in borrador_es["mensaje_para_el_cliente"]
+
+
 def test_food_allergy_generates_human_review_warning(perfil_base):
     perfil_base["salud"]["alergias_alimentarias"] = ["peanuts"]
     borrador = generar_borrador_dieta_reglas(perfil_base)
@@ -212,14 +239,21 @@ def test_different_clients_get_varied_narrative_text(perfil_base):
     distinct IDs that the pool's actual size shows up, rather than
     asserting inequality between two arbitrary picks (which can
     coincidentally collide -- a 1-in-4 chance)."""
+    # Every client here shares the same objetivo, so the goal-adapted
+    # PLAN_INICIO_DIETA sentence (see generar_borrador_dieta_reglas()) is
+    # identical across all of them -- strip it off before checking which
+    # base variant got picked, same idea as stripping the fixed greeting.
+    plan_inicio = PLAN_INICIO_DIETA["en"][perfil_base["objetivo"]["principal"]]
     mensajes = set()
     for i in range(15):
         perfil_base["id_cliente"] = f"cliente_variedad_{i}"
         borrador = generar_borrador_dieta_reglas(perfil_base)
         assert borrador["mensaje_para_el_cliente"].startswith("Hi Test, ")
         cuerpo = borrador["mensaje_para_el_cliente"].removeprefix("Hi Test, ")
-        assert cuerpo in MENSAJE_CLIENTE_DIETA_VARIANTES["en"]
-        mensajes.add(cuerpo)
+        assert cuerpo.endswith(f" {plan_inicio}")
+        cuerpo_base = cuerpo.removesuffix(f" {plan_inicio}")
+        assert cuerpo_base in MENSAJE_CLIENTE_DIETA_VARIANTES["en"]
+        mensajes.add(cuerpo_base)
     assert len(mensajes) > 1
 
 

@@ -2843,6 +2843,131 @@ check-in section opens expanded with the new copy and dividers visible.
 565 tests passing (up from 547), lint clean, no example-output diffs
 (no example client uses either new field).
 
+## A dense follow-up round: i18n bug, mandatory-and-specific warm-ups,
+## goal-adapted messages, an always-present diet tip, named dishes, and
+## a portal routine redesign
+
+Nine items requested together, all shipped the same day.
+
+**Real i18n bug.** The "Clients" tab's verdict chart always read
+"Approved"/"Enhanced review" in English, regardless of the trainer's
+language toggle. Root cause: `notion_connector.VEREDICTO_LABELS` stores
+a fixed English string as the actual Notion select value — a deliberate
+"canonical value, translated only for display" design, same pattern as
+exercise/food names — but `_render_dashboard_clientes()` was reading
+that raw stored value straight into the chart instead of translating it
+for display. Fixed with a reverse-map through the same dict at render
+time; verified live, round-tripped EN/ES against the real workspace's 7
+clients.
+
+**Commitment-level caption.** New copy for Basic/Normal/Advanced/Tryhard,
+provided verbatim by the project owner, replacing the previous wording
+in both languages.
+
+**Equipment-multiselect reset bug.** Switching `lugar_entreno` away from
+"casa_sin_material" left the equipment multiselect silently empty
+instead of resetting to the full pool — the existing force-clear-to-`[]`
+logic for entering that location had no mirror for leaving it. Fixed by
+tracking the previous location in session state and re-selecting every
+option on the way back out.
+
+**Warm-ups: mandatory (already true) but now specific.** The routine
+engine already set a per-session `calentamiento` unconditionally; the
+content itself was generic ("mobility"). Rewritten to name real
+exercises grounded in the RAMP protocol (Raise, Activate, Mobilize,
+Potentiate) standard in strength coaching: banded external/internal
+rotation for rotator-cuff activation before any shoulder-heavy session
+(upper body, push, pull), hip circles/leg swings/bodyweight glute
+bridges before any leg-heavy session (lower body, full body/legs) — the
+two joints most warm-up research flags for injury risk under load. Both
+languages, and now rendered in the routine PDF (it was already generated
+but never shown there).
+
+**Progresion as bullets, not one paragraph.** Same "wall of text" fix
+already applied to the plan email/portal (`gmail_client.
+dividir_en_puntos()`) extended to the routine PDF and trainer panel.
+First attempt used a literal "• " string prefix; the PDF-extraction test
+itself caught that the bullet character extracts as a stray control byte
+through pypdf under the plain Helvetica font reportlab uses here — fixed
+by switching to a native `ListFlowable`/`ListItem` bulleted list, the
+same convention `consejos_sinergias` already used in the diet PDF.
+
+**Goal-adapted "starting plan" sentences.** Both routine and diet client
+messages now close with one goal-specific sentence proposing the actual
+starting approach, instead of purely generic encouragement — e.g. for
+`perdida_grasa`: routine says lifting stays the priority with some
+cardio added around it; diet says starting with a moderate (not
+aggressive) deficit. New `PLAN_INICIO_RUTINA`/`PLAN_INICIO_DIETA` dicts,
+keyed by `objetivo.principal`, appended after the existing
+`MENSAJE_CLIENTE_*_VARIANTES` text rather than replacing it.
+
+**A real content gap: consejos_sinergias could be genuinely empty.** A
+"basico"/"normal" diet client with no active soft preference ended up
+with an EMPTY `consejos_sinergias` list, because that field's own
+nutrient-timing tips are deliberately gated to "avanzado"/"tryhard".
+`gmail_client.obtener_texto_cliente()` then fell back to the first
+sentence of the generic `mensaje_para_el_cliente` — which, for one of
+the four English/Spanish variants, is literally "aquí tienes tu dieta en
+borrador" / "this is your draft diet" — a useless line to show as "the
+tip" in the plan email or portal. New `_consejo_general()` returns one
+genuinely useful, goal/diet-type-aware tip (protein+veg prioritization
+for fat loss, liquid calories for a hard-to-hit surplus, a default
+half-the-plate-vegetables tip otherwise), appended to
+`consejos_sinergias` only when the level-gated content would otherwise
+leave it empty — never displacing a more specific tip a higher
+commitment level or an active soft preference already earned.
+
+**Wetaca-style named dishes + optional cooking tips.** Every meal
+description in `plan_semanal` now opens with a short named dish ("Lentejas
+con pollo: ..." / "Chicken with lentils: ...") before the gram
+breakdown, built mechanically from the meal's own carb+protein display
+names rather than a hand-authored per-combination name database (with
+10+ proteins × 10+ carbs × 2 languages, that wasn't a proportionate
+build for this request). A new curated `CONSEJOS_COCINA` dict adds one
+real, optional prep tip for ~15 common proteins/carbs (e.g. "add cumin
+to lentils/chickpeas — helps digestion and reduces bloating," "cook and
+cool rice before eating — the resistant starch is better for your gut
+bacteria") when a recognized ingredient is in the meal — deliberately
+not exhaustive (not every food in `food_bank.py` needed one), real
+cooking/nutrition advice rather than invented filler, protein checked
+before carb so a meal never shows two tips at once.
+
+**Portal routine section visual pass.** Mirrors the meal section's own
+redesign: bordered, hover-lift cards per session day (same wildcard CSS
+pattern as `_render_swipe_comidas()`'s meal cards), now showing the full
+session detail — warmup, per-exercise rest time and notes, effort cue,
+optional cardio — that the portal used to drop entirely in favor of just
+exercise names. `progresion` itself isn't duplicated here since it
+already reaches the portal via the "Notes" section's `mensaje_rutina`
+(the same reduced tip text `gmail_client.obtener_texto_cliente()`
+already picks for the email).
+
+**Check-in-regeneration email gets a "Week N:" header.** The plan email
+`crear_borrador()` sends after a client's check-in triggers a
+regeneration (see the earlier "check-in-driven regeneration" entry)
+gained an optional `semana` parameter — the check-in count so far,
+including the one that just triggered it — rendered as a "Semana N:" /
+"Week N:" header before the greeting. Threaded through
+`_preparar_envio_plan()`/`_construir_cuerpo_email()`; only shown
+together with `url_portal`, since a client's very first plan draft has
+no "week" yet and shouldn't say so.
+
+`routine_agent.py`/`diet_agent.py`'s system prompts were updated for
+engine parity on every content change above (mandatory specific
+warm-ups, goal-adapted closing sentences, named dishes + optional
+cooking tips, consejos_sinergias never empty).
+
+Verified live against the real workspace: commitment captions and
+adjustment captions render correctly in the "New Client" form; the
+verdict-chart i18n fix round-tripped EN/ES against the real 7-client
+Clients dashboard; the portal routine redesign renders correctly against
+the real "PEPE" test client's stored plan (his plan predates today's
+wetaca-style meal format, so that specific piece is covered by unit
+tests rather than visible on his stale saved data, not re-verified live
+this round). 574 tests passing (up from 565), lint clean,
+`examples/output_rutina_*.json`/`output_dieta_*.json` regenerated for
+all three example clients.
+
 ---
 
 ## Fitness content disclaimer

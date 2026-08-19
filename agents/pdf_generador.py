@@ -49,6 +49,7 @@ import io
 import re
 
 from adherencia_parser import valoracion_desde_ratios
+from gmail_client import dividir_en_puntos
 
 # Shared between generar_pdf_dieta()/generar_pdf_checklist() (name the
 # files) and gmail_client.py (never needs these directly, but keeps every
@@ -324,7 +325,16 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        KeepTogether,
+        ListFlowable,
+        ListItem,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     estilos = getSampleStyleSheet()
     estilo_titulo = ParagraphStyle("Titulo", parent=estilos["Title"], spaceAfter=6)
@@ -423,7 +433,18 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
 
     if borrador_rutina.get("progresion"):
         contenido.append(Paragraph(textos["progresion"], estilo_seccion))
-        contenido.append(Paragraph(borrador_rutina["progresion"], estilo_cuerpo))
+        # Bullets, not one paragraph -- same "wall of text" fix already
+        # applied to the plan email/portal (gmail_client.dividir_en_puntos()).
+        # A native ListFlowable bullet, not a literal "• " prefix -- the
+        # bullet character extracts as a stray control byte through some
+        # PDF viewers/pypdf under the plain Helvetica font used here (caught
+        # by this file's own PDF-text-extraction test).
+        contenido.append(
+            ListFlowable(
+                [ListItem(Paragraph(p, estilo_cuerpo)) for p in dividir_en_puntos(borrador_rutina["progresion"])],
+                bulletType="bullet",
+            )
+        )
 
     contenido.append(Spacer(1, 16))
     contenido.append(Paragraph(textos["pie"], ParagraphStyle("Pie", parent=estilos["Italic"], fontSize=8)))

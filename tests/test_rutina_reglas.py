@@ -3,6 +3,7 @@
 from exercise_bank import EXERCISE_BANK
 from rutina_reglas import (
     MENSAJE_CLIENTE_RUTINA_VARIANTES,
+    PLAN_INICIO_RUTINA,
     PROGRESION_AVANZADA_VARIANTES,
     PROGRESION_VARIANTES,
     _candidatos,
@@ -401,12 +402,19 @@ def test_client_message_greeting_stays_fixed_around_the_varied_body(perfil_base)
     """The "Hi {name}, " greeting is prepended outside the variant pool
     (see rutina_reglas.py) -- every variant must still produce a message
     starting with it, regardless of which body text got picked."""
+    # Every client here shares the same objetivo, so the goal-adapted
+    # PLAN_INICIO_RUTINA sentence (see generar_borrador_rutina_reglas()) is
+    # identical across all of them -- strip it off before checking which
+    # base variant got picked, same idea as stripping the fixed greeting.
+    plan_inicio = PLAN_INICIO_RUTINA["en"][perfil_base["objetivo"]["principal"]]
     for id_cliente in ("cliente_a", "cliente_b", "cliente_c", "cliente_d", "cliente_e"):
         perfil_base["id_cliente"] = id_cliente
         borrador = generar_borrador_rutina_reglas(perfil_base)
         assert borrador["mensaje_para_el_cliente"].startswith("Hi Test, ")
         cuerpo = borrador["mensaje_para_el_cliente"].removeprefix("Hi Test, ")
-        assert cuerpo in MENSAJE_CLIENTE_RUTINA_VARIANTES["en"]
+        assert cuerpo.endswith(f" {plan_inicio}")
+        cuerpo_base = cuerpo.removesuffix(f" {plan_inicio}")
+        assert cuerpo_base in MENSAJE_CLIENTE_RUTINA_VARIANTES["en"]
 
 
 def test_different_clients_can_get_different_exercises(perfil_base):
@@ -815,3 +823,28 @@ def test_avanzado_leans_toward_medium_complexity(perfil_base):
         return medias / total
 
     assert proporcion_media("avanzado") > proporcion_media("normal")
+
+
+def test_client_message_includes_goal_specific_starting_plan(perfil_base):
+    """Direct request: "propon un plan de inicio" adapted to objetivo,
+    appended after the generic MENSAJE_CLIENTE_RUTINA_VARIANTES text."""
+    perfil_base["objetivo"]["principal"] = "hipertrofia"
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    assert PLAN_INICIO_RUTINA["en"]["hipertrofia"] in borrador["mensaje_para_el_cliente"]
+
+    borrador_es = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    assert PLAN_INICIO_RUTINA["es"]["hipertrofia"] in borrador_es["mensaje_para_el_cliente"]
+
+
+def test_every_session_has_a_mandatory_warmup_mentioning_the_right_joints(perfil_base):
+    """Direct request: a mandatory warm-up naming rotator-cuff work for
+    shoulder-heavy sessions and hip mobility for leg-heavy ones, not just
+    generic "mobility" -- every session type always sets calentamiento
+    (see CALENTAMIENTO_POR_DIA), never conditionally."""
+    perfil_base["disponibilidad"]["dias_por_semana"] = 4  # covers upper/lower-style split types
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        assert sesion["calentamiento"]
+    todos_calentamientos = " ".join(s["calentamiento"] for s in borrador["sesiones"])
+    assert "hip" in todos_calentamientos.lower()
+    assert "rotator cuff" in todos_calentamientos.lower()

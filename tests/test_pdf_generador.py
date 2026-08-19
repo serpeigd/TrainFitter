@@ -244,6 +244,23 @@ def test_routine_pdf_contains_sessions_exercises_and_progression(borrador_rutina
     assert "Add one rep before adding weight" in texto
 
 
+def test_routine_pdf_renders_progresion_as_bullets(borrador_rutina):
+    """Same "wall of text" fix already applied to the plan email/portal
+    (gmail_client.dividir_en_puntos()) -- a multi-sentence progresion
+    should render as separate bullet lines (a native ListFlowable, same
+    convention as consejos_sinergias in the diet PDF), not one paragraph."""
+    from pypdf import PdfReader
+
+    borrador_rutina = {**borrador_rutina, "progresion": "Add one rep first. Then add weight."}
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    texto = "".join(pagina.extract_text() for pagina in PdfReader(io.BytesIO(pdf)).pages)
+    assert "Add one rep first." in texto
+    assert "Then add weight." in texto
+    # Two distinct bullet items, not "Add one rep first. Then add weight."
+    # run together as a single paragraph.
+    assert "Add one rep first. Then add weight." not in texto
+
+
 def test_routine_pdf_never_includes_the_generic_message(borrador_rutina):
     """mensaje_para_el_cliente (the generic warm note) is dropped from
     the PDF entirely, same cut already made to the plan email/portal --

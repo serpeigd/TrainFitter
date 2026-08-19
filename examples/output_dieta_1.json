@@ -60,7 +60,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "127g whole wheat bread, 44g protein powder (plant-based), 80g mixed salad greens, 7g algae oil (vegan omega-3).",
+          "descripcion": "Protein powder (plant-based) with whole wheat bread: 127g whole wheat bread, 44g protein powder (plant-based), 80g mixed salad greens, 7g algae oil (vegan omega-3).",
           "aprox_kcal": 556,
           "tipo_interno": "desayuno",
           "proteina": "Protein powder (plant-based)",
@@ -69,7 +69,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "85g tempeh, 254g whole wheat pasta, 100g tomato, with 30g seeds (chia, flax). (Tomato adds vitamin C to help absorb the iron in tempeh.)",
+          "descripcion": "Tempeh with whole wheat pasta: 85g tempeh, 254g whole wheat pasta, 100g tomato, with 30g seeds (chia, flax). (Tomato adds vitamin C to help absorb the iron in tempeh.) Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 646,
           "tipo_interno": "comida",
           "proteina": "Tempeh",
@@ -78,7 +78,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "80g lean beef, 127g whole wheat bread, 100g broccoli, with 37g extra virgin olive oil. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Lean beef with whole wheat bread: 80g lean beef, 127g whole wheat bread, 100g broccoli, with 37g extra virgin olive oil. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
           "aprox_kcal": 840,
           "tipo_interno": "cena",
           "proteina": "Lean beef",
@@ -87,7 +87,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "27g oats, 28g tempeh, 80g broccoli, 37g avocado.",
+          "descripcion": "Tempeh with oats: 27g oats, 28g tempeh, 80g broccoli, 37g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 246,
           "tipo_interno": "snack",
           "proteina": "Tempeh",
@@ -101,7 +101,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "262g quinoa, 113g tofu, 37g avocado.",
+          "descripcion": "Tofu with quinoa: 262g quinoa, 113g tofu, 37g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 536,
           "tipo_interno": "desayuno",
           "proteina": "Tofu",
@@ -110,7 +110,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "105g eggs, 238g legumes (also a carb source), 100g broccoli, with 93g avocado.",
+          "descripcion": "Eggs with legumes (also a carb source): 105g eggs, 238g legumes (also a carb source), 100g broccoli, with 93g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
           "aprox_kcal": 661,
           "tipo_interno": "comida",
           "proteina": "Eggs",
@@ -119,7 +119,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "85g tempeh, 81g oats, 100g broccoli, with 37g extra virgin olive oil. (Broccoli adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Tempeh with oats: 85g tempeh, 81g oats, 100g broccoli, with 37g extra virgin olive oil. (Broccoli adds vitamin C to help absorb the iron in tempeh.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 840,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
@@ -128,7 +128,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "120g potato / sweet potato, 47g lentils, 80g kiwi, 37g avocado.",
+          "descripcion": "Lentils with potato / sweet potato: 120g potato / sweet potato, 47g lentils, 80g kiwi, 37g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 267,
           "tipo_interno": "snack",
           "proteina": "Lentils",
@@ -142,7 +142,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "81g oats, 100g chickpeas, 80g broccoli, 37g avocado.",
+          "descripcion": "Chickpeas with oats: 81g oats, 100g chickpeas, 80g broccoli, 37g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 566,
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
@@ -151,7 +151,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "141g lentils, 81g oats, 100g broccoli, with 30g seeds (chia, flax). (Broccoli adds vitamin C to help absorb the iron in lentils.)",
+          "descripcion": "Lentils with oats: 141g lentils, 81g oats, 100g broccoli, with 30g seeds (chia, flax). (Broccoli adds vitamin C to help absorb the iron in lentils.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 664,
           "tipo_interno": "comida",
           "proteina": "Lentils",
@@ -160,7 +160,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "113g tofu, 127g whole wheat bread, 100g broccoli, with 204g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Tofu with whole wheat bread: 113g tofu, 127g whole wheat bread, 100g broccoli, with 204g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 838,
           "tipo_interno": "cena",
           "proteina": "Tofu",
@@ -169,7 +169,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "27g oats, 92g greek yogurt / whipped fresh cheese, 80g carrot, 37g avocado. (a probiotic + prebiotic-fiber combo.)",
+          "descripcion": "Greek yogurt / whipped fresh cheese with oats: 27g oats, 92g greek yogurt / whipped fresh cheese, 80g carrot, 37g avocado. (a probiotic + prebiotic-fiber combo.) Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
           "aprox_kcal": 252,
           "tipo_interno": "snack",
           "proteina": "Greek yogurt / whipped fresh cheese",
@@ -183,7 +183,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "254g whole wheat pasta, 77g natto, 37g avocado.",
+          "descripcion": "Natto with whole wheat pasta: 254g whole wheat pasta, 77g natto, 37g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 537,
           "tipo_interno": "desayuno",
           "proteina": "Natto",
@@ -192,7 +192,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "80g lean beef, 361g potato / sweet potato, 100g broccoli, with 93g avocado.",
+          "descripcion": "Lean beef with potato / sweet potato: 80g lean beef, 361g potato / sweet potato, 100g broccoli, with 93g avocado. Optional: cook and cool it before eating, same trick as rice — same resistant-starch effect.",
           "aprox_kcal": 662,
           "tipo_interno": "comida",
           "proteina": "Lean beef",
@@ -201,7 +201,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "181g white fish (hake, sole), 254g whole wheat pasta, 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "White fish (hake, sole) with whole wheat pasta: 181g white fish (hake, sole), 254g whole wheat pasta, 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 845,
           "tipo_interno": "cena",
           "proteina": "White fish (hake, sole)",
@@ -210,7 +210,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "27g oats, 45g edamame, 80g broccoli, 37g avocado.",
+          "descripcion": "Edamame with oats: 27g oats, 45g edamame, 80g broccoli, 37g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 247,
           "tipo_interno": "snack",
           "proteina": "Edamame",
@@ -224,7 +224,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "81g oats, 77g natto, 80g broccoli, 37g avocado. (a probiotic + prebiotic-fiber combo.)",
+          "descripcion": "Natto with oats: 81g oats, 77g natto, 80g broccoli, 37g avocado. (a probiotic + prebiotic-fiber combo.) Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 566,
           "tipo_interno": "desayuno",
           "proteina": "Natto",
@@ -233,7 +233,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "277g greek yogurt / whipped fresh cheese, 254g whole wheat pasta, 100g kimchi, with 93g avocado.",
+          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat pasta: 277g greek yogurt / whipped fresh cheese, 254g whole wheat pasta, 100g kimchi, with 93g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
           "aprox_kcal": 642,
           "tipo_interno": "comida",
           "proteina": "Greek yogurt / whipped fresh cheese",
@@ -242,7 +242,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "121g turkey, 238g legumes (also a carb source), 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Turkey with legumes (also a carb source): 121g turkey, 238g legumes (also a carb source), 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: marinate it in lemon and spices before cooking — more flavor, no added calories.",
           "aprox_kcal": 845,
           "tipo_interno": "cena",
           "proteina": "Turkey",
@@ -251,7 +251,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "42g whole wheat bread, 33g chickpeas, 80g broccoli, 37g avocado.",
+          "descripcion": "Chickpeas with whole wheat bread: 42g whole wheat bread, 33g chickpeas, 80g broccoli, 37g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 245,
           "tipo_interno": "snack",
           "proteina": "Chickpeas",
@@ -265,7 +265,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "254g whole wheat pasta, 85g tempeh, 37g avocado.",
+          "descripcion": "Tempeh with whole wheat pasta: 254g whole wheat pasta, 85g tempeh, 37g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 537,
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
@@ -274,7 +274,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "113g tofu, 81g oats, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.)",
+          "descripcion": "Tofu with oats: 113g tofu, 81g oats, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tofu.) Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 662,
           "tipo_interno": "comida",
           "proteina": "Tofu",
@@ -283,7 +283,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "44g protein powder (plant-based), 238g legumes (also a carb source), 100g carrot, with 65g seeds (chia, flax). (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Protein powder (plant-based) with legumes (also a carb source): 44g protein powder (plant-based), 238g legumes (also a carb source), 100g carrot, with 65g seeds (chia, flax). (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
           "aprox_kcal": 844,
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
@@ -292,7 +292,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "79g legumes (also a carb source), 47g lentils, 37g avocado.",
+          "descripcion": "Lentils with legumes (also a carb source): 79g legumes (also a carb source), 47g lentils, 37g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 218,
           "tipo_interno": "snack",
           "proteina": "Lentils",
@@ -306,7 +306,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "238g legumes (also a carb source), 105g eggs, 37g avocado.",
+          "descripcion": "Eggs with legumes (also a carb source): 238g legumes (also a carb source), 105g eggs, 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
           "aprox_kcal": 536,
           "tipo_interno": "desayuno",
           "proteina": "Eggs",
@@ -315,7 +315,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "85g tempeh, 185g farro, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.)",
+          "descripcion": "Tempeh with farro: 85g tempeh, 185g farro, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in tempeh.)",
           "aprox_kcal": 661,
           "tipo_interno": "comida",
           "proteina": "Tempeh",
@@ -324,7 +324,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "77g natto, 238g legumes (also a carb source), 100g tomato, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "descripcion": "Natto with legumes (also a carb source): 77g natto, 238g legumes (also a carb source), 100g tomato, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
           "aprox_kcal": 822,
           "tipo_interno": "cena",
           "proteina": "Natto",
@@ -333,7 +333,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "79g legumes (also a carb source), 45g edamame, 80g red bell pepper, 37g avocado.",
+          "descripcion": "Edamame with legumes (also a carb source): 79g legumes (also a carb source), 45g edamame, 80g red bell pepper, 37g avocado.",
           "aprox_kcal": 243,
           "tipo_interno": "snack",
           "proteina": "Edamame",
@@ -352,5 +352,5 @@
     "3-6 mg/kg about 45-60 min before training can help performance -- avoid it too close to bedtime, since sleep is the foundation everything else depends on."
   ],
   "advertencias_revision_humana": [],
-  "mensaje_para_el_cliente": "Hi Marta, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent."
+  "mensaje_para_el_cliente": "Hi Marta, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent. We're starting with a slight calorie surplus — just enough to grow without piling on extra fat — and a bit more protein than usual to actually make use of it."
 }

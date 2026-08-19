@@ -419,3 +419,34 @@ def test_avanzado_never_uses_true_nicho_foods(perfil_base):
     nombres = {c[clave] for dia in plan for c in dia["comidas"] for clave in ("proteina", "carbohidrato", "grasa")}
     assert "Natto" not in nombres
     assert "Natto" not in fuentes_proteina_para(perfil_base)
+
+
+# --- Wetaca-style dish naming + optional cooking tips ---------------------
+
+
+def test_every_meal_description_opens_with_a_named_dish(perfil_base):
+    """Direct request: a named dish ("Lentejas con pollo"/"Chicken with
+    lentils"), not just a bare ingredient list -- every meal's description
+    now opens with "{dish name}: " before the gram breakdown."""
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    for dia in plan:
+        for comida in dia["comidas"]:
+            assert ": " in comida["descripcion"]
+            nombre_plato = comida["descripcion"].split(": ", 1)[0]
+            assert nombre_plato and not nombre_plato[0].isdigit()
+
+
+def test_recognized_ingredient_gets_an_optional_cooking_tip(perfil_base):
+    """A profile that only eats lentils/chickpeas/rice/etc. for its carb
+    should surface CONSEJOS_COCINA's tip somewhere across the week -- proves
+    _consejo_cocina() is actually wired into the rendered description, not
+    just defined."""
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    descripciones = " ".join(c["descripcion"] for dia in plan for c in dia["comidas"])
+    assert "Optional:" in descripciones
+
+
+def test_cooking_tip_is_translated_in_spanish(perfil_base):
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "es", _rng(perfil_base))
+    descripciones = " ".join(c["descripcion"] for dia in plan for c in dia["comidas"])
+    assert "Opcional:" in descripciones

@@ -100,6 +100,106 @@ ETIQUETA_COMIDA = {
     "es": {"desayuno": "Desayuno", "comida": "Comida", "cena": "Cena", "snack": "Snack"},
 }
 
+# One short, genuinely useful prep tip per common protein/carb -- direct
+# request ("platos preparados estilo wetaca... opcional: añadir cominos
+# para mejorar digestion... cualquier consejo o sinergia"). Deliberately
+# NOT exhaustive (every food in food_bank.py would need one): covers the
+# proteins/carbs common enough to show up often, real cooking/nutrition
+# advice rather than filler, kept separate from dieta_reglas.py's own
+# consejos_sinergias (which stays about macro-timing, not prep technique).
+# Keyed by the canonical English "nombre" (checked before display
+# translation, same convention as everywhere else in this module),
+# protein checked before carb so a meal with both never shows two tips.
+CONSEJOS_COCINA = {
+    "Lentils": {
+        "es": "añade comino al cocinarlas — ayuda a la digestión y reduce la hinchazón.",
+        "en": "add cumin while cooking — it helps digestion and cuts down on bloating.",
+    },
+    "Chickpeas": {
+        "es": "añade comino al cocinarlos — ayuda a la digestión y reduce la hinchazón.",
+        "en": "add cumin while cooking — it helps digestion and cuts down on bloating.",
+    },
+    "Chicken breast": {
+        "es": "marínala con limón y especias antes de cocinar — más sabor sin añadir calorías.",
+        "en": "marinate it in lemon and spices before cooking — more flavor, no added calories.",
+    },
+    "Turkey": {
+        "es": "marínalo con limón y especias antes de cocinar — más sabor sin añadir calorías.",
+        "en": "marinate it in lemon and spices before cooking — more flavor, no added calories.",
+    },
+    "Salmon / oily fish": {
+        "es": "un chorro de limón antes de servir realza el sabor y aporta vitamina C.",
+        "en": "a squeeze of lemon before serving brings out the flavor and adds vitamin C.",
+    },
+    "Oily fish (EPA/DHA)": {
+        "es": "un chorro de limón antes de servir realza el sabor y aporta vitamina C.",
+        "en": "a squeeze of lemon before serving brings out the flavor and adds vitamin C.",
+    },
+    "Rice": {
+        "es": "cocínalo y déjalo enfriar antes de comer — el almidón resistente que se forma cuida mejor tu microbiota.",
+        "en": "cook it and let it cool before eating — the resistant starch that forms is better for your gut bacteria.",
+    },
+    "Potato / sweet potato": {
+        "es": "cocínala y enfríala antes de comer, igual que el arroz — mismo efecto de almidón resistente.",
+        "en": "cook and cool it before eating, same trick as rice — same resistant-starch effect.",
+    },
+    "Broccoli": {
+        "es": "cocínalo al vapor en vez de hervido — conserva muchas más vitaminas.",
+        "en": "steam it instead of boiling it — it keeps far more of its vitamins.",
+    },
+    "Spinach": {
+        "es": "saltéala brevemente con un poco de aceite — ayuda a absorber mejor sus vitaminas liposolubles.",
+        "en": "sauté it briefly in a little oil — helps you absorb its fat-soluble vitamins better.",
+    },
+    "Eggs": {
+        "es": "no descartes la yema — es donde está la mayoría de las vitaminas.",
+        "en": "don't skip the yolk — that's where most of the vitamins are.",
+    },
+    "Oats": {
+        "es": "déjala en remojo toda la noche (overnight oats) — más digestiva y no hace falta cocinarla.",
+        "en": "soak it overnight (overnight oats) — easier to digest and no cooking needed.",
+    },
+    "Quinoa": {
+        "es": "enjuágala bien antes de cocinar — quita el sabor amargo natural de la saponina.",
+        "en": "rinse it well before cooking — it removes the natural bitter taste from its saponins.",
+    },
+    "Tofu": {
+        "es": "prénsalo unos minutos antes de cocinar — absorbe mucho mejor el marinado.",
+        "en": "press it for a few minutes before cooking — it soaks up marinade far better.",
+    },
+    "Greek yogurt / whipped fresh cheese": {
+        "es": "elige la versión natural sin azucarar — el sabor lo pone la fruta, no el azúcar añadido.",
+        "en": "pick the plain, unsweetened version — the fruit already brings the sweetness.",
+    },
+    "Whole wheat pasta": {
+        "es": "cocínala al dente — tiene un índice glucémico más bajo que si se pasa de cocción.",
+        "en": "cook it al dente — it has a lower glycemic index than if it's overcooked.",
+    },
+}
+
+
+def _consejo_cocina(proteina_nombre: str, carbohidrato_nombre: str, idioma: str) -> str:
+    """Protein checked before carb -- a meal with a tip-worthy pick in both
+    slots only ever shows one, staying a single "optional" line rather than
+    stacking. Returns "" when neither ingredient has a curated tip (not
+    every combination needs one -- see CONSEJOS_COCINA's own docstring)."""
+    for nombre in (proteina_nombre, carbohidrato_nombre):
+        if nombre in CONSEJOS_COCINA:
+            return CONSEJOS_COCINA[nombre][idioma]
+    return ""
+
+
+def _nombrar_plato(nombre_carb: str, nombre_prot: str, idioma: str) -> str:
+    """Wetaca-style named dish ("Lentejas con pollo") instead of just a
+    flat ingredient list -- direct request. Mechanical (carb + protein,
+    already-translated display names), not a hand-authored name per
+    combination: with 10+ proteins x 10+ carbs across 2 languages, a real
+    per-combination name database isn't a proportionate build here, and
+    this reads naturally for the vast majority of real combinations."""
+    if idioma == "es":
+        return f"{nombre_carb} con {nombre_prot.lower()}"
+    return f"{nombre_prot} with {nombre_carb.lower()}"
+
 # Relative "weight" each meal slot gets of the day's total kcal -- mains
 # (breakfast/lunch/dinner) are 3x heavier than any extra snack slot, a
 # simple, deterministic split rather than a fixed percentage table per
@@ -317,26 +417,32 @@ def _describir_comida_principal(
     nombre_carb, g_carb = nombre_mostrado(carbohidrato["nombre"], idioma), carbohidrato["gramos"]
     nombre_grasa, g_grasa = nombre_mostrado(grasa["nombre"], idioma), grasa["gramos"]
     verdura = nombre_mostrado(verdura, idioma) if verdura else None
+    consejo = _consejo_cocina(proteina["nombre"], carbohidrato["nombre"], idioma)
+    plato = _nombrar_plato(nombre_carb, nombre_prot, idioma)
 
     if idioma == "es":
         partes = [f"{g_prot}g de {nombre_prot.lower()}", f"{g_carb}g de {nombre_carb.lower()}"]
         if verdura:
             partes.append(f"{PORCION_VERDURA_PRINCIPAL_G}g de {verdura.lower()}")
-        descripcion = ", ".join(partes) + f", con {g_grasa}g de {nombre_grasa.lower()}."
+        descripcion = f"{plato}: " + ", ".join(partes) + f", con {g_grasa}g de {nombre_grasa.lower()}."
         if verdura_por_sinergia:
             descripcion += f" ({verdura} aporta vitamina C para absorber mejor el hierro de {nombre_prot.lower()}.)"
         if tipo == "cena" and aplicar_sinergias:
             descripcion += " (la comida con más grasa del día — mejor momento para vitamina D/E/K y omega-3.)"
+        if consejo:
+            descripcion += f" Opcional: {consejo}"
         return descripcion
 
     partes = [f"{g_prot}g {nombre_prot.lower()}", f"{g_carb}g {nombre_carb.lower()}"]
     if verdura:
         partes.append(f"{PORCION_VERDURA_PRINCIPAL_G}g {verdura.lower()}")
-    descripcion = ", ".join(partes) + f", with {g_grasa}g {nombre_grasa.lower()}."
+    descripcion = f"{plato}: " + ", ".join(partes) + f", with {g_grasa}g {nombre_grasa.lower()}."
     if verdura_por_sinergia:
         descripcion += f" ({verdura} adds vitamin C to help absorb the iron in {nombre_prot.lower()}.)"
     if tipo == "cena" and aplicar_sinergias:
         descripcion += " (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)"
+    if consejo:
+        descripcion += f" Optional: {consejo}"
     return descripcion
 
 
@@ -351,6 +457,8 @@ def _describir_desayuno_o_snack(
     nombre_carb, g_carb = nombre_mostrado(carbohidrato["nombre"], idioma), carbohidrato["gramos"]
     nombre_grasa, g_grasa = nombre_mostrado(grasa["nombre"], idioma), grasa["gramos"]
     fruta = nombre_mostrado(fruta, idioma) if fruta else None
+    consejo = _consejo_cocina(proteina["nombre"], carbohidrato["nombre"], idioma)
+    plato = _nombrar_plato(nombre_carb, nombre_prot, idioma)
 
     if idioma == "es":
         partes = [f"{g_carb}g de {nombre_carb.lower()}", f"{g_prot}g de {nombre_prot.lower()}"]
@@ -358,9 +466,11 @@ def _describir_desayuno_o_snack(
             partes.append(f"{PORCION_FRUTA_SNACK_G}g de {fruta.lower()}")
         if nombre_grasa:
             partes.append(f"{g_grasa}g de {nombre_grasa.lower()}")
-        descripcion = ", ".join(partes) + "."
+        descripcion = f"{plato}: " + ", ".join(partes) + "."
         if sinergia_probiotica:
             descripcion += " (combo de probióticos + fibra prebiótica.)"
+        if consejo:
+            descripcion += f" Opcional: {consejo}"
         return descripcion
 
     partes = [f"{g_carb}g {nombre_carb.lower()}", f"{g_prot}g {nombre_prot.lower()}"]
@@ -368,9 +478,11 @@ def _describir_desayuno_o_snack(
         partes.append(f"{PORCION_FRUTA_SNACK_G}g {fruta.lower()}")
     if nombre_grasa:
         partes.append(f"{g_grasa}g {nombre_grasa.lower()}")
-    descripcion = ", ".join(partes) + "."
+    descripcion = f"{plato}: " + ", ".join(partes) + "."
     if sinergia_probiotica:
         descripcion += " (a probiotic + prebiotic-fiber combo.)"
+    if consejo:
+        descripcion += f" Optional: {consejo}"
     return descripcion
 
 

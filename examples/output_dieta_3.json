@@ -49,7 +49,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "345g potato / sweet potato, 53g tempeh, 80g broccoli, 31g avocado.",
+          "descripcion": "Tempeh with potato / sweet potato: 345g potato / sweet potato, 53g tempeh, 80g broccoli, 31g avocado. Optional: cook and cool it before eating, same trick as rice — same resistant-starch effect.",
           "aprox_kcal": 480,
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
@@ -58,7 +58,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "28g seitan, 121g whole wheat bread, 100g mixed salad greens, with 77g avocado.",
+          "descripcion": "Seitan with whole wheat bread: 28g seitan, 121g whole wheat bread, 100g mixed salad greens, with 77g avocado.",
           "aprox_kcal": 546,
           "tipo_interno": "comida",
           "proteina": "Seitan",
@@ -67,7 +67,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "53g tempeh, 227g legumes (also a carb source), 100g mixed salad greens, with 170g avocado.",
+          "descripcion": "Tempeh with legumes (also a carb source): 53g tempeh, 227g legumes (also a carb source), 100g mixed salad greens, with 170g avocado.",
           "aprox_kcal": 693,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
@@ -76,7 +76,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 31g avocado.",
+          "descripcion": "Tofu with legumes (also a carb source): 76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 31g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 200,
           "tipo_interno": "snack",
           "proteina": "Tofu",
@@ -90,7 +90,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "77g oats, 53g tempeh, 31g avocado.",
+          "descripcion": "Tempeh with oats: 77g oats, 53g tempeh, 31g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 451,
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
@@ -99,7 +99,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "84g edamame, 77g oats, 100g mixed salad greens, with 77g avocado.",
+          "descripcion": "Edamame with oats: 84g edamame, 77g oats, 100g mixed salad greens, with 77g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 544,
           "tipo_interno": "comida",
           "proteina": "Edamame",
@@ -108,7 +108,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "27g protein powder (plant-based), 121g whole wheat bread, 100g mixed salad greens, with 54g seeds (chia, flax).",
+          "descripcion": "Protein powder (plant-based) with whole wheat bread: 27g protein powder (plant-based), 121g whole wheat bread, 100g mixed salad greens, with 54g seeds (chia, flax).",
           "aprox_kcal": 690,
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
@@ -117,7 +117,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 6g extra virgin olive oil.",
+          "descripcion": "Tofu with legumes (also a carb source): 76g legumes (also a carb source), 24g tofu, 80g mixed salad greens, 6g extra virgin olive oil. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 204,
           "tipo_interno": "snack",
           "proteina": "Tofu",
@@ -131,7 +131,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "227g legumes (also a carb source), 84g edamame, 31g avocado.",
+          "descripcion": "Edamame with legumes (also a carb source): 227g legumes (also a carb source), 84g edamame, 31g avocado.",
           "aprox_kcal": 451,
           "tipo_interno": "desayuno",
           "proteina": "Edamame",
@@ -140,7 +140,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
+          "descripcion": "Edamame with legumes (also a carb source): 84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
           "aprox_kcal": 565,
           "tipo_interno": "comida",
           "proteina": "Edamame",
@@ -149,7 +149,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "27g protein powder (plant-based), 231g rice, 100g red bell pepper, with 170g avocado.",
+          "descripcion": "Protein powder (plant-based) with rice: 27g protein powder (plant-based), 231g rice, 100g red bell pepper, with 170g avocado. Optional: cook it and let it cool before eating — the resistant starch that forms is better for your gut bacteria.",
           "aprox_kcal": 704,
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
@@ -158,7 +158,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "40g whole wheat bread, 21g chickpeas, 31g avocado.",
+          "descripcion": "Chickpeas with whole wheat bread: 40g whole wheat bread, 21g chickpeas, 31g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 183,
           "tipo_interno": "snack",
           "proteina": "Chickpeas",
@@ -172,7 +172,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "231g rice, 88g lentils, 31g avocado.",
+          "descripcion": "Lentils with rice: 231g rice, 88g lentils, 31g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 452,
           "tipo_interno": "desayuno",
           "proteina": "Lentils",
@@ -181,7 +181,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "88g lentils, 227g legumes (also a carb source), 100g broccoli, with 77g avocado.",
+          "descripcion": "Lentils with legumes (also a carb source): 88g lentils, 227g legumes (also a carb source), 100g broccoli, with 77g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 560,
           "tipo_interno": "comida",
           "proteina": "Lentils",
@@ -190,7 +190,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "84g edamame, 242g whole wheat pasta, 100g mixed salad greens, with 170g avocado.",
+          "descripcion": "Edamame with whole wheat pasta: 84g edamame, 242g whole wheat pasta, 100g mixed salad greens, with 170g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 694,
           "tipo_interno": "cena",
           "proteina": "Edamame",
@@ -199,7 +199,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "76g legumes (also a carb source), 24g tofu, 80g broccoli, 6g extra virgin olive oil.",
+          "descripcion": "Tofu with legumes (also a carb source): 76g legumes (also a carb source), 24g tofu, 80g broccoli, 6g extra virgin olive oil. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 216,
           "tipo_interno": "snack",
           "proteina": "Tofu",
@@ -213,7 +213,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "77g oats, 71g tofu, 10g seeds (chia, flax).",
+          "descripcion": "Tofu with oats: 77g oats, 71g tofu, 10g seeds (chia, flax). Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 452,
           "tipo_interno": "desayuno",
           "proteina": "Tofu",
@@ -222,7 +222,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "71g tofu, 121g whole wheat bread, 100g mixed salad greens, with 77g avocado.",
+          "descripcion": "Tofu with whole wheat bread: 71g tofu, 121g whole wheat bread, 100g mixed salad greens, with 77g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 544,
           "tipo_interno": "comida",
           "proteina": "Tofu",
@@ -231,7 +231,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "84g edamame, 231g rice, 100g broccoli, with 31g extra virgin olive oil.",
+          "descripcion": "Edamame with rice: 84g edamame, 231g rice, 100g broccoli, with 31g extra virgin olive oil. Optional: cook it and let it cool before eating — the resistant starch that forms is better for your gut bacteria.",
           "aprox_kcal": 711,
           "tipo_interno": "cena",
           "proteina": "Edamame",
@@ -240,7 +240,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "77g rice, 28g edamame, 80g carrot, 31g avocado.",
+          "descripcion": "Edamame with rice: 77g rice, 28g edamame, 80g carrot, 31g avocado. Optional: cook it and let it cool before eating — the resistant starch that forms is better for your gut bacteria.",
           "aprox_kcal": 217,
           "tipo_interno": "snack",
           "proteina": "Edamame",
@@ -254,7 +254,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "121g whole wheat bread, 88g lentils, 31g avocado.",
+          "descripcion": "Lentils with whole wheat bread: 121g whole wheat bread, 88g lentils, 31g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 451,
           "tipo_interno": "desayuno",
           "proteina": "Lentils",
@@ -263,7 +263,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "62g chickpeas, 227g legumes (also a carb source), 100g carrot, with 14g extra virgin olive oil.",
+          "descripcion": "Chickpeas with legumes (also a carb source): 62g chickpeas, 227g legumes (also a carb source), 100g carrot, with 14g extra virgin olive oil. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 566,
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
@@ -272,7 +272,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "71g tofu, 121g whole wheat bread, 100g broccoli, with 170g avocado.",
+          "descripcion": "Tofu with whole wheat bread: 71g tofu, 121g whole wheat bread, 100g broccoli, with 170g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 708,
           "tipo_interno": "cena",
           "proteina": "Tofu",
@@ -281,7 +281,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "40g whole wheat bread, 28g edamame, 80g carrot, 31g avocado.",
+          "descripcion": "Edamame with whole wheat bread: 40g whole wheat bread, 28g edamame, 80g carrot, 31g avocado.",
           "aprox_kcal": 215,
           "tipo_interno": "snack",
           "proteina": "Edamame",
@@ -295,7 +295,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "242g whole wheat pasta, 88g lentils, 80g broccoli, 31g avocado.",
+          "descripcion": "Lentils with whole wheat pasta: 242g whole wheat pasta, 88g lentils, 80g broccoli, 31g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
           "aprox_kcal": 480,
           "tipo_interno": "desayuno",
           "proteina": "Lentils",
@@ -304,7 +304,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
+          "descripcion": "Edamame with legumes (also a carb source): 84g edamame, 227g legumes (also a carb source), 100g carrot, with 77g avocado.",
           "aprox_kcal": 565,
           "tipo_interno": "comida",
           "proteina": "Edamame",
@@ -313,7 +313,7 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "28g seitan, 77g oats, 100g mixed salad greens, with 54g seeds (chia, flax).",
+          "descripcion": "Seitan with oats: 28g seitan, 77g oats, 100g mixed salad greens, with 54g seeds (chia, flax). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 693,
           "tipo_interno": "cena",
           "proteina": "Seitan",
@@ -322,7 +322,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "26g oats, 28g edamame, 80g mixed salad greens, 31g avocado.",
+          "descripcion": "Edamame with oats: 26g oats, 28g edamame, 80g mixed salad greens, 31g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
           "aprox_kcal": 201,
           "tipo_interno": "snack",
           "proteina": "Edamame",
@@ -338,5 +338,5 @@
   "advertencias_revision_humana": [
     "Declared food allergy: tree nut allergy (walnuts, almonds) — carries an EpiPen. Confirm it's fully excluded before sending — a poorly managed allergy can be serious."
   ],
-  "mensaje_para_el_cliente": "Hi Ana, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent."
+  "mensaje_para_el_cliente": "Hi Ana, this is your diet draft. Think amounts and context, not forbidden foods — nothing here is off the table. What matters is whether it holds up three months from now, not just this week. If something doesn't fit your life, say so and we'll swap it for an equivalent. We're starting around your maintenance calories — the goal here isn't losing or gaining weight, it's making the diet sustainable and varied."
 }

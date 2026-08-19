@@ -227,5 +227,27 @@ conservative.
 
 ---
 
+## 20. A test caught a rendering bug the code review wouldn't have
+
+Bulleting a routine's progression tips in the PDF (matching a bullet
+treatment already shipped for the email/portal) started as the obvious
+one-line fix: prefix each sentence with `"• "`. It passed a visual glance
+at the generated file. The dedicated PDF-extraction test written for it —
+asserting the bullet character round-trips through `pypdf`, not just that
+the sentences appear — failed: the "•" glyph was extracting as a stray
+`\x7f` control byte under reportlab's default Helvetica font. The fix
+wasn't a font tweak; it was recognizing the codebase already had the
+right pattern one function away (`ListFlowable`/`ListItem`, already used
+for `consejos_sinergias` in the diet PDF) and using that instead of a
+literal bullet character at all. **Why it matters:** a test that asserts
+the *content* renders would have passed on the broken version — the value
+came from a test written to also assert the *format* survives a real
+extraction round-trip, which is the difference between "looks right in
+one PDF viewer" and "actually correct." It's also a small case for
+reusing an existing pattern over reinventing a plausible-looking one line
+away.
+
+---
+
 *For the full "why," including things that were tried and reverted, see*
 [`decisiones.md`](decisiones.md).

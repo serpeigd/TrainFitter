@@ -17,7 +17,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Loaded backpack goblet squat",
@@ -78,7 +78,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Bodyweight squat",
@@ -139,7 +139,7 @@
         "pierna_cuadriceps",
         "pierna_isquios_gluteo"
       ],
-      "calentamiento": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
+      "calentamiento": "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets of the first exercise.",
       "ejercicios": [
         {
           "nombre": "Low step-up with dumbbells",
@@ -192,5 +192,5 @@
     }
   ],
   "progresion": "Progressive overload: each session, try to add one more rep while keeping good technique. Once you hit the top of the range on every set of an exercise, add a little weight and go back to the bottom of the range. No changing the routine every week — sticking with the same scheme is what actually drives progress.",
-  "mensaje_para_el_cliente": "Hi Ana, here's your first routine draft. Go easy on yourself the first couple of sessions — getting the technique right matters far more than the number on the plates right now. Any questions, or anything that actually hurts rather than just feels hard, come to me and we'll sort it out."
+  "mensaje_para_el_cliente": "Hi Ana, here's your first routine draft. Go easy on yourself the first couple of sessions — getting the technique right matters far more than the number on the plates right now. Any questions, or anything that actually hurts rather than just feels hard, come to me and we'll sort it out. The goal here is consistency, not maximum performance — training regularly and without injury is what actually makes the difference long-term."
 }

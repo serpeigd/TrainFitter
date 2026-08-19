@@ -268,6 +268,30 @@ def test_email_body_includes_the_portal_link_in_spanish():
     assert "enlace al portal" in cuerpo.lower()
 
 
+def test_email_body_includes_week_header_only_with_both_semana_and_portal_link():
+    """semana is only meaningful together with url_portal (a client's very
+    first plan has no "week" yet) -- direct request for the check-in-driven
+    regeneration email ("Semana 2: ... Tu enlace al portal, actualizado:")."""
+    borrador_rutina = {"mensaje_para_el_cliente": "..."}
+    borrador_dieta = {"mensaje_para_el_cliente": "..."}
+
+    # semana alone, no url_portal -- no header.
+    cuerpo = _construir_cuerpo_email("Ana", borrador_rutina, borrador_dieta, semana=2)
+    assert "Week 2:" not in cuerpo
+
+    # Both given -- header appears first, before the greeting.
+    cuerpo = _construir_cuerpo_email(
+        "Ana", borrador_rutina, borrador_dieta, url_portal="https://example.com/?ref=abc123", semana=2,
+    )
+    assert cuerpo.startswith("Week 2:")
+
+    cuerpo_es = _construir_cuerpo_email(
+        "Ana", borrador_rutina, borrador_dieta, idioma="es",
+        url_portal="https://example.com/?ref=abc123", semana=2,
+    )
+    assert cuerpo_es.startswith("Semana 2:")
+
+
 def test_email_body_wrapper_text_translates_for_spanish():
     """idioma="es" only needs to translate this template's own wrapper text
     (greeting, attachment list, footer) -- mensaje_para_el_cliente is

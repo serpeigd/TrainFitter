@@ -103,26 +103,96 @@ TIPO_DIA_LABELS = {
     },
 }
 
+# Mandatory, always-on warm-up per session type -- a real, direct request
+# ("añade un calentamiento obligatorio rapido siempre para evitar
+# lesiones"), grounded in the RAMP protocol (Raise, Activate, Mobilize,
+# Potentiate) standard in strength coaching, not invented. Named exercises
+# instead of vague "mobility": banded external/internal rotation is the
+# standard rotator-cuff activation drill before any pressing/pulling work
+# (shoulder-day sessions), and hip circles/leg swings/glute bridges are the
+# standard hip-activation drills before squatting/hinging (leg-day
+# sessions) -- both are cheap, fast (under 5-10 min), and target the two
+# joints most warm-up research flags for injury risk under load. Every
+# PLANTILLAS_DIA key has an entry so this is unconditionally set on every
+# session (see generar_borrador_rutina_reglas() below), never optional; also
+# rendered in the PDF (pdf_generador.py) and the trainer/portal panels.
 CALENTAMIENTO_POR_DIA = {
     "en": {
-        "Full Body": "5-10 min of general mobility (hips, shoulders, ankles) + 1-2 light sets of the first exercise.",
-        "Upper A": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
-        "Upper B": "5 min of shoulder and wrist mobility + warm-up sets on the first exercise.",
-        "Lower A": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
-        "Lower B": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
-        "Push": "5 min of shoulder mobility + warm-up sets on the first exercise.",
-        "Pull": "5 min of shoulder and scapular mobility + warm-up sets on the first exercise.",
-        "Legs": "5-10 min of hip, knee, and ankle mobility + warm-up sets before the working load.",
+        "Full Body": (
+            "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and "
+            "banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets "
+            "of the first exercise."
+        ),
+        "Upper A": (
+            "5 min: arm circles + banded external/internal rotations (rotator cuff activation) "
+            "+ wrist circles, then warm-up sets on the first exercise."
+        ),
+        "Upper B": (
+            "5 min: arm circles + banded external/internal rotations (rotator cuff activation) "
+            "+ wrist circles, then warm-up sets on the first exercise."
+        ),
+        "Lower A": (
+            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
+            "bridges + ankle circles, then warm-up sets before the working load."
+        ),
+        "Lower B": (
+            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
+            "bridges + ankle circles, then warm-up sets before the working load."
+        ),
+        "Push": (
+            "5 min: banded external/internal rotations (rotator cuff activation) + arm circles "
+            "+ scapular push-ups, then warm-up sets on the first exercise."
+        ),
+        "Pull": (
+            "5 min: banded external/internal rotations (rotator cuff activation) + scapular "
+            "retractions + arm circles, then warm-up sets on the first exercise."
+        ),
+        "Legs": (
+            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
+            "bridges + ankle circles, then warm-up sets before the working load."
+        ),
     },
     "es": {
-        "Full Body": "5-10 min de movilidad general (cadera, hombros, tobillos) + 1-2 series ligeras del primer ejercicio.",
-        "Upper A": "5 min de movilidad de hombro y muñeca + series de calentamiento en el primer ejercicio.",
-        "Upper B": "5 min de movilidad de hombro y muñeca + series de calentamiento en el primer ejercicio.",
-        "Lower A": "5-10 min de movilidad de cadera, rodilla y tobillo + series de calentamiento antes de la carga de trabajo.",
-        "Lower B": "5-10 min de movilidad de cadera, rodilla y tobillo + series de calentamiento antes de la carga de trabajo.",
-        "Push": "5 min de movilidad de hombro + series de calentamiento en el primer ejercicio.",
-        "Pull": "5 min de movilidad de hombro y escápula + series de calentamiento en el primer ejercicio.",
-        "Legs": "5-10 min de movilidad de cadera, rodilla y tobillo + series de calentamiento antes de la carga de trabajo.",
+        "Full Body": (
+            "5-10 min: algo de cardio suave para elevar el pulso, seguido de círculos de cadera + "
+            "balanceos de pierna (cadera) y rotaciones externas con goma (manguito rotador) + "
+            "círculos de brazo, terminando con 1-2 series ligeras del primer ejercicio."
+        ),
+        "Upper A": (
+            "5 min: círculos de brazo + rotaciones externas/internas con goma (activación del "
+            "manguito rotador) + círculos de muñeca, y series de calentamiento en el primer "
+            "ejercicio."
+        ),
+        "Upper B": (
+            "5 min: círculos de brazo + rotaciones externas/internas con goma (activación del "
+            "manguito rotador) + círculos de muñeca, y series de calentamiento en el primer "
+            "ejercicio."
+        ),
+        "Lower A": (
+            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
+            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
+            "la carga de trabajo."
+        ),
+        "Lower B": (
+            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
+            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
+            "la carga de trabajo."
+        ),
+        "Push": (
+            "5 min: rotaciones externas/internas con goma (activación del manguito rotador) + "
+            "círculos de brazo + flexiones escapulares, y series de calentamiento en el primer "
+            "ejercicio."
+        ),
+        "Pull": (
+            "5 min: rotaciones externas/internas con goma (activación del manguito rotador) + "
+            "retracciones escapulares + círculos de brazo, y series de calentamiento en el "
+            "primer ejercicio."
+        ),
+        "Legs": (
+            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
+            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
+            "la carga de trabajo."
+        ),
     },
 }
 
@@ -255,6 +325,54 @@ MENSAJE_CLIENTE_RUTINA_VARIANTES = {
         "perfecta esta semana, solo que puedas repetirla. Y si algo te duele de verdad, no "
         "solo cuesta, dímelo cuanto antes para ajustarlo.",
     ],
+}
+
+# One goal-specific sentence on the actual training approach, appended after
+# the generic MENSAJE_CLIENTE_RUTINA_VARIANTES text above -- direct request
+# ("mensajes adaptados segun objetivos... propon un plan de inicio"). Kept to
+# training-side framing only (diet's own version lives in dieta_reglas.py's
+# PLAN_INICIO_DIETA) so the two never repeat each other's point when both
+# land in the same email/portal view. Keys match objetivo.principal exactly
+# (see OBJETIVO_LABELS).
+PLAN_INICIO_RUTINA = {
+    "en": {
+        "perdida_grasa": (
+            "Lifting stays the priority — it's what protects your muscle while you're eating "
+            "less — with some cardio added around it to speed things up, not to replace it."
+        ),
+        "hipertrofia": (
+            "The focus is raising training volume little by little while eating enough to "
+            "support it — without that, the work in the gym doesn't turn into new muscle."
+        ),
+        "recomposicion_corporal": (
+            "The priority is strength and technique on the basic lifts — that drives "
+            "recomposition far more than volume or cardio does."
+        ),
+        "salud_general": (
+            "The goal here is consistency, not maximum performance — training regularly and "
+            "without injury is what actually makes the difference long-term."
+        ),
+    },
+    "es": {
+        "perdida_grasa": (
+            "El peso sigue siendo la prioridad — es lo que protege tu músculo mientras comes "
+            "menos — y añadimos algo de cardio alrededor para acelerar el proceso, no para "
+            "sustituirlo."
+        ),
+        "hipertrofia": (
+            "El foco está en subir el volumen de entrenamiento poco a poco y comer lo "
+            "suficiente para sostenerlo — sin eso, el trabajo en el gimnasio no se traduce en "
+            "músculo nuevo."
+        ),
+        "recomposicion_corporal": (
+            "La prioridad es la fuerza y la técnica en los ejercicios básicos — es lo que "
+            "impulsa la recomposición mucho más que el volumen o el cardio."
+        ),
+        "salud_general": (
+            "El objetivo aquí es la consistencia, no el rendimiento máximo — entrenar de forma "
+            "regular y sin lesiones es lo que marca la diferencia a largo plazo."
+        ),
+    },
 }
 
 # One genuinely useful, evidence-grounded note per session (not just an
@@ -790,6 +908,9 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     else:
         progresion = elegir_variante(rng_texto, PROGRESION_VARIANTES[idioma])
     cuerpo_mensaje = elegir_variante(rng_texto, MENSAJE_CLIENTE_RUTINA_VARIANTES[idioma])
+    plan_inicio = PLAN_INICIO_RUTINA[idioma].get(objetivo, "")
+    if plan_inicio:
+        cuerpo_mensaje = f"{cuerpo_mensaje} {plan_inicio}"
 
     if idioma == "es":
         resumen = (
