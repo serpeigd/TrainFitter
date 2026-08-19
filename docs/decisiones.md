@@ -2642,6 +2642,72 @@ back with it lands exactly on the previous meal.
 
 ---
 
+## Self-service portal-link recovery: found, then a real production crash on the public demo
+
+Two things, same day.
+
+**The public demo was actually down.** Asked to verify the previous
+change on trainfitter.streamlit.app, not just locally — found it
+crashing with `ImportError` at `from gmail_client import (...)` in
+`ui/app.py`, persistent across ~50 seconds of retries, while the exact
+same import worked cleanly locally (direct import, `ast.parse`, the full
+test suite). The pattern — `ImportError` (not `ModuleNotFoundError`)
+anchored exactly at the line that gained a new name (`enviar_plan`) —
+matches a stale deployment that hadn't picked up the latest push more
+than an actual code bug; nothing in `gmail_client.py`'s own module-level
+code (pure stdlib) could explain a fresh failure. Reported directly
+rather than guessed at further or silently worked around — this
+session has no access to Streamlit Cloud's dashboard/logs/reboot
+control, only the project owner does.
+
+**Self-service link recovery, researched and scoped before building.**
+Requested: when a client's portal link breaks, let them get a new one
+without asking the trainer directly — ideally fully automatic. Three
+options were researched and presented with real tradeoffs: (1) an
+in-app form right on the broken-link screen (email in, a fresh link out
+— instant, reuses existing functions, no fragile parsing); (2) replying
+to the original plan email with a trigger phrase (closer to the literal
+first phrasing, but cron-delayed and fragile — recognizing "please
+resend" in free text, multilingual, isn't reliable); (3) notifying the
+trainer instead of auto-sending (zero automation risk, but not what was
+asked for). Option 1 was chosen.
+
+`_formulario_reenviar_link_portal()` renders on every error path in
+`_vista_portal_cliente()` (invalid/expired code, and a Notion hiccup on
+either the resolve or the load step) — reuses `buscar_cliente_por_email()`
+(already used by "Revise client") to find the record, then the exact
+same `generar_referencia_portal()`/`enviar_enlace_portal()` pair the
+trainer's own manual resend button already calls. No new send-capable
+function, no widened Gmail scope. `generar_referencia_portal()` already
+overwrites the client's "Portal Reference" property in place, so the
+old broken/expired code stops working the instant the new one is
+issued — confirmed live, not assumed.
+
+A same-turn follow-up sharpened the ask further: not just email the new
+link, but land the client on it immediately. Since `st.query_params["ref"]`
+is the exact value the top-level dispatch already reads to decide which
+portal to render, setting it programmatically and calling `st.rerun()`
+*is* an in-app redirect — no meta-refresh hack, no leaving the page,
+and the browser's own URL bar updates too (confirmed: bookmarking or
+reloading from that point keeps working). The email still sends in
+parallel as a durable fallback that survives the tab closing; the
+redirect isn't a replacement for it, both happen.
+
+**Disclosed, accepted limitation:** no rate limiting beyond a client
+typing their own email each time — someone who already knows a real
+client's address could trigger repeated resend emails to it. Same risk
+class `enviar_enlace_portal()` already carries for a trainer-triggered
+resend (this form only ever reaches an address already on file as a
+real client, never an arbitrary one), not a new exposure.
+
+Verified live against the real workspace (the "PEPE" test client): a
+made-up email correctly shows "no account found"; the real match sends
+a real portal-link email, redirects the browser in-app straight to
+PEPE's actual plan (URL bar updates to the new `?ref=...` code), and the
+old link — tested directly afterward — no longer resolves.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

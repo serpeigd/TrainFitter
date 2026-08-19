@@ -961,6 +961,11 @@ TRANSLATIONS = {
         "portal_link_error": "Could not send the portal link: {error}",
         "portal_invalid_link": "This portal link isn't valid or has expired: {error}",
         "portal_load_error": "Could not load your plan: {error}",
+        "portal_resend_intro": "Enter the email your trainer has on file and we'll send you a new link.",
+        "portal_resend_button": "Send me a new link",
+        "portal_resend_sending": "Sending...",
+        "portal_resend_not_found": "We couldn't find an account with that email — check it and try again.",
+        "portal_resend_error": "Could not send a new link: {error}",
         "portal_welcome": "Hi {nombre} 👋",
         "portal_notes_header": "📝 Notes from your trainer",
         "routine_label": "Routine:",
@@ -1229,6 +1234,11 @@ TRANSLATIONS = {
         "portal_link_error": "No se pudo enviar el enlace del portal: {error}",
         "portal_invalid_link": "Este enlace del portal no es válido o ha caducado: {error}",
         "portal_load_error": "No se pudo cargar tu plan: {error}",
+        "portal_resend_intro": "Escribe el email que tiene tu entrenador/a y te enviamos un enlace nuevo.",
+        "portal_resend_button": "Envíame un enlace nuevo",
+        "portal_resend_sending": "Enviando...",
+        "portal_resend_not_found": "No encontramos ninguna cuenta con ese email — revísalo e inténtalo de nuevo.",
+        "portal_resend_error": "No se pudo enviar un enlace nuevo: {error}",
         "portal_welcome": "Hola {nombre} 👋",
         "portal_notes_header": "📝 Notas de tu entrenador/a",
         "routine_label": "Rutina:",
@@ -2794,6 +2804,74 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
             st.error(t("portal_meal_like_error").format(error=str(exc)))
 
 
+def _formulario_reenviar_link_portal() -> None:
+    """Shown wherever a client's own portal link isn't working (invalid,
+    expired, or a Notion hiccup on the resolve/load step) -- requested
+    directly ("que te lo vuelva a enviar automáticamente... lo suyo
+    sería que fuera todo automático"), with a same-turn follow-up asking
+    that it also redirect the client to the new link, not just email it.
+
+    Fully automatic and instant, no cron delay: reuses
+    buscar_cliente_por_email() (already used by "Revise client") to find
+    the matching Clients record, then the same generar_referencia_portal()/
+    enviar_enlace_portal() pair the trainer's own panel already calls for
+    a manual resend -- no new send-capable function needed, no widened
+    Gmail scope. generar_referencia_portal() overwrites the client's
+    existing "Portal Reference" in place, so the old (broken/expired)
+    code stops resolving the moment the new one is issued -- exactly the
+    same effect a trainer-triggered resend already has.
+
+    On a match, also sets st.query_params["ref"] and reruns -- the exact
+    query param the top-level dispatch already reads to pick which
+    portal to render, so the client lands on their actual plan
+    immediately in this same tab/session, no click needed. The email is
+    still sent in parallel as a durable fallback (bookmarkable, survives
+    this browser tab closing) -- not a substitute for the redirect, both
+    happen.
+
+    Known, disclosed limitation: no rate limiting beyond a client re-
+    typing their own email each time -- someone who already knows a real
+    client's address could trigger repeated resend emails to that
+    address. Accepted as the same risk class enviar_enlace_portal()
+    already carries for a trainer-triggered resend (this form only ever
+    reaches an address already on file as a real client, never an
+    arbitrary one), not a new exposure introduced here."""
+    st.caption(t("portal_resend_intro"))
+    email = st.text_input(t("client_email_field"), key="portal_resend_email")
+    if not st.button(t("portal_resend_button"), key="portal_resend_submit"):
+        return
+
+    email = email.strip()
+    if not email or "@" not in email:
+        st.error(t("email_invalid_error"))
+        return
+
+    with st.spinner(t("portal_resend_sending")):
+        try:
+            registro = buscar_cliente_por_email(email)
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.error(t("portal_resend_error").format(error=str(exc)))
+            return
+
+        if not registro:
+            st.error(t("portal_resend_not_found"))
+            return
+
+        try:
+            info_registro = obtener_registro_cliente(registro["id"])
+            nombre = registro["perfil"]["datos_basicos"]["nombre"]
+            idioma = info_registro.get("idioma") or "en"
+            codigo_nuevo = generar_referencia_portal(registro["id"], email)
+            url_portal = f"{PORTAL_BASE_URL}?ref={codigo_nuevo}"
+            enviar_enlace_portal(email, nombre, url_portal, idioma=idioma)
+        except (NotionClientError, GmailClientError, PortalTokenError, ImportError, ModuleNotFoundError) as exc:
+            st.error(t("portal_resend_error").format(error=str(exc)))
+            return
+
+    st.query_params["ref"] = codigo_nuevo
+    st.rerun()
+
+
 def _vista_portal_cliente(codigo: str) -> None:
     """The entire page for a client who followed their own magic link
     (?ref=..., see mcp/notion_connector.py's generar_referencia_portal()/
@@ -2829,15 +2907,18 @@ def _vista_portal_cliente(codigo: str) -> None:
         carga = resolver_referencia_portal(codigo)
     except PortalTokenError as exc:
         st.error(t("portal_invalid_link").format(error=str(exc)))
+        _formulario_reenviar_link_portal()
         return
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_load_error").format(error=str(exc)))
+        _formulario_reenviar_link_portal()
         return
 
     try:
         registro = obtener_registro_cliente(carga["pagina"])
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_load_error").format(error=str(exc)))
+        _formulario_reenviar_link_portal()
         return
 
     # The portal is a fresh, standalone session for the client (never

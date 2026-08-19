@@ -16,6 +16,14 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   (`125498425+serpeigd@users.noreply.github.com`). Already configured — new
   commits use it automatically.
 - Push future work to the `serpeigd/TrainFitter` GitHub repo (public, portfolio).
+- **Commit + push is automatic (2026-08-19, explicit standing authorization in
+  chat) — no confirmation step before it, for any change in this repo.**
+  Previously every commit was confirmed via a question first; that step is
+  gone now. The bar for what gets committed is unchanged: tests pass, lint is
+  clean, docs (`CLAUDE.md`/`docs/decisiones.md`) are updated in the same
+  change, `git fetch` + rebase against `origin/master` first if it's moved.
+  Still surface what changed and why after pushing, same as always — only the
+  "should I commit this?" question is gone, not the summary.
 - **Keep it short (2026-08-13, explicit request in chat).** Too much text, too much
   explaining. Lead with the answer or the change; give reasoning only where it would
   change a decision. Don't recap work already visible in the diff, don't restate the
@@ -930,6 +938,30 @@ real workspace's "PEPE" test client: invalid-link error renders without
 crashing, Meals opens by default with everything else collapsed, and
 Back correctly hides at the first meal and steps back correctly from
 later ones. 543 tests passing, lint clean.
+
+Asked to verify on the public demo specifically — found it actually
+down: `ImportError` at the `gmail_client` import in `ui/app.py`,
+persistent, while the same import worked cleanly in every local check.
+Matches a stale Streamlit Cloud deployment (no dashboard/log access
+from this session) more than a real code bug; reported directly rather
+than guessed at further, project owner rebooted it themselves. Same
+day, self-service portal-link recovery: researched three options (an
+in-app resend form, replying to the plan email with a trigger phrase,
+notifying the trainer instead) and presented the tradeoffs before
+building — an in-app form was chosen. `_formulario_reenviar_link_portal()`
+renders on every portal error path, reuses `buscar_cliente_por_email()`
++ the same `generar_referencia_portal()`/`enviar_enlace_portal()` pair
+the trainer's own resend button already calls (no new send-capable
+function, no wider scope) — instant, not cron-delayed. A same-turn
+follow-up asked for more: not just email the new link, but land the
+client on it immediately. Setting `st.query_params["ref"]` and calling
+`st.rerun()` does exactly that — the same param the top-level dispatch
+already reads, so it's a real in-app redirect with the URL bar updating
+too, no page-leave hack. Verified live against the real "PEPE" test
+client: a made-up email correctly shows "not found," the real match
+sends a real email AND redirects in-app to PEPE's actual plan, and the
+old link stops resolving immediately after (`generar_referencia_portal()`
+overwrites in place). 543 tests passing, lint clean.
 
 ## Free-only guardrail
 
