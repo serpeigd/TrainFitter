@@ -209,43 +209,44 @@ CALENTAMIENTO_POR_DIA = {
 # variant says the same thing in the trainer's documented voice (see
 # docs/metodo_entrenador.md): adherence and safety before raw progress,
 # plain and pedagogical, never a rigid rule. See docs/decisiones.md.
+#
+# Direct follow-up ("escritas como bullet points mejor", with a pasted
+# example: "Sube a más repeticiones antes de progresar con el peso"):
+# rewritten from explanatory prose into short, imperative sentences --
+# each one a single action, no "here's the rule" framing -- so
+# gmail_client.dividir_en_puntos() (already applied wherever this renders)
+# produces three punchy bullets instead of three long ones. Same content,
+# same 4-variant pool for per-client variety, same trainer voice.
 PROGRESION_VARIANTES = {
     "en": [
-        "Progressive overload: each session, try to add one more rep while keeping good "
-        "technique. Once you hit the top of the range on every set of an exercise, add a "
-        "little weight and go back to the bottom of the range. No changing the routine every "
-        "week — sticking with the same scheme is what actually drives progress.",
-        "The rule is simple: chase one more rep before you chase more weight. Once every set "
-        "of an exercise hits the top of its range with good technique, add a bit of load and "
-        "start back at the bottom. Swapping exercises every week feels productive but isn't — "
-        "repeating the same scheme long enough is what actually builds progress.",
-        "Progress here means small, boring, repeatable steps: one extra rep, same weight, same "
-        "technique. Only once you're topping out every set of an exercise do you add load and "
-        "reset to the bottom of the range. Resist the urge to change things up constantly — "
-        "consistency on the same movements is the actual driver.",
-        "Think in terms of the rep range, not the weight on the bar. Add reps first; once "
-        "you're maxing out every set for an exercise, then add a little weight and drop back to "
-        "the bottom of the range. Sticking with the same routine week after week — not "
-        "switching it up — is what makes the numbers move.",
+        "Add reps before you add weight. Once every set of an exercise hits the top of its "
+        "range, add a little weight and drop back to the bottom. Don't change the routine "
+        "every week — repeating the same scheme is what drives progress.",
+        "The rule is simple: reps first, weight second. Once every set tops out its range, "
+        "add some load and start back at the bottom. Swapping exercises weekly feels "
+        "productive but doesn't build progress — repeating them does.",
+        "Progress in small, boring steps: one more rep, same weight, same technique. Add load "
+        "only once every set tops out its range. Don't switch exercises constantly — "
+        "consistency on the same movements is what drives results.",
+        "Think reps first, not the number on the bar. Add reps before you add weight, then "
+        "reset to the bottom of the range once you add load. Sticking with the same routine "
+        "week after week is what actually moves the numbers.",
     ],
     "es": [
-        "Sobrecarga progresiva: en cada sesión, intenta añadir una repetición más manteniendo "
-        "buena técnica. Cuando llegues al máximo del rango en todas las series de un ejercicio, "
-        "añade un poco de peso y vuelve al mínimo del rango. No cambies la rutina cada semana "
-        "— mantener el mismo esquema es lo que realmente impulsa el progreso.",
-        "La regla es sencilla: primero persigue una repetición más, después más peso. Cuando "
-        "todas las series de un ejercicio lleguen al máximo del rango con buena técnica, añade "
-        "algo de carga y vuelve a empezar por el mínimo. Cambiar de ejercicios cada semana "
-        "parece productivo, pero no lo es — repetir el mismo esquema el tiempo suficiente es lo "
-        "que de verdad genera progreso.",
-        "Aquí el progreso son pasos pequeños, aburridos y repetibles: una repetición más, mismo "
-        "peso, misma técnica. Solo cuando agotes el rango en todas las series de un ejercicio "
-        "añades carga y reinicias desde el mínimo. Resiste la tentación de cambiarlo todo "
-        "constantemente — la constancia sobre los mismos movimientos es lo que realmente empuja.",
-        "Piensa en el rango de repeticiones, no en el peso de la barra. Primero suma "
-        "repeticiones; cuando agotes el rango en todas las series de un ejercicio, añade algo de "
-        "peso y vuelve al mínimo. Mantener la misma rutina semana tras semana — no cambiarla — "
-        "es lo que mueve los números.",
+        "Sube a más repeticiones antes de subir el peso. Cuando completes el máximo de "
+        "repeticiones en todas las series de un ejercicio, añade algo de peso y vuelve al "
+        "mínimo. No cambies la rutina cada semana — repetir el mismo esquema es lo que "
+        "impulsa el progreso.",
+        "La regla es sencilla: primero repeticiones, después peso. Cuando agotes el rango en "
+        "todas las series de un ejercicio, añade carga y vuelve a empezar por abajo. Cambiar "
+        "de ejercicios cada semana parece productivo, pero no genera progreso — repetirlos sí.",
+        "Progresa en pasos pequeños y aburridos: una repetición más, mismo peso, misma "
+        "técnica. Añade carga solo cuando agotes el rango en todas las series. No cambies de "
+        "ejercicios constantemente — la constancia sobre los mismos movimientos es lo que "
+        "empuja.",
+        "Piensa en repeticiones, no en el peso de la barra. Suma repeticiones primero; añade "
+        "peso solo cuando agotes el rango en todas las series de un ejercicio. Mantener la "
+        "misma rutina semana tras semana es lo que mueve los números.",
     ],
 }
 
