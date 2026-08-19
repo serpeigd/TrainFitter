@@ -985,6 +985,23 @@ exists; and a full field audit found three intake fields
 Verified live against the real "PEPE" test client. 547 tests passing (up
 from 543), lint clean, no example diffs.
 
+Trainer-driven diet/routine adjustments, researched before building: "let
+the trainer change the diet in plain language" has no free, reliable
+implementation (genuine natural language needs an LLM) — presented three
+real options with tradeoffs, the project owner chose a fourth once they
+were visible: a curated, deterministic set picked from a **searchable
+multiselect**, not free text. `nutricion.ajustes_dieta` (9: protein
+up/down, carb/fat balance, calories up/down, dairy-free, meal count
+up/down) and `experiencia.ajustes_rutina` (8: volume up/down, rest time
+up/down, cardio every/no session, avoid barbell, prefer machines) — both
+stack on existing adjustments, both disclosed in `resumen_enfoque`
+bilingually, both wired for `motor="llm"` engine parity. Same day: the
+portal's meal cards gained a type emoji, a visible "liked" tag, and a
+separated kcal line; the check-in section — reported as not looking like
+it needed filling in — now opens expanded by default with clearer
+copy and step dividers. Verified live against the real "PEPE" test
+client. 565 tests passing (up from 547), lint clean, no example diffs.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

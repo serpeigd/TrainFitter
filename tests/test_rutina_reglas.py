@@ -5,7 +5,9 @@ from rutina_reglas import (
     MENSAJE_CLIENTE_RUTINA_VARIANTES,
     PROGRESION_AVANZADA_VARIANTES,
     PROGRESION_VARIANTES,
+    _candidatos,
     _complejidad,
+    _preferir_maquinas_primero,
     generar_borrador_rutina_reglas,
 )
 
@@ -148,6 +150,113 @@ def test_every_muscle_group_has_a_gomas_exercise():
     grupos = {e["grupo"] for e in EXERCISE_BANK}
     grupos_con_gomas = {e["grupo"] for e in EXERCISE_BANK if e["material"] == {"gomas"}}
     assert grupos_con_gomas == grupos
+
+
+def test_mas_volumen_and_menos_volumen_move_set_counts(perfil_base):
+    base = generar_borrador_rutina_reglas(perfil_base)
+    series_base = {ej["series"] for sesion in base["sesiones"] for ej in sesion["ejercicios"]}
+
+    perfil_base["experiencia"]["ajustes_rutina"] = ["mas_volumen"]
+    mas = generar_borrador_rutina_reglas(perfil_base)
+    series_mas = {ej["series"] for sesion in mas["sesiones"] for ej in sesion["ejercicios"]}
+    assert min(series_mas) > min(series_base)
+
+    perfil_base["experiencia"]["ajustes_rutina"] = ["menos_volumen"]
+    menos = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in menos["sesiones"]:
+        for ej in sesion["ejercicios"]:
+            assert ej["series"] >= 2  # SERIES_MINIMAS floor, even stacked with other adjustments
+
+
+def test_mas_descanso_and_menos_descanso_move_rest_time(perfil_base):
+    base = generar_borrador_rutina_reglas(perfil_base)
+    descanso_base = base["sesiones"][0]["ejercicios"][0]["descanso_seg"]
+
+    perfil_base["experiencia"]["ajustes_rutina"] = ["mas_descanso"]
+    mas = generar_borrador_rutina_reglas(perfil_base)
+    assert mas["sesiones"][0]["ejercicios"][0]["descanso_seg"] == descanso_base + 30
+
+    perfil_base["experiencia"]["ajustes_rutina"] = ["menos_descanso"]
+    menos = generar_borrador_rutina_reglas(perfil_base)
+    assert menos["sesiones"][0]["ejercicios"][0]["descanso_seg"] == descanso_base - 30
+
+
+def test_menos_descanso_never_drops_below_the_floor(perfil_base):
+    perfil_base["experiencia"]["ajustes_rutina"] = ["menos_descanso"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    for sesion in borrador["sesiones"]:
+        for ej in sesion["ejercicios"]:
+            assert ej["descanso_seg"] >= 30
+
+
+def test_mas_cardio_and_menos_cardio_control_which_sessions_get_it(perfil_base):
+    perfil_base["experiencia"]["ajustes_rutina"] = ["mas_cardio"]
+    mas = generar_borrador_rutina_reglas(perfil_base)
+    assert all(sesion["cardio_opcional"] for sesion in mas["sesiones"])
+
+    perfil_base["experiencia"]["ajustes_rutina"] = ["menos_cardio"]
+    menos = generar_borrador_rutina_reglas(perfil_base)
+    assert not any(sesion["cardio_opcional"] for sesion in menos["sesiones"])
+
+
+def test_evitar_barra_excludes_barbell_only_exercises(perfil_base):
+    """Every (grupo, tipo) slot needs a genuine non-barbell alternative on
+    file for this assertion to hold -- "gomas" fills that gap for the two
+    slots (pierna_isquios_gluteo/basico) where the only other candidates
+    are Barbell Romanian deadlift/Barbell hip thrust, so the "never leave
+    a slot with zero candidates" fallback in _filtrar_evitar_barra()
+    doesn't kick in and mask the exclusion."""
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = [
+        "barras_y_discos", "mancuernas", "maquinas_guiadas", "poleas", "bancos", "gomas",
+    ]
+    perfil_base["experiencia"]["ajustes_rutina"] = ["evitar_barra"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert not any(INDICE_EJERCICIOS[n]["material"] == {"barras_y_discos"} for n in nombres)
+
+
+def test_evitar_barra_falls_back_when_barbell_is_the_only_option(perfil_base):
+    """Real defense-in-depth check: a soft preference must never leave a
+    slot with zero candidates. pierna_isquios_gluteo/basico's only two
+    gym candidates both need a barbell -- without a non-barbell
+    alternative on file, "evitar_barra" must not empty that slot out."""
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = ["barras_y_discos", "bancos"]
+    perfil_base["experiencia"]["ajustes_rutina"] = ["evitar_barra"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    grupos_presentes = {ej["grupo"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert "pierna_isquios_gluteo" in grupos_presentes
+
+
+def test_preferir_maquinas_puts_machine_exercises_first_in_the_pool(perfil_base):
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = ["barras_y_discos", "mancuernas", "maquinas_guiadas", "poleas", "bancos"]
+    perfil_base["experiencia"]["ajustes_rutina"] = ["preferir_maquinas"]
+    lesion_tags = set()
+    material_cliente = {"peso_corporal", "estructura_fija"} | set(perfil_base["disponibilidad"]["material_disponible"])
+    candidatos = _candidatos("pecho", "basico", material_cliente, lesion_tags)
+    reordenados = _preferir_maquinas_primero(candidatos)
+    assert "maquinas_guiadas" in reordenados[0]["material"]
+
+
+def test_routine_adjustments_are_disclosed_in_the_summary(perfil_base):
+    perfil_base["experiencia"]["ajustes_rutina"] = ["mas_volumen"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    assert "more volume" in borrador["resumen_enfoque"].lower()
+
+
+def test_routine_adjustments_are_disclosed_in_spanish_too(perfil_base):
+    perfil_base["experiencia"]["ajustes_rutina"] = ["mas_volumen"]
+    borrador = generar_borrador_rutina_reglas(perfil_base, idioma="es")
+    assert "más volumen" in borrador["resumen_enfoque"].lower()
+
+
+def test_no_ajustes_rutina_is_byte_identical_to_before_the_field_existed(perfil_base):
+    sin_campo = generar_borrador_rutina_reglas(perfil_base)
+    perfil_base["experiencia"]["ajustes_rutina"] = []
+    con_lista_vacia = generar_borrador_rutina_reglas(perfil_base)
+    assert sin_campo == con_lista_vacia
 
 
 def test_knee_injury_excludes_contraindicated_exercises(perfil_base):

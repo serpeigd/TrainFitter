@@ -409,6 +409,20 @@ def _inyectar_estilos() -> None:
             box-shadow: 0 10px 32px rgba(0, 0, 0, 0.4);
             transform: translateY(-2px);
         }}
+
+        /* Client portal meal cards (_render_swipe_comidas()) -- same
+        hover-lift treatment as the trainer's own cards above, on a
+        wildcard selector since each card gets its own unique key
+        ("portal-meal-card-{{day}}-{{index}}"). */
+        [class*="st-key-portal-meal-card-"] {{
+            transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
+            border-radius: 12px !important;
+        }}
+        [class*="st-key-portal-meal-card-"]:hover {{
+            border-color: rgba(5, 160, 129, 0.45);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            transform: translateY(-2px);
+        }}
         [data-testid="stExpander"] {{
             border: 1px solid {COLOR_BORDER};
             border-radius: 12px;
@@ -852,6 +866,13 @@ TRANSLATIONS = {
         "main_dietary_concern_placeholder": "e.g. more energy in the mornings, joint pain...",
         "meals_per_day": "Preferred meals per day",
         "nutrition_context": "Context (cooking, time, budget...)",
+        "diet_adjustments_label": "Trainer diet adjustments",
+        "diet_adjustments_caption": (
+            "Search and pick any that apply -- applied for real (protein, carbs/fat, calories, dairy, "
+            "meal count), not just noted. Separate from the client's own concern above."
+        ),
+        "routine_adjustments_label": "Trainer routine adjustments",
+        "routine_adjustments_caption": "Search and pick any that apply -- applied for real (volume, rest, cardio, exercise style).",
         "sec_lifestyle": "7. Lifestyle",
         "avg_sleep": "Average sleep hours",
         "stress_level": "Perceived stress level",
@@ -968,13 +989,17 @@ TRANSLATIONS = {
         "portal_day_next_button": "➡️ Next day",
         "portal_meal_like_button": "❤️ Like it",
         "portal_meal_unlike_button": "💔 Remove like",
+        "portal_meal_liked_tag": "❤️ You like this one",
         "portal_meals_done": "That's every meal this week — nicely done!",
         "portal_meals_restart": "🔁 Go through them again",
         "portal_meal_like_error": "Could not save that: {error}",
         "portal_routine_header": "🏋️ Routine",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "✅ How's it going?",
-        "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
+        "portal_checkin_intro": (
+            "**Takes under a minute — just move the sliders below.** Your trainer sees it right away, "
+            "and your plan updates to match how the week actually went."
+        ),
         "portal_routine_section_title": "🏋️ Routine",
         "portal_diet_section_title": "🍽️ Diet",
         "portal_routine_completed_label": "Sessions completed",
@@ -988,7 +1013,7 @@ TRANSLATIONS = {
         "portal_share_weight_label": "Share your current weight",
         "portal_weight_label": "Current weight (kg)",
         "portal_submit_button": "Send check-in",
-        "portal_submit_success": "✅ Thanks — your trainer will see this.",
+        "portal_submit_success": "✅ Got it — your trainer will see this, and your plan is being updated to match.",
         "portal_submit_error": "Could not send your check-in: {error}",
     },
     "es": {
@@ -1116,6 +1141,14 @@ TRANSLATIONS = {
         "main_dietary_concern_placeholder": "ej. más energía por las mañanas, dolor articular...",
         "meals_per_day": "Comidas al día preferidas",
         "nutrition_context": "Contexto (cocina, tiempo, presupuesto...)",
+        "diet_adjustments_label": "Ajustes de dieta del entrenador",
+        "diet_adjustments_caption": (
+            "Busca y elige los que apliquen — se aplican de verdad (proteína, carbohidratos/grasa, "
+            "calorías, lácteos, número de comidas), no solo se anotan. Es independiente de la "
+            "inquietud del cliente de arriba."
+        ),
+        "routine_adjustments_label": "Ajustes de rutina del entrenador",
+        "routine_adjustments_caption": "Busca y elige los que apliquen — se aplican de verdad (volumen, descanso, cardio, tipo de ejercicio).",
         "sec_lifestyle": "7. Estilo de vida",
         "avg_sleep": "Horas de sueño promedio",
         "stress_level": "Nivel de estrés percibido",
@@ -1233,13 +1266,17 @@ TRANSLATIONS = {
         "portal_day_next_button": "➡️ Día siguiente",
         "portal_meal_like_button": "❤️ Me gusta",
         "portal_meal_unlike_button": "💔 Quitar me gusta",
+        "portal_meal_liked_tag": "❤️ Te gusta esta",
         "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
         "portal_meals_restart": "🔁 Verlas de nuevo",
         "portal_meal_like_error": "No se pudo guardar: {error}",
         "portal_routine_header": "🏋️ Rutina",
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "✅ ¿Cómo va todo?",
-        "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
+        "portal_checkin_intro": (
+            "**Te lleva menos de un minuto — solo mueve las barras de abajo.** Tu entrenador/a lo ve al "
+            "momento, y tu plan se actualiza según cómo te haya ido la semana de verdad."
+        ),
         "portal_routine_section_title": "🏋️ Rutina",
         "portal_diet_section_title": "🍽️ Dieta",
         "portal_routine_completed_label": "Sesiones completadas",
@@ -1253,7 +1290,7 @@ TRANSLATIONS = {
         "portal_share_weight_label": "Comparte tu peso actual",
         "portal_weight_label": "Peso actual (kg)",
         "portal_submit_button": "Enviar check-in",
-        "portal_submit_success": "✅ Gracias — tu entrenador/a lo verá.",
+        "portal_submit_success": "✅ Recibido — tu entrenador/a lo verá, y tu plan se está actualizando según esto.",
         "portal_submit_error": "No se pudo enviar tu check-in: {error}",
     },
 }
@@ -1279,6 +1316,14 @@ OPTION_LABELS = {
         "maquinas_guiadas": "Guided machines", "poleas": "Cables", "barras_y_discos": "Barbell & plates",
         "mancuernas": "Dumbbells", "bancos": "Benches", "bicicleta_estatica": "Stationary bike",
         "gomas": "Resistance bands",
+        "mas_proteina": "More protein", "menos_proteina": "Less protein",
+        "mas_carbohidratos": "More carbs", "menos_carbohidratos": "Fewer carbs",
+        "mas_calorias": "More calories", "menos_calorias": "Fewer calories",
+        "sin_lacteos": "Dairy-free", "mas_comidas": "More, smaller meals", "menos_comidas": "Fewer meals",
+        "mas_volumen": "More volume", "menos_volumen": "Less volume",
+        "mas_descanso": "More rest between sets", "menos_descanso": "Less rest between sets",
+        "mas_cardio": "More cardio", "menos_cardio": "No cardio",
+        "evitar_barra": "Avoid barbell", "preferir_maquinas": "Prefer machines",
         "antigua_controlada": "Old, under control", "activa": "Active",
         "omnivora": "Omnivorous", "vegetariana_ovolacto": "Vegetarian", "vegana": "Vegan",
         "bajo": "Low", "medio": "Medium", "alto": "High",
@@ -1298,6 +1343,14 @@ OPTION_LABELS = {
         "maquinas_guiadas": "Máquinas guiadas", "poleas": "Poleas", "barras_y_discos": "Barras y discos",
         "mancuernas": "Mancuernas", "bancos": "Bancos", "bicicleta_estatica": "Bicicleta estática",
         "gomas": "Gomas elásticas",
+        "mas_proteina": "Más proteína", "menos_proteina": "Menos proteína",
+        "mas_carbohidratos": "Más carbohidratos", "menos_carbohidratos": "Menos carbohidratos",
+        "mas_calorias": "Más calorías", "menos_calorias": "Menos calorías",
+        "sin_lacteos": "Sin lácteos", "mas_comidas": "Más comidas, más pequeñas", "menos_comidas": "Menos comidas",
+        "mas_volumen": "Más volumen", "menos_volumen": "Menos volumen",
+        "mas_descanso": "Más descanso entre series", "menos_descanso": "Menos descanso entre series",
+        "mas_cardio": "Más cardio", "menos_cardio": "Sin cardio",
+        "evitar_barra": "Evitar barra libre", "preferir_maquinas": "Priorizar máquinas",
         "antigua_controlada": "Antigua, controlada", "activa": "Activa",
         "omnivora": "Omnívora", "vegetariana_ovolacto": "Vegetariana", "vegana": "Vegana",
         "bajo": "Bajo", "medio": "Medio", "alto": "Alto",
@@ -1379,6 +1432,23 @@ OBJETIVOS = ["hipertrofia", "perdida_grasa", "recomposicion_corporal", "salud_ge
 MATERIAL_OPCIONES = [
     "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica", "gomas",
 ]
+
+# Searchable multiselects (st.multiselect already supports typing to
+# filter) for the trainer's own diet/routine adjustments -- see
+# dieta_reglas.ETIQUETAS_AJUSTE_DIETA/rutina_reglas.ETIQUETAS_AJUSTE_RUTINA
+# for what each key actually does; keys must match those exactly.
+AJUSTES_DIETA_OPCIONES = [
+    "mas_proteina", "menos_proteina", "mas_carbohidratos", "menos_carbohidratos",
+    "mas_calorias", "menos_calorias", "sin_lacteos", "mas_comidas", "menos_comidas",
+]
+AJUSTES_RUTINA_OPCIONES = [
+    "mas_volumen", "menos_volumen", "mas_descanso", "menos_descanso",
+    "mas_cardio", "menos_cardio", "evitar_barra", "preferir_maquinas",
+]
+
+# Purely visual -- keyed by tipo_interno (language-independent, unlike
+# "tipo") so it works regardless of the portal's own language.
+EMOJI_TIPO_COMIDA = {"desayuno": "🍳", "comida": "🍽️", "cena": "🌙", "snack": "🍎"}
 
 
 def _lista_desde_texto(texto: str) -> list[str]:
@@ -1611,6 +1681,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "minutos": disponibilidad["minutos_por_sesion"],
         "lugar_entreno_valor": disponibilidad["lugar_entreno"],
         "material_valor": disponibilidad.get("material_disponible", []),
+        "ajustes_rutina_valor": experiencia.get("ajustes_rutina", []),
         "tiene_lesion": bool(lesiones),
         "zona_lesion": primera_lesion.get("zona", ""),
         "descripcion_lesion": primera_lesion.get("descripcion", ""),
@@ -1629,6 +1700,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "inquietud_otra_texto": "" if categoria_inquietud else inquietud_guardada,
         "comidas": nutricion.get("comidas_al_dia_preferidas", 3),
         "contexto": nutricion.get("contexto", ""),
+        "ajustes_dieta_valor": nutricion.get("ajustes_dieta", []),
         "sueno": estilo.get("horas_sueno_promedio", 7.0),
         "estres_valor": estilo.get("nivel_estres_percibido", "medio"),
         "pasos": estilo.get("pasos_diarios_aprox", 6000),
@@ -1714,6 +1786,14 @@ def _formulario_ficha_nueva() -> dict | None:
     )
     if sin_material:
         st.caption(t("no_equipment_home_caption"))
+    # Searchable multiselect, the routine-side twin of the diet one below
+    # -- see rutina_reglas.ETIQUETAS_AJUSTE_RUTINA for what each key does.
+    clave_ajustes_rutina, valor_ajustes_rutina = _clave_multiselect("ajustes_rutina", [])
+    ajustes_rutina_seleccionados = st.multiselect(
+        t("routine_adjustments_label"), AJUSTES_RUTINA_OPCIONES, default=valor_ajustes_rutina, format_func=opt,
+        key=clave_ajustes_rutina,
+    )
+    st.caption(t("routine_adjustments_caption"))
 
     st.subheader(t("sec_health"))
     st.caption(t("sec_health_caption"))
@@ -1771,6 +1851,17 @@ def _formulario_ficha_nueva() -> dict | None:
         inquietud_principal = _FRASE_POR_INQUIETUD[st.session_state.lang].get(inquietud_valor, "")
     comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=3, key="comidas")
     contexto_nutricion = st.text_area(t("nutrition_context"), key="contexto")
+    # Searchable multiselect (type to filter) for the trainer's own diet
+    # tweaks -- direct request ("que el entrenador pueda cambiar algo de
+    # la dieta... un desplegable extenso en el que pueda buscar la
+    # opción"). Deterministic, curated, free -- see
+    # dieta_reglas.ETIQUETAS_AJUSTE_DIETA for what each key does.
+    clave_ajustes_dieta, valor_ajustes_dieta = _clave_multiselect("ajustes_dieta", [])
+    ajustes_dieta_seleccionados = st.multiselect(
+        t("diet_adjustments_label"), AJUSTES_DIETA_OPCIONES, default=valor_ajustes_dieta, format_func=opt,
+        key=clave_ajustes_dieta,
+    )
+    st.caption(t("diet_adjustments_caption"))
 
     st.subheader(t("sec_lifestyle"))
     c16, c17, c18 = st.columns(3)
@@ -1841,6 +1932,7 @@ def _formulario_ficha_nueva() -> dict | None:
             "nivel_compromiso": nivel_compromiso,
             "anios_entrenando": float(anios_entrenando),
             "detalle": detalle_experiencia.strip(),
+            "ajustes_rutina": ajustes_rutina_seleccionados,
         },
         "disponibilidad": {
             "dias_por_semana": int(dias_por_semana),
@@ -1872,6 +1964,7 @@ def _formulario_ficha_nueva() -> dict | None:
             "inquietud_principal": inquietud_principal.strip(),
             "comidas_al_dia_preferidas": int(comidas_al_dia),
             "contexto": contexto_nutricion.strip(),
+            "ajustes_dieta": ajustes_dieta_seleccionados,
         },
         "estilo_de_vida": {
             "horas_sueno_promedio": float(horas_sueno),
@@ -2751,7 +2844,7 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
 
     dia_info = plan_semanal[indice]
     st.progress((indice + 1) / total_dias, text=f"{indice + 1}/{total_dias}")
-    st.markdown(f"**{dia_info['dia']}**")
+    st.markdown(f"### {dia_info['dia']}")
 
     for i, comida in enumerate(dia_info.get("comidas", [])):
         eleccion = {
@@ -2761,11 +2854,21 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
             "grasa": comida.get("grasa"),
         }
         ya_favorita = eleccion in favoritas
+        emoji_comida = EMOJI_TIPO_COMIDA.get(comida.get("tipo_interno"), "🍽️")
 
-        with st.container(border=True):
+        # Own CSS class (via key=) for a subtle hover lift, matching the
+        # trainer panel's own card treatment (_inyectar_estilos()) --
+        # purely visual, direct request ("hacerlo más bonito
+        # visualmente"). A distinct "already liked" caption (not just the
+        # button's own label) makes the state readable at a glance
+        # without reading the button text.
+        with st.container(border=True, key=f"portal-meal-card-{indice}-{i}"):
             col_texto, col_boton = st.columns([3, 1])
-            col_texto.markdown(f"**{comida['tipo']}**")
-            col_texto.markdown(f"{comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
+            col_texto.markdown(f"**{emoji_comida} {comida['tipo']}**")
+            if ya_favorita:
+                col_texto.caption(t("portal_meal_liked_tag"))
+            col_texto.markdown(comida["descripcion"])
+            col_texto.markdown(f"🔥 {comida['aprox_kcal']} kcal")
             etiqueta = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
             if col_boton.button(etiqueta, key=f"portal_like_{indice}_{i}", type="primary" if not ya_favorita else "secondary"):
                 try:
@@ -2959,8 +3062,12 @@ def _vista_portal_cliente(codigo: str) -> None:
     with st.expander(t("portal_history_header")):
         _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
-    checkin_expander = st.expander(t("portal_checkin_header"))
-    checkin_expander.caption(t("portal_checkin_intro"))
+    # Open by default (unlike Notes/Routine/History) -- direct feedback
+    # ("no parece que se tenga que rellenar... hazlo para que te lleve a
+    # hacerlo"): logging a check-in is the other primary reason to visit
+    # this page, on equal footing with Meals, not a buried afterthought.
+    checkin_expander = st.expander(t("portal_checkin_header"), expanded=True)
+    checkin_expander.markdown(t("portal_checkin_intro"))
     with checkin_expander:
         # Standalone widgets, not st.form -- "completed" needs to react live
         # to whatever the client just set "total" to, and a form doesn't
@@ -2996,6 +3103,7 @@ def _vista_portal_cliente(codigo: str) -> None:
         )
         notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
 
+        st.divider()
         st.markdown(f"**{t('portal_diet_section_title')}**")
         totales_dieta = st.slider(
             t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
@@ -3010,6 +3118,8 @@ def _vista_portal_cliente(codigo: str) -> None:
         )
         st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
         notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
+
+        st.divider()
 
         # Optional, checkbox-gated like every other "share something extra"
         # field in this project (the injury/pregnancy detail fields in

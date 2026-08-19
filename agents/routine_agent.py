@@ -240,6 +240,16 @@ STARTING POINT, not a final prescription.
   the recoverable ceiling), how reps-in-reserve should calibrate every set rather than just
   "add a rep," or training frequency (twice a week per muscle group at moderate volume usually
   beats once a week at the same total volume).
+- `experiencia.ajustes_rutina` is a list of trainer-picked adjustment keys (from a
+  searchable dropdown, not free text) -- apply each one that's present, and say so in
+  `resumen_enfoque` the same way the rule engine's own transparency note does:
+  `"mas_volumen"`/`"menos_volumen"` (one set up/down, same floor as everything else),
+  `"mas_descanso"`/`"menos_descanso"` (~30s more/less rest between sets, never under
+  30s), `"mas_cardio"` (every session gets the cardio block, not just the last one)/
+  `"menos_cardio"` (drop it from every session), `"evitar_barra"` (prefer non-barbell
+  variants for this client specifically -- a preference, not a safety exclusion, so
+  only apply it where an equally valid alternative exists), `"preferir_maquinas"`
+  (lean toward machine-based exercises where the client's equipment allows).
 - Give every session a one-sentence `nota_esfuerzo`: reps-in-reserve (RIR) guidance,
   not just a rep-count range. Compound/basic lifts should stay 1-2 reps short of
   failure; isolation work at the end of the session can go closer to failure

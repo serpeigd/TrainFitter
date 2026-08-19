@@ -522,6 +522,33 @@ def preferencias_blandas(perfil: dict) -> set[str]:
     return preferencias
 
 
+def ajustes_dieta(perfil: dict) -> set[str]:
+    """Trainer-driven diet adjustments (`nutricion.ajustes_dieta`) -- a
+    searchable multiselect in ui/app.py, picked by the TRAINER (at intake
+    or when editing/revising an existing client), not derived from free
+    text the way preferencias_blandas() above is. Requested directly:
+    "que el entrenador pueda cambiar algo de la dieta... un desplegable
+    extenso en el que pueda buscar la opción" -- researched three ways to
+    do this (free-text keyword matching, a real LLM edit, a note-only
+    field) and the project owner chose the middle ground: a curated,
+    deterministic set of adjustments, picked from a searchable dropdown
+    rather than typed as free text.
+
+    Deliberately does NOT duplicate preferencias_blandas()'s existing
+    categories (antiinflamatorio/reducir_gluten/salud_digestiva/
+    mas_fibra/mas_hierro already work via that mechanism, reachable
+    through `nutricion.inquietud_principal`) -- this field only covers
+    genuinely new adjustment types: macros (protein/carb-fat balance/
+    calories), meal count, and a dairy-free exclusion. See
+    dieta_reglas.py's `_calcular_necesidades()` and this module's
+    `_etiquetas_a_evitar()` for where each one actually applies.
+
+    Absent/empty for a profile that predates this field (or simply never
+    used it) -- every adjustment is opt-in, so "no ajustes_dieta key"
+    behaves identically to "selected none"."""
+    return set(perfil.get("nutricion", {}).get("ajustes_dieta") or [])
+
+
 def _sin_acentos(texto: str) -> str:
     """Strips diacritics (á->a, í->i, ...) so "brocoli" (a client typing
     without accents, common in casual text) still matches "Brócoli" --
@@ -574,13 +601,18 @@ def alimentos_no_deseados(perfil: dict) -> set[str]:
 
 
 def _etiquetas_a_evitar(perfil: dict) -> set[str]:
-    """etiquetas_excluidas() (hard, allergy-driven) plus, when the
-    "reducir_gluten" soft preference is active, `gluten` alone -- NOT
-    `gluten_trazas`, see preferencias_blandas()'s docstring for why that
-    distinction matters."""
+    """etiquetas_excluidas() (hard, allergy-driven) plus two soft, opt-in
+    exclusions: "reducir_gluten" (from preferencias_blandas(), free-text
+    derived) excludes `gluten` alone -- NOT `gluten_trazas`, see that
+    function's docstring for why that distinction matters -- and
+    "sin_lacteos" (from ajustes_dieta(), the trainer's own dropdown pick)
+    excludes `lacteo`-tagged foods the same soft way, never surfaced to
+    validator_agent.py since neither is a declared allergy."""
     evitar = etiquetas_excluidas(perfil)
     if "reducir_gluten" in preferencias_blandas(perfil):
         evitar = evitar | {"gluten"}
+    if "sin_lacteos" in ajustes_dieta(perfil):
+        evitar = evitar | {"lacteo"}
     return evitar
 
 

@@ -446,6 +446,63 @@ SERIES_MINIMAS = 2  # never go below this regardless of how many adjustments sta
 # SERIES_MINIMAS floor.
 AJUSTE_SERIES_POR_COMPROMISO = {"basico": -1, "normal": 0, "avanzado": 0, "tryhard": 1}
 
+# Trainer-driven routine adjustments (experiencia.ajustes_rutina, a
+# searchable multiselect in ui/app.py) -- the routine-side twin of
+# dieta_reglas.py's own ajustes_dieta() design (see food_bank.
+# ajustes_dieta()'s docstring for the full "why a dropdown, not free
+# text" reasoning). Each is a small, bounded nudge stacked on top of the
+# existing level/stress-sleep/compromiso adjustments, never a
+# re-derivation of the whole routine from scratch.
+AJUSTE_SERIES_POR_AJUSTE_RUTINA = {"mas_volumen": 1, "menos_volumen": -1}
+AJUSTE_DESCANSO_SEG = {"mas_descanso": 30, "menos_descanso": -30}
+DESCANSO_MINIMO_SEG = 30
+
+# Bilingual labels for the resumen_enfoque transparency note (see
+# generar_borrador_rutina_reglas()) and ui/app.py's multiselect options --
+# same "a label added here is the option's own display text" pattern as
+# dieta_reglas.ETIQUETAS_AJUSTE_DIETA.
+ETIQUETAS_AJUSTE_RUTINA = {
+    "es": {
+        "mas_volumen": "más volumen", "menos_volumen": "menos volumen",
+        "mas_descanso": "más descanso entre series", "menos_descanso": "menos descanso entre series",
+        "mas_cardio": "más cardio", "menos_cardio": "sin cardio",
+        "evitar_barra": "evitar barra libre", "preferir_maquinas": "priorizar máquinas",
+    },
+    "en": {
+        "mas_volumen": "more volume", "menos_volumen": "less volume",
+        "mas_descanso": "more rest between sets", "menos_descanso": "less rest between sets",
+        "mas_cardio": "more cardio", "menos_cardio": "no cardio",
+        "evitar_barra": "avoid barbell", "preferir_maquinas": "prefer machines",
+    },
+}
+
+
+def ajustes_rutina(perfil: dict) -> set[str]:
+    """Trainer-driven routine adjustments -- see the ETIQUETAS_AJUSTE_RUTINA
+    comment above for the full design. Absent/empty for a profile that
+    predates this field, same "no key = selected none" degradation as
+    dieta_reglas.ajustes_dieta()."""
+    return set(perfil.get("experiencia", {}).get("ajustes_rutina") or [])
+
+
+def _filtrar_evitar_barra(candidatos: list[dict]) -> list[dict]:
+    """"evitar_barra" (ajustes_rutina) -- soft-excludes barbell-only
+    candidates, a trainer preference rather than a safety exclusion (unlike
+    lesion-driven contraindicaciones). Never leaves a slot with zero
+    candidates over a soft preference: falls back to the unfiltered list
+    if every remaining candidate for this slot needs a barbell."""
+    sin_barra = [ej for ej in candidatos if "barras_y_discos" not in ej["material"]]
+    return sin_barra or candidatos
+
+
+def _preferir_maquinas_primero(candidatos: list[dict]) -> list[dict]:
+    """"preferir_maquinas" (ajustes_rutina) -- reorders machine-equipped
+    candidates first within an already-shuffled/complexity-biased list,
+    same stable-sort pattern as _preferir_baja_complejidad_primero() and
+    friends. A trainer preference, applied after whichever complexity
+    bias already ran, not instead of it."""
+    return sorted(candidatos, key=lambda ej: 0 if "maquinas_guiadas" in ej["material"] else 1)
+
 
 def _ajuste_series_por_estilo_de_vida(perfil: dict) -> int:
     """A conservative -1 to basic-exercise series when the client reported
@@ -563,6 +620,14 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
     ajuste_compromiso = AJUSTE_SERIES_POR_COMPROMISO.get(nivel_compromiso, 0)
     recorte_sesion = _num_slots_a_recortar(disponibilidad["minutos_por_sesion"])
 
+    ajustes_rutina_cliente = ajustes_rutina(perfil_cliente)
+    ajuste_volumen_extra = sum(
+        delta for clave, delta in AJUSTE_SERIES_POR_AJUSTE_RUTINA.items() if clave in ajustes_rutina_cliente
+    )
+    ajuste_descanso_extra = sum(
+        delta for clave, delta in AJUSTE_DESCANSO_SEG.items() if clave in ajustes_rutina_cliente
+    )
+
     # Exercises the client "liked" from a previous week's routine, via the
     # portal (see docs/decisiones.md) -- absent for a brand-new client,
     # same "no field, no bias" degradation as dieta_reglas.py's own
@@ -615,6 +680,15 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                     candidatos = _preferir_complejidad_media_primero(candidatos)
                 elif nivel_compromiso == "tryhard":
                     candidatos = _preferir_alta_complejidad_primero(candidatos)
+                # Trainer-driven preferences (ajustes_rutina) apply on top
+                # of whichever complexity bias just ran, not instead of
+                # it -- "evitar_barra" narrows the pool first (falling
+                # back to the unfiltered list if nothing survives), then
+                # "preferir_maquinas" reorders what's left.
+                if "evitar_barra" in ajustes_rutina_cliente:
+                    candidatos = _filtrar_evitar_barra(candidatos)
+                if "preferir_maquinas" in ajustes_rutina_cliente:
+                    candidatos = _preferir_maquinas_primero(candidatos)
                 candidatos_por_slot[clave] = candidatos
             candidatos = candidatos_por_slot[clave]
             if not candidatos:
@@ -632,9 +706,11 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             parametros_base = PARAMETROS_POR_TIPO[tipo]
             series = max(
                 SERIES_MINIMAS,
-                parametros_base["series"] + ajuste_nivel[tipo] + ajuste_estilo_vida + ajuste_compromiso,
+                parametros_base["series"] + ajuste_nivel[tipo] + ajuste_estilo_vida + ajuste_compromiso
+                + ajuste_volumen_extra,
             )
-            parametros = {**parametros_base, "series": series}
+            descanso_seg = max(DESCANSO_MINIMO_SEG, parametros_base["descanso_seg"] + ajuste_descanso_extra)
+            parametros = {**parametros_base, "series": series, "descanso_seg": descanso_seg}
             notas = ""
             grupos_afectados = {
                 "rodilla": {"pierna_cuadriceps", "pierna_isquios_gluteo", "gemelos"},
@@ -680,6 +756,16 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             })
 
         dia_label = f"Día {indice} — {TIPO_DIA_LABELS['es'][tipo_dia]}" if idioma == "es" else f"Day {indice} — {tipo_dia}"
+        # "mas_cardio"/"menos_cardio" (ajustes_rutina) override the
+        # default "only the last session of the week" placement --
+        # "mas_cardio" adds it to every session instead, "menos_cardio"
+        # drops it outright regardless of which session this is.
+        if "menos_cardio" in ajustes_rutina_cliente:
+            incluye_cardio = False
+        elif "mas_cardio" in ajustes_rutina_cliente:
+            incluye_cardio = True
+        else:
+            incluye_cardio = indice == len(secuencia_dias)
         cardio_label = (
             "Cardio en zona 2 (ritmo cómodo, puedes mantener una conversación), 30-40 min."
             if idioma == "es" else
@@ -690,7 +776,7 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
             "grupos_musculares": sorted({grupo for grupo, _ in PLANTILLAS_DIA[tipo_dia]}),
             "calentamiento": CALENTAMIENTO_POR_DIA[idioma][tipo_dia],
             "ejercicios": ejercicios,
-            "cardio_opcional": cardio_label if indice == len(secuencia_dias) else "",
+            "cardio_opcional": cardio_label if incluye_cardio else "",
             "nota_esfuerzo": NOTA_ESFUERZO_SESION[idioma],
         })
 
@@ -733,6 +819,9 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                 " Modo avanzado: mismo volumen que el modo normal, con variantes de mancuerna que piden algo "
                 "más de control técnico y guía de progresión más detallada."
             )
+        if ajustes_rutina_cliente:
+            etiquetas_ajustes = sorted(ETIQUETAS_AJUSTE_RUTINA["es"].get(a, a) for a in ajustes_rutina_cliente)
+            resumen += f" Ajustes del entrenador aplicados: {', '.join(etiquetas_ajustes)}."
 
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
@@ -764,6 +853,9 @@ def generar_borrador_rutina_reglas(perfil_cliente: dict, idioma: str = "en") -> 
                 " Advanced mode: same volume as normal mode, leaning toward dumbbell variants that ask a "
                 "bit more technical control, with more detailed progression guidance."
             )
+        if ajustes_rutina_cliente:
+            etiquetas_ajustes = sorted(ETIQUETAS_AJUSTE_RUTINA["en"].get(a, a) for a in ajustes_rutina_cliente)
+            resumen += f" Trainer adjustments applied: {', '.join(etiquetas_ajustes)}."
 
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 

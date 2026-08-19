@@ -154,6 +154,16 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   lean the suggestions toward magnesium-rich or higher-fiber foods respectively and
   mention why -- this is a preference, not a clinical adjustment, and (same as
   above) applies at every level.
+- `nutricion.ajustes_dieta` is a list of trainer-picked adjustment keys (from a
+  searchable dropdown, not free text) -- apply each one that's present, and say so
+  in `resumen_enfoque` the same way the rule engine's own transparency note does:
+  `"mas_proteina"`/`"menos_proteina"` (protein target up/down ~15%), `"mas_carbohidratos"`/
+  `"menos_carbohidratos"` (shift the fat/carb balance, protein and calories unchanged),
+  `"mas_calorias"`/`"menos_calorias"` (calorie target up/down ~10%), `"sin_lacteos"`
+  (exclude dairy the same soft way "lower gluten" excludes gluten -- not a declared
+  allergy), `"mas_comidas"`/`"menos_comidas"` (one more/fewer meal per day, kept
+  within 3-6). These are separate from, and don't replace, any inquietud_principal
+  preference already active.
 - `experiencia.nivel_compromiso` (basico/normal/avanzado/tryhard) controls food
   familiarity, synergy pairing, AND calorie aggressiveness, going from
   simplest/most recognizable at "basico" to most specific/optimized at

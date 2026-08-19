@@ -2773,6 +2773,78 @@ yet.
 
 ---
 
+## Trainer-driven diet/routine adjustments (searchable dropdowns, not free text), and a portal visual pass
+
+**Researched before building, per a direct request.** "Let the trainer
+change the diet by writing changes in plain language" has no free,
+reliable implementation — genuinely arbitrary natural language needs an
+LLM to interpret robustly, which breaks this project's free-only
+guardrail for every use, not an opt-in edge case. Presented three real
+options (free keyword matching, a paid LLM edit, a note-only field with
+no automation) with their tradeoffs; the project owner chose a fourth,
+better-scoped middle ground once the tradeoffs were visible: a curated,
+deterministic set of adjustments picked from a **searchable multiselect**
+(`st.multiselect` already supports typing to filter) rather than typed
+free text — real effects, still 100% free, no ambiguity about what got
+applied.
+
+**Diet** (`nutricion.ajustes_dieta`, `food_bank.ajustes_dieta()`): 9
+adjustments — protein up/down (~15%), carb/fat balance both ways (fat%
+is the one shared dial carbs trade against at a fixed protein/calorie
+target, so "more carbs" and "less fat" are deliberately the same lever,
+not two), calories up/down (~10%), dairy-free (soft-excludes
+`lacteo`-tagged foods the same way `reducir_gluten` already excludes
+gluten), and meal count up/down (bounded 3-6). Deliberately does NOT
+duplicate `preferencias_blandas()`'s existing categories
+(antiinflamatorio/reducir_gluten/salud_digestiva/mas_fibra/mas_hierro,
+reachable through `inquietud_principal`) — this field only covers
+genuinely new adjustment types.
+
+**Routine** (`experiencia.ajustes_rutina`,
+`rutina_reglas.ajustes_rutina()`): 8 adjustments — volume up/down (one
+set, same floor as every other stacked adjustment), rest time up/down
+(~30s, floored at 30s), cardio on every session vs. none (overrides the
+default "last session only" placement), avoid barbell (a soft
+preference — `_filtrar_evitar_barra()` falls back to the unfiltered pool
+rather than ever leaving a slot with zero candidates, the same
+defense-in-depth principle as every other soft exclusion in this
+project), and prefer machines (`_preferir_maquinas_primero()`, the same
+stable-sort-within-an-already-shuffled-list pattern as the existing
+complexity-bias functions).
+
+Both are stacked adjustments on top of the existing level/stress-sleep/
+compromiso logic, never a re-derivation from scratch, and both are
+disclosed in `resumen_enfoque` (bilingual) the same "never a silent
+adjustment" way `preferencias_blandas()`'s own notes already work.
+`routine_agent.py`/`diet_agent.py`'s LLM prompts got matching
+instructions for engine parity. A profile with no `ajustes_dieta`/
+`ajustes_rutina` key at all produces byte-identical output to one with
+an empty list — locked in by a dedicated test each. 18 new tests (9
+diet, 9 routine, including a Spanish-language transparency-note check
+each, since that exact class of gap — an English-only test path — was
+caught for real once before in `validator_agent.py`).
+
+**Portal visual pass**, two direct follow-ups the same day: meal cards
+in the swipe flow gained a meal-type emoji (🍳/🍽️/🌙/🍎, keyed by
+`tipo_interno` so it works regardless of portal language), a visible
+"❤️ You like this one" tag on an already-liked meal (not just the
+button's own label), a separated kcal line, and the same hover-lift CSS
+treatment the trainer's own cards already have. The check-in section —
+reported as not looking like something that needed filling in — now
+opens expanded by default (equal footing with Meals, not buried behind
+the other four collapsed sections), with punchier intro/success copy
+that says what actually happens (the plan updates to match, checked
+against the real check-in-driven regeneration flow already built) and
+dividers between its three subsections for a clearer step-by-step feel.
+
+Verified live against the real workspace (the "PEPE" test client):
+emoji/like-tag/kcal render correctly on a real generated week, and the
+check-in section opens expanded with the new copy and dividers visible.
+565 tests passing (up from 547), lint clean, no example-output diffs
+(no example client uses either new field).
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

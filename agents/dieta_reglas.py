@@ -25,6 +25,7 @@ never shifts what the narrative-text RNG would have picked).
 
 from food_bank import (
     _sin_acentos,
+    ajustes_dieta,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
     fuentes_proteina_para,
@@ -55,6 +56,46 @@ AJUSTE_CALORICO = {
 }
 
 PORCENTAJE_GRASA_CALORIAS = 0.27
+
+# Trainer-driven diet adjustments (nutricion.ajustes_dieta, a searchable
+# multiselect in ui/app.py -- see food_bank.ajustes_dieta()'s docstring
+# for the full design). Each pair is a small, bounded nudge, never a
+# dramatic swing: this is a quick tweak the trainer picks after reviewing
+# a draft, not a re-derivation of the whole diet from scratch.
+AJUSTE_PROTEINA_MULTIPLICADOR = {"mas_proteina": 1.15, "menos_proteina": 0.85}
+PROTEINA_G_POR_KG_MINIMO = 1.2  # ISSN's own lower bound (see PROTEINA_G_POR_KG above) -- "menos_proteina" never drops under it
+AJUSTE_CALORIAS_MULTIPLICADOR = {"mas_calorias": 1.10, "menos_calorias": 0.90}
+# Carbs are always the remainder after protein+fat (see _calcular_necesidades()
+# below), so "more/less carbs" at a fixed protein and calorie target is really
+# "less/more fat" -- one shared dial, not two independent ones.
+AJUSTE_GRASA_PORCENTAJE_DELTA = {"mas_carbohidratos": -0.05, "menos_carbohidratos": 0.05}
+PORCENTAJE_GRASA_MINIMO = 0.20  # essential fatty acids / hormone health floor
+PORCENTAJE_GRASA_MAXIMO = 0.40
+AJUSTE_COMIDAS_DELTA = {"mas_comidas": 1, "menos_comidas": -1}
+COMIDAS_AL_DIA_MINIMO = 3
+COMIDAS_AL_DIA_MAXIMO = 6
+
+# Every ajustes_dieta() key this module knows how to apply, plus a
+# bilingual human-readable label -- shown in resumen_enfoque so an
+# applied adjustment is never silent (same transparency principle as
+# _consejos_por_preferencias_blandas()'s own "never an unexplained
+# adjustment" notes). ui/app.py's searchable multiselect uses the same
+# keys, so a label added here is automatically the option's own display
+# text there too (see opt()/OPTION_LABELS).
+ETIQUETAS_AJUSTE_DIETA = {
+    "es": {
+        "mas_proteina": "más proteína", "menos_proteina": "menos proteína",
+        "mas_carbohidratos": "más carbohidratos", "menos_carbohidratos": "menos carbohidratos",
+        "mas_calorias": "más calorías", "menos_calorias": "menos calorías",
+        "sin_lacteos": "sin lácteos", "mas_comidas": "más comidas, más pequeñas", "menos_comidas": "menos comidas",
+    },
+    "en": {
+        "mas_proteina": "more protein", "menos_proteina": "less protein",
+        "mas_carbohidratos": "more carbs", "menos_carbohidratos": "fewer carbs",
+        "mas_calorias": "more calories", "menos_calorias": "fewer calories",
+        "sin_lacteos": "dairy-free", "mas_comidas": "more, smaller meals", "menos_comidas": "fewer meals",
+    },
+}
 
 # Commitment-level personalization (experiencia.nivel_compromiso, a
 # client-chosen "how much detail/guidance do you want" dial -- see
@@ -189,6 +230,7 @@ def _factor_actividad(perfil: dict) -> float:
 def _calcular_necesidades(perfil: dict) -> dict:
     datos = perfil["datos_basicos"]
     objetivo = perfil["objetivo"]["principal"]
+    ajustes = ajustes_dieta(perfil)
 
     nivel_compromiso = perfil.get("experiencia", {}).get("nivel_compromiso", "normal")
     multiplicador_compromiso = AJUSTE_COMPROMISO_MULTIPLICADOR.get(nivel_compromiso, 1.0)
@@ -197,10 +239,24 @@ def _calcular_necesidades(perfil: dict) -> dict:
     tdee = bmr * _factor_actividad(perfil)
     ajuste = AJUSTE_CALORICO.get(objetivo, 0.0) * multiplicador_compromiso
     calorias_objetivo = tdee * (1 + ajuste)
+    for clave, multiplicador in AJUSTE_CALORIAS_MULTIPLICADOR.items():
+        if clave in ajustes:
+            calorias_objetivo *= multiplicador
 
     g_por_kg = PROTEINA_G_POR_KG.get(objetivo, 1.6)
+    for clave, multiplicador in AJUSTE_PROTEINA_MULTIPLICADOR.items():
+        if clave in ajustes:
+            g_por_kg *= multiplicador
+    g_por_kg = max(g_por_kg, PROTEINA_G_POR_KG_MINIMO)
     proteina_g = datos["peso_kg"] * g_por_kg
-    grasa_g = (calorias_objetivo * PORCENTAJE_GRASA_CALORIAS) / 9
+
+    porcentaje_grasa = PORCENTAJE_GRASA_CALORIAS
+    for clave, delta in AJUSTE_GRASA_PORCENTAJE_DELTA.items():
+        if clave in ajustes:
+            porcentaje_grasa += delta
+    porcentaje_grasa = min(max(porcentaje_grasa, PORCENTAJE_GRASA_MINIMO), PORCENTAJE_GRASA_MAXIMO)
+
+    grasa_g = (calorias_objetivo * porcentaje_grasa) / 9
     calorias_restantes = calorias_objetivo - (proteina_g * 4) - (grasa_g * 9)
     carbohidratos_g = max(calorias_restantes, 0) / 4
 
@@ -535,6 +591,11 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
     nombre = perfil_cliente["datos_basicos"]["nombre"]
     objetivo = perfil_cliente["objetivo"]["principal"]
     comidas_al_dia = perfil_cliente.get("nutricion", {}).get("comidas_al_dia_preferidas", 4)
+    ajustes = ajustes_dieta(perfil_cliente)
+    for clave, delta in AJUSTE_COMIDAS_DELTA.items():
+        if clave in ajustes:
+            comidas_al_dia += delta
+    comidas_al_dia = min(max(comidas_al_dia, COMIDAS_AL_DIA_MINIMO), COMIDAS_AL_DIA_MAXIMO)
 
     necesidades = _calcular_necesidades(perfil_cliente)
 
@@ -572,6 +633,9 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
                 " Modo avanzado: mismo ritmo que el normal, con alimentos algo más variados, sinergias "
                 "de absorción y consejos de suplementación básica."
             )
+        if ajustes:
+            etiquetas = sorted(ETIQUETAS_AJUSTE_DIETA["es"].get(a, a) for a in ajustes)
+            resumen += f" Ajustes del entrenador aplicados: {', '.join(etiquetas)}."
         mensaje_para_el_cliente = f"Hola {nombre.split()[0]}, {cuerpo_mensaje}"
     else:
         resumen = (
@@ -592,6 +656,9 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
                 " Advanced mode: same pace as normal, with a bit more food variety, absorption synergies, "
                 "and basic supplement tips."
             )
+        if ajustes:
+            etiquetas = sorted(ETIQUETAS_AJUSTE_DIETA["en"].get(a, a) for a in ajustes)
+            resumen += f" Trainer adjustments applied: {', '.join(etiquetas)}."
         mensaje_para_el_cliente = f"Hi {nombre.split()[0]}, {cuerpo_mensaje}"
 
     return {

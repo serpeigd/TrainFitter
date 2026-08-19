@@ -174,6 +174,22 @@ This repository is built phase by phase, as a learning project. Right now:
   addition (see
   [`docs/base_conocimiento/entrenamiento.md`](docs/base_conocimiento/entrenamiento.md)),
   shown in the routine PDF and the on-screen review.
+- On top of what the intake collects automatically, the trainer can pick
+  **real, deterministic diet/routine adjustments** from a searchable
+  dropdown (`st.multiselect`, type to filter) — more/less protein, the
+  carb/fat balance, calories, dairy-free, and meal count on the diet
+  side; volume, rest time, cardio placement, avoiding the barbell, and
+  preferring machines on the routine side. Researched three ways to let
+  a trainer "just describe the change" first (free-text keyword
+  matching, a real LLM edit, a note-only field) and presented the
+  tradeoffs before building, since true free-form language needs a paid
+  LLM to interpret reliably — this is the free, curated middle ground
+  that was chosen instead. Every adjustment actually changes the
+  generated numbers/exclusions (never just a note) and is disclosed in
+  the plan's own summary text, never applied silently. Home training
+  also gained **resistance bands** as a real, selectable equipment type
+  (one exercise per muscle group), alongside the existing household-
+  object substitutes.
 - A second **Check-ins** Notion database logs the client's interaction history
   (joined to the main record by email). A "Check if it was sent" button confirms
   whether the trainer actually sent the Gmail draft (not just created it) and, on a

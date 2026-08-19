@@ -9,6 +9,92 @@ from dieta_reglas import (
 )
 
 
+def test_mas_proteina_and_menos_proteina_move_protein_target(perfil_base):
+    base = generar_borrador_dieta_reglas(perfil_base)
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_proteina"]
+    mas = generar_borrador_dieta_reglas(perfil_base)
+    assert mas["macros"]["proteina_g"] > base["macros"]["proteina_g"]
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["menos_proteina"]
+    menos = generar_borrador_dieta_reglas(perfil_base)
+    assert menos["macros"]["proteina_g"] < base["macros"]["proteina_g"]
+
+
+def test_mas_carbohidratos_and_menos_carbohidratos_trade_off_against_fat(perfil_base):
+    base = generar_borrador_dieta_reglas(perfil_base)
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_carbohidratos"]
+    mas_carbo = generar_borrador_dieta_reglas(perfil_base)
+    assert mas_carbo["macros"]["carbohidratos_g"] > base["macros"]["carbohidratos_g"]
+    assert mas_carbo["macros"]["grasa_g"] < base["macros"]["grasa_g"]
+    # Protein and calories are untouched by this specific adjustment.
+    assert mas_carbo["macros"]["proteina_g"] == base["macros"]["proteina_g"]
+    assert mas_carbo["calorias_objetivo_kcal"] == base["calorias_objetivo_kcal"]
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["menos_carbohidratos"]
+    menos_carbo = generar_borrador_dieta_reglas(perfil_base)
+    assert menos_carbo["macros"]["carbohidratos_g"] < base["macros"]["carbohidratos_g"]
+    assert menos_carbo["macros"]["grasa_g"] > base["macros"]["grasa_g"]
+
+
+def test_mas_calorias_and_menos_calorias_move_the_calorie_target(perfil_base):
+    base = generar_borrador_dieta_reglas(perfil_base)
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_calorias"]
+    mas = generar_borrador_dieta_reglas(perfil_base)
+    assert mas["calorias_objetivo_kcal"] > base["calorias_objetivo_kcal"]
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["menos_calorias"]
+    menos = generar_borrador_dieta_reglas(perfil_base)
+    assert menos["calorias_objetivo_kcal"] < base["calorias_objetivo_kcal"]
+
+
+def test_mas_comidas_and_menos_comidas_move_meal_count(perfil_base):
+    perfil_base["nutricion"]["comidas_al_dia_preferidas"] = 4
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_comidas"]
+    mas = generar_borrador_dieta_reglas(perfil_base)
+    assert len(mas["plan_semanal"][0]["comidas"]) == 5
+
+    perfil_base["nutricion"]["ajustes_dieta"] = ["menos_comidas"]
+    menos = generar_borrador_dieta_reglas(perfil_base)
+    assert len(menos["plan_semanal"][0]["comidas"]) == 3
+
+
+def test_sin_lacteos_excludes_dairy_tagged_foods(perfil_base):
+    perfil_base["nutricion"]["ajustes_dieta"] = ["sin_lacteos"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    fuentes = (
+        borrador["fuentes_proteina_sugeridas"] + borrador["fuentes_carbohidrato_sugeridas"]
+        + borrador["fuentes_grasa_sugeridas"]
+    )
+    assert not any("yogur" in f.lower() or "yogurt" in f.lower() for f in fuentes)
+
+
+def test_diet_adjustments_are_disclosed_in_the_summary(perfil_base):
+    """Never a silent adjustment -- same transparency principle as
+    _consejos_por_preferencias_blandas()'s own notes."""
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_proteina"]
+    borrador = generar_borrador_dieta_reglas(perfil_base)
+    assert "more protein" in borrador["resumen_enfoque"].lower()
+
+
+def test_diet_adjustments_are_disclosed_in_spanish_too(perfil_base):
+    perfil_base["nutricion"]["ajustes_dieta"] = ["mas_proteina"]
+    borrador = generar_borrador_dieta_reglas(perfil_base, idioma="es")
+    assert "más proteína" in borrador["resumen_enfoque"].lower()
+
+
+def test_no_ajustes_dieta_is_byte_identical_to_before_the_field_existed(perfil_base):
+    """A profile with no ajustes_dieta key at all (an older intake)
+    behaves exactly like one with an empty list."""
+    sin_campo = generar_borrador_dieta_reglas(perfil_base)
+    perfil_base["nutricion"]["ajustes_dieta"] = []
+    con_lista_vacia = generar_borrador_dieta_reglas(perfil_base)
+    assert sin_campo == con_lista_vacia
+
+
 def test_hypertrophy_targets_more_calories_than_fat_loss(perfil_base):
     perfil_base["objetivo"]["principal"] = "hipertrofia"
     hipertrofia = generar_borrador_dieta_reglas(perfil_base)
