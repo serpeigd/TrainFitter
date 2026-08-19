@@ -46,7 +46,9 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
 Client intake JSON → routine_agent + diet_agent (motor="reglas"|"llm", same output schema)
                    → validator_agent (ALWAYS rule-based, re-derives risk from raw profile)
                    → verdict: aprobado_automatico | revision_reforzada
-                   → human review (ALWAYS, no auto-send)
+                   → aprobado_automatico: sent automatically (mcp/gmail_client.py's enviar_plan(),
+                     as of 2026-08-19 — see below)
+                   → revision_reforzada: human review, ALWAYS, no auto-send (unchanged)
 ```
 
 - **Two interchangeable engines** per generation agent: `"reglas"` (default,
@@ -865,6 +867,69 @@ example client). 535 tests passing (up from 528), lint clean. See
 `docs/decisiones.md` for the full write-up, including why the
 regeneration flow's Gmail-draft path is unit-tested but not yet
 live-verified against the real workspace.
+
+**A genuine reversal of "TrainFitter never contacts a client on its
+own," requested directly and scoped before building.** A plan the
+validator itself clears (`aprobado_automatico`) now sends automatically
+— `mcp/gmail_client.enviar_plan()`, a real, deliberate fourth exception
+to the `gmail.send` "narrow and deliberate" principle, sharing its
+content-building with `crear_borrador()` via a new
+`_preparar_envio_plan()` helper. `revision_reforzada` plans are
+completely unaffected: always a draft, the trainer always reviews and
+sends by hand, no exceptions. Two scoping questions were asked directly
+before writing any code: whether this covers "Revise client" too (yes —
+both new and revised clients, any `aprobado_automatico` verdict
+qualifies) and how the public demo stays protected now that generating a
+plan was never previously gated (`APP_APPROVAL_PASSWORD` stays as one
+confirmation step immediately before an automatic send, same as every
+other real send in this project; a private deployment with no password
+set is genuinely zero-click). `datos_basicos.email` is now part of the
+intake schema (`_formulario_ficha_nueva()`, `agents/pdf_intake.py`) —
+previously the recipient was only ever typed in later, at Gmail-draft
+time, which made zero-click send impossible. The portal link now rides
+in the *same* email as the plan (`crear_borrador()`/`enviar_plan()` both
+gained an optional `url_portal` parameter) — "unifica en el mismo
+correo," a direct request — instead of two separate emails.
+`ui/app.py`'s `_panel_envio_automatico()` replaces the whole
+approve → draft → check-if-sent flow for a qualifying plan; on a Gmail
+or Notion failure, it falls back to rendering the existing manual panel
+underneath so the trainer is never stuck. Every headline doc making the
+old "never sends" claim as universal (`README.md`, `docs/arquitectura.md`,
+`docs/highlights.md`) was updated in the same change, not left stating
+something no longer literally true. Testing note, matching this
+project's own bar for every other real send: `enviar_plan()` is covered
+by mocked-network tests, not a live send during verification — this dev
+environment has real Gmail/Notion credentials configured locally with no
+password gate set, so a live end-to-end form submission would have sent
+a genuine, unreviewed email with no way to abort partway through;
+verified live only up to the safe boundary (the new Email field renders
+correctly, and a profile with a declared injury still correctly falls
+through to the ordinary manual panel). A browser-driven attempt to
+actually submit that form was also blocked by this session's own
+tool-permission classifier — treated as a real signal, not routed
+around. 543 tests passing (up from 535), lint clean, no example-output
+diffs (email doesn't affect generation).
+
+Three portal follow-ups the same day. A real crash, correlating with a
+reported "the link breaks after the app sleeps" symptom:
+`_vista_portal_cliente()`'s resolve step only caught `PortalTokenError`,
+not `NotionClientError` — a transient Notion failure (plausible on a
+cold-started deployment's first request) crashed the page instead of
+showing a recoverable message; fixed, though Streamlit Cloud's own
+wake-up redirect possibly dropping the `?ref=...` query string is a
+separate, disclosed platform limitation outside this function's control.
+The swipe-style meal flow gained a "⬅️ Back" button (only forward
+existed before) — mid-flow and from the final "done" screen. And a full
+layout redesign, requested directly: the single combined "Your plan"
+expander split into independent, individually-collapsible sections
+(Notes/Meals/Routine/History/Check-in), all collapsed by default except
+Meals; the opening title+greeting shrank to one small caption plus one
+welcome line, and the "Client since" caption was dropped outright (two
+now-dead translation keys removed with it). Verified live against the
+real workspace's "PEPE" test client: invalid-link error renders without
+crashing, Meals opens by default with everything else collapsed, and
+Back correctly hides at the first meal and steps back correctly from
+later ones. 543 tests passing, lint clean.
 
 ## Free-only guardrail
 

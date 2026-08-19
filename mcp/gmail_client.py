@@ -1,18 +1,27 @@
 """
-Gmail connector: turns an approved plan into a Gmail **draft** — never a
-sent email. This is the real-world version of the UI's "simulated approval"
-step, and it's built to preserve the exact same safety principle as the rest
-of the pipeline: TrainFitter never contacts a client on its own.
+Gmail connector: turns an approved plan into either a Gmail **draft**
+(crear_borrador()) or, since the DESIGN note below on enviar_plan(), a real
+**sent** email — which one depends on whether the validator's own verdict
+says a human needs to look first. This is the real-world version of the
+UI's "simulated approval" step. The safety principle it preserves is no
+longer "TrainFitter never contacts a client on its own" unconditionally —
+that's still true for every "revision_reforzada" plan (always a draft, a
+human always reviews and sends it) — but for a plan the validator itself
+marked "aprobado_automatico" (no reason found for a human to look first),
+ui/app.py now calls enviar_plan() directly, no draft, no click. See that
+function's own DESIGN note for the full reasoning and how this was scoped.
 
-DESIGN — draft-only, by construction, not just by convention: the OAuth
-scope requested (`gmail.compose`) physically cannot send or read mail —
-Google's own API rejects a send call under this scope. This isn't a
-"we chose not to call send()" promise, it's "the authorized account
-couldn't send even if the code tried to." That matters specifically because
-this app has a public demo (trainfitter.streamlit.app): anyone could type
-any email address into the client-email field, so the one thing that must
-never happen is an email actually leaving the dedicated Gmail account
-without the trainer reviewing it first in their own Gmail draft folder.
+DESIGN — draft-only was originally by construction, not just convention:
+`gmail.compose` alone physically cannot send mail — Google's own API
+rejects a send call under that scope. That's why gmail.send had to be
+requested as a separate, additional scope for every function below that
+actually calls messages().send() — none of them could work under
+gmail.compose alone. On the public demo (trainfitter.streamlit.app),
+where anyone can type any email address into the client-email field, the
+scope alone no longer stops a real send the way it originally did (see
+enviar_plan()'s DESIGN note below) — APP_APPROVAL_PASSWORD is what
+stands in that gap now, required as one confirmation step before
+enviar_plan() fires on any deployment where it's set.
 
 DESIGN — `gmail.readonly` replaced the narrower `gmail.metadata`: this
 project's inbox trigger (see main.py) needs to actually read a client's
@@ -30,11 +39,15 @@ enforces scope at the API call, not just locally — so re-running the OAuth
 consent flow (deleting token.json first) is required once, both locally
 and on any deployment.
 
-DESIGN — gmail.send is a deliberate, narrow exception to "never sends
-automatically", scoped to exactly three functions, each one either
+DESIGN — gmail.send started as a deliberate, narrow exception to "never
+sends automatically", scoped to three functions, each one either
 trainer-triggered with fixed, non-improvised content, or aimed at the
 trainer's own inbox rather than a client's — never a client receiving
-unsolicited, trainer-unreviewed content: enviar_enlace_portal() sends a
+unsolicited, trainer-unreviewed content. enviar_plan() (below) is a
+fourth, genuinely different case — a client DOES receive trainer-
+unreviewed content now, by explicit design, when the validator itself
+already vouched for the plan. Read that function's own DESIGN note
+first; the three below predate it. enviar_enlace_portal() sends a
 real message (via messages().send(), not drafts().create()) containing
 nothing but a magic link (see mcp/notion_connector.py's
 generar_referencia_portal()) to the client portal — never plan content,
@@ -64,20 +77,44 @@ the same way it already does for actualizar_email_cliente()/
 marcar_email_enviado(), since a trainer notification email is a
 convenience layered on top of the real record, not the record itself.
 
-DESIGN — enviar_formulario_intake() is the third (and, as of now, last)
-function allowed to call messages().send(): requested directly, to let a
-trainer email a prospective client the blank intake form (see
-agents/pdf_intake.py) straight from the panel instead of attaching it by
-hand from their own mail client. The narrowest of the three by content:
-its template has NO variable slots at all, not even the prospect's name
-(nothing about them is known yet at this point in the funnel) — the only
-thing that ever varies between calls is which of two fixed, code-defined
-PDF/text pairs (EN/ES) gets attached. Same gating as
-enviar_enlace_portal(): one explicit button, behind APP_APPROVAL_PASSWORD
-on deployments where it's set (this is the one action in the "New Client"
-tab that touches a real inbox before any client data exists yet, so it
-needs the same protection the rest of that tab's write actions already
-have).
+DESIGN — enviar_formulario_intake() is the third of the three
+"predates enviar_plan()" functions allowed to call messages().send():
+requested directly, to let a trainer email a prospective client the
+blank intake form (see agents/pdf_intake.py) straight from the panel
+instead of attaching it by hand from their own mail client. The
+narrowest of the three by content: its template has NO variable slots at
+all, not even the prospect's name (nothing about them is known yet at
+this point in the funnel) — the only thing that ever varies between
+calls is which of two fixed, code-defined PDF/text pairs (EN/ES) gets
+attached. Same gating as enviar_enlace_portal(): one explicit button,
+behind APP_APPROVAL_PASSWORD on deployments where it's set (this is the
+one action in the "New Client" tab that touches a real inbox before any
+client data exists yet, so it needs the same protection the rest of that
+tab's write actions already have).
+
+DESIGN — enviar_plan() is the fourth function allowed to call
+messages().send(), and the one genuine reversal of "TrainFitter never
+contacts a client on its own": requested directly by the project owner
+-- when a plan needs no enhanced review (validator verdict
+"aprobado_automatico"), waiting for the trainer to manually approve,
+create a draft, and send it from Gmail is pure friction with no safety
+benefit, since nothing about that review step would actually change
+whether the plan goes out. Scoped narrowly on purpose: only reachable
+from ui/app.py's own auto-send flow, which checks the verdict itself
+before ever calling this (a "revision_reforzada" plan always goes
+through crear_borrador() instead, no matter what) -- this function has
+no verdict-checking logic of its own, so that check living correctly in
+exactly one call site matters. On the public demo
+(APP_APPROVAL_PASSWORD set), ui/app.py still requires that password once
+as a real confirmation step immediately before calling this -- the
+scope-level protection draft-only used to provide (see the DESIGN note
+above) doesn't apply to a function that calls messages().send() by
+design, so the password is what keeps a random visitor from making this
+app email an arbitrary address for free. On a private deployment (no
+password configured), it fires with zero clicks, exactly as requested.
+Shares its content-building (attachments, body) with crear_borrador() via
+_preparar_envio_plan() -- the two differ only in the one Gmail API call
+at the end.
 
 DESIGN — pure logic separated from network/auth: _construir_mensaje_raw()
 and _construir_cuerpo_email() are plain functions with no I/O, fully unit
@@ -451,6 +488,64 @@ def _obtener_credenciales():
     return credenciales
 
 
+def _preparar_envio_plan(
+    nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str, incluir_checklist: bool,
+    url_portal: str | None,
+) -> tuple[str, list[tuple[str, bytes]], str]:
+    """Shared by crear_borrador() (draft) and enviar_plan() (real send) --
+    both build the exact same subject/attachments/body, they only differ
+    in the one Gmail API call at the end (drafts().create() vs
+    messages().send()). Pure rendering, no network -- raises
+    GmailClientError on a PDF/body-build failure, same contract both
+    callers already documented before this was factored out.
+
+    Returns: (asunto, adjuntos, cuerpo_texto)."""
+    # Lazy import, same convention as googleapiclient below: reportlab (the
+    # actual heavy dependency, imported inside pdf_generador.py's own
+    # functions) never needs to be installed for the default free pipeline.
+    from pdf_generador import (
+        NOMBRE_PDF_CHECKLIST_EN,
+        NOMBRE_PDF_CHECKLIST_ES,
+        NOMBRE_PDF_DIETA_EN,
+        NOMBRE_PDF_DIETA_ES,
+        NOMBRE_PDF_RUTINA_EN,
+        NOMBRE_PDF_RUTINA_ES,
+        generar_pdf_checklist,
+        generar_pdf_dieta,
+        generar_pdf_rutina,
+    )
+
+    asunto = f"{ASUNTO_PLAN_ES} — {nombre_cliente}" if idioma == "es" else f"{ASUNTO_PLAN_EN} — {nombre_cliente}"
+    nombre_pdf_dieta = NOMBRE_PDF_DIETA_ES if idioma == "es" else NOMBRE_PDF_DIETA_EN
+    nombre_pdf_rutina = NOMBRE_PDF_RUTINA_ES if idioma == "es" else NOMBRE_PDF_RUTINA_EN
+
+    # Building the PDFs/email body is local rendering, not a Gmail API call,
+    # but every caller only ever expects GmailClientError out of this (see
+    # their own except clauses) -- a bug in reportlab/pypdf rendering
+    # against some real client's actual data (malformed field, an edge
+    # case none of the example clients happen to hit) must not surface as
+    # an unhandled TypeError/ValueError/etc. that crashes the whole app.
+    # Wrapped once here rather than in every pdf_generador.py function, so
+    # that module's own functions/tests stay exception-neutral.
+    try:
+        adjuntos = [
+            (nombre_pdf_rutina, generar_pdf_rutina(borrador_rutina, nombre_cliente, idioma)),
+            (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
+        ]
+        if incluir_checklist:
+            nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
+            adjuntos.append(
+                (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
+            )
+        cuerpo_texto = _construir_cuerpo_email(
+            nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
+        )
+    except Exception as exc:
+        raise GmailClientError(f"Could not build the plan PDFs/email body: {exc}") from exc
+
+    return asunto, adjuntos, cuerpo_texto
+
+
 def crear_borrador(
     destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
     incluir_checklist: bool = False, url_portal: str | None = None,
@@ -460,6 +555,10 @@ def crear_borrador(
     note (see _construir_cuerpo_email()) plus the two PDFs generated by
     agents/pdf_generador.py that describe the plan itself -- the full
     routine and the full diet, always attached, mirroring each other.
+
+    Used for the "revision_reforzada" path (needs a real human look
+    before anything goes out) and, in ui/app.py, as the recovery path if
+    enviar_plan() below fails on the auto-send flow.
 
     Args:
         destinatario, nombre_cliente, borrador_rutina, borrador_dieta: same as before.
@@ -491,49 +590,9 @@ def crear_borrador(
         GmailClientError: invalid recipient, missing/expired credentials
             the user needs to re-authorize, or a Gmail API failure.
     """
-    # Lazy import, same convention as googleapiclient below: reportlab (the
-    # actual heavy dependency, imported inside pdf_generador.py's own
-    # functions) never needs to be installed for the default free pipeline.
-    from pdf_generador import (
-        NOMBRE_PDF_CHECKLIST_EN,
-        NOMBRE_PDF_CHECKLIST_ES,
-        NOMBRE_PDF_DIETA_EN,
-        NOMBRE_PDF_DIETA_ES,
-        NOMBRE_PDF_RUTINA_EN,
-        NOMBRE_PDF_RUTINA_ES,
-        generar_pdf_checklist,
-        generar_pdf_dieta,
-        generar_pdf_rutina,
+    asunto, adjuntos, cuerpo_texto = _preparar_envio_plan(
+        nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
     )
-
-    asunto = f"{ASUNTO_PLAN_ES} — {nombre_cliente}" if idioma == "es" else f"{ASUNTO_PLAN_EN} — {nombre_cliente}"
-    nombre_pdf_dieta = NOMBRE_PDF_DIETA_ES if idioma == "es" else NOMBRE_PDF_DIETA_EN
-    nombre_pdf_rutina = NOMBRE_PDF_RUTINA_ES if idioma == "es" else NOMBRE_PDF_RUTINA_EN
-
-    # Building the PDFs/email body is local rendering, not a Gmail API call,
-    # but ui/app.py's caller only ever expects GmailClientError out of this
-    # function (see its own except clause) -- a bug in reportlab/pypdf
-    # rendering against some real client's actual data (malformed field,
-    # an edge case none of the example clients happen to hit) must not
-    # surface as an unhandled TypeError/ValueError/etc. that crashes the
-    # whole app. Wrapped once here rather than in every pdf_generador.py
-    # function, so that module's own functions/tests stay exception-neutral.
-    try:
-        adjuntos = [
-            (nombre_pdf_rutina, generar_pdf_rutina(borrador_rutina, nombre_cliente, idioma)),
-            (nombre_pdf_dieta, generar_pdf_dieta(borrador_dieta, nombre_cliente, idioma)),
-        ]
-        if incluir_checklist:
-            nombre_pdf_checklist = NOMBRE_PDF_CHECKLIST_ES if idioma == "es" else NOMBRE_PDF_CHECKLIST_EN
-            adjuntos.append(
-                (nombre_pdf_checklist, generar_pdf_checklist(borrador_rutina, borrador_dieta, nombre_cliente, idioma)),
-            )
-        cuerpo_texto = _construir_cuerpo_email(
-            nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
-        )
-    except Exception as exc:
-        raise GmailClientError(f"Could not build the plan PDFs/email body: {exc}") from exc
-
     cuerpo = _construir_mensaje_raw(destinatario, asunto=asunto, cuerpo_texto=cuerpo_texto, adjuntos=adjuntos)
 
     # Resolved before importing googleapiclient: _obtener_credenciales()
@@ -556,6 +615,59 @@ def crear_borrador(
         "url": f"https://mail.google.com/mail/u/0/#drafts/{borrador['message']['id']}",
         "thread_id": borrador["message"]["threadId"],
     }
+
+
+def enviar_plan(
+    destinatario: str, nombre_cliente: str, borrador_rutina: dict, borrador_dieta: dict, idioma: str = "en",
+    incluir_checklist: bool = False, url_portal: str | None = None,
+) -> dict:
+    """
+    Actually SENDS (not drafts) the plan email -- same content
+    crear_borrador() builds (see _preparar_envio_plan()), one Gmail API
+    call different (messages().send() instead of drafts().create()).
+
+    A real, deliberate widening of the gmail.send exception (see this
+    module's docstring): the earlier two uses (enviar_enlace_portal(),
+    enviar_formulario_intake()) were fixed, single-variable-slot
+    templates with no attachments -- this one sends the full plan (two
+    PDFs, the trainer's own generated content) with no draft/review step
+    at all. Confirmed directly with the project owner before being built,
+    same as every other exception to "TrainFitter always drafts, never
+    sends" -- ui/app.py only calls this for a plan whose validator
+    verdict is "aprobado_automatico" (no reason for a human to look
+    first), never for "revision_reforzada". See docs/decisiones.md.
+
+    Args: same as crear_borrador().
+
+    Returns:
+        {"message_id": the sent message's ID, "thread_id": its thread ID}
+        -- no "url" (there's no draft to link to); the thread ID is kept
+        for symmetry with crear_borrador()'s return shape even though
+        nothing currently reads it back (a real send needs no later
+        verificar_envio() check -- it's confirmed the moment this
+        function returns without raising).
+
+    Raises:
+        GmailClientError: invalid recipient, missing/expired credentials
+            the user needs to re-authorize, or a Gmail API failure.
+    """
+    asunto, adjuntos, cuerpo_texto = _preparar_envio_plan(
+        nombre_cliente, borrador_rutina, borrador_dieta, idioma, incluir_checklist, url_portal,
+    )
+    cuerpo = _construir_mensaje_raw(destinatario, asunto=asunto, cuerpo_texto=cuerpo_texto, adjuntos=adjuntos)
+
+    credenciales = _obtener_credenciales()
+
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+
+    try:
+        servicio = build("gmail", "v1", credentials=credenciales)
+        mensaje = servicio.users().messages().send(userId="me", body=cuerpo).execute()
+    except HttpError as exc:
+        raise GmailClientError(f"Gmail API error: {exc}") from exc
+
+    return {"message_id": mensaje["id"], "thread_id": mensaje["threadId"]}
 
 
 ASUNTO_PORTAL_EN = "Your TrainFitter client portal link"

@@ -26,8 +26,15 @@
 ## Overview
 
 TrainFitter is an agent pipeline that turns a client's intake form into draft
-routines and diets, with **mandatory human review** before anything is sent. Each
-agent has a single, well-scoped responsibility.
+routines and diets. Every plan still passes through the same deterministic
+safety gate (the validator agent); what happens after that gate depends on its
+own verdict. A plan flagged `revision_reforzada` still gets **mandatory human
+review** before anything is sent — no exceptions. A plan the validator itself
+clears (`aprobado_automatico`) is sent automatically as of 2026-08-19 (see
+"Automatic send for validator-approved plans" below) — a deliberate reversal
+of this project's original "always draft, trainer always sends" design,
+requested directly and scoped narrowly to exactly that verdict. Each agent
+has a single, well-scoped responsibility.
 
 ## Key decision: two interchangeable engines per agent
 
@@ -66,20 +73,28 @@ gate should be deterministic and auditable, not a model's "opinion" — see
                      - cross-checks food vs. allergies (food_bank)
                                 ▼
               verdict: aprobado_automatico | revision_reforzada
-                                ▼
-                     Human review (ALWAYS, no exceptions)
-                                ▼
-              Notion "Clients" record saved (mcp/notion_connector.py)
-                     - stores the summary AND the full perfil_cliente
-                       (chunked rich_text), so a client can later be
-                       looked up and revised, not just displayed
-                                ▼
-              Gmail draft created (mcp/gmail_client.py) — trainer reviews and sends it themselves
-                                ▼
-              Trainer confirms the send in the UI ("Check if it was sent")
-                                ▼
-              Notion "Email Sent" ticked + a row added to "Check-ins"
+                    │                              │
+     ┌──────────────┘                              └──────────────┐
+     ▼ aprobado_automatico                                        ▼ revision_reforzada
+Notion "Clients" record saved                          Human review (ALWAYS, no exceptions)
+     │                                                             ▼
+     ▼                                                  Notion "Clients" record saved
+gmail_client.enviar_plan() — a real,                               ▼
+sent email (plan PDFs + portal link),               Gmail draft created (mcp/gmail_client.py)
+no draft, no further review                         — trainer reviews and sends it themselves
+     │                                                             ▼
+     ▼                                              Trainer confirms the send ("Check if it was sent")
+Notion "Email Sent" ticked +                                       ▼
+a "Check-ins" row added                              Notion "Email Sent" ticked + a "Check-ins" row added
+   automatically, immediately
 ```
+
+The `aprobado_automatico` branch only applies to a real client
+(`guardar_en_notion=True` — never the example-client demo) with a usable email
+on file, and requires one password confirmation on any deployment where
+`APP_APPROVAL_PASSWORD` is set (protects the public demo from a visitor
+triggering a real send for free) — see "Automatic send for validator-approved
+plans" below for the full design and why it was scoped this way.
 
 Two paths run alongside the core flow above, both reusing the same underlying
 pieces rather than duplicating them:
@@ -125,10 +140,16 @@ pieces rather than duplicating them:
  (at any point, if an agent raises RoutineAgentError/DietAgentError) ──► error
 ```
 
-Both success branches end in a "pendiente_*" (pending) state: **even
-`aprobado_automatico` only means "no reasons for enhanced review," never "send it
-without anyone looking."** The trainer always approves before anything reaches the
-client — see `PipelineState` in `agents/orchestrator.py`.
+Both success branches end in a "pendiente_*" (pending) state — the orchestrator
+itself makes no send decision either way, it only reaches the pending state and
+stops; `ui/app.py` is what decides what "pending" means for each verdict. For
+`pendiente_revision_reforzada`, that's still exactly what it always was: the
+trainer always approves and sends by hand, no exceptions. For
+`pendiente_aprobacion_humana` (a name that predates this decision and is now
+slightly misleading for this branch specifically — see `PipelineState` in
+`agents/orchestrator.py`), it means "no reasons were found for enhanced
+review," which the UI now treats as license to send automatically rather than
+waiting on a click that would have added friction with no safety benefit.
 
 `ejecutar_pipeline()` accepts an optional `on_transition` callback (by default, it
 logs to the console). That's what lets the UI (see below) paint the same state trail
@@ -176,15 +197,21 @@ the view back to the first tab (reproduced and confirmed while building this;
 - **Result:** verdict (with reasons if enhanced review applies), routine broken down
   by session with an exercise table, diet with macros and suggested sources, and JSON
   download buttons.
-- **Approval + Gmail draft:** an "Approve and mark as ready to send" checklist
-  button, plus a real "Create Gmail draft" action (`mcp/gmail_client.py`) that
-  takes the client's email (typed by the trainer — the intake form doesn't
-  collect it) and creates an actual draft in a dedicated Gmail account. The
-  OAuth scope requested (`gmail.compose`) can only create drafts — it's
-  physically incapable of sending or reading mail, so the UI never sends
-  anything on its own even in principle, not just by convention. On real
-  new-client plans, approving also saves a record to a Notion "Clients"
-  database (`mcp/notion_connector.py`).
+- **Approval + Gmail draft (`revision_reforzada` plans only):** an "Approve and
+  mark as ready to send" checklist button, plus a real "Create Gmail draft"
+  action (`mcp/gmail_client.py`) that takes the client's email (now pre-filled
+  from the intake's own `datos_basicos.email` field, editable) and creates an
+  actual draft in a dedicated Gmail account. On real new-client plans,
+  approving also saves a record to a Notion "Clients" database
+  (`mcp/notion_connector.py`).
+- **Automatic send (`aprobado_automatico` plans, real clients only):**
+  `_panel_envio_automatico()` replaces the whole panel above — no Approve
+  click, no draft. `gmail_client.enviar_plan()` sends the plan directly
+  (`messages().send()`, not `drafts().create()`), with the client portal's
+  magic link folded into the same email. Gated behind one password
+  confirmation when `APP_APPROVAL_PASSWORD` is set (the public demo);
+  genuinely zero-click otherwise. A failure here (Gmail or Notion) falls back
+  to the manual panel above so the trainer can still send it by hand.
 - **Send confirmation + Check-ins:** a "Check if it was sent" button calls
   `gmail_client.verificar_envio()` (needs the added `gmail.metadata` scope —
   labels/headers only) to check whether the trainer actually sent the draft,

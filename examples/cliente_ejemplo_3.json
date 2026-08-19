@@ -3,6 +3,7 @@
   "fecha_admision": "2026-03-05",
   "datos_basicos": {
     "nombre": "Ana Torres",
+    "email": "ana.torres@example.com",
     "edad": 29,
     "sexo": "mujer",
     "peso_kg": 61,

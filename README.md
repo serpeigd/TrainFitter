@@ -46,15 +46,31 @@ to review — the system never diagnoses or prescribes.
 
 ## How it works (in one sentence)
 
-Client intake → draft routine → draft diet → automatic safety review →
-**you approve before anything is sent**.
+Client intake → draft routine → draft diet → automatic safety review → **a
+plan the review flags gets your approval before anything is sent; a plan it
+clears sends itself**.
 
-## The most important part: you have the final say
+## The most important part: review scales to risk, not to every plan
 
-TrainFitter **never sends anything to the client on its own**. Everything it produces
-is a **draft for your review**. It doesn't replace your professional judgment or
-medical advice: any injury, condition, or clinical adjustment is always flagged for
-you to review personally.
+Every plan passes through the same deterministic safety gate before anything
+happens to it — that gate never trusts the AI-generated content's own
+self-reported flags, it re-derives risk straight from the raw intake data
+(injuries, allergies, pregnancy, medication, bloodwork). What happens next
+depends on what that gate finds:
+
+- **Flagged for enhanced review** (an injury, allergy, pregnancy, or an
+  out-of-range bloodwork marker): TrainFitter **never sends anything to the
+  client on its own**. It's a **draft for your review** — you read it, you
+  send it, exactly as it always has been.
+- **Nothing flagged**: the plan sends itself — the same email a trainer would
+  otherwise have opened Gmail to send by hand, generated and delivered the
+  moment it's ready, no click required (one password confirmation on the
+  public demo, to stop a random visitor from triggering a real send for free).
+
+It doesn't replace your professional judgment or medical advice either way:
+any injury, condition, or clinical adjustment is always flagged for a human to
+review personally — the part that changed is *which* plans still need that
+human, not whether a genuinely risky one ever skips it.
 
 ---
 
@@ -81,9 +97,9 @@ This repository is built phase by phase, as a learning project. Right now:
   are extracted (best-effort, bilingual) and automatically force enhanced review,
   same defense-in-depth pattern as injuries and allergies
   (see [`agents/analytics_parser.py`](agents/analytics_parser.py)).
-- A real **Gmail draft** can be created for the approved plan — never sent
-  automatically, by design (see [`mcp/gmail_client.py`](mcp/gmail_client.py)):
-  the trainer reviews and sends it themselves from their own Gmail. The draft
+- A plan flagged for enhanced review becomes a real **Gmail draft**, never
+  sent automatically (see [`mcp/gmail_client.py`](mcp/gmail_client.py)): the
+  trainer reviews and sends it themselves from their own Gmail. The draft
   carries a short, scannable note (one key point per section, pulled straight
   from the plan) plus two generated PDFs (see
   [`agents/pdf_generador.py`](agents/pdf_generador.py)) that always mirror each
@@ -91,7 +107,11 @@ This repository is built phase by phase, as a learning project. Right now:
   adherence checklist — is opt-in (a checkbox, unchecked by default): the
   client portal below is the intended default way to log check-ins now, so
   the checklist stays available only for the trainer's own specific call to
-  send one (e.g. a client without portal access).
+  send one (e.g. a client without portal access). A plan the safety review
+  clears skips the draft entirely — `gmail_client.enviar_plan()` sends the
+  same content directly, with the client portal's own magic link folded into
+  the same email (see [`docs/decisiones.md`](docs/decisiones.md) for the full
+  reasoning on where this line was drawn).
 - Every real new-client plan is automatically **saved to Notion** as a
   persistent record (see [`mcp/notion_connector.py`](mcp/notion_connector.py))
   — a lightweight CRM outside the browser session, which otherwise forgets
@@ -183,10 +203,12 @@ This repository is built phase by phase, as a learning project. Right now:
   ([`examples/blank_intake_form.pdf`](examples/blank_intake_form.pdf)) — what
   the trainer actually shares with a prospect to get the loop started. The
   panel can also send that blank form and check for a reply directly: a
-  real, sent (not drafted) email — the third and narrowest of the three
-  deliberate exceptions to "never sends automatically" (a fixed template
-  with no variable content at all), gated behind the approval password on
-  a public deployment the same way "Revisar cliente" is.
+  real, sent (not drafted) email — one of a handful of deliberate,
+  individually-scoped exceptions to draft-only sending (see
+  [`mcp/gmail_client.py`](mcp/gmail_client.py)'s module docstring for the
+  full list), the narrowest of them by content (a fixed template with no
+  variable content at all), gated behind the approval password on a public
+  deployment the same way "Revisar cliente" is.
 - A **client-facing portal** (magic link, no password): the trainer can send a
   client a private link to view a summary of their plan and log a check-in
   directly — no PDF round-trip needed. Links are a short, opaque reference
@@ -200,14 +222,14 @@ This repository is built phase by phase, as a learning project. Right now:
   covers a genuine extra session); diet days followed can't exceed the check-in
   period, since that bound is definitional rather than a target. The moment a
   client submits a check-in, the trainer's own inbox gets an automatic summary
-  plus a short, rule-based suggested next step — this is one of only three
-  places in the whole project where Gmail actually **sends** a real email
-  instead of only creating a draft (the others: the portal-link email itself,
-  and emailing a blank intake form to a prospect — see the FAQ below). This
-  one specifically notifies the trainer's own inbox, never a client, fully
-  automatically — a deliberate, narrow exception (see
-  [`docs/decisiones.md`](docs/decisiones.md)) to the "never sends
-  automatically" guarantee everywhere else in this project. The
+  plus a short, rule-based suggested next step — one of a handful of places
+  where Gmail actually **sends** a real email instead of only creating a
+  draft (see [`mcp/gmail_client.py`](mcp/gmail_client.py)'s module docstring
+  for the full list, including the one that sends a validator-cleared plan
+  directly to the client, described above). This one specifically notifies
+  the trainer's own inbox, never a client, fully automatically — a
+  deliberate, narrow exception (see
+  [`docs/decisiones.md`](docs/decisiones.md)). The
   check-in form can also log the client's current weight (optional) — closing
   a loop the generated plan itself already promised ("adjusted based on real
   weight ... over the first few weeks") but had no mechanism for until now.
@@ -408,12 +430,19 @@ Streamlit UI, and the free tiers of Notion/Gmail/GitHub Actions/Streamlit Cloud 
 free. The only optional paid piece is `motor="llm"`, off by default. See
 [Free-only by design](#free-only-by-design).
 
-**Will it ever email or message a client without a human clicking something first?** No.
-Every plan is a draft until a trainer explicitly approves it, and the only three functions
-in the whole codebase that send real email (`enviar_enlace_portal()`,
-`enviar_notificacion_checkin()`, `enviar_formulario_intake()`) either require the trainer
-to click a gated button, or notify the *trainer's own inbox*, never a client or
-prospect, automatically. See `docs/highlights.md` #3 and #10.
+**Will it ever email a client without a human clicking something first?** For a plan
+flagged for enhanced review (an injury, allergy, pregnancy, out-of-range bloodwork
+marker) — no, never; it's always a draft the trainer reviews and sends by hand. For a
+plan the same safety review clears outright, it now sends itself automatically —
+`gmail_client.enviar_plan()`, a deliberate design decision, not an oversight (see
+`docs/decisiones.md`). The public demo still requires one password confirmation before
+that fires, so a random visitor can't trigger a real send just by filling out the form;
+a private deployment with no password configured sends with zero clicks, as intended.
+Every other client-facing send in the codebase (`enviar_enlace_portal()`,
+`enviar_formulario_intake()`) still requires the trainer to click a gated button by
+hand, and `enviar_notificacion_checkin()` only ever reaches the *trainer's own inbox*,
+never a client. See `docs/highlights.md` and `mcp/gmail_client.py`'s module docstring
+for the full list.
 
 **The live demo looks like it's not responding — is it broken?** Probably just asleep.
 Streamlit Community Cloud's free tier spins down an inactive app; the first request after

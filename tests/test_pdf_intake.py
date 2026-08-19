@@ -11,6 +11,7 @@ from pdf_intake import (
     CAMPO_ANIOS_ENTRENANDO,
     CAMPO_DIAS_SEMANA,
     CAMPO_EDAD,
+    CAMPO_EMAIL,
     CAMPO_EMBARAZO,
     CAMPO_EMBARAZO_DETALLE,
     CAMPO_INQUIETUD_PRINCIPAL,
@@ -51,6 +52,7 @@ def _llenar(pdf_bytes: bytes, valores: dict) -> bytes:
 
 VALORES_COMPLETOS = {
     CAMPO_NOMBRE: "Laura Fernandez",
+    CAMPO_EMAIL: "laura.fernandez@example.com",
     CAMPO_EDAD: "34",
     CAMPO_SEXO: "mujer",
     CAMPO_PESO: "68",
@@ -98,10 +100,21 @@ def test_reads_back_basic_info_correctly(pdf_relleno):
     perfil = leer_intake_pdf(pdf_relleno)
     datos = perfil["datos_basicos"]
     assert datos["nombre"] == "Laura Fernandez"
+    assert datos["email"] == "laura.fernandez@example.com"
     assert datos["edad"] == 34
     assert datos["sexo"] == "mujer"
     assert datos["peso_kg"] == 68.0
     assert datos["altura_cm"] == 170.0
+
+
+def test_reads_back_blank_email_as_empty_string():
+    """A prospect who left the email field blank -- must degrade to ""
+    rather than crash, matching every other optional text field here.
+    ui/app.py's _califica_para_auto_envio() treats this as "doesn't
+    qualify for auto-send," falling back to the manual approval flow."""
+    pdf = _llenar(generar_pdf_intake(idioma="en"), {CAMPO_NOMBRE: "Test"})
+    perfil = leer_intake_pdf(pdf)
+    assert perfil["datos_basicos"]["email"] == ""
 
 
 def test_reads_back_radio_selections_correctly(pdf_relleno):

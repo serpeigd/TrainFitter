@@ -75,7 +75,7 @@ def test_page_properties_match_the_documented_database_schema(perfil_base, borra
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
 
     assert set(propiedades) == {
-        "Name", "Date", "Goal", "Level", "Verdict", "Summary", "Language", "Email Sent",
+        "Name", "Date", "Goal", "Level", "Verdict", "Summary", "Language", "Email Sent", "Email",
         "Full Profile (JSON)", "Weekly Meal Plan (JSON)", "Weekly Routine (JSON)",
         "Routine Message", "Diet Message",
     }
@@ -96,6 +96,25 @@ def test_page_properties_use_the_given_language(perfil_base, borrador_rutina, bo
     veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
     propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto, idioma="es")
     assert propiedades["Language"]["select"]["name"] == "es"
+
+
+def test_page_properties_save_the_email_when_present(perfil_base, borrador_rutina, borrador_dieta):
+    """Known at save time now that "Email" is part of the intake schema
+    (see ui/app.py's auto-send flow) -- previously only ever backfilled
+    later via actualizar_email_cliente()."""
+    perfil_base["datos_basicos"]["email"] = "client@example.com"
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Email"]["email"] == "client@example.com"
+
+
+def test_page_properties_email_is_none_when_absent(perfil_base, borrador_rutina, borrador_dieta):
+    """perfil_base has no "email" key by default (an older intake, or one
+    that predates this field) -- must degrade to Notion's own "no value"
+    convention for an email property, not crash or write an empty string."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    assert propiedades["Email"]["email"] is None
 
 
 def test_page_properties_save_the_concrete_tip_per_section(perfil_base, borrador_dieta):

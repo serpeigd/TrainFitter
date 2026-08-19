@@ -353,6 +353,13 @@ def _construir_propiedades_pagina(
         "Summary": {"rich_text": [{"text": {"content": _construir_resumen(borrador_rutina, borrador_dieta)}}]},
         "Language": {"select": {"name": idioma}},
         "Email Sent": {"checkbox": False},
+        # Known at save time now that "Email" is part of the intake
+        # schema itself (see ui/app.py's _formulario_ficha_nueva()) --
+        # actualizar_email_cliente() below still exists for an older
+        # record that predates this field. None (unset) rather than an
+        # empty string for a profile missing it, matching Notion's own
+        # "no value" convention for an email property.
+        "Email": {"email": datos.get("email") or None},
         "Full Profile (JSON)": {
             "rich_text": _dividir_bloques_notion(json.dumps(perfil_cliente, ensure_ascii=False))
         },

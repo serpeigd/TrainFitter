@@ -38,7 +38,8 @@ the difference between "the code currently doesn't send" and "the code
 a Notion "Check-ins" history), the added scope was `gmail.metadata` —
 labels and headers only — deliberately not the broader `gmail.readonly`,
 which would also have worked but grants full message-body access this
-feature never needed.
+feature never needed. (This guarantee itself later became conditional on the
+validator's own verdict, not universal — see #19.)
 
 ## 4. An explicit state machine, not loose variables
 
@@ -197,6 +198,32 @@ The trainer's method already said "leave reps in reserve," but nothing in the ge
 ## 18. A safety gate had two jobs bundled into one condition — splitting them fixed a false negative without reopening the false positive
 
 `buscar_respuestas_adherencia()` rejected every non-reply message to avoid one specific failure: the trainer's own sent copy of a blank checklist re-appearing in its own inbox search and reading as fabricated "Low adherence." That gate (`In-Reply-To` present) also, as a side effect, rejected every genuine forward from a client — a real, reported false negative. The fix wasn't loosening the gate and hoping for the best; it was noticing the gate was doing two unrelated jobs at once and splitting them: check the *sender's address* against the authenticated account's own (via `getProfile()`) to exclude specifically the trainer's own sent mail, and let an already-existing, independent second check (`checklist_tiene_contenido_real()`) keep catching the actual failure mode — a blank-but-structurally-intact checklist — regardless of whether it arrived as a reply or a forward. **Why it matters:** a single boolean condition that happens to prevent two different bad outcomes is fragile — the moment one outcome needs different handling than the other, the condition has to be decomposed into what it was actually checking, not patched with a special case bolted onto the same test.
+
+## 19. A headline guarantee got scoped to where it actually earns its keep, not dropped
+
+"TrainFitter never sends anything on its own" was the project's single most
+repeated claim (#3, #10) — and it stayed absolute for three years' worth of
+incremental exceptions (#10's portal link, the trainer-notification email),
+each one deliberately narrow. This one is different in kind: requested
+directly, a plan the validator itself already cleared (no injury, no allergy,
+no flagged bloodwork, nothing) now sends automatically, no draft, no click.
+The instinct to treat "never sends automatically" as untouchable and push
+back wasn't right here — the validator is the actual safety mechanism, not
+the human click that follows it; making a *cleared* plan wait for a click
+that would change nothing about whether it's safe is friction dressed up as
+caution. What stayed non-negotiable, scoped before writing any code rather
+than assumed: a `revision_reforzada` verdict is *never* touched by this —
+still a draft, still a human, no exceptions — and the public demo still
+requires one password confirmation immediately before an automatic send,
+since the OAuth-scope-level protection that used to make a stray send
+physically impossible (#3) doesn't apply to a function built to call
+`messages().send()` on purpose. **Why it matters:** the honest version of
+"we never do X" is "we never do X where it matters" — this project's own
+docs (`docs/arquitectura.md`, `README.md`) were rewritten in the same change
+that shipped the feature, not left stating a guarantee that stopped being
+literally true, because a portfolio project's credibility depends on its
+claims matching its code more than on any specific claim being maximally
+conservative.
 
 ---
 

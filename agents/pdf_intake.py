@@ -33,6 +33,15 @@ medicacion, alergias, intolerancias, restricciones, disliked foods):
 same convention ui/app.py's manual intake form already uses for these
 exact fields (see _lista_desde_texto()) -- the PDF reader mirrors it
 rather than inventing a different convention for the same data shape.
+
+DESIGN — datos_basicos.email: added alongside ui/app.py's own auto-send
+flow (see mcp/gmail_client.py's enviar_plan()) -- a plan that needs no
+human review now sends itself the moment it's generated, which means the
+recipient address has to be known at intake time instead of typed in
+later at approval. A blank value here (an older intake, or a prospect
+who left it empty) just means that specific submission can't qualify for
+auto-send; it never blocks the free-text description of the rest of the
+form or the plan generation itself.
 """
 
 import io
@@ -45,6 +54,7 @@ NOMBRE_PDF_INTAKE_ES = "formulario-inscripcion-trainfitter.pdf"
 # "__" marks nesting in the reconstructed perfil_cliente dict (e.g.
 # "datos_basicos__nombre" -> perfil["datos_basicos"]["nombre"]).
 CAMPO_NOMBRE = "datos_basicos__nombre"
+CAMPO_EMAIL = "datos_basicos__email"
 CAMPO_EDAD = "datos_basicos__edad"
 CAMPO_SEXO = "datos_basicos__sexo"
 CAMPO_PESO = "datos_basicos__peso_kg"
@@ -211,7 +221,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
         t = {
             "titulo": "TrainFitter — Formulario de inscripción",
             "sec_basico": "1. Datos básicos",
-            "nombre": "Nombre completo", "edad": "Edad", "sexo": "Sexo",
+            "nombre": "Nombre completo", "email": "Email", "edad": "Edad", "sexo": "Sexo",
             "peso": "Peso actual (kg)", "altura": "Altura (cm)",
             "sec_objetivo": "2. Objetivo",
             "objetivo": "Objetivo principal",
@@ -270,7 +280,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
         t = {
             "titulo": "TrainFitter — Client Intake Form",
             "sec_basico": "1. Basic info",
-            "nombre": "Full name", "edad": "Age", "sexo": "Sex",
+            "nombre": "Full name", "email": "Email", "edad": "Age", "sexo": "Sex",
             "peso": "Current weight (kg)", "altura": "Height (cm)",
             "sec_objetivo": "2. Goal",
             "objetivo": "Main goal",
@@ -334,6 +344,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
 
     f.seccion(t["sec_basico"])
     f.texto(CAMPO_NOMBRE, t["nombre"])
+    f.texto(CAMPO_EMAIL, t["email"])
     f.texto(CAMPO_EDAD, t["edad"])
     f.radio(CAMPO_SEXO, t["sexo"], opciones_sexo)
     f.texto(CAMPO_PESO, t["peso"])
@@ -476,6 +487,7 @@ def leer_intake_pdf(contenido_pdf: bytes) -> dict:
     return {
         "datos_basicos": {
             "nombre": _valor_campo(campos, CAMPO_NOMBRE),
+            "email": _valor_campo(campos, CAMPO_EMAIL),
             "edad": entero(CAMPO_EDAD),
             "sexo": _valor_campo(campos, CAMPO_SEXO) or "hombre",
             "peso_kg": flotante(CAMPO_PESO),

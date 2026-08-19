@@ -3,6 +3,7 @@
   "fecha_admision": "2026-02-10",
   "datos_basicos": {
     "nombre": "Javier Ruiz",
+    "email": "javier.ruiz@example.com",
     "edad": 41,
     "sexo": "hombre",
     "peso_kg": 84,

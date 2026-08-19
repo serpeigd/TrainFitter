@@ -212,6 +212,7 @@ from gmail_client import (  # noqa: E402
     enviar_enlace_portal,
     enviar_formulario_intake,
     enviar_notificacion_checkin,
+    enviar_plan,
     verificar_envio,
 )
 from notion_connector import (  # noqa: E402
@@ -794,6 +795,8 @@ TRANSLATIONS = {
         "intake_check_error": "Could not check for a reply: {error}",
         "sec_basic_info": "1. Basic info",
         "full_name": "Full name",
+        "client_email_field": "Email",
+        "email_invalid_error": "That doesn't look like a valid email address.",
         "age": "Age",
         "sex": "Sex",
         "weight_kg": "Current weight (kg)",
@@ -879,6 +882,17 @@ TRANSLATIONS = {
             "✅ **No reasons for enhanced review.** It still needs your approval "
             "before sending — TrainFitter never sends anything on its own."
         ),
+        "no_review_reasons_auto_send": (
+            "✅ **No reasons for enhanced review.** This plan will be sent to the client automatically."
+        ),
+        "auto_send_ready": "Ready to send automatically to **{email}** — no problems found, no review needed.",
+        "auto_send_confirm_button": "✅ Send now",
+        "auto_send_dialog_title": "Confirm automatic send",
+        "auto_send_dialog_caption": "This sends the plan directly to {email} — no draft, no further review.",
+        "auto_send_sending": "Sending...",
+        "auto_send_success": "✅ Sent automatically to **{email}**.",
+        "auto_send_error": "Could not send automatically: {error}",
+        "auto_send_fallback_caption": "You can still approve and send it manually below.",
         "routine_header": "🏋️ Routine",
         "split_label": "**Split:**",
         "days_week_label": "**Days/week:**",
@@ -948,13 +962,12 @@ TRANSLATIONS = {
         "portal_invalid_link": "This portal link isn't valid or has expired: {error}",
         "portal_load_error": "Could not load your plan: {error}",
         "portal_welcome": "Hi {nombre} 👋",
-        "portal_since_label": "Client since {fecha}",
         "portal_notes_header": "📝 Notes from your trainer",
         "routine_label": "Routine:",
         "diet_label": "Diet:",
-        "portal_plan_header": "📋 Your plan this week",
         "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": "Liked meals show up more often in your future plans.",
+        "portal_meal_back_button": "⬅️ Back",
         "portal_meal_skip_button": "➡️ Skip",
         "portal_meal_like_button": "❤️ Like it",
         "portal_meal_unlike_button": "💔 Remove like",
@@ -963,7 +976,7 @@ TRANSLATIONS = {
         "portal_meal_like_error": "Could not save that: {error}",
         "portal_routine_header": "🏋️ Routine",
         "portal_history_header": "📈 Your check-in history",
-        "portal_checkin_header": "How's it going?",
+        "portal_checkin_header": "✅ How's it going?",
         "portal_checkin_intro": "A quick check-in for your trainer — no need to fill in a PDF.",
         "portal_routine_section_title": "🏋️ Routine",
         "portal_diet_section_title": "🍽️ Diet",
@@ -1048,6 +1061,8 @@ TRANSLATIONS = {
         "intake_check_error": "No se pudo comprobar si respondió: {error}",
         "sec_basic_info": "1. Datos básicos",
         "full_name": "Nombre completo",
+        "client_email_field": "Email",
+        "email_invalid_error": "No parece una dirección de email válida.",
         "age": "Edad",
         "sex": "Sexo",
         "weight_kg": "Peso actual (kg)",
@@ -1134,6 +1149,17 @@ TRANSLATIONS = {
             "✅ **Sin motivos de revisión reforzada.** Aun así, sigue esperando tu aprobación "
             "antes de enviarse — TrainFitter nunca envía nada por su cuenta."
         ),
+        "no_review_reasons_auto_send": (
+            "✅ **Sin motivos de revisión reforzada.** Este plan se enviará al cliente automáticamente."
+        ),
+        "auto_send_ready": "Listo para enviar automáticamente a **{email}** — sin problemas detectados, no necesita revisión.",
+        "auto_send_confirm_button": "✅ Enviar ahora",
+        "auto_send_dialog_title": "Confirmar envío automático",
+        "auto_send_dialog_caption": "Esto envía el plan directamente a {email} — sin borrador, sin más revisión.",
+        "auto_send_sending": "Enviando...",
+        "auto_send_success": "✅ Enviado automáticamente a **{email}**.",
+        "auto_send_error": "No se pudo enviar automáticamente: {error}",
+        "auto_send_fallback_caption": "Aún puedes aprobarlo y enviarlo manualmente más abajo.",
         "routine_header": "🏋️ Rutina",
         "split_label": "**Split:**",
         "days_week_label": "**Días/semana:**",
@@ -1204,13 +1230,12 @@ TRANSLATIONS = {
         "portal_invalid_link": "Este enlace del portal no es válido o ha caducado: {error}",
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_welcome": "Hola {nombre} 👋",
-        "portal_since_label": "Cliente desde {fecha}",
         "portal_notes_header": "📝 Notas de tu entrenador/a",
         "routine_label": "Rutina:",
         "diet_label": "Dieta:",
-        "portal_plan_header": "📋 Tu plan esta semana",
         "portal_meals_header": "🍽️ Comidas",
         "portal_meals_caption": "Las comidas que te gusten aparecerán más a menudo en tus próximos planes.",
+        "portal_meal_back_button": "⬅️ Atrás",
         "portal_meal_skip_button": "➡️ Pasar",
         "portal_meal_like_button": "❤️ Me gusta",
         "portal_meal_unlike_button": "💔 Quitar me gusta",
@@ -1219,7 +1244,7 @@ TRANSLATIONS = {
         "portal_meal_like_error": "No se pudo guardar: {error}",
         "portal_routine_header": "🏋️ Rutina",
         "portal_history_header": "📈 Tu historial de check-ins",
-        "portal_checkin_header": "¿Cómo va todo?",
+        "portal_checkin_header": "✅ ¿Cómo va todo?",
         "portal_checkin_intro": "Un check-in rápido para tu entrenador/a — sin rellenar ningún PDF.",
         "portal_routine_section_title": "🏋️ Rutina",
         "portal_diet_section_title": "🍽️ Dieta",
@@ -1575,6 +1600,7 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
 
     return {
         "nombre": datos["nombre"],
+        "email": datos.get("email", ""),
         "edad": datos["edad"],
         "sexo_valor": datos["sexo"],
         "peso": datos["peso_kg"],
@@ -1628,14 +1654,19 @@ def _formulario_ficha_nueva() -> dict | None:
     # With standalone widgets, every interaction reruns the script and the
     # UI can react immediately.
     st.subheader(t("sec_basic_info"))
+    c0a, c0b = st.columns(2)
+    nombre = c0a.text_input(t("full_name"), key="nombre")
+    # Not part of the schema before this -- needed now so a plan the
+    # validator approves outright can be emailed the moment it's
+    # generated (see mcp/gmail_client.py's enviar_plan()) instead of
+    # waiting for the trainer to type an address in at approval time.
+    email = c0b.text_input(t("client_email_field"), key="email")
     c1, c2, c3 = st.columns(3)
-    nombre = c1.text_input(t("full_name"), key="nombre")
-    edad = c2.number_input(t("age"), min_value=14, max_value=100, value=30, key="edad")
+    edad = c1.number_input(t("age"), min_value=14, max_value=100, value=30, key="edad")
     clave_sexo, indice_sexo = _clave_selectbox("sexo", ["mujer", "hombre"], "hombre")
-    sexo = c3.selectbox(t("sex"), ["mujer", "hombre"], format_func=opt, index=indice_sexo, key=clave_sexo)
-    c4, c5 = st.columns(2)
-    peso_kg = c4.number_input(t("weight_kg"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="peso")
-    altura_cm = c5.number_input(t("height_cm"), min_value=120, max_value=230, value=170, key="altura")
+    sexo = c2.selectbox(t("sex"), ["mujer", "hombre"], format_func=opt, index=indice_sexo, key=clave_sexo)
+    peso_kg = c3.number_input(t("weight_kg"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="peso")
+    altura_cm = st.number_input(t("height_cm"), min_value=120, max_value=230, value=170, key="altura")
 
     st.subheader(t("sec_goal"))
     clave_objetivo, indice_objetivo = _clave_selectbox("objetivo", OBJETIVOS, OBJETIVOS[0])
@@ -1766,6 +1797,16 @@ def _formulario_ficha_nueva() -> dict | None:
         st.error(t("name_required_error"))
         return None
 
+    # Not a hard blocker -- a blank/malformed email just means this intake
+    # doesn't qualify for the auto-send flow (see _intentar_envio_automatico())
+    # and falls back to the manual approve-and-draft one, same as before
+    # this field existed. Only a genuinely malformed non-empty value is
+    # rejected outright, so a trainer can't accidentally save garbage.
+    email_normalizado = email.strip()
+    if email_normalizado and "@" not in email_normalizado:
+        st.error(t("email_invalid_error"))
+        return None
+
     ahora = datetime.now(timezone.utc)
     if analitica_pdf is not None:
         # A new upload always wins -- e.g. a follow-up blood test during a
@@ -1792,6 +1833,7 @@ def _formulario_ficha_nueva() -> dict | None:
         "fecha_admision": ahora.date().isoformat(),
         "datos_basicos": {
             "nombre": nombre.strip(),
+            "email": email_normalizado,
             "edad": int(edad),
             "sexo": sexo,
             "peso_kg": float(peso_kg),
@@ -2012,6 +2054,22 @@ def _idioma_del_perfil(perfil: dict) -> str:
     return st.session_state.lang
 
 
+def _califica_para_auto_envio(estado, guardar_en_notion: bool) -> bool:
+    """Whether this plan should skip the manual approve-then-draft flow
+    and go straight to enviar_plan() instead -- requested directly: a
+    plan the validator itself marked "aprobado_automatico" needs no
+    human look before it goes out, so waiting on a manual click is pure
+    friction with no safety benefit. Never true for the example-client
+    demo (guardar_en_notion is False there) or for a profile with no
+    usable email on file -- both fall back to the existing manual
+    _panel_aprobacion() flow unchanged, same as a "revision_reforzada"
+    plan always does regardless of this check."""
+    if not guardar_en_notion or estado.veredicto["veredicto"] != "aprobado_automatico":
+        return False
+    email = estado.perfil_cliente["datos_basicos"].get("email", "").strip()
+    return bool(email) and "@" in email
+
+
 def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     with st.status(t("generating_status"), expanded=True) as status:
         def _al_transicionar(_cliente_id: str, nuevo_estado: str) -> None:
@@ -2029,6 +2087,7 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
         return
 
     es_revision_reforzada = estado.veredicto["veredicto"] == "revision_reforzada"
+    auto_envio = _califica_para_auto_envio(estado, guardar_en_notion)
     _render_stepper(
         [
             (t("step_routine"), "rutina_generada" in estado.historial),
@@ -2040,7 +2099,7 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     )
 
     st.divider()
-    _mostrar_veredicto(estado.veredicto)
+    _mostrar_veredicto(estado.veredicto, auto_envio=auto_envio)
 
     col_rutina, col_dieta = st.columns(2)
     # Explicit `key=` gives Streamlit a stable "st-key-*" CSS class to target
@@ -2054,14 +2113,24 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
 
     st.divider()
     with st.container(border=True, key="tf-card-aprobacion"):
-        _panel_aprobacion(estado, guardar_en_notion=guardar_en_notion)
+        # _panel_envio_automatico() returns True once it has fully
+        # handled this plan (sent, or a confirm step is pending) --
+        # False tells us to fall back to the normal manual panel, either
+        # because this plan doesn't qualify at all, or because a real
+        # send just failed and manual recovery (approve, then create a
+        # draft by hand) is the right next step.
+        manejado = auto_envio and _panel_envio_automatico(estado)
+        if not manejado:
+            _panel_aprobacion(estado, guardar_en_notion=guardar_en_notion)
 
 
-def _mostrar_veredicto(veredicto: dict) -> None:
+def _mostrar_veredicto(veredicto: dict, auto_envio: bool = False) -> None:
     if veredicto["veredicto"] == "revision_reforzada":
         st.warning(t("enhanced_review_warning"))
         for motivo in veredicto["motivos"]:
             st.markdown(f"- {motivo}")
+    elif auto_envio:
+        st.success(t("no_review_reasons_auto_send"))
     else:
         st.success(t("no_review_reasons_success"))
 
@@ -2157,6 +2226,153 @@ def _mostrar_dieta(dieta: dict) -> None:
         file_name="diet.json",
         mime="application/json",
     )
+
+
+def _ejecutar_envio_automatico(estado) -> None:
+    """The actual auto-send side effects: save/update the Clients record,
+    then enviar_plan() -- one real, sent email with the plan PDFs and a
+    fresh portal link folded in (see gmail_client.py's enviar_plan()
+    DESIGN note). Replaces the whole approve-then-draft flow for a plan
+    the validator already marked safe to go out with no human look.
+
+    Mirrors _ejecutar_aprobacion()'s Notion-save branch exactly (same
+    es_revision check via revisar_perfil_id, same
+    actualizar_registro_cliente() vs guardar_registro_cliente() choice)
+    since there's no separate "Approve" click left to gate that behind
+    for this path -- generating the plan IS the approval, once the
+    validator has already vouched for it.
+
+    Results go to session_state, not straight to st.success()/st.error()
+    here -- same reason _ejecutar_aprobacion() does it: the password-
+    dialog path calls st.rerun() right after this to close the popup,
+    which would wipe out anything rendered directly in this function
+    before the trainer ever saw it. _panel_envio_automatico() reads
+    these back on the next run."""
+    perfil = estado.perfil_cliente
+    idioma = _idioma_del_perfil(perfil)
+    email = perfil["datos_basicos"].get("email", "").strip()
+    nombre = perfil["datos_basicos"]["nombre"]
+
+    with st.spinner(t("auto_send_sending")):
+        es_revision = st.session_state.get("revisar_perfil_id") == id(perfil)
+        try:
+            if es_revision:
+                resultado = actualizar_registro_cliente(
+                    st.session_state["revisar_pagina_id"], perfil, estado.borrador_rutina, estado.borrador_dieta,
+                    estado.veredicto, idioma=idioma,
+                )
+            else:
+                resultado = guardar_registro_cliente(
+                    perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto, idioma=idioma,
+                )
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.session_state["auto_envio_error"] = str(exc)
+            st.session_state["auto_envio_error_para"] = id(perfil)
+            return
+
+        pagina_id = resultado["id"]
+        try:
+            codigo = generar_referencia_portal(pagina_id, email)
+            url_portal = f"{PORTAL_BASE_URL}?ref={codigo}"
+            enviar_plan(
+                email, nombre, estado.borrador_rutina, estado.borrador_dieta, idioma=idioma, url_portal=url_portal,
+            )
+        except (GmailClientError, PortalTokenError, NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            # Notion record already saved above at this point -- a Gmail/
+            # portal-reference failure here doesn't undo that, it just
+            # means the send itself still needs the manual fallback
+            # (_panel_aprobacion(), rendered when this returns without
+            # setting auto_envio_para below).
+            st.session_state["auto_envio_error"] = str(exc)
+            st.session_state["auto_envio_error_para"] = id(perfil)
+            return
+
+        # Known for certain the moment enviar_plan() returns without
+        # raising -- unlike the draft flow, there's no later "check if
+        # sent" step needed; both are best-effort, same as everywhere
+        # else a Notion write follows a confirmed Gmail action in this file.
+        hoy = datetime.now().date().isoformat()
+        try:
+            marcar_email_enviado(pagina_id)
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            pass
+        try:
+            crear_registro_checkin(email, nombre, "Plan sent", hoy)
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            pass
+
+    st.session_state["auto_envio_para"] = id(perfil)
+    st.session_state["auto_envio_email"] = email
+    st.session_state["auto_envio_error"] = None
+    st.session_state["auto_envio_error_para"] = None
+
+
+@st.dialog(t("auto_send_dialog_title"))
+def _dialogo_envio_automatico(estado) -> None:
+    """Popup shown instead of sending directly, on any deployment where
+    APPROVAL_PASSWORD is set -- the one confirmation step left standing
+    between a public-demo visitor and a real, unreviewed email going out
+    to whatever address they typed in (see gmail_client.py's enviar_plan()
+    DESIGN note on why the gmail.compose-can't-send protection doesn't
+    apply here the way it does for crear_borrador()). Same Streamlit
+    session_state-flag pattern as _dialogo_aprobacion() -- typing in the
+    password field is itself a rerun, so the dialog's open state can't
+    just be "was the trigger button clicked this run"."""
+    email = estado.perfil_cliente["datos_basicos"].get("email", "")
+    st.caption(t("auto_send_dialog_caption").format(email=email))
+    password_ingresada = st.text_input(t("approval_password_label"), type="password", key="auto_envio_password_dialog")
+    if st.button(t("auto_send_confirm_button"), type="primary"):
+        if _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+            return
+        if not _verificar_password(password_ingresada):
+            st.error(t("approval_password_wrong"))
+            return
+        _ejecutar_envio_automatico(estado)
+        st.session_state["mostrar_dialogo_envio_automatico"] = False
+        st.rerun()
+
+
+def _panel_envio_automatico(estado) -> bool:
+    """Renders in place of _panel_aprobacion() for a plan that qualifies
+    for auto-send (see _califica_para_auto_envio()) -- a validator
+    verdict of "aprobado_automatico", a real client (not the
+    example-client demo), with a usable email on file.
+
+    Returns:
+        True once this plan has been fully handled here (already sent,
+        or a confirm step is currently showing) -- the caller skips
+        _panel_aprobacion() entirely in that case. False tells the
+        caller to fall back to the normal manual panel instead: a real
+        send just failed and manual recovery (approve, then create a
+        draft by hand) is the right next step. _califica_para_auto_envio()
+        already ruled out every case where this function isn't even
+        called in the first place."""
+    perfil = estado.perfil_cliente
+    email = perfil["datos_basicos"].get("email", "").strip()
+
+    if st.session_state.get("auto_envio_para") == id(perfil):
+        st.markdown(t("approval_header"))
+        st.success(t("auto_send_success").format(email=st.session_state.get("auto_envio_email", email)))
+        return True
+
+    if st.session_state.get("auto_envio_error_para") == id(perfil):
+        st.markdown(t("approval_header"))
+        st.error(t("auto_send_error").format(error=st.session_state["auto_envio_error"]))
+        st.caption(t("auto_send_fallback_caption"))
+        return False
+
+    st.markdown(t("approval_header"))
+    st.info(t("auto_send_ready").format(email=email))
+    if APPROVAL_PASSWORD:
+        if st.button(t("auto_send_confirm_button"), type="primary"):
+            st.session_state["mostrar_dialogo_envio_automatico"] = True
+        if st.session_state.get("mostrar_dialogo_envio_automatico"):
+            _dialogo_envio_automatico(estado)
+    else:
+        _ejecutar_envio_automatico(estado)
+        st.rerun()
+    return True
 
 
 def _ejecutar_aprobacion(estado, guardar_en_notion: bool) -> None:
@@ -2377,7 +2593,14 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     st.markdown(t("gmail_section_header"))
     if not aprobado:
         st.info(t("gmail_requires_approval"))
-    email_cliente = st.text_input(t("client_email_label"), key="email_cliente", disabled=not aprobado)
+    # Pre-filled from the intake's own email field now that one exists
+    # (see _formulario_ficha_nueva()) -- only takes effect the first time
+    # this widget's key is instantiated, standard Streamlit behavior, so
+    # it doesn't fight a value the trainer already typed/edited here.
+    email_cliente = st.text_input(
+        t("client_email_label"), value=perfil["datos_basicos"].get("email", ""), key="email_cliente",
+        disabled=not aprobado,
+    )
     incluir_checklist = st.checkbox(
         t("attach_checklist_label"), key="incluir_checklist", disabled=not aprobado,
     )
@@ -2514,7 +2737,13 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
     literal touch-swipe gesture (Streamlit has no native gesture support,
     and a custom JS component would be fragile across mobile browsers for
     little real gain) -- two big buttons achieve the same "fast, one
-    decision at a time" goal reliably instead."""
+    decision at a time" goal reliably instead.
+
+    A "Back" button (direct request) steps the index back one instead of
+    only ever moving forward -- lets a client re-see (and, since the
+    like/skip choice re-reads real state every render, change) the
+    previous meal's decision, both mid-flow and from the final "done"
+    screen."""
     comidas_planas = [
         (dia_info["dia"], comida) for dia_info in plan_semanal for comida in dia_info.get("comidas", [])
     ]
@@ -2523,7 +2752,11 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
 
     if indice >= total:
         st.success(t("portal_meals_done"))
-        if st.button(t("portal_meals_restart"), key="portal_comidas_reiniciar"):
+        col_atras_final, col_reiniciar = st.columns(2)
+        if col_atras_final.button(t("portal_meal_back_button"), key="portal_comidas_atras_final"):
+            st.session_state["portal_comida_idx"] = total - 1
+            st.rerun()
+        if col_reiniciar.button(t("portal_meals_restart"), key="portal_comidas_reiniciar"):
             st.session_state["portal_comida_idx"] = 0
             st.rerun()
         return
@@ -2541,7 +2774,10 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
     st.markdown(f"**{dia} — {comida['tipo']}**")
     st.markdown(f"{comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
 
-    col_no, col_si = st.columns(2)
+    col_atras, col_no, col_si = st.columns([1, 2, 2])
+    if indice > 0 and col_atras.button(t("portal_meal_back_button"), key=f"portal_atras_{indice}"):
+        st.session_state["portal_comida_idx"] = indice - 1
+        st.rerun()
     if col_no.button(t("portal_meal_skip_button"), key=f"portal_skip_{indice}"):
         st.session_state["portal_comida_idx"] = indice + 1
         st.rerun()
@@ -2567,17 +2803,35 @@ def _vista_portal_cliente(codigo: str) -> None:
     sees any of that; this function is a dead end, not a sub-section of
     the trainer's page.
 
-    Kept deliberately minimal (real feedback from live use: the old
-    version opened on a long prose summary and split "this week" into two
-    separate expanders) -- no summary text, one combined "your plan"
-    section open by default so the main reason a client follows this link
-    needs zero clicks, and only "your history" stays collapsed."""
-    st.title("TrainFitter")
+    Kept deliberately minimal -- real feedback from live use, twice over:
+    first that the old version opened on a long prose summary (dropped
+    entirely), and now that even the trimmed version read as one long
+    page instead of something organized ("apartados como desplegables
+    por secciones... más minimalista, intuitivo o visual"). Every section
+    is now its own `st.expander`, collapsed by default except "Meals" --
+    the one reason most clients follow this link at all keeps needing
+    zero clicks; everything else (tips, routine, history, check-in) is
+    tidied away a tap behind its own labeled, iconed section instead of
+    stacked as one long scroll.
+
+    On the resolve step specifically: real bug, `NotionClientError` (a
+    transient Notion API failure -- plausible right when a cold-started
+    deployment wakes up and makes its first request) used to propagate
+    straight past the narrow `except PortalTokenError` clause here and
+    crash the whole page instead of showing a recoverable message --
+    correlates with the reported "the link breaks after the app goes to
+    sleep" symptom, though Streamlit Community Cloud's own wake-up
+    redirect may also drop the `?ref=...` query string outright in some
+    cases, a platform behavior outside this function's control."""
+    st.caption("TrainFitter")
 
     try:
         carga = resolver_referencia_portal(codigo)
     except PortalTokenError as exc:
         st.error(t("portal_invalid_link").format(error=str(exc)))
+        return
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.error(t("portal_load_error").format(error=str(exc)))
         return
 
     try:
@@ -2594,52 +2848,45 @@ def _vista_portal_cliente(codigo: str) -> None:
     st.session_state.lang = registro.get("idioma") or "en"
 
     nombre = registro["nombre"] or carga["email"]
-    st.header(t("portal_welcome").format(nombre=nombre))
-    if registro["fecha"]:
-        st.caption(t("portal_since_label").format(fecha=registro["fecha"]))
+    st.title(t("portal_welcome").format(nombre=nombre))
 
     # Same minimal, concrete content the plan email shows (a real tip,
     # not the trainer's generic note -- see gmail_client.
     # obtener_texto_cliente()), already reduced and greeting-stripped at
     # save time (mcp/notion_connector.py), so only dividir_en_puntos()'s
-    # own bullet split is needed here. Same plain "Rutina:"/"Dieta:"
-    # labels as the email, no emoji -- direct follow-up request ("aplica
-    # esto también al portal") once bullets replaced the plan email's own
-    # wall of text. Empty for a record saved before "Routine Message"/
-    # "Diet Message" existed -- that section just doesn't render, same
-    # degrade-gracefully spirit as every other best-effort read here.
+    # own bullet split is needed here. Empty for a record saved before
+    # "Routine Message"/"Diet Message" existed -- that section just
+    # doesn't render, same degrade-gracefully spirit as every other
+    # best-effort read here.
     mensaje_rutina = registro.get("mensaje_rutina")
     mensaje_dieta = registro.get("mensaje_dieta")
     if mensaje_rutina or mensaje_dieta:
-        st.markdown(f"**{t('portal_notes_header')}**")
-        if mensaje_rutina:
-            st.markdown(f"**{t('routine_label')}**")
-            st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_rutina)))
-        if mensaje_dieta:
-            st.markdown(f"**{t('diet_label')}**")
-            st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_dieta)))
+        with st.expander(t("portal_notes_header")):
+            if mensaje_rutina:
+                st.markdown(f"**{t('routine_label')}**")
+                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_rutina)))
+            if mensaje_dieta:
+                st.markdown(f"**{t('diet_label')}**")
+                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_dieta)))
 
     # "plan_semanal"/"sesiones" are empty for a record saved before those
     # properties existed -- degrades to no section at all, same spirit as
     # every other best-effort read in this file.
     plan_semanal = registro.get("plan_semanal") or []
     sesiones = registro.get("sesiones") or []
-    if plan_semanal or sesiones:
-        with st.expander(t("portal_plan_header"), expanded=True):
-            if plan_semanal:
-                st.markdown(f"**{t('portal_meals_header')}**")
-                st.caption(t("portal_meals_caption"))
-                _render_swipe_comidas(plan_semanal, registro.get("comidas_favoritas") or [], carga["pagina"])
 
-            if sesiones:
-                if plan_semanal:
-                    st.divider()
-                st.markdown(f"**{t('portal_routine_header')}**")
-                for sesion in sesiones:
-                    st.markdown(f"**{sesion['dia']}**")
-                    for ejercicio in sesion.get("ejercicios", []):
-                        nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
-                        st.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
+    if plan_semanal:
+        with st.expander(t("portal_meals_header"), expanded=True):
+            st.caption(t("portal_meals_caption"))
+            _render_swipe_comidas(plan_semanal, registro.get("comidas_favoritas") or [], carga["pagina"])
+
+    if sesiones:
+        with st.expander(t("portal_routine_header")):
+            for sesion in sesiones:
+                st.markdown(f"**{sesion['dia']}**")
+                for ejercicio in sesion.get("ejercicios", []):
+                    nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
+                    st.markdown(f"{nombre_es} — {ejercicio['series']}x{ejercicio['repeticiones']}")
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own
@@ -2649,171 +2896,170 @@ def _vista_portal_cliente(codigo: str) -> None:
     with st.expander(t("portal_history_header")):
         _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
-    st.divider()
-    st.subheader(t("portal_checkin_header"))
-    st.caption(t("portal_checkin_intro"))
-
-    # Standalone widgets, not st.form -- "completed" needs to react live
-    # to whatever the client just set "total" to, and a form doesn't
-    # rerun until submit, so that clamp wouldn't take effect until after
-    # the fact. Same trade-off _formulario_ficha_nueva() already makes
-    # above, for the same reason. Each "total"/checkbox widget is placed
-    # -- and its value read -- BEFORE its matching "completed" widget, in
-    # both code and visual order this time (no more side-by-side columns,
-    # which read backwards: "completed" appeared before "total" was even
-    # set). Sliders instead of bare number boxes -- a visual fill showing
-    # where "completed" sits relative to "total" reads faster than two
-    # unrelated-looking number fields, and st.progress() below adds an
-    # explicit fraction for the same reason.
-    st.markdown(f"**{t('portal_routine_section_title')}**")
-    totales_rutina = st.slider(
-        t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
-    )
-    # Sessions completed is deliberately NOT capped at "planned" the way
-    # diet days is below -- a client can genuinely train more than the
-    # plan called for (an extra session), unlike "days I followed the
-    # diet" which can't exceed the days actually in the check-in period.
-    # The checkbox is an explicit, discoverable way to say "yes, really
-    # more than planned" rather than silently allowing any number by
-    # default, which would make a typo too easy to enter unnoticed.
-    mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
-    max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
-    completados_rutina = st.slider(
-        t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
-        key="portal_completados_rutina",
-    )
-    st.progress(
-        min(completados_rutina / totales_rutina, 1.0), text=f"{completados_rutina}/{totales_rutina}",
-    )
-    notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
-
-    st.markdown(f"**{t('portal_diet_section_title')}**")
-    totales_dieta = st.slider(
-        t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
-    )
-    # Diet days followed, unlike sessions above, IS hard-capped at the
-    # total -- a real, definitional bound (you can't follow a diet for
-    # more days than exist in the check-in period), not a target a client
-    # might exceed. No override checkbox here on purpose.
-    seguidos_dieta = st.slider(
-        t("portal_diet_completed_label"), min_value=0, max_value=int(totales_dieta), value=0,
-        key="portal_seguidos_dieta",
-    )
-    st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
-    notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
-
-    # Optional, checkbox-gated like every other "share something extra"
-    # field in this project (the injury/pregnancy detail fields in
-    # _formulario_ficha_nueva()) -- closes a real loop the rule engines
-    # already claim exists: dieta_reglas.py's own generated message tells
-    # the client the plan "gets adjusted based on real weight ... over the
-    # first few weeks", but until this field existed there was no path for
-    # that number to ever reach anywhere (see mcp/notion_connector.py's
-    # docstring on "Weight (kg)").
-    st.markdown(f"**{t('portal_weight_section_title')}**")
-    compartir_peso = st.checkbox(t("portal_share_weight_label"), key="portal_compartir_peso")
-    peso_actual = None
-    if compartir_peso:
-        peso_actual = st.number_input(
-            t("portal_weight_label"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="portal_peso_actual",
+    checkin_expander = st.expander(t("portal_checkin_header"))
+    checkin_expander.caption(t("portal_checkin_intro"))
+    with checkin_expander:
+        # Standalone widgets, not st.form -- "completed" needs to react live
+        # to whatever the client just set "total" to, and a form doesn't
+        # rerun until submit, so that clamp wouldn't take effect until after
+        # the fact. Same trade-off _formulario_ficha_nueva() already makes
+        # above, for the same reason. Each "total"/checkbox widget is placed
+        # -- and its value read -- BEFORE its matching "completed" widget, in
+        # both code and visual order this time (no more side-by-side columns,
+        # which read backwards: "completed" appeared before "total" was even
+        # set). Sliders instead of bare number boxes -- a visual fill showing
+        # where "completed" sits relative to "total" reads faster than two
+        # unrelated-looking number fields, and st.progress() below adds an
+        # explicit fraction for the same reason.
+        st.markdown(f"**{t('portal_routine_section_title')}**")
+        totales_rutina = st.slider(
+            t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
         )
-
-    enviado = st.button(t("portal_submit_button"), type="primary")
-
-    if not enviado:
-        return
-
-    # Same data shape leer_checklist_pdf() produces (see
-    # agents/pdf_generador.py) -- reuses resumir_adherencia()/
-    # valoracion_desde_ratios() rather than reimplementing that
-    # formatting a second time for this second submission channel.
-    datos = {
-        "dias_rutina_completados": int(completados_rutina),
-        "dias_rutina_totales": int(totales_rutina),
-        "notas_rutina": notas_rutina.strip(),
-        "dias_dieta_seguidos": int(seguidos_dieta),
-        "dias_dieta_totales": int(totales_dieta),
-        "notas_dieta": notas_dieta.strip(),
-    }
-    ratios = []
-    if datos["dias_rutina_totales"]:
-        ratios.append(datos["dias_rutina_completados"] / datos["dias_rutina_totales"])
-    if datos["dias_dieta_totales"]:
-        ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
-
-    peso_kg = float(peso_actual) if compartir_peso else None
-    valoracion = valoracion_desde_ratios(ratios)
-    try:
-        crear_registro_checkin(
-            carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
-            notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
+        # Sessions completed is deliberately NOT capped at "planned" the way
+        # diet days is below -- a client can genuinely train more than the
+        # plan called for (an extra session), unlike "days I followed the
+        # diet" which can't exceed the days actually in the check-in period.
+        # The checkbox is an explicit, discoverable way to say "yes, really
+        # more than planned" rather than silently allowing any number by
+        # default, which would make a typo too easy to enter unnoticed.
+        mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
+        max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
+        completados_rutina = st.slider(
+            t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
+            key="portal_completados_rutina",
         )
-    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-        st.error(t("portal_submit_error").format(error=str(exc)))
-        return
+        st.progress(
+            min(completados_rutina / totales_rutina, 1.0), text=f"{completados_rutina}/{totales_rutina}",
+        )
+        notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
 
-    st.success(t("portal_submit_success"))
+        st.markdown(f"**{t('portal_diet_section_title')}**")
+        totales_dieta = st.slider(
+            t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
+        )
+        # Diet days followed, unlike sessions above, IS hard-capped at the
+        # total -- a real, definitional bound (you can't follow a diet for
+        # more days than exist in the check-in period), not a target a client
+        # might exceed. No override checkbox here on purpose.
+        seguidos_dieta = st.slider(
+            t("portal_diet_completed_label"), min_value=0, max_value=int(totales_dieta), value=0,
+            key="portal_seguidos_dieta",
+        )
+        st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
+        notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
 
-    # Best-effort, same spirit as actualizar_email_cliente()/
-    # marcar_email_enviado() elsewhere in this file: the trainer
-    # notification is a convenience on top of the real record (the
-    # Notion row just saved above), never a reason to make the client's
-    # own submission look like it failed if this part doesn't work.
-    if TRAINER_NOTIFICATION_EMAIL:
+        # Optional, checkbox-gated like every other "share something extra"
+        # field in this project (the injury/pregnancy detail fields in
+        # _formulario_ficha_nueva()) -- closes a real loop the rule engines
+        # already claim exists: dieta_reglas.py's own generated message tells
+        # the client the plan "gets adjusted based on real weight ... over the
+        # first few weeks", but until this field existed there was no path for
+        # that number to ever reach anywhere (see mcp/notion_connector.py's
+        # docstring on "Weight (kg)").
+        st.markdown(f"**{t('portal_weight_section_title')}**")
+        compartir_peso = st.checkbox(t("portal_share_weight_label"), key="portal_compartir_peso")
+        peso_actual = None
+        if compartir_peso:
+            peso_actual = st.number_input(
+                t("portal_weight_label"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="portal_peso_actual",
+            )
+
+        enviado = st.button(t("portal_submit_button"), type="primary")
+
+        if not enviado:
+            return
+
+        # Same data shape leer_checklist_pdf() produces (see
+        # agents/pdf_generador.py) -- reuses resumir_adherencia()/
+        # valoracion_desde_ratios() rather than reimplementing that
+        # formatting a second time for this second submission channel.
+        datos = {
+            "dias_rutina_completados": int(completados_rutina),
+            "dias_rutina_totales": int(totales_rutina),
+            "notas_rutina": notas_rutina.strip(),
+            "dias_dieta_seguidos": int(seguidos_dieta),
+            "dias_dieta_totales": int(totales_dieta),
+            "notas_dieta": notas_dieta.strip(),
+        }
+        ratios = []
+        if datos["dias_rutina_totales"]:
+            ratios.append(datos["dias_rutina_completados"] / datos["dias_rutina_totales"])
+        if datos["dias_dieta_totales"]:
+            ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
+
+        peso_kg = float(peso_actual) if compartir_peso else None
+        valoracion = valoracion_desde_ratios(ratios)
         try:
-            # Best-effort here too: a failure fetching fresh history just
-            # means the notification skips the weight-trend check, not
-            # that the whole notification (or the check-in save above,
-            # already committed) is blocked over it.
-            try:
-                historial_actualizado = historial_checkins(carga["email"])
-            except (NotionClientError, ImportError, ModuleNotFoundError):
-                historial_actualizado = None
-            enviar_notificacion_checkin(
-                TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
-                historial=historial_actualizado, objetivo=registro.get("objetivo"),
+            crear_registro_checkin(
+                carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
+                notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
             )
-        except (GmailClientError, ImportError, ModuleNotFoundError):
-            pass
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.error(t("portal_submit_error").format(error=str(exc)))
+            return
 
-    # Best-effort regeneration + draft -- closes the loop directly
-    # requested by the project owner: a check-in should do more than sit
-    # in Notion. Rebuilds perfil_cliente from "Full Profile (JSON)" (same
-    # source _cargar_ficha_para_revisar() already reads), substitutes in
-    # the weight just logged above (if shared) so calorie targets actually
-    # react to it -- the real mechanism dieta_reglas.py's own message has
-    # always promised but, until "Weight (kg)" existed, nothing fed --
-    # reruns the full pipeline, overwrites the regenerated plan onto the
-    # same Clients record (actualizar_registro_cliente(), same "one master
-    # record per client" pattern "Revise client" already uses), and drops
-    # a Gmail DRAFT with the new plan plus a fresh portal link in the same
-    # email ("dentro del mismo correo," a direct request). Never
-    # auto-sent -- explicitly confirmed with the project owner:
-    # auto-regenerating is fine, auto-contacting a client is not, so the
-    # trainer still reviews and sends this draft themselves, same
-    # guarantee as every other outgoing email in this project. Best-effort
-    # like the trainer notification above: any failure here (a stale
-    # profile, a Gmail/Notion hiccup) never blocks the check-in already
-    # saved, and is silently skipped -- there's no UI surface in the
-    # client portal to report a trainer-side draft failure to a client.
-    try:
-        perfil_regenerado = obtener_perfil_completo(carga["pagina"])
-        if peso_kg:
-            perfil_regenerado.setdefault("datos_basicos", {})["peso_kg"] = peso_kg
-        idioma_plan = registro.get("idioma") or "en"
-        estado_regenerado = ejecutar_pipeline(perfil_regenerado, idioma=idioma_plan)
-        if not estado_regenerado.error:
-            actualizar_registro_cliente(
-                carga["pagina"], perfil_regenerado, estado_regenerado.borrador_rutina,
-                estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
-            )
-            nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
-            crear_borrador(
-                carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
-                idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}",
-            )
-    except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
-        pass
+        st.success(t("portal_submit_success"))
+
+        # Best-effort, same spirit as actualizar_email_cliente()/
+        # marcar_email_enviado() elsewhere in this file: the trainer
+        # notification is a convenience on top of the real record (the
+        # Notion row just saved above), never a reason to make the client's
+        # own submission look like it failed if this part doesn't work.
+        if TRAINER_NOTIFICATION_EMAIL:
+            try:
+                # Best-effort here too: a failure fetching fresh history just
+                # means the notification skips the weight-trend check, not
+                # that the whole notification (or the check-in save above,
+                # already committed) is blocked over it.
+                try:
+                    historial_actualizado = historial_checkins(carga["email"])
+                except (NotionClientError, ImportError, ModuleNotFoundError):
+                    historial_actualizado = None
+                enviar_notificacion_checkin(
+                    TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
+                    historial=historial_actualizado, objetivo=registro.get("objetivo"),
+                )
+            except (GmailClientError, ImportError, ModuleNotFoundError):
+                pass
+
+        # Best-effort regeneration + draft -- closes the loop directly
+        # requested by the project owner: a check-in should do more than sit
+        # in Notion. Rebuilds perfil_cliente from "Full Profile (JSON)" (same
+        # source _cargar_ficha_para_revisar() already reads), substitutes in
+        # the weight just logged above (if shared) so calorie targets actually
+        # react to it -- the real mechanism dieta_reglas.py's own message has
+        # always promised but, until "Weight (kg)" existed, nothing fed --
+        # reruns the full pipeline, overwrites the regenerated plan onto the
+        # same Clients record (actualizar_registro_cliente(), same "one master
+        # record per client" pattern "Revise client" already uses), and drops
+        # a Gmail DRAFT with the new plan plus a fresh portal link in the same
+        # email ("dentro del mismo correo," a direct request). Never
+        # auto-sent -- explicitly confirmed with the project owner:
+        # auto-regenerating is fine, auto-contacting a client is not, so the
+        # trainer still reviews and sends this draft themselves, same
+        # guarantee as every other outgoing email in this project. Best-effort
+        # like the trainer notification above: any failure here (a stale
+        # profile, a Gmail/Notion hiccup) never blocks the check-in already
+        # saved, and is silently skipped -- there's no UI surface in the
+        # client portal to report a trainer-side draft failure to a client.
+        try:
+            perfil_regenerado = obtener_perfil_completo(carga["pagina"])
+            if peso_kg:
+                perfil_regenerado.setdefault("datos_basicos", {})["peso_kg"] = peso_kg
+            idioma_plan = registro.get("idioma") or "en"
+            estado_regenerado = ejecutar_pipeline(perfil_regenerado, idioma=idioma_plan)
+            if not estado_regenerado.error:
+                actualizar_registro_cliente(
+                    carga["pagina"], perfil_regenerado, estado_regenerado.borrador_rutina,
+                    estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
+                )
+                nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
+                crear_borrador(
+                    carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
+                    idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}",
+                )
+        except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
+            pass
 
 
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:

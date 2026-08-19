@@ -168,6 +168,85 @@ def test_crear_borrador_wraps_a_pdf_generation_bug_instead_of_crashing(monkeypat
         gmail_client.crear_borrador("client@example.com", "Ana", borrador_rutina, borrador_dieta)
 
 
+# --- enviar_plan() -----------------------------------------------------------
+
+
+def test_enviar_plan_sends_not_drafts(monkeypatch, borrador_rutina, borrador_dieta):
+    """The fourth (and biggest) gmail.send exception -- ui/app.py's
+    auto-send flow for a validator-approved plan. Must call
+    messages().send(), never drafts().create() -- getting this backwards
+    would silently turn "sent automatically" into "just sits as an
+    unreviewed draft," the opposite of what was asked for."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {
+        "id": "msg-1", "threadId": "thread-1",
+    }
+
+    resultado = gmail_client.enviar_plan("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+    assert resultado == {"message_id": "msg-1", "thread_id": "thread-1"}
+    servicio.users.return_value.drafts.return_value.create.assert_not_called()
+
+
+def test_enviar_plan_attaches_the_same_pdfs_as_crear_borrador(monkeypatch, borrador_rutina, borrador_dieta):
+    """Shares _preparar_envio_plan() with crear_borrador() -- confirms the
+    real request body actually carries both plan PDFs, not just that the
+    right API method got called."""
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {
+        "id": "msg-1", "threadId": "thread-1",
+    }
+    gmail_client.enviar_plan("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    nombres_adjuntos = {p.get_filename() for p in mensaje.get_payload()[1:]}
+    assert nombres_adjuntos == {"routine-plan.pdf", "diet-plan.pdf"}
+
+
+def test_enviar_plan_includes_the_portal_link_when_given(monkeypatch, borrador_rutina, borrador_dieta):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.return_value = {
+        "id": "msg-1", "threadId": "thread-1",
+    }
+    gmail_client.enviar_plan(
+        "client@example.com", "Ana", borrador_rutina, borrador_dieta,
+        url_portal="https://example.com/?ref=abc123",
+    )
+
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    mensaje = message_from_bytes(raw)
+    cuerpo = mensaje.get_payload()[0].get_payload(decode=True).decode("utf-8")
+    assert "https://example.com/?ref=abc123" in cuerpo
+
+
+def test_enviar_plan_wraps_http_error(monkeypatch, borrador_rutina, borrador_dieta):
+    servicio = _mock_service(monkeypatch)
+    servicio.users.return_value.messages.return_value.send.return_value.execute.side_effect = HttpError(
+        _FakeResp(500), b"server error"
+    )
+    with pytest.raises(GmailClientError):
+        gmail_client.enviar_plan("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+
+def test_enviar_plan_wraps_a_pdf_generation_bug_instead_of_crashing(monkeypatch, borrador_rutina, borrador_dieta):
+    """Same fix shape as crear_borrador()'s equivalent test -- a bug in
+    reportlab/pypdf rendering must surface as GmailClientError, the only
+    type ui/app.py's auto-send flow is prepared to catch."""
+    import pdf_generador
+
+    _mock_service(monkeypatch)
+
+    def _explota(*_args, **_kwargs):
+        raise TypeError("boom")
+
+    monkeypatch.setattr(pdf_generador, "generar_pdf_rutina", _explota)
+    with pytest.raises(GmailClientError):
+        gmail_client.enviar_plan("client@example.com", "Ana", borrador_rutina, borrador_dieta)
+
+
 # --- enviar_enlace_portal() --------------------------------------------------
 
 

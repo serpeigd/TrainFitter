@@ -2507,6 +2507,141 @@ clean.
 
 ---
 
+## Automatic send for validator-approved plans — a genuine reversal of "TrainFitter never contacts a client on its own"
+
+Requested directly: when a new (or revised) client's plan needs no
+enhanced review, generate and send it automatically instead of waiting
+for the trainer to approve, create a draft, and send it themselves. This
+is the first real exception to this project's headline guarantee that
+applies to unreviewed plan *content*, not just a fixed template
+(`enviar_enlace_portal()`, `enviar_formulario_intake()`) or a message
+aimed at the trainer's own inbox (`enviar_notificacion_checkin()`) — a
+genuine client now receives content nobody looked at first, by explicit
+design, whenever the validator itself already vouched for it.
+
+**Scope, confirmed before building rather than assumed:** two open
+questions were asked directly first. (1) Does this cover only brand-new
+clients, or also "Revise client" (regenerating an existing client's
+plan)? Answer: both — any generation with a validator verdict of
+`aprobado_automatico` qualifies, new or revised. (2) The public demo
+(trainfitter.streamlit.app) never gated *generating* a plan, only
+approving/sending it — if send becomes automatic with zero clicks, any
+visitor could make the app email an arbitrary address for free. Answer:
+`APP_APPROVAL_PASSWORD` (already used to gate every other real send)
+stays as the one confirmation step immediately before an automatic send,
+on any deployment where it's set; on a private deployment with no
+password configured, it's genuinely zero-click, as asked.
+
+**What changed:**
+- `datos_basicos.email` is now part of the intake schema (`_formulario_
+  ficha_nueva()`, `agents/pdf_intake.py`'s fillable form) — previously
+  the recipient was only ever typed in later, at Gmail-draft time, which
+  made zero-click send impossible (nowhere to send to at generation
+  time). A blank/malformed email doesn't block generation; it just means
+  that plan doesn't qualify for auto-send and falls back to the existing
+  manual flow, same as a "revision_reforzada" plan always does.
+- `mcp/gmail_client.py` gained `enviar_plan()` — the fourth, and by far
+  the biggest, exception to the `gmail.send` "narrow and deliberate"
+  principle documented in that module's docstring. Shares its content-
+  building (PDFs, body) with `crear_borrador()` via a new
+  `_preparar_envio_plan()` helper; the two differ only in the one Gmail
+  API call at the end (`messages().send()` vs `drafts().create()`).
+- The portal link is folded into the *same* email as the plan now
+  (`crear_borrador()`/`enviar_plan()` both gained an optional
+  `url_portal` parameter, reusing the mechanism built for the check-in-
+  regeneration draft the same week) — "unifica en el mismo correo," a
+  direct request, and it keeps the auto-send email to exactly one
+  message instead of two.
+- `ui/app.py`: `_panel_envio_automatico()` replaces `_panel_aprobacion()`
+  entirely for a qualifying plan — no separate Approve/create-draft/
+  check-if-sent/send-portal-link steps, since a real send is confirmed
+  the instant `enviar_plan()` returns without raising (unlike a draft,
+  there's nothing later to verify). `_ejecutar_envio_automatico()`
+  mirrors `_ejecutar_aprobacion()`'s Notion-save branch exactly (same
+  `revisar_perfil_id`-based check for whether this is a revision) since
+  there's no separate "Approve" click left to gate that behind. On
+  failure (a Gmail or Notion error), the panel shows the error and falls
+  back to rendering the *existing* manual panel underneath — approve,
+  then create a draft by hand — so a trainer is never stuck with a plan
+  that can't go out any way at all.
+- The verdict banner (`_mostrar_veredicto()`) now says explicitly when a
+  plan is about to send itself, instead of unconditionally repeating "it
+  still needs your approval before sending" — that line is no longer
+  true for this path, and a stale claim directly above a panel that
+  contradicts it would be confusing on the same page.
+- A "revision_reforzada" plan is completely unaffected — always a draft,
+  the trainer always reviews and sends it, exactly as before this
+  change. So is the example-client demo path (`guardar_en_notion=False`
+  rules out auto-send unconditionally, same gate that already protected
+  Notion auto-save from the demo path).
+
+**Testing note, matching this project's established bar for every other
+real send:** `enviar_plan()` is covered by mocked-network tests
+(`tests/test_gmail_client_network.py`) exercising the actual request
+body (attachments, portal link), not a live send during verification —
+this repo's dev environment has real Gmail/Notion credentials configured
+locally, and `APP_APPROVAL_PASSWORD` isn't set there, so a live
+end-to-end test of the New Client form would have sent a genuine,
+unreviewed email through the trainer's real account with no way to abort
+partway through. Verified live only up to the safe boundary instead: the
+new Email field renders correctly in the New Client form, and a profile
+with a declared injury (guaranteed `revision_reforzada`) still renders
+the ordinary manual approval panel, confirming the new auto-send branch
+doesn't fire when it shouldn't. The actual browser-driven form
+submission for a real send attempt was also blocked by this session's
+own tool-permission classifier when attempted programmatically — treated
+as a genuine signal, not routed around.
+
+---
+
+## Portal reliability + a real navigation gap, then a full redesign into collapsible sections
+
+Three follow-ups, same day as the automatic-send change above.
+
+**A real crash, correlating with the reported symptom.** The client
+portal's report was "the link breaks after the app goes to sleep and
+takes you straight to the home screen." `_vista_portal_cliente()`'s
+first step, `resolver_referencia_portal()`, can raise either
+`PortalTokenError` (a genuinely invalid/expired code) or
+`NotionClientError` (a Notion API failure) -- only the first was caught.
+A transient Notion failure, plausible right when a cold-started
+deployment wakes up and makes its first request, propagated straight
+past the narrow `except PortalTokenError` clause and crashed the whole
+page instead of showing a recoverable message. Fixed by catching
+`(NotionClientError, ImportError, ModuleNotFoundError)` too, same
+pattern already used one function down for `obtener_registro_cliente()`.
+Disclosed honestly rather than claimed as the full fix: Streamlit
+Community Cloud's own wake-up redirect may also drop the `?ref=...`
+query string outright in some cases, a platform behavior this function
+has no way to control or verify from inside the app.
+
+**A real navigation gap in the swipe flow.** Liking or skipping a meal
+only ever moved forward -- no way to go back and re-see (or change) the
+previous decision. `_render_swipe_comidas()` gained a "⬅️ Back" button,
+shown whenever the index is above 0, both mid-flow (alongside Skip/Like)
+and on the final "done" screen (alongside Restart, stepping back to the
+last meal instead of all the way to the first).
+
+**A full redesign of the portal's layout, requested directly.** The
+single combined "Your plan this week" expander (meals + routine
+together) became four independent, individually-collapsible sections
+(Notes, Meals, Routine, History), plus a fifth for the check-in form
+itself -- all collapsed by default except Meals, which stays open (the
+one reason most clients follow the link at all keeps needing zero
+clicks). The opening text was cut further too: the separate "TrainFitter"
+title plus a full greeting header collapsed into one small caption plus
+a single title-sized welcome line, and the "Client since {date})" caption
+was dropped outright rather than shortened -- two now-unused translation
+keys (`portal_plan_header`, `portal_since_label`) were removed with it.
+Verified live against the real workspace (the same "PEPE" test client
+used for earlier portal verification this project): the invalid-link
+error path renders correctly without crashing, and a real client's view
+shows Meals open with the rest collapsed, Back correctly hidden at the
+very first meal and appearing from the second meal onward, and stepping
+back with it lands exactly on the previous meal.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

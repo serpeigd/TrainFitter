@@ -3,6 +3,7 @@
   "fecha_admision": "2026-02-03",
   "datos_basicos": {
     "nombre": "Marta Gómez",
+    "email": "marta.gomez@example.com",
     "edad": 29,
     "sexo": "mujer",
     "peso_kg": 68,
