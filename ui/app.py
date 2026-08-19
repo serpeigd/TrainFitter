@@ -444,6 +444,17 @@ def _inyectar_estilos() -> None:
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
             transform: translateY(-2px);
         }}
+
+        /* Client portal check-in section -- a visibly distinct border/glow
+        (not just "open by default" like before) so it reads as one of the
+        two main things to do here, on equal footing with Meals, not just
+        another collapsible section in the list. Direct request ("pon MAS
+        destacado"). */
+        [class*="st-key-portal-checkin-highlight"] [data-testid="stExpander"] {{
+            border: 2px solid rgba(5, 160, 129, 0.55) !important;
+            box-shadow: 0 0 0 3px rgba(5, 160, 129, 0.12);
+            border-radius: 12px !important;
+        }}
         [data-testid="stExpander"] {{
             border: 1px solid {COLOR_BORDER};
             border-radius: 12px;
@@ -1047,6 +1058,7 @@ TRANSLATIONS = {
         "portal_routine_completed_label": "Sessions completed",
         "portal_routine_total_label": "Sessions planned this week",
         "portal_routine_more_than_planned_label": "I trained more than planned",
+        "portal_diet_more_than_planned_label": "I followed the diet more days than planned",
         "portal_routine_notes_label": "Anything about your routine (optional)",
         "portal_diet_completed_label": "Days you followed the diet",
         "portal_diet_total_label": "Out of how many days",
@@ -1346,6 +1358,7 @@ TRANSLATIONS = {
         "portal_routine_completed_label": "Sesiones completadas",
         "portal_routine_total_label": "Sesiones previstas esta semana",
         "portal_routine_more_than_planned_label": "Entrené más de lo planeado",
+        "portal_diet_more_than_planned_label": "Seguí la dieta más días de los previstos",
         "portal_routine_notes_label": "Algo sobre tu rutina (opcional)",
         "portal_diet_completed_label": "Días que has seguido la dieta",
         "portal_diet_total_label": "De cuántos días",
@@ -3162,6 +3175,22 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
 
     dia_info = plan_semanal[indice]
     st.progress((indice + 1) / total_dias, text=f"{indice + 1}/{total_dias}")
+
+    # Jump to any day directly, not just step-by-step -- direct request
+    # ("moverte por toda la dieta de toda la semana"). Plain buttons, not a
+    # persisted-value widget (st.segmented_control), so there's only ever
+    # one source of truth for the current day (portal_dia_idx) -- Back/Next
+    # below already work this same way, and mixing the two patterns would
+    # risk them disagreeing about which day is showing.
+    columnas_dias = st.columns(total_dias)
+    for i, columna in enumerate(columnas_dias):
+        if columna.button(
+            plan_semanal[i]["dia"][:3], key=f"portal_dia_jump_{i}",
+            type="primary" if i == indice else "secondary", use_container_width=True,
+        ) and i != indice:
+            st.session_state["portal_dia_idx"] = i
+            st.rerun()
+
     st.markdown(f"### {dia_info['dia']}")
 
     for i, comida in enumerate(dia_info.get("comidas", [])):
@@ -3364,6 +3393,17 @@ def _vista_portal_cliente(codigo: str) -> None:
             st.caption(t("portal_meals_caption"))
             _render_swipe_comidas(plan_semanal, registro.get("comidas_favoritas") or [], carga["pagina"])
 
+    # Moved up to right after Meals (was the very last section, after
+    # Routine/History) and given its own highlighted border (see
+    # _inyectar_estilos()'s "st-key-portal-checkin-highlight" rule) -- direct
+    # request to make this "MAS destacado": logging a check-in is the other
+    # primary reason to visit this page, on equal footing with Meals, not
+    # something a client has to scroll past two more sections to reach.
+    checkin_expander = st.expander(t("portal_checkin_header"), expanded=True, key="portal-checkin-highlight")
+    checkin_expander.markdown(t("portal_checkin_intro"))
+    with checkin_expander:
+        _render_formulario_checkin_portal(carga, registro, sesiones)
+
     if sesiones:
         with st.expander(t("portal_routine_header")):
             # Same card treatment as the meal section (bordered container +
@@ -3397,192 +3437,201 @@ def _vista_portal_cliente(codigo: str) -> None:
     with st.expander(t("portal_history_header")):
         _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
-    # Open by default (unlike Notes/Routine/History) -- direct feedback
-    # ("no parece que se tenga que rellenar... hazlo para que te lleve a
-    # hacerlo"): logging a check-in is the other primary reason to visit
-    # this page, on equal footing with Meals, not a buried afterthought.
-    checkin_expander = st.expander(t("portal_checkin_header"), expanded=True)
-    checkin_expander.markdown(t("portal_checkin_intro"))
-    with checkin_expander:
-        # Standalone widgets, not st.form -- "completed" needs to react live
-        # to whatever the client just set "total" to, and a form doesn't
-        # rerun until submit, so that clamp wouldn't take effect until after
-        # the fact. Same trade-off _formulario_ficha_nueva() already makes
-        # above, for the same reason. Each "total"/checkbox widget is placed
-        # -- and its value read -- BEFORE its matching "completed" widget, in
-        # both code and visual order this time (no more side-by-side columns,
-        # which read backwards: "completed" appeared before "total" was even
-        # set). Sliders instead of bare number boxes -- a visual fill showing
-        # where "completed" sits relative to "total" reads faster than two
-        # unrelated-looking number fields, and st.progress() below adds an
-        # explicit fraction for the same reason.
-        st.markdown(f"**{t('portal_routine_section_title')}**")
-        totales_rutina = st.slider(
-            t("portal_routine_total_label"), min_value=1, max_value=14, value=7, key="portal_totales_rutina",
+def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: list[dict]) -> None:
+    """The check-in form's full body, factored out of _vista_portal_cliente()
+    so that function could move where this section renders (right after
+    Meals now, not the very last section) without an ever-deeper nesting
+    level. Standalone widgets, not st.form -- "completed" needs to react
+    live to whatever the client just set "total" to, and a form doesn't
+    rerun until submit, so that clamp wouldn't take effect until after the
+    fact. Same trade-off _formulario_ficha_nueva() already makes, for the
+    same reason. Each "total"/checkbox widget is placed -- and its value
+    read -- BEFORE its matching "completed" widget, in both code and visual
+    order (no side-by-side columns, which read backwards). Sliders instead
+    of bare number boxes -- a visual fill showing where "completed" sits
+    relative to "total" reads faster than two unrelated-looking number
+    fields, and st.progress() below adds an explicit fraction for the same
+    reason."""
+    nombre = registro["nombre"] or carga["email"]
+
+    st.markdown(f"**{t('portal_routine_section_title')}**")
+    # Pre-filled from how many sessions this week's actual plan has
+    # (len(sesiones), one entry per training day) rather than a generic
+    # 7 -- direct request. The client can still change it (a real week
+    # rarely matches the plan exactly), so this is a starting point, not
+    # a lock.
+    totales_rutina = st.slider(
+        t("portal_routine_total_label"), min_value=1, max_value=14, value=len(sesiones) or 7,
+        key="portal_totales_rutina",
+    )
+    # Sessions completed is deliberately NOT capped at "planned" the way
+    # diet days is below -- a client can genuinely train more than the
+    # plan called for (an extra session), unlike "days I followed the
+    # diet" which can't exceed the days actually in the check-in period.
+    # The checkbox is an explicit, discoverable way to say "yes, really
+    # more than planned" rather than silently allowing any number by
+    # default, which would make a typo too easy to enter unnoticed.
+    mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
+    max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
+    completados_rutina = st.slider(
+        t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
+        key="portal_completados_rutina",
+    )
+    st.progress(
+        min(completados_rutina / totales_rutina, 1.0), text=f"{completados_rutina}/{totales_rutina}",
+    )
+    notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
+
+    st.divider()
+    st.markdown(f"**{t('portal_diet_section_title')}**")
+    totales_dieta = st.slider(
+        t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
+    )
+    # Direct follow-up: "días seguidos" can now exceed "días previstos" too,
+    # same override pattern as sessions above -- a client eating on plan
+    # MORE days than they'd committed to (e.g. they'd only planned to
+    # follow it on workdays, then kept it up on a weekend too) is a real,
+    # reportable case, not a data-entry error. Still hard-capped at the
+    # check-in period's own total days unless this box is checked, same
+    # "explicit, discoverable, not a silent default" idea.
+    mas_dieta_de_lo_planeado = st.checkbox(t("portal_diet_more_than_planned_label"), key="portal_mas_dieta_de_lo_planeado")
+    max_seguidos_dieta = 30 if mas_dieta_de_lo_planeado else int(totales_dieta)
+    seguidos_dieta = st.slider(
+        t("portal_diet_completed_label"), min_value=0, max_value=max_seguidos_dieta, value=0,
+        key="portal_seguidos_dieta",
+    )
+    st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
+    notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
+
+    st.divider()
+
+    # Optional, checkbox-gated like every other "share something extra"
+    # field in this project (the injury/pregnancy detail fields in
+    # _formulario_ficha_nueva()) -- closes a real loop the rule engines
+    # already claim exists: dieta_reglas.py's own generated message tells
+    # the client the plan "gets adjusted based on real weight ... over the
+    # first few weeks", but until this field existed there was no path for
+    # that number to ever reach anywhere (see mcp/notion_connector.py's
+    # docstring on "Weight (kg)").
+    st.markdown(f"**{t('portal_weight_section_title')}**")
+    compartir_peso = st.checkbox(t("portal_share_weight_label"), key="portal_compartir_peso")
+    peso_actual = None
+    if compartir_peso:
+        peso_actual = st.number_input(
+            t("portal_weight_label"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="portal_peso_actual",
         )
-        # Sessions completed is deliberately NOT capped at "planned" the way
-        # diet days is below -- a client can genuinely train more than the
-        # plan called for (an extra session), unlike "days I followed the
-        # diet" which can't exceed the days actually in the check-in period.
-        # The checkbox is an explicit, discoverable way to say "yes, really
-        # more than planned" rather than silently allowing any number by
-        # default, which would make a typo too easy to enter unnoticed.
-        mas_de_lo_planeado = st.checkbox(t("portal_routine_more_than_planned_label"), key="portal_mas_de_lo_planeado")
-        max_completados_rutina = 30 if mas_de_lo_planeado else int(totales_rutina)
-        completados_rutina = st.slider(
-            t("portal_routine_completed_label"), min_value=0, max_value=max_completados_rutina, value=0,
-            key="portal_completados_rutina",
+
+    enviado = st.button(t("portal_submit_button"), type="primary")
+
+    if not enviado:
+        return
+
+    # Same data shape leer_checklist_pdf() produces (see
+    # agents/pdf_generador.py) -- reuses resumir_adherencia()/
+    # valoracion_desde_ratios() rather than reimplementing that formatting a
+    # second time for this second submission channel.
+    datos = {
+        "dias_rutina_completados": int(completados_rutina),
+        "dias_rutina_totales": int(totales_rutina),
+        "notas_rutina": notas_rutina.strip(),
+        "dias_dieta_seguidos": int(seguidos_dieta),
+        "dias_dieta_totales": int(totales_dieta),
+        "notas_dieta": notas_dieta.strip(),
+    }
+    ratios = []
+    if datos["dias_rutina_totales"]:
+        ratios.append(datos["dias_rutina_completados"] / datos["dias_rutina_totales"])
+    if datos["dias_dieta_totales"]:
+        ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
+
+    peso_kg = float(peso_actual) if compartir_peso else None
+    valoracion = valoracion_desde_ratios(ratios)
+    try:
+        crear_registro_checkin(
+            carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
+            notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
         )
-        st.progress(
-            min(completados_rutina / totales_rutina, 1.0), text=f"{completados_rutina}/{totales_rutina}",
-        )
-        notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
+    except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+        st.error(t("portal_submit_error").format(error=str(exc)))
+        return
 
-        st.divider()
-        st.markdown(f"**{t('portal_diet_section_title')}**")
-        totales_dieta = st.slider(
-            t("portal_diet_total_label"), min_value=1, max_value=14, value=DIAS_SEMANA_DIETA, key="portal_totales_dieta",
-        )
-        # Diet days followed, unlike sessions above, IS hard-capped at the
-        # total -- a real, definitional bound (you can't follow a diet for
-        # more days than exist in the check-in period), not a target a client
-        # might exceed. No override checkbox here on purpose.
-        seguidos_dieta = st.slider(
-            t("portal_diet_completed_label"), min_value=0, max_value=int(totales_dieta), value=0,
-            key="portal_seguidos_dieta",
-        )
-        st.progress(min(seguidos_dieta / totales_dieta, 1.0), text=f"{seguidos_dieta}/{totales_dieta}")
-        notas_dieta = st.text_area(t("portal_diet_notes_label"), key="portal_notas_dieta")
+    st.success(t("portal_submit_success"))
 
-        st.divider()
-
-        # Optional, checkbox-gated like every other "share something extra"
-        # field in this project (the injury/pregnancy detail fields in
-        # _formulario_ficha_nueva()) -- closes a real loop the rule engines
-        # already claim exists: dieta_reglas.py's own generated message tells
-        # the client the plan "gets adjusted based on real weight ... over the
-        # first few weeks", but until this field existed there was no path for
-        # that number to ever reach anywhere (see mcp/notion_connector.py's
-        # docstring on "Weight (kg)").
-        st.markdown(f"**{t('portal_weight_section_title')}**")
-        compartir_peso = st.checkbox(t("portal_share_weight_label"), key="portal_compartir_peso")
-        peso_actual = None
-        if compartir_peso:
-            peso_actual = st.number_input(
-                t("portal_weight_label"), min_value=30.0, max_value=250.0, value=70.0, step=0.5, key="portal_peso_actual",
-            )
-
-        enviado = st.button(t("portal_submit_button"), type="primary")
-
-        if not enviado:
-            return
-
-        # Same data shape leer_checklist_pdf() produces (see
-        # agents/pdf_generador.py) -- reuses resumir_adherencia()/
-        # valoracion_desde_ratios() rather than reimplementing that
-        # formatting a second time for this second submission channel.
-        datos = {
-            "dias_rutina_completados": int(completados_rutina),
-            "dias_rutina_totales": int(totales_rutina),
-            "notas_rutina": notas_rutina.strip(),
-            "dias_dieta_seguidos": int(seguidos_dieta),
-            "dias_dieta_totales": int(totales_dieta),
-            "notas_dieta": notas_dieta.strip(),
-        }
-        ratios = []
-        if datos["dias_rutina_totales"]:
-            ratios.append(datos["dias_rutina_completados"] / datos["dias_rutina_totales"])
-        if datos["dias_dieta_totales"]:
-            ratios.append(datos["dias_dieta_seguidos"] / datos["dias_dieta_totales"])
-
-        peso_kg = float(peso_actual) if compartir_peso else None
-        valoracion = valoracion_desde_ratios(ratios)
+    # Best-effort, same spirit as actualizar_email_cliente()/
+    # marcar_email_enviado() elsewhere in this file: the trainer
+    # notification is a convenience on top of the real record (the Notion
+    # row just saved above), never a reason to make the client's own
+    # submission look like it failed if this part doesn't work.
+    if TRAINER_NOTIFICATION_EMAIL:
         try:
-            crear_registro_checkin(
-                carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
-                notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
-            )
-        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-            st.error(t("portal_submit_error").format(error=str(exc)))
-            return
-
-        st.success(t("portal_submit_success"))
-
-        # Best-effort, same spirit as actualizar_email_cliente()/
-        # marcar_email_enviado() elsewhere in this file: the trainer
-        # notification is a convenience on top of the real record (the
-        # Notion row just saved above), never a reason to make the client's
-        # own submission look like it failed if this part doesn't work.
-        if TRAINER_NOTIFICATION_EMAIL:
+            # Best-effort here too: a failure fetching fresh history just
+            # means the notification skips the weight-trend check, not that
+            # the whole notification (or the check-in save above, already
+            # committed) is blocked over it.
             try:
-                # Best-effort here too: a failure fetching fresh history just
-                # means the notification skips the weight-trend check, not
-                # that the whole notification (or the check-in save above,
-                # already committed) is blocked over it.
-                try:
-                    historial_actualizado = historial_checkins(carga["email"])
-                except (NotionClientError, ImportError, ModuleNotFoundError):
-                    historial_actualizado = None
-                enviar_notificacion_checkin(
-                    TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
-                    historial=historial_actualizado, objetivo=registro.get("objetivo"),
-                )
-            except (GmailClientError, ImportError, ModuleNotFoundError):
-                pass
-
-        # Best-effort regeneration + draft -- closes the loop directly
-        # requested by the project owner: a check-in should do more than sit
-        # in Notion. Rebuilds perfil_cliente from "Full Profile (JSON)" (same
-        # source _cargar_ficha_para_revisar() already reads), substitutes in
-        # the weight just logged above (if shared) so calorie targets actually
-        # react to it -- the real mechanism dieta_reglas.py's own message has
-        # always promised but, until "Weight (kg)" existed, nothing fed --
-        # reruns the full pipeline, overwrites the regenerated plan onto the
-        # same Clients record (actualizar_registro_cliente(), same "one master
-        # record per client" pattern "Revise client" already uses), and drops
-        # a Gmail DRAFT with the new plan plus a fresh portal link in the same
-        # email ("dentro del mismo correo," a direct request). Never
-        # auto-sent -- explicitly confirmed with the project owner:
-        # auto-regenerating is fine, auto-contacting a client is not, so the
-        # trainer still reviews and sends this draft themselves, same
-        # guarantee as every other outgoing email in this project. Best-effort
-        # like the trainer notification above: any failure here (a stale
-        # profile, a Gmail/Notion hiccup) never blocks the check-in already
-        # saved, and is silently skipped -- there's no UI surface in the
-        # client portal to report a trainer-side draft failure to a client.
-        try:
-            perfil_regenerado = obtener_perfil_completo(carga["pagina"])
-            if peso_kg:
-                perfil_regenerado.setdefault("datos_basicos", {})["peso_kg"] = peso_kg
-            idioma_plan = registro.get("idioma") or "en"
-            estado_regenerado = ejecutar_pipeline(perfil_regenerado, idioma=idioma_plan)
-            if not estado_regenerado.error:
-                actualizar_registro_cliente(
-                    carga["pagina"], perfil_regenerado, estado_regenerado.borrador_rutina,
-                    estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
-                )
-                nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
-                # This check-in was already saved above, so it's included in
-                # its own count -- 1 for a client's first-ever check-in, 2
-                # for their second, etc. historial_checkins() returns EVERY
-                # Check-ins row regardless of type, including "Plan sent"
-                # log entries (crear_registro_checkin() elsewhere in this
-                # file) that have nothing to do with adherence -- filtered
-                # down to "Adherence check-in" rows only so that count isn't
-                # inflated by unrelated log rows. Best-effort like the rest
-                # of this block: a history-fetch failure just omits the
-                # "Week N:" header rather than blocking the draft.
-                try:
-                    historial_para_semana = historial_checkins(carga["email"])
-                    semana_actual = sum(1 for fila in historial_para_semana if fila["tipo"] == "Adherence check-in")
-                except (NotionClientError, ImportError, ModuleNotFoundError):
-                    semana_actual = None
-                crear_borrador(
-                    carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
-                    idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}", semana=semana_actual,
-                )
-        except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
+                historial_actualizado = historial_checkins(carga["email"])
+            except (NotionClientError, ImportError, ModuleNotFoundError):
+                historial_actualizado = None
+            enviar_notificacion_checkin(
+                TRAINER_NOTIFICATION_EMAIL, nombre, datos, valoracion, peso_kg, idioma=st.session_state.lang,
+                historial=historial_actualizado, objetivo=registro.get("objetivo"),
+            )
+        except (GmailClientError, ImportError, ModuleNotFoundError):
             pass
+
+    # Best-effort regeneration + draft -- closes the loop directly requested
+    # by the project owner: a check-in should do more than sit in Notion.
+    # Rebuilds perfil_cliente from "Full Profile (JSON)" (same source
+    # _cargar_ficha_para_revisar() already reads), substitutes in the weight
+    # just logged above (if shared) so calorie targets actually react to it
+    # -- the real mechanism dieta_reglas.py's own message has always
+    # promised but, until "Weight (kg)" existed, nothing fed -- reruns the
+    # full pipeline, overwrites the regenerated plan onto the same Clients
+    # record (actualizar_registro_cliente(), same "one master record per
+    # client" pattern "Revise client" already uses), and drops a Gmail
+    # DRAFT with the new plan plus a fresh portal link in the same email
+    # ("dentro del mismo correo," a direct request). Never auto-sent --
+    # explicitly confirmed with the project owner: auto-regenerating is
+    # fine, auto-contacting a client is not, so the trainer still reviews
+    # and sends this draft themselves, same guarantee as every other
+    # outgoing email in this project. Best-effort like the trainer
+    # notification above: any failure here (a stale profile, a Gmail/Notion
+    # hiccup) never blocks the check-in already saved, and is silently
+    # skipped -- there's no UI surface in the client portal to report a
+    # trainer-side draft failure to a client.
+    try:
+        perfil_regenerado = obtener_perfil_completo(carga["pagina"])
+        if peso_kg:
+            perfil_regenerado.setdefault("datos_basicos", {})["peso_kg"] = peso_kg
+        idioma_plan = registro.get("idioma") or "en"
+        estado_regenerado = ejecutar_pipeline(perfil_regenerado, idioma=idioma_plan)
+        if not estado_regenerado.error:
+            actualizar_registro_cliente(
+                carga["pagina"], perfil_regenerado, estado_regenerado.borrador_rutina,
+                estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
+            )
+            nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
+            # This check-in was already saved above, so it's included in its
+            # own count -- 1 for a client's first-ever check-in, 2 for their
+            # second, etc. historial_checkins() returns EVERY Check-ins row
+            # regardless of type, including "Plan sent" log entries
+            # (crear_registro_checkin() elsewhere in this file) that have
+            # nothing to do with adherence -- filtered down to "Adherence
+            # check-in" rows only so that count isn't inflated by unrelated
+            # log rows. Best-effort like the rest of this block: a
+            # history-fetch failure just omits the "Week N:" header rather
+            # than blocking the draft.
+            try:
+                historial_para_semana = historial_checkins(carga["email"])
+                semana_actual = sum(1 for fila in historial_para_semana if fila["tipo"] == "Adherence check-in")
+            except (NotionClientError, ImportError, ModuleNotFoundError):
+                semana_actual = None
+            crear_borrador(
+                carga["email"], nombre, estado_regenerado.borrador_rutina, estado_regenerado.borrador_dieta,
+                idioma=idioma_plan, url_portal=f"{PORTAL_BASE_URL}?ref={nuevo_codigo}", semana=semana_actual,
+            )
+    except (NotionClientError, GmailClientError, ImportError, ModuleNotFoundError):
+        pass
 
 
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:
@@ -3691,6 +3740,16 @@ def _panel_todos_los_clientes() -> None:
 # builds the trainer-facing DOM at all.
 _referencia_portal = st.query_params.get("ref")
 if _referencia_portal:
+    # Real bug fix: _inyectar_estilos() otherwise only ran at the bottom of
+    # the trainer-facing branch below (line ~3801) -- st.stop() right after
+    # this call means the portal branch never reached it, so every portal-
+    # specific CSS rule (meal-card/routine-card hover-lift, the check-in
+    # highlight) has been silently inert this whole time, degrading to
+    # Streamlit's own default container border instead. Called here too,
+    # before the portal renders -- the two call sites are mutually
+    # exclusive (this branch always st.stop()s), so there's no risk of
+    # injecting the same <style> block twice.
+    _inyectar_estilos()
     _vista_portal_cliente(_referencia_portal)
     st.stop()
 
