@@ -3272,11 +3272,17 @@ def _vista_portal_cliente(codigo: str) -> None:
                 nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
                 # This check-in was already saved above, so it's included in
                 # its own count -- 1 for a client's first-ever check-in, 2
-                # for their second, etc. Best-effort like the rest of this
-                # block: a history-fetch failure just omits the "Week N:"
-                # header rather than blocking the draft.
+                # for their second, etc. historial_checkins() returns EVERY
+                # Check-ins row regardless of type, including "Plan sent"
+                # log entries (crear_registro_checkin() elsewhere in this
+                # file) that have nothing to do with adherence -- filtered
+                # down to "Adherence check-in" rows only so that count isn't
+                # inflated by unrelated log rows. Best-effort like the rest
+                # of this block: a history-fetch failure just omits the
+                # "Week N:" header rather than blocking the draft.
                 try:
-                    semana_actual = len(historial_checkins(carga["email"]))
+                    historial_para_semana = historial_checkins(carga["email"])
+                    semana_actual = sum(1 for fila in historial_para_semana if fila["tipo"] == "Adherence check-in")
                 except (NotionClientError, ImportError, ModuleNotFoundError):
                     semana_actual = None
                 crear_borrador(
