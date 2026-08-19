@@ -59,9 +59,12 @@ self-reported flags, it re-derives risk straight from the raw intake data
 depends on what that gate finds:
 
 - **Flagged for enhanced review** (an injury, allergy, pregnancy, or an
-  out-of-range bloodwork marker): TrainFitter **never sends anything to the
-  client on its own**. It's a **draft for your review** — you read it, you
-  send it, exactly as it always has been.
+  out-of-range bloodwork marker): TrainFitter **never sends without you
+  looking at it first**. You review it — and, for anything the plan itself
+  flagged (like an exercise adapted for a declared injury), can swap it for a
+  real alternative right in the panel — then approve it yourself before it
+  goes out. A **Gmail draft** stays one click away if you'd rather review it
+  there instead.
 - **Nothing flagged**: the plan sends itself — the same email a trainer would
   otherwise have opened Gmail to send by hand, generated and delivered the
   moment it's ready, no click required (one password confirmation on the
@@ -97,11 +100,14 @@ This repository is built phase by phase, as a learning project. Right now:
   are extracted (best-effort, bilingual) and automatically force enhanced review,
   same defense-in-depth pattern as injuries and allergies
   (see [`agents/analytics_parser.py`](agents/analytics_parser.py)).
-- A plan flagged for enhanced review becomes a real **Gmail draft**, never
-  sent automatically (see [`mcp/gmail_client.py`](mcp/gmail_client.py)): the
-  trainer reviews and sends it themselves from their own Gmail. The draft
-  carries a short, scannable note (one key point per section, pulled straight
-  from the plan) plus two generated PDFs (see
+- A plan flagged for enhanced review is reviewed and approved by the trainer
+  in the panel itself — including swapping any exercise the plan adapted for
+  a declared injury for a real, still-safe alternative — then sent for real
+  once approved (see [`mcp/gmail_client.py`](mcp/gmail_client.py)); a Gmail
+  **draft** stays available as an explicit alternative for a trainer who
+  wants a second look there first. Either way, the email carries a short,
+  scannable note (one key point per section, pulled straight from the plan)
+  plus two generated PDFs (see
   [`agents/pdf_generador.py`](agents/pdf_generador.py)) that always mirror each
   other: the full routine and the full diet. A third PDF — a fillable
   adherence checklist — is opt-in (a checkbox, unchecked by default): the

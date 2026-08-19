@@ -3076,6 +3076,46 @@ reliably elsewhere in this project. The dropdown-driving limitation
 itself is a browser-automation-tooling gap, not a bug in the app --
 noted here rather than left unexplained.
 
+## A second real send-without-a-draft exception, and narrower edit scope
+
+Two follow-ups to the direct-editing feature above, both explicitly
+confirmed via `AskUserQuestion` before building (this project's standing
+bar for anything that touches the "never sends automatically" guarantee
+or removes a design decision made with reasoning attached).
+
+**Direct send, no draft, for `revision_reforzada` plans.** Previously
+only `aprobado_automatico` plans could send with no human click at all;
+`revision_reforzada` always drafted, and the trainer sent it by hand
+from Gmail. The project owner's own reasoning for widening the
+exception: once the trainer reviews and edits a flagged plan right
+inside this panel (the exercise/food dropdowns, the free-text message
+edits), a SECOND review inside Gmail before sending is redundant
+friction, not an extra safety layer -- the review already happened.
+"Enviar el plan por email" now calls `enviar_plan()` directly once
+Approved (same password gate as before); "Crear borrador en Gmail en su
+lugar" stays as an explicit secondary button, both for a trainer who
+wants a last look in Gmail and as the literal recovery path if the real
+send fails. Nothing changed about `aprobado_automatico`'s own path or
+about the password requirement itself -- only which action a
+`revision_reforzada` plan's approval unlocks.
+
+**Edit scope narrowed from "any exercise/food" to "only what the
+revision reason touched."** The original build (see the entry above)
+made every exercise and every meal ingredient in a flagged plan
+editable, on the reasoning that there's no structured link from a
+warning string in `advertencias_revision_humana` to a specific slot in
+the plan. That's still true for diet (an excluded allergen never
+appears in the generated meals to begin with, so there's genuinely
+nothing food-specific to scope by), but it turned out to be FALSE for
+routine: `rutina_reglas.py` already writes a `notas` field on any
+exercise it adapted for a specific reason (almost always a declared
+injury) -- a signal that existed the whole time and was simply
+overlooked in the first pass. `_mostrar_rutina()` now only shows a
+dropdown for exercises where `notas` is non-empty; everything else
+renders read-only. Diet intentionally keeps every ingredient editable,
+with the asymmetry explained directly in the UI caption rather than
+left as an unexplained inconsistency between the two panels.
+
 ---
 
 ## Fitness content disclaimer

@@ -29,7 +29,14 @@ TrainFitter is an agent pipeline that turns a client's intake form into draft
 routines and diets. Every plan still passes through the same deterministic
 safety gate (the validator agent); what happens after that gate depends on its
 own verdict. A plan flagged `revision_reforzada` still gets **mandatory human
-review** before anything is sent — no exceptions. A plan the validator itself
+review** before anything is sent — no exceptions: the trainer reviews it
+directly in the panel, can swap any exercise the plan adapted for a
+flagged reason for a real, still-safe alternative, then approves it
+themselves. What no longer happens by default is a *Gmail* round-trip on
+top of that: approving now sends for real (a Gmail draft stays available
+as an explicit alternative), the same "review already happened, a second
+one adds friction not safety" reasoning behind the `aprobado_automatico`
+exception below, applied one step further. A plan the validator itself
 clears (`aprobado_automatico`) is sent automatically as of 2026-08-19 (see
 "Automatic send for validator-approved plans" below) — a deliberate reversal
 of this project's original "always draft, trainer always sends" design,

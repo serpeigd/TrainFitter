@@ -1112,6 +1112,42 @@ lint clean (no dedicated unit tests for the new ui/app.py functions --
 ui/app.py is deliberately excluded from coverage project-wide, verified
 live instead, same convention as everywhere else in this file).
 
+**A second real reversal of "revision_reforzada always drafts, never
+sends automatically" — deliberate, explicitly confirmed before building
+(same bar as the first exception, `aprobado_automatico`'s auto-send).**
+`_panel_aprobacion()`'s "Create Gmail draft" is no longer the primary
+action once a plan is approved: "Enviar el plan por email" now calls
+`enviar_plan()` directly. The reasoning the project owner gave: the
+trainer's own review now happens right there in the panel (the edit
+controls above, plus the Approve click itself, both still
+password-gated exactly as before) rather than a second look inside
+Gmail afterward, so requiring a Gmail round-trip on top of that was
+pure friction with no added safety. "Crear borrador en Gmail en su
+lugar" stays as an explicit secondary button (not just an
+error-triggered fallback) for a trainer who wants to double-check in
+Gmail before it goes, and as the actual recovery path if the real send
+fails (`send_plan_error` names it directly). `revision_reforzada`
+plans are the only remaining category this project ever gates behind a
+password before a real send with no draft in between — same
+"password stands in for the click a public-demo visitor shouldn't get
+for free" reasoning as the `aprobado_automatico` exception.
+
+**Editing scoped down from "anything in the plan" to "only what the
+revision reason actually touched"** — a follow-up correction, also
+explicitly requested. Every generated exercise already carries `notas`
+when `rutina_reglas.py` adapted it for a specific reason (almost always
+a declared injury); `_mostrar_rutina()`'s edit dropdowns now only render
+for exercises where that field is non-empty, everything else renders
+read-only exactly as a non-`revision_reforzada` plan would. Diet
+deliberately keeps every ingredient editable: the analogous "why was
+this the ONLY safe pick" data isn't part of `plan_semanal`'s schema (an
+excluded allergen never appears in the plan to begin with, so there's
+no specific food to point a note at the way there is for exercises),
+and scoping it down further with no real signal to scope BY would just
+hide options rather than focus them — disclosed as the reason for this
+asymmetry directly in the UI caption, not silently different behavior
+between the two panels.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

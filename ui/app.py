@@ -956,8 +956,14 @@ TRANSLATIONS = {
         "progression_label": "**Progression:**",
         "for_client_label": "**For the client:**",
         "edit_summary_label": "Summary",
-        "edit_before_approving_caption": (
-            "✏️ Enhanced review — swap anything below for a real alternative before approving. "
+        "edit_before_approving_caption_rutina": (
+            "✏️ Enhanced review — only the exercises the plan itself flagged with a note below "
+            "(usually adapted for a declared injury) can be swapped; everything else was never "
+            "affected by the reason this needs review. Every option offered is already safe for "
+            "this client (same filtering the plan itself used)."
+        ),
+        "edit_before_approving_caption_dieta": (
+            "✏️ Enhanced review — swap any ingredient below for a real alternative before approving. "
             "Every option here is already safe for this client (same filtering the plan itself used); "
             "portions/description update to match, but stay approximate rather than gram-perfect."
         ),
@@ -992,9 +998,12 @@ TRANSLATIONS = {
             "Off by default — the client portal is the usual way to log check-ins now. Turn this on "
             "for a client without portal access, or who prefers tracking on paper/PDF."
         ),
-        "create_draft_button": "Create Gmail draft",
+        "create_draft_button": "Create Gmail draft instead",
         "draft_created_success": "Draft created — [open it in Gmail]({url}).",
         "draft_error": "Could not create the draft: {error}",
+        "send_plan_button": "Send the plan by email",
+        "plan_sent_directly_success": "Sent — the client should have it now.",
+        "send_plan_error": "Could not send the plan: {error}. You can still create a Gmail draft below and send it yourself.",
         "notion_error_note": "📋 Not saved to Notion: {error}",
         "check_send_status_button": "Check if it was sent",
         "checkin_confirmed_send": "✅ Confirmed sent — logged in Check-ins.",
@@ -1244,10 +1253,17 @@ TRANSLATIONS = {
         "progression_label": "**Progresión:**",
         "for_client_label": "**Para el cliente:**",
         "edit_summary_label": "Resumen",
-        "edit_before_approving_caption": (
-            "✏️ Revisión reforzada — cambia lo que necesites por una alternativa real antes de aprobar. "
-            "Todas las opciones aquí ya son seguras para este cliente (mismo filtrado que usó el propio "
-            "plan); la descripción/porciones se actualizan, pero siguen siendo aproximadas, no exactas."
+        "edit_before_approving_caption_rutina": (
+            "✏️ Revisión reforzada — solo se pueden cambiar los ejercicios que el propio plan marcó "
+            "con una nota debajo (normalmente adaptados por una lesión declarada); el resto no se "
+            "vio afectado por el motivo de esta revisión. Todas las opciones ya son seguras para "
+            "este cliente (mismo filtrado que usó el propio plan)."
+        ),
+        "edit_before_approving_caption_dieta": (
+            "✏️ Revisión reforzada — cambia cualquier ingrediente por una alternativa real antes de "
+            "aprobar. Todas las opciones aquí ya son seguras para este cliente (mismo filtrado que "
+            "usó el propio plan); la descripción/porciones se actualizan, pero siguen siendo "
+            "aproximadas, no exactas."
         ),
         "download_routine": "Descargar rutina (JSON)",
         "diet_header": "🍽️ Dieta",
@@ -1281,9 +1297,12 @@ TRANSLATIONS = {
             "check-ins. Actívalo para un cliente sin acceso al portal, o que prefiera hacerlo en "
             "papel/PDF."
         ),
-        "create_draft_button": "Crear borrador en Gmail",
+        "create_draft_button": "Crear borrador en Gmail en su lugar",
         "draft_created_success": "Borrador creado — [ábrelo en Gmail]({url}).",
         "draft_error": "No se pudo crear el borrador: {error}",
+        "send_plan_button": "Enviar el plan por email",
+        "plan_sent_directly_success": "Enviado — el cliente ya debería tenerlo.",
+        "send_plan_error": "No se pudo enviar el plan: {error}. Aún puedes crear un borrador en Gmail abajo y enviarlo tú mismo.",
         "notion_error_note": "📋 No se guardó en Notion: {error}",
         "check_send_status_button": "Comprobar si se envió",
         "checkin_confirmed_send": "✅ Confirmado como enviado — registrado en Check-ins.",
@@ -2341,7 +2360,7 @@ def _mostrar_rutina(rutina: dict, perfil: dict | None = None, editable: bool = F
     )
 
     if editable:
-        st.caption(t("edit_before_approving_caption"))
+        st.caption(t("edit_before_approving_caption_rutina"))
 
     nuevas_sesiones = []
     for d_idx, sesion in enumerate(rutina["sesiones"]):
@@ -2350,26 +2369,40 @@ def _mostrar_rutina(rutina: dict, perfil: dict | None = None, editable: bool = F
             if editable:
                 nuevos_ejercicios = []
                 for e_idx, ejercicio in enumerate(sesion["ejercicios"]):
-                    opciones = _alternativas_ejercicio(ejercicio, perfil)
-                    clave = f"edit_ejercicio_{perfil['id_cliente']}_{d_idx}_{e_idx}"
-                    elegido = st.selectbox(
-                        f"{t('col_exercise')} {e_idx + 1}", opciones,
-                        index=opciones.index(ejercicio["nombre"]),
-                        format_func=lambda n: ejercicio_mostrado(n, st.session_state.lang),
-                        key=clave,
-                    )
-                    if elegido != ejercicio["nombre"]:
-                        # A swap picks from the same already-vetted-safe pool,
-                        # so the old exercise's own contextual note (often an
-                        # injury-adaptation reason) no longer necessarily
-                        # applies to the new one -- cleared rather than shown
-                        # stale.
-                        ejercicio = {**ejercicio, "nombre": elegido, "notas": ""}
-                    st.caption(
-                        f"{ejercicio['series']} x {ejercicio['repeticiones']} · "
-                        f"{t('col_rest')} {ejercicio['descanso_seg']}s"
-                        + (f" · {ejercicio['notas']}" if ejercicio["notas"] else "")
-                    )
+                    # Scoped to exactly the exercises the engine itself
+                    # already flagged with an adaptation reason (usually an
+                    # injury) -- see "notas"'s own role in rutina_reglas.py
+                    # -- rather than every exercise in the plan, per direct
+                    # request ("solo lo afectado por el motivo"). Anything
+                    # without a note wasn't touched by whatever triggered
+                    # revision_reforzada, so it renders read-only, same as
+                    # a non-editable plan.
+                    if ejercicio.get("notas"):
+                        opciones = _alternativas_ejercicio(ejercicio, perfil)
+                        clave = f"edit_ejercicio_{perfil['id_cliente']}_{d_idx}_{e_idx}"
+                        elegido = st.selectbox(
+                            f"{t('col_exercise')} {e_idx + 1}", opciones,
+                            index=opciones.index(ejercicio["nombre"]),
+                            format_func=lambda n: ejercicio_mostrado(n, st.session_state.lang),
+                            key=clave,
+                        )
+                        if elegido != ejercicio["nombre"]:
+                            # A swap picks from the same already-vetted-safe
+                            # pool, so the old exercise's own contextual note
+                            # no longer necessarily applies to the new one --
+                            # cleared rather than shown stale.
+                            ejercicio = {**ejercicio, "nombre": elegido, "notas": ""}
+                        st.caption(
+                            f"{ejercicio['series']} x {ejercicio['repeticiones']} · "
+                            f"{t('col_rest')} {ejercicio['descanso_seg']}s"
+                            + (f" · {ejercicio['notas']}" if ejercicio["notas"] else "")
+                        )
+                    else:
+                        st.markdown(
+                            f"{ejercicio_mostrado(ejercicio['nombre'], st.session_state.lang)} — "
+                            f"{ejercicio['series']} x {ejercicio['repeticiones']} · "
+                            f"{t('col_rest')} {ejercicio['descanso_seg']}s"
+                        )
                     nuevos_ejercicios.append(ejercicio)
                 sesion = {**sesion, "ejercicios": nuevos_ejercicios}
             else:
@@ -2503,7 +2536,7 @@ def _mostrar_dieta(dieta: dict, perfil: dict | None = None, editable: bool = Fal
     # convention as every other optional field in this dict.
     if dieta.get("plan_semanal"):
         if editable:
-            st.caption(t("edit_before_approving_caption"))
+            st.caption(t("edit_before_approving_caption_dieta"))
         with st.expander(t("weekly_plan_header")):
             nuevos_dias = []
             for dia_info in dieta["plan_semanal"]:
@@ -2897,9 +2930,12 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     aprobado = st.session_state.get("aprobado_para") == id(perfil)
 
     st.markdown(t("approval_header"))
+    email_enviado_o_borrador = (
+        st.session_state.get("gmail_hilo_para") == id(perfil) or st.session_state.get("plan_enviado_directo_para") == id(perfil)
+    )
     _render_stepper([
         (t("mini_step_approve"), aprobado),
-        (t("mini_step_email"), st.session_state.get("gmail_hilo_para") == id(perfil)),
+        (t("mini_step_email"), email_enviado_o_borrador),
         (t("mini_step_confirm"), st.session_state.get("checkin_registrado_para") == id(perfil)),
     ])
 
@@ -2934,27 +2970,96 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
         t("attach_checklist_label"), key="incluir_checklist", disabled=not aprobado,
     )
     st.caption(t("attach_checklist_caption"))
+
+    def _url_portal_para(pagina_id: str | None) -> str | None:
+        # Folds a fresh portal link into the same email ("en el mismo
+        # correo," a direct request) instead of the trainer sending it
+        # separately afterward. Best-effort: only possible once this plan
+        # has an actual Notion page to point at (real clients only, never
+        # the example-client demo), and a failure generating the reference
+        # still lets the email itself go out, just without the link -- the
+        # trainer can always fall back to the portal's own self-service
+        # resend form later if the client needs one.
+        if not pagina_id:
+            return None
+        try:
+            codigo_portal = generar_referencia_portal(pagina_id, email_cliente)
+            return f"{PORTAL_BASE_URL}?ref={codigo_portal}"
+        except (NotionClientError, PortalTokenError, ImportError, ModuleNotFoundError):
+            return None
+
+    def _backfill_email_notion(pagina_id: str | None) -> None:
+        # Best-effort: a trainer using this without Notion configured (or
+        # where the approval-time save failed) shouldn't see an error over
+        # a background update for a feature they may not even have set up.
+        if not pagina_id:
+            return
+        try:
+            actualizar_email_cliente(pagina_id, email_cliente)
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            pass
+
+    # Gated on notion_guardado_para matching *this* perfil, not just "is
+    # notion_pagina_id set" -- otherwise approving a real client (saved to
+    # Notion), then switching to the Example client section and sending a
+    # plan there, would silently backfill the example client's email onto
+    # the real client's Notion page: notion_pagina_id is a single
+    # session-wide slot that only ever gets written for "New Client"
+    # plans, so without this check it'd still be holding the previous real
+    # client's page ID.
+    pagina_id_actual = (
+        st.session_state.get("notion_pagina_id") if st.session_state.get("notion_guardado_para") == id(perfil) else None
+    )
+
+    # Real send is the default action now -- a direct request, a genuine
+    # exception to "revision_reforzada always drafts, never sends
+    # automatically" (see docs/decisiones.md): the trainer's own review
+    # happens right here in this panel (the edit controls above, plus this
+    # Approve click) rather than a second look inside Gmail afterward, so
+    # requiring a Gmail round-trip on top of that was pure friction with
+    # no added safety. "Aprobar" above still requires the same password
+    # confirmation as before (or is the only gate at all when
+    # APPROVAL_PASSWORD is unset) -- nothing about the send itself is any
+    # less reviewed than before, only where that review happens moved.
+    if st.button(t("send_plan_button"), disabled=not aprobado, type="primary"):
+        try:
+            url_portal = _url_portal_para(pagina_id_actual)
+            enviar_plan(
+                email_cliente,
+                perfil["datos_basicos"]["nombre"],
+                estado.borrador_rutina,
+                estado.borrador_dieta,
+                idioma=_idioma_del_perfil(perfil),
+                incluir_checklist=incluir_checklist,
+                url_portal=url_portal,
+            )
+            st.success(t("plan_sent_directly_success"))
+            st.session_state["plan_enviado_directo_para"] = id(perfil)
+            _backfill_email_notion(pagina_id_actual)
+            hoy = datetime.now().date().isoformat()
+            if pagina_id_actual:
+                try:
+                    marcar_email_enviado(pagina_id_actual)
+                except (NotionClientError, ImportError, ModuleNotFoundError):
+                    pass
+            try:
+                crear_registro_checkin(email_cliente, perfil["datos_basicos"]["nombre"], "Plan sent", hoy)
+                st.session_state["checkin_registrado_para"] = id(perfil)
+            except (NotionClientError, ImportError, ModuleNotFoundError):
+                pass
+        except (GmailClientError, ImportError, ModuleNotFoundError) as exc:
+            # Never crash the app over this: a missing google-api-python-client
+            # (e.g. on the public demo, where it's deliberately not installed)
+            # or missing/expired credentials are expected, recoverable states,
+            # not bugs — same "best-effort, never blocks" spirit as the
+            # bloodwork parser. The Gmail draft button right below is the
+            # explicit recovery path, same as _panel_envio_automatico()'s
+            # own fallback for the aprobado_automatico path.
+            st.error(t("send_plan_error").format(error=str(exc)))
+
     if st.button(t("create_draft_button"), disabled=not aprobado):
         try:
-            # Folds a fresh portal link into this same draft ("en el
-            # mismo correo," a direct request) instead of the trainer
-            # sending it separately afterward via a second action -- the
-            # standalone "Send portal link" button that used to live
-            # here is gone; this is now the only place a trainer-created
-            # portal link comes from. Best-effort: only possible once
-            # this plan has an actual Notion page to point at (real
-            # clients only, never the example-client demo), and a
-            # failure generating the reference still lets the draft
-            # itself go out, just without the link -- the trainer can
-            # always fall back to the portal's own self-service resend
-            # form later if the client needs one.
-            url_portal = None
-            if st.session_state.get("notion_guardado_para") == id(perfil):
-                try:
-                    codigo_portal = generar_referencia_portal(st.session_state["notion_pagina_id"], email_cliente)
-                    url_portal = f"{PORTAL_BASE_URL}?ref={codigo_portal}"
-                except (NotionClientError, PortalTokenError, ImportError, ModuleNotFoundError):
-                    url_portal = None
+            url_portal = _url_portal_para(pagina_id_actual)
             resultado_borrador = crear_borrador(
                 email_cliente,
                 perfil["datos_basicos"]["nombre"],
@@ -2970,35 +3075,8 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             st.session_state["gmail_hilo_id"] = resultado_borrador["thread_id"]
             st.session_state["gmail_hilo_para"] = id(perfil)
             st.session_state["checkin_registrado_para"] = None
-
-            # Backfills the client's email onto their Notion record, ahead
-            # of the "detect a real send" check below — the join key needs
-            # to exist before the automation that will use it does.
-            # Best-effort: a trainer using this without Notion configured
-            # (or where the approval-time save failed) shouldn't see an
-            # error over a background update for a feature they may not
-            # even have set up.
-            #
-            # Gated on notion_guardado_para matching *this* perfil, not just
-            # "is notion_pagina_id set" — otherwise approving a real client
-            # (saved to Notion), then switching to the Example client
-            # section and creating a draft there, would silently backfill
-            # the example client's email onto the real client's Notion page:
-            # notion_pagina_id is a single session-wide slot that only ever
-            # gets written for "New Client" plans, so without this check
-            # it'd still be holding the previous real client's page ID.
-            if st.session_state.get("notion_guardado_para") == id(perfil):
-                pagina_id = st.session_state.get("notion_pagina_id")
-                try:
-                    actualizar_email_cliente(pagina_id, email_cliente)
-                except (NotionClientError, ImportError, ModuleNotFoundError):
-                    pass
+            _backfill_email_notion(pagina_id_actual)
         except (GmailClientError, ImportError, ModuleNotFoundError) as exc:
-            # Never crash the app over this: a missing google-api-python-client
-            # (e.g. on the public demo, where it's deliberately not installed)
-            # or missing/expired credentials are expected, recoverable states,
-            # not bugs — same "best-effort, never blocks" spirit as the
-            # bloodwork parser.
             st.error(t("draft_error").format(error=str(exc)))
 
     # "Check if sent" is trainer-triggered, not automatic: this is a
