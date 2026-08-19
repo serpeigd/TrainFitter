@@ -69,7 +69,9 @@ CAMPO_DIAS_SEMANA = "disponibilidad__dias_por_semana"
 CAMPO_MINUTOS_SESION = "disponibilidad__minutos_por_sesion"
 CAMPO_LUGAR_ENTRENO = "disponibilidad__lugar_entreno"
 PREFIJO_MATERIAL = "material__"
-MATERIAL_OPCIONES = ["maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica"]
+MATERIAL_OPCIONES = [
+    "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica", "gomas",
+]
 CAMPO_TIENE_LESION = "salud__tiene_lesion"
 CAMPO_LESION_DESCRIPCION = "salud__lesion_descripcion"
 CAMPO_CONDICIONES = "salud__enfermedades_o_condiciones"
@@ -273,6 +275,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
         opciones_material = [
             ("maquinas_guiadas", "Máquinas guiadas"), ("poleas", "Poleas"), ("barras_y_discos", "Barras y discos"),
             ("mancuernas", "Mancuernas"), ("bancos", "Bancos"), ("bicicleta_estatica", "Bicicleta estática"),
+            ("gomas", "Gomas elásticas"),
         ]
         opciones_dieta = [("omnivora", "Omnívora"), ("vegetariana_ovolacto", "Vegetariana"), ("vegana", "Vegana")]
         opciones_estres = [("bajo", "Bajo"), ("medio", "Medio"), ("alto", "Alto")]
@@ -332,6 +335,7 @@ def generar_pdf_intake(idioma: str = "en") -> bytes:
         opciones_material = [
             ("maquinas_guiadas", "Guided machines"), ("poleas", "Cables"), ("barras_y_discos", "Barbell & plates"),
             ("mancuernas", "Dumbbells"), ("bancos", "Benches"), ("bicicleta_estatica", "Stationary bike"),
+            ("gomas", "Resistance bands"),
         ]
         opciones_dieta = [("omnivora", "Omnivore"), ("vegetariana_ovolacto", "Vegetarian"), ("vegana", "Vegan")]
         opciones_estres = [("bajo", "Low"), ("medio", "Medium"), ("alto", "High")]

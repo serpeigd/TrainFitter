@@ -115,6 +115,41 @@ def test_objetos_caseros_available_when_training_at_home(perfil_base):
     assert not any(INDICE_EJERCICIOS[n]["material"] == {"objetos_caseros"} for n in nombres)
 
 
+def test_gomas_available_when_selected_regardless_of_location(perfil_base):
+    """Unlike "objetos_caseros" (auto-granted for home training), "gomas"
+    is a real, manual MATERIAL_OPCIONES pick -- available at any training
+    location once selected, gym included, and absent when not selected."""
+    for lugar in ("gimnasio_completo", "casa_con_material"):
+        perfil_base["disponibilidad"]["lugar_entreno"] = lugar
+        perfil_base["disponibilidad"]["material_disponible"] = ["gomas"]
+        borrador = generar_borrador_rutina_reglas(perfil_base)
+        nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+        assert any(INDICE_EJERCICIOS[n]["material"] == {"gomas"} for n in nombres)
+
+    perfil_base["disponibilidad"]["lugar_entreno"] = "gimnasio_completo"
+    perfil_base["disponibilidad"]["material_disponible"] = []
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert not any(INDICE_EJERCICIOS[n]["material"] == {"gomas"} for n in nombres)
+
+
+def test_gomas_unavailable_at_home_with_no_equipment_even_if_selected(perfil_base):
+    """Same defense-in-depth _material_cliente() already applies to every
+    other manual pick: "casa_sin_material" clears material_disponible
+    outright, regardless of what's on it."""
+    perfil_base["disponibilidad"]["lugar_entreno"] = "casa_sin_material"
+    perfil_base["disponibilidad"]["material_disponible"] = ["gomas"]
+    borrador = generar_borrador_rutina_reglas(perfil_base)
+    nombres = {ej["nombre"] for sesion in borrador["sesiones"] for ej in sesion["ejercicios"]}
+    assert not any(INDICE_EJERCICIOS[n]["material"] == {"gomas"} for n in nombres)
+
+
+def test_every_muscle_group_has_a_gomas_exercise():
+    grupos = {e["grupo"] for e in EXERCISE_BANK}
+    grupos_con_gomas = {e["grupo"] for e in EXERCISE_BANK if e["material"] == {"gomas"}}
+    assert grupos_con_gomas == grupos
+
+
 def test_knee_injury_excludes_contraindicated_exercises(perfil_base):
     perfil_base["salud"]["lesiones"] = [
         {"zona": "left knee", "descripcion": "old ACL injury", "estado": "antigua_controlada", "activa_actualmente": False}

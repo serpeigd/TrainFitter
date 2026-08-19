@@ -44,6 +44,17 @@ affected muscle group still keeps at least one genuine zero-equipment
 "basico" candidate (push-ups for chest, inverted rows for back), so this
 is a narrowing, not a dead end.
 
+DESIGN — "gomas" (resistance bands, added alongside "objetos_caseros" --
+direct request, "gomas y otros tipos de ejercicios caseros"): unlike
+"objetos_caseros"/"peso_corporal", NOT auto-granted -- not every home
+client actually owns bands, so it's a real, manual MATERIAL_OPCIONES
+pick (ui/app.py, agents/pdf_intake.py), selectable at any training
+location like dumbbells or a barbell, not location-gated. One exercise
+per muscle group, same density as "objetos_caseros", so a client who
+selects both gets genuinely more pool variety per slot than either alone
+-- the actual "make it adaptable" ask. None are "nicho": bands are
+beginner-friendly equipment, not an advanced-only pick.
+
 Note on scope: the "nombre" (name) values are the exercise's CANONICAL
 name — English, and deliberately never swapped for Spanish even when the UI
 language is Spanish. rutina_reglas.py selects exercises by this value, and
@@ -70,6 +81,7 @@ EXERCISE_BANK = [
     {"nombre": "Push-ups (standard)", "nombre_es": "Flexiones (estándar)", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Deficit push-up", "nombre_es": "Flexión en déficit", "grupo": "pecho", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
     {"nombre": "Water jug floor press", "nombre_es": "Press de suelo con garrafas de agua", "grupo": "pecho", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": set()},
+    {"nombre": "Resistance band chest press", "nombre_es": "Press de pecho con gomas", "grupo": "pecho", "material": {"gomas"}, "tipo": "basico", "contraindicaciones": set()},
 
     # --- BACK ---
     {"nombre": "High cable row (close grip)", "nombre_es": "Remo en polea alta (agarre cerrado)", "grupo": "espalda", "material": {"poleas"}, "tipo": "basico", "contraindicaciones": set()},
@@ -81,6 +93,7 @@ EXERCISE_BANK = [
     {"nombre": "Inverted row (bodyweight)", "nombre_es": "Remo invertido (peso corporal)", "grupo": "espalda", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Weighted pull-up", "nombre_es": "Dominada lastrada", "grupo": "espalda", "material": {"peso_corporal", "estructura_fija"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
     {"nombre": "Loaded backpack row", "nombre_es": "Remo con mochila cargada", "grupo": "espalda", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": set()},
+    {"nombre": "Resistance band row", "nombre_es": "Remo con gomas", "grupo": "espalda", "material": {"gomas"}, "tipo": "basico", "contraindicaciones": set()},
 
     # --- SHOULDERS ---
     {"nombre": "Machine shoulder press", "nombre_es": "Press de hombro en máquina", "grupo": "hombro", "material": {"maquinas_guiadas"}, "tipo": "basico", "contraindicaciones": set()},
@@ -91,6 +104,7 @@ EXERCISE_BANK = [
     {"nombre": "Pike push-up", "nombre_es": "Flexión pike (en V)", "grupo": "hombro", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
     {"nombre": "Single-arm dumbbell push press", "nombre_es": "Push press a una mano con mancuerna", "grupo": "hombro", "material": {"mancuernas"}, "tipo": "basico", "contraindicaciones": {"hombro"}, "nicho": True},
     {"nombre": "Water jug lateral raise", "nombre_es": "Elevación lateral con garrafas de agua", "grupo": "hombro", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Resistance band lateral raise", "nombre_es": "Elevación lateral con gomas", "grupo": "hombro", "material": {"gomas"}, "tipo": "aislamiento", "contraindicaciones": set()},
 
     # --- LEGS (quads) ---
     {"nombre": "Barbell squat", "nombre_es": "Sentadilla con barra", "grupo": "pierna_cuadriceps", "material": {"barras_y_discos"}, "tipo": "basico", "contraindicaciones": {"rodilla"}},
@@ -103,6 +117,7 @@ EXERCISE_BANK = [
     {"nombre": "Wall sit (isometric squat)", "nombre_es": "Sentadilla en pared (isométrica)", "grupo": "pierna_cuadriceps", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Bulgarian split squat", "nombre_es": "Sentadilla búlgara", "grupo": "pierna_cuadriceps", "material": {"mancuernas", "bancos"}, "tipo": "basico", "contraindicaciones": {"rodilla"}, "nicho": True},
     {"nombre": "Loaded backpack goblet squat", "nombre_es": "Sentadilla goblet con mochila cargada", "grupo": "pierna_cuadriceps", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": {"rodilla"}},
+    {"nombre": "Resistance band squat", "nombre_es": "Sentadilla con gomas", "grupo": "pierna_cuadriceps", "material": {"gomas"}, "tipo": "basico", "contraindicaciones": {"rodilla"}},
 
     # --- LEGS (hamstrings / glutes) ---
     {"nombre": "Barbell Romanian deadlift", "nombre_es": "Peso muerto rumano con barra", "grupo": "pierna_isquios_gluteo", "material": {"barras_y_discos"}, "tipo": "basico", "contraindicaciones": {"lumbar"}},
@@ -114,11 +129,13 @@ EXERCISE_BANK = [
     {"nombre": "Machine hip adduction", "nombre_es": "Aducción de cadera en máquina", "grupo": "pierna_isquios_gluteo", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Nordic hamstring curl", "nombre_es": "Curl femoral nórdico", "grupo": "pierna_isquios_gluteo", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": {"rodilla"}, "nicho": True},
     {"nombre": "Water jug Romanian deadlift", "nombre_es": "Peso muerto rumano con garrafas de agua", "grupo": "pierna_isquios_gluteo", "material": {"objetos_caseros"}, "tipo": "basico", "contraindicaciones": {"lumbar"}},
+    {"nombre": "Resistance band hip thrust", "nombre_es": "Hip thrust con gomas", "grupo": "pierna_isquios_gluteo", "material": {"gomas"}, "tipo": "basico", "contraindicaciones": set()},
 
     # --- CALVES ---
     {"nombre": "Standing machine calf raise", "nombre_es": "Elevación de gemelo de pie en máquina", "grupo": "gemelos", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Seated calf raise", "nombre_es": "Elevación de gemelo sentado", "grupo": "gemelos", "material": {"maquinas_guiadas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Loaded backpack calf raise", "nombre_es": "Elevación de gemelo con mochila cargada", "grupo": "gemelos", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Resistance band calf raise", "nombre_es": "Elevación de gemelo con gomas", "grupo": "gemelos", "material": {"gomas"}, "tipo": "aislamiento", "contraindicaciones": set()},
 
     # --- BICEPS ---
     {"nombre": "Barbell curl", "nombre_es": "Curl de bíceps con barra", "grupo": "biceps", "material": {"barras_y_discos"}, "tipo": "basico", "contraindicaciones": set()},
@@ -126,6 +143,7 @@ EXERCISE_BANK = [
     {"nombre": "Cable curl", "nombre_es": "Curl de bíceps en polea", "grupo": "biceps", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Dumbbell hammer curl", "nombre_es": "Curl martillo con mancuernas", "grupo": "biceps", "material": {"mancuernas"}, "tipo": "aislamiento", "contraindicaciones": set()},
     {"nombre": "Water jug curl", "nombre_es": "Curl de bíceps con garrafas de agua", "grupo": "biceps", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Resistance band curl", "nombre_es": "Curl de bíceps con gomas", "grupo": "biceps", "material": {"gomas"}, "tipo": "aislamiento", "contraindicaciones": set()},
 
     # --- TRICEPS ---
     {"nombre": "Cable triceps pushdown (bar)", "nombre_es": "Extensión de tríceps en polea (barra)", "grupo": "triceps", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": set()},
@@ -133,6 +151,7 @@ EXERCISE_BANK = [
     {"nombre": "Bench dips", "nombre_es": "Fondos en banco", "grupo": "triceps", "material": {"peso_corporal", "bancos"}, "tipo": "basico", "contraindicaciones": {"hombro"}},
     {"nombre": "Diamond push-ups", "nombre_es": "Flexiones diamante", "grupo": "triceps", "material": {"peso_corporal"}, "tipo": "basico", "contraindicaciones": set()},
     {"nombre": "Water jug overhead triceps extension", "nombre_es": "Extensión de tríceps por encima de la cabeza con garrafa de agua", "grupo": "triceps", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": {"hombro"}},
+    {"nombre": "Resistance band triceps pushdown", "nombre_es": "Extensión de tríceps con gomas", "grupo": "triceps", "material": {"gomas"}, "tipo": "aislamiento", "contraindicaciones": set()},
 
     # --- CORE ---
     {"nombre": "Front plank", "nombre_es": "Plancha frontal", "grupo": "core", "material": {"peso_corporal"}, "tipo": "aislamiento", "contraindicaciones": set()},
@@ -141,6 +160,7 @@ EXERCISE_BANK = [
     {"nombre": "Cable Pallof press", "nombre_es": "Pallof press en polea", "grupo": "core", "material": {"poleas"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}},
     {"nombre": "Dragon flag", "nombre_es": "Dragon flag", "grupo": "core", "material": {"peso_corporal", "estructura_fija"}, "tipo": "aislamiento", "contraindicaciones": {"lumbar"}, "nicho": True},
     {"nombre": "Towel sliding mountain climbers", "nombre_es": "Escaladores con toalla deslizante", "grupo": "core", "material": {"objetos_caseros"}, "tipo": "aislamiento", "contraindicaciones": set()},
+    {"nombre": "Resistance band Pallof press", "nombre_es": "Pallof press con gomas", "grupo": "core", "material": {"gomas"}, "tipo": "aislamiento", "contraindicaciones": set()},
 ]
 
 # English name -> Spanish display name. Display-only (see module docstring):

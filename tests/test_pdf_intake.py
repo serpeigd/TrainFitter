@@ -130,6 +130,17 @@ def test_reads_back_equipment_checkboxes_as_a_list(pdf_relleno):
     assert set(perfil["disponibilidad"]["material_disponible"]) == {"mancuernas", "poleas"}
 
 
+def test_gomas_equipment_checkbox_round_trips():
+    """Resistance bands ("gomas") -- a real, manual MATERIAL_OPCIONES pick,
+    unlike the auto-granted "objetos_caseros"/"peso_corporal" tags -- reads
+    back the same way any other equipment checkbox does."""
+    pdf = _llenar(
+        generar_pdf_intake(idioma="en"), {CAMPO_NOMBRE: "Test", f"{PREFIJO_MATERIAL}gomas": "/Yes"},
+    )
+    perfil = leer_intake_pdf(pdf)
+    assert "gomas" in perfil["disponibilidad"]["material_disponible"]
+
+
 def test_unfilled_equipment_checkboxes_are_not_included():
     perfil = leer_intake_pdf(_llenar(generar_pdf_intake(idioma="en"), {CAMPO_NOMBRE: "Test"}))
     assert perfil["disponibilidad"]["material_disponible"] == []

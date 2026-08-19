@@ -2708,6 +2708,71 @@ old link — tested directly afterward — no longer resolves.
 
 ---
 
+## A missed unification, resistance bands, and meals grouped by day
+
+Three follow-ups, all from actually using the app and asking direct
+questions about what the intake form does.
+
+**The portal-link + PDF unification never reached the manual approval
+flow.** The earlier "unify the plan and the portal link into one email"
+work only touched `enviar_plan()` (the auto-send path) and the check-in
+regeneration draft — `_panel_aprobacion()`'s "Create Gmail draft" button,
+the one actually used for every `revision_reforzada` plan (the majority
+of real trainer review work), never passed `url_portal` to
+`crear_borrador()` at all. The standalone "Send portal link" button
+right below it sent a genuinely separate email. Fixed: "Create draft"
+now generates a fresh portal reference itself (best-effort — a Notion
+hiccup still lets the draft go out, just without the link) and folds it
+into the same draft; the standalone button and its now-dead translation
+keys are gone. `enviar_enlace_portal()` itself is untouched and still
+used by the portal's own self-service resend form, a genuinely different
+use case (a quick link-only recovery send, not the full plan).
+
+**Resistance bands ("gomas"), requested directly ("gomas y otros tipos
+de ejercicios caseros").** Every muscle group already had exactly one
+`"objetos_caseros"` (household-object) exercise, auto-granted for home
+training — but no band exercises existed at all. Added as a real, manual
+`MATERIAL_OPCIONES` pick (unlike `objetos_caseros`/`peso_corporal`,
+which are auto-granted) — selectable at any training location, not
+home-only, since bands show up in gyms too — with one exercise per
+muscle group (9 total), matching the household-object pool's density so
+"the actual 'make it adaptable' ask" (more equipment combinations = more
+distinct candidate pools per slot) is real, not just a longer dropdown.
+`routine_agent.py`'s LLM prompt got the matching instruction for engine
+parity.
+
+**Meals grouped by day in the portal, direct correction.** The swipe
+flow flattened the whole week into one meal-at-a-time sequence — a real
+complaint ("que salgan todas las comidas del día juntas... ahora solo
+sale 1"). Rebuilt to walk day by day instead of meal by meal: a day's
+breakfast/lunch/dinner/snacks all render together, each with its own
+independent like button, no per-meal skip anymore (redundant once every
+meal in the day is already visible — not clicking "like" already means
+"skip," so removing the extra click lost no functionality). Verified
+live against the real workspace (the "PEPE" test client): day 1 shows
+all three meals grouped with correct persisted like state, "Next day"
+advances to day 2 with "Back" now visible, and every gomas-tagged
+exercise round-trips through both the manual form and the fillable
+intake PDF correctly. 547 tests passing (up from 543), lint clean, no
+example-output diffs (no example client selects "gomas").
+
+Separately, answered two direct questions about what the intake form
+actually does, without changing any code: (1) a declared health
+condition — including the PCOS/"ovarios poliquísticos" example asked
+about directly — forces `revision_reforzada` and nothing else; no
+condition-specific logic exists anywhere in either rule engine, by
+design (defense-in-depth defers clinical adaptation to the trainer,
+same as every other declared condition). (2) A full field-by-field audit
+found three intake fields that are collected, stored, and round-trip
+through the PDF but are never read by generation at all:
+`experiencia.anios_entrenando`, `experiencia.detalle`, and
+`lesion.estado`/`lesion.activa_actualmente` (an injury is treated
+identically whether marked "old, controlled" or "active"). Disclosed
+directly rather than silently left as an assumed gap — no fix requested
+yet.
+
+---
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

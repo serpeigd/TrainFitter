@@ -951,14 +951,6 @@ TRANSLATIONS = {
         "adherence_history_error": "Could not load adherence history: {error}",
         "history_chart_weight": "Weight over time",
         "history_chart_adherence": "Adherence trend (1 = Low, 2 = Medium, 3 = High)",
-        "portal_section_header": "### 🔗 Client portal",
-        "portal_section_caption": (
-            "Sends a real email (not a draft) with a private link where the client can see a plan summary "
-            "and log their own check-ins — no PDF back-and-forth needed."
-        ),
-        "send_portal_link_button": "Send portal link",
-        "portal_link_sent_success": "✅ Portal link sent.",
-        "portal_link_error": "Could not send the portal link: {error}",
         "portal_invalid_link": "This portal link isn't valid or has expired: {error}",
         "portal_load_error": "Could not load your plan: {error}",
         "portal_resend_intro": "Enter the email your trainer has on file and we'll send you a new link.",
@@ -973,7 +965,7 @@ TRANSLATIONS = {
         "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": "Liked meals show up more often in your future plans.",
         "portal_meal_back_button": "⬅️ Back",
-        "portal_meal_skip_button": "➡️ Skip",
+        "portal_day_next_button": "➡️ Next day",
         "portal_meal_like_button": "❤️ Like it",
         "portal_meal_unlike_button": "💔 Remove like",
         "portal_meals_done": "That's every meal this week — nicely done!",
@@ -1224,14 +1216,6 @@ TRANSLATIONS = {
         "adherence_history_error": "No se pudo cargar el historial de adherencia: {error}",
         "history_chart_weight": "Peso a lo largo del tiempo",
         "history_chart_adherence": "Tendencia de adherencia (1 = Baja, 2 = Media, 3 = Alta)",
-        "portal_section_header": "### 🔗 Portal del cliente",
-        "portal_section_caption": (
-            "Envía un email real (no un borrador) con un enlace privado donde el cliente puede ver un resumen "
-            "de su plan y registrar sus propios check-ins — sin ida y vuelta de PDFs."
-        ),
-        "send_portal_link_button": "Enviar enlace del portal",
-        "portal_link_sent_success": "✅ Enlace del portal enviado.",
-        "portal_link_error": "No se pudo enviar el enlace del portal: {error}",
         "portal_invalid_link": "Este enlace del portal no es válido o ha caducado: {error}",
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_resend_intro": "Escribe el email que tiene tu entrenador/a y te enviamos un enlace nuevo.",
@@ -1246,7 +1230,7 @@ TRANSLATIONS = {
         "portal_meals_header": "🍽️ Comidas",
         "portal_meals_caption": "Las comidas que te gusten aparecerán más a menudo en tus próximos planes.",
         "portal_meal_back_button": "⬅️ Atrás",
-        "portal_meal_skip_button": "➡️ Pasar",
+        "portal_day_next_button": "➡️ Día siguiente",
         "portal_meal_like_button": "❤️ Me gusta",
         "portal_meal_unlike_button": "💔 Quitar me gusta",
         "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
@@ -1294,6 +1278,7 @@ OPTION_LABELS = {
         "casa_con_material": "Home with some equipment", "casa_sin_material": "Home with no equipment",
         "maquinas_guiadas": "Guided machines", "poleas": "Cables", "barras_y_discos": "Barbell & plates",
         "mancuernas": "Dumbbells", "bancos": "Benches", "bicicleta_estatica": "Stationary bike",
+        "gomas": "Resistance bands",
         "antigua_controlada": "Old, under control", "activa": "Active",
         "omnivora": "Omnivorous", "vegetariana_ovolacto": "Vegetarian", "vegana": "Vegan",
         "bajo": "Low", "medio": "Medium", "alto": "High",
@@ -1312,6 +1297,7 @@ OPTION_LABELS = {
         "casa_con_material": "Casa con algo de material", "casa_sin_material": "Casa sin material",
         "maquinas_guiadas": "Máquinas guiadas", "poleas": "Poleas", "barras_y_discos": "Barras y discos",
         "mancuernas": "Mancuernas", "bancos": "Bancos", "bicicleta_estatica": "Bicicleta estática",
+        "gomas": "Gomas elásticas",
         "antigua_controlada": "Antigua, controlada", "activa": "Activa",
         "omnivora": "Omnívora", "vegetariana_ovolacto": "Vegetariana", "vegana": "Vegana",
         "bajo": "Bajo", "medio": "Medio", "alto": "Alto",
@@ -1391,7 +1377,7 @@ _FRASE_POR_INQUIETUD = {
 
 OBJETIVOS = ["hipertrofia", "perdida_grasa", "recomposicion_corporal", "salud_general"]
 MATERIAL_OPCIONES = [
-    "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica",
+    "maquinas_guiadas", "poleas", "barras_y_discos", "mancuernas", "bancos", "bicicleta_estatica", "gomas",
 ]
 
 
@@ -2617,6 +2603,25 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
     st.caption(t("attach_checklist_caption"))
     if st.button(t("create_draft_button"), disabled=not aprobado):
         try:
+            # Folds a fresh portal link into this same draft ("en el
+            # mismo correo," a direct request) instead of the trainer
+            # sending it separately afterward via a second action -- the
+            # standalone "Send portal link" button that used to live
+            # here is gone; this is now the only place a trainer-created
+            # portal link comes from. Best-effort: only possible once
+            # this plan has an actual Notion page to point at (real
+            # clients only, never the example-client demo), and a
+            # failure generating the reference still lets the draft
+            # itself go out, just without the link -- the trainer can
+            # always fall back to the portal's own self-service resend
+            # form later if the client needs one.
+            url_portal = None
+            if st.session_state.get("notion_guardado_para") == id(perfil):
+                try:
+                    codigo_portal = generar_referencia_portal(st.session_state["notion_pagina_id"], email_cliente)
+                    url_portal = f"{PORTAL_BASE_URL}?ref={codigo_portal}"
+                except (NotionClientError, PortalTokenError, ImportError, ModuleNotFoundError):
+                    url_portal = None
             resultado_borrador = crear_borrador(
                 email_cliente,
                 perfil["datos_basicos"]["nombre"],
@@ -2624,6 +2629,7 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 estado.borrador_dieta,
                 idioma=_idioma_del_perfil(perfil),
                 incluir_checklist=incluir_checklist,
+                url_portal=url_portal,
             )
             st.success(t("draft_created_success").format(url=resultado_borrador["url"]))
             # Kept for the "check if sent" button below — same single-slot,
@@ -2698,28 +2704,6 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
                 else:
                     st.success(t("checkin_confirmed_send"))
 
-    # Client portal: sends a real email (gmail.send, the one deliberate
-    # exception to draft-only -- see gmail_client.py's module docstring)
-    # with a magic link the client can follow to view a plan summary and
-    # submit their own check-ins, without a PDF at all. Needs a Notion
-    # page to point at (the portal reads obtener_registro_cliente() by
-    # page ID), so it's only offered once *this* plan has actually been
-    # saved there -- same owner-check pattern as everything else in this
-    # function that depends on notion_pagina_id.
-    if st.session_state.get("notion_guardado_para") == id(perfil):
-        st.markdown(t("portal_section_header"))
-        st.caption(t("portal_section_caption"))
-        if st.button(t("send_portal_link_button"), disabled=not (aprobado and email_cliente)):
-            try:
-                codigo = generar_referencia_portal(st.session_state["notion_pagina_id"], email_cliente)
-                url_portal = f"{PORTAL_BASE_URL}?ref={codigo}"
-                enviar_enlace_portal(
-                    email_cliente, perfil["datos_basicos"]["nombre"], url_portal, idioma=_idioma_del_perfil(perfil),
-                )
-                st.success(t("portal_link_sent_success"))
-            except (GmailClientError, PortalTokenError, NotionClientError, ImportError, ModuleNotFoundError) as exc:
-                st.error(t("portal_link_error").format(error=str(exc)))
-
     # Independent of the Gmail draft state above: once an email is typed
     # in, the trainer can check what *this* client has already reported
     # over time, not just what happens with the plan just generated (a
@@ -2732,76 +2716,74 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
 
 
 def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagina_id: str) -> None:
-    """One meal at a time, "sí/no" style, instead of a long list with a
-    tiny heart icon buried in every row -- a direct request ("rollo
-    tinder... que no se pierda mucho tiempo"). Real bug fixed alongside
-    it: liking used to be one-way (no way to undo a like), tracked only
-    in session state (lost on reload) -- both the un-like path
-    (quitar_comida_favorita()) and the liked/not-liked state itself
-    (`favoritas`, read fresh from Notion on every rerun via
-    obtener_registro_cliente()) are now real, not session-local.
+    """One DAY at a time (all its meals together -- breakfast, lunch,
+    dinner...), each with its own like button, instead of one isolated
+    meal per screen. Direct correction ("que salgan todas las comidas del
+    día juntas... ahora solo sale 1"): the original per-meal swipe made it
+    hard to see a day as a whole, and "skip" never meant anything beyond
+    "move on without liking" -- with every meal already visible together,
+    a per-meal skip button added a click without adding a decision, so it's
+    gone; only "next day" advances now. Real bug fixed alongside the
+    original version of this flow: liking used to be one-way (no way to
+    undo a like), tracked only in session state (lost on reload) -- both
+    the un-like path (quitar_comida_favorita()) and the liked/not-liked
+    state itself (`favoritas`, read fresh from Notion on every rerun via
+    obtener_registro_cliente()) are real, not session-local.
 
-    Flattens every day's meals into one ordered list and walks through
-    it via a session-scoped index (`portal_comida_idx`) -- reset once the
-    end is reached, so the client can go through the week again. Not a
-    literal touch-swipe gesture (Streamlit has no native gesture support,
-    and a custom JS component would be fragile across mobile browsers for
-    little real gain) -- two big buttons achieve the same "fast, one
-    decision at a time" goal reliably instead.
+    Walks through `plan_semanal` (already grouped by day) via a
+    session-scoped index (`portal_dia_idx`) -- reset once the end is
+    reached, so the client can go through the week again. A "Back" button
+    steps the index back one day instead of only ever moving forward,
+    both mid-flow and from the final "done" screen."""
+    total_dias = len(plan_semanal)
+    indice = st.session_state.get("portal_dia_idx", 0)
 
-    A "Back" button (direct request) steps the index back one instead of
-    only ever moving forward -- lets a client re-see (and, since the
-    like/skip choice re-reads real state every render, change) the
-    previous meal's decision, both mid-flow and from the final "done"
-    screen."""
-    comidas_planas = [
-        (dia_info["dia"], comida) for dia_info in plan_semanal for comida in dia_info.get("comidas", [])
-    ]
-    total = len(comidas_planas)
-    indice = st.session_state.get("portal_comida_idx", 0)
-
-    if indice >= total:
+    if indice >= total_dias:
         st.success(t("portal_meals_done"))
         col_atras_final, col_reiniciar = st.columns(2)
-        if col_atras_final.button(t("portal_meal_back_button"), key="portal_comidas_atras_final"):
-            st.session_state["portal_comida_idx"] = total - 1
+        if col_atras_final.button(t("portal_meal_back_button"), key="portal_dias_atras_final"):
+            st.session_state["portal_dia_idx"] = total_dias - 1
             st.rerun()
-        if col_reiniciar.button(t("portal_meals_restart"), key="portal_comidas_reiniciar"):
-            st.session_state["portal_comida_idx"] = 0
+        if col_reiniciar.button(t("portal_meals_restart"), key="portal_dias_reiniciar"):
+            st.session_state["portal_dia_idx"] = 0
             st.rerun()
         return
 
-    dia, comida = comidas_planas[indice]
-    eleccion = {
-        "tipo": comida.get("tipo_interno"),
-        "proteina": comida.get("proteina"),
-        "carbohidrato": comida.get("carbohidrato"),
-        "grasa": comida.get("grasa"),
-    }
-    ya_favorita = eleccion in favoritas
+    dia_info = plan_semanal[indice]
+    st.progress((indice + 1) / total_dias, text=f"{indice + 1}/{total_dias}")
+    st.markdown(f"**{dia_info['dia']}**")
 
-    st.progress((indice + 1) / total, text=f"{indice + 1}/{total}")
-    st.markdown(f"**{dia} — {comida['tipo']}**")
-    st.markdown(f"{comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
+    for i, comida in enumerate(dia_info.get("comidas", [])):
+        eleccion = {
+            "tipo": comida.get("tipo_interno"),
+            "proteina": comida.get("proteina"),
+            "carbohidrato": comida.get("carbohidrato"),
+            "grasa": comida.get("grasa"),
+        }
+        ya_favorita = eleccion in favoritas
 
-    col_atras, col_no, col_si = st.columns([1, 2, 2])
-    if indice > 0 and col_atras.button(t("portal_meal_back_button"), key=f"portal_atras_{indice}"):
-        st.session_state["portal_comida_idx"] = indice - 1
+        with st.container(border=True):
+            col_texto, col_boton = st.columns([3, 1])
+            col_texto.markdown(f"**{comida['tipo']}**")
+            col_texto.markdown(f"{comida['descripcion']} (~{comida['aprox_kcal']} kcal)")
+            etiqueta = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
+            if col_boton.button(etiqueta, key=f"portal_like_{indice}_{i}", type="primary" if not ya_favorita else "secondary"):
+                try:
+                    if ya_favorita:
+                        quitar_comida_favorita(pagina_id, eleccion)
+                    else:
+                        agregar_comida_favorita(pagina_id, eleccion)
+                    st.rerun()
+                except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                    st.error(t("portal_meal_like_error").format(error=str(exc)))
+
+    col_atras, col_siguiente = st.columns(2)
+    if indice > 0 and col_atras.button(t("portal_meal_back_button"), key=f"portal_dia_atras_{indice}"):
+        st.session_state["portal_dia_idx"] = indice - 1
         st.rerun()
-    if col_no.button(t("portal_meal_skip_button"), key=f"portal_skip_{indice}"):
-        st.session_state["portal_comida_idx"] = indice + 1
+    if col_siguiente.button(t("portal_day_next_button"), key=f"portal_dia_siguiente_{indice}", type="primary"):
+        st.session_state["portal_dia_idx"] = indice + 1
         st.rerun()
-    etiqueta_si = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
-    if col_si.button(etiqueta_si, key=f"portal_like_{indice}", type="primary"):
-        try:
-            if ya_favorita:
-                quitar_comida_favorita(pagina_id, eleccion)
-            else:
-                agregar_comida_favorita(pagina_id, eleccion)
-            st.session_state["portal_comida_idx"] = indice + 1
-            st.rerun()
-        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
-            st.error(t("portal_meal_like_error").format(error=str(exc)))
 
 
 def _formulario_reenviar_link_portal() -> None:

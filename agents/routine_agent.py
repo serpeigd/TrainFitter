@@ -187,7 +187,11 @@ STARTING POINT, not a final prescription.
   "casa_con_material"/"casa_sin_material"), don't default to bodyweight-only:
   mix in creative household substitutes (water jugs/bottles as dumbbells, a
   loaded backpack for rows/squats/lunges, a towel on a smooth floor as a
-  sliding surface) alongside genuine bodyweight work. Don't prescribe pull-ups,
+  sliding surface) alongside genuine bodyweight work. If `material_disponible`
+  includes `"gomas"` (resistance bands), use them too -- a real, distinct
+  equipment type from the household substitutes above, not interchangeable
+  with them: band presses/rows/squats/curls/pushdowns/Pallof presses add
+  resistance a bodyweight-only or water-jug exercise can't. Don't prescribe pull-ups,
   dips, or anything else that needs a real bar/anchor to hang or push off of
   unless the client explicitly reported having one -- most homes don't, even
   when the client otherwise has some equipment. Use an inverted row against a

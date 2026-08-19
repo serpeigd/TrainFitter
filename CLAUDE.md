@@ -963,6 +963,28 @@ sends a real email AND redirects in-app to PEPE's actual plan, and the
 old link stops resolving immediately after (`generar_referencia_portal()`
 overwrites in place). 543 tests passing, lint clean.
 
+Three more follow-ups. A real gap caught by a direct question: the
+earlier "unify the plan and portal link into one email" work never
+reached `_panel_aprobacion()`'s "Create Gmail draft" button — the one
+used for every `revision_reforzada` plan — which still sent the portal
+link as a second, separate email via a standalone button. Fixed: the
+draft button now generates a fresh portal reference itself and folds it
+in; the standalone button and its dead translation keys are gone.
+Resistance bands (`"gomas"`) added as a real, manual `MATERIAL_OPCIONES`
+pick (selectable at any location, unlike auto-granted
+`objetos_caseros`), with one exercise per muscle group (9 total) and the
+matching LLM-prompt instruction. The portal's swipe flow now groups
+meals by day (breakfast/lunch/dinner together, each with its own like
+button) instead of one meal at a time — a direct correction — with the
+redundant per-meal "skip" removed. Also answered two questions directly
+without changing code: a declared health condition (PCOS included) only
+ever forces `revision_reforzada`, no condition-specific adaptation
+exists; and a full field audit found three intake fields
+(`anios_entrenando`, `experiencia.detalle`, `lesion.estado`/
+`activa_actualmente`) that are collected but never read by generation.
+Verified live against the real "PEPE" test client. 547 tests passing (up
+from 543), lint clean, no example diffs.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
