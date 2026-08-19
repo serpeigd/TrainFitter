@@ -249,5 +249,29 @@ away.
 
 ---
 
+## 21. An edit that would have silently vanished, caught before it shipped
+
+Adding editable dropdowns to the plan-review panel looked simple: swap an
+exercise, patch the dict, done. It would have quietly failed in
+production. `_ejecutar_y_mostrar()` reruns the entire generation pipeline
+from the client's profile on *every* Streamlit rerun, not just the
+initial button click — the section-dispatch logic re-checks session
+state on every render, and generation is deterministic, so it always
+reproduces the identical draft. Patching `estado.borrador_rutina` in
+place would work for exactly one render and then vanish the instant the
+trainer touched anything else on the page, replaced by a freshly
+regenerated original. The fix didn't need new infrastructure — Streamlit
+already persists a widget's value across reruns if given a *stable* key,
+and this codebase already had that exact pattern (`_clave_selectbox()`)
+solving an unrelated problem two screens away. Recognizing the same
+primitive applied here was the actual fix; no override-tracking layer,
+no extra state. **Why it matters:** the failure mode wouldn't have shown
+up in a quick manual click-through — the edit visibly "works" for one
+render before quietly reverting — which is exactly the kind of bug that
+survives a demo and reaches a user. Understanding *why* a page reruns is
+what caught it, not testing harder.
+
+---
+
 *For the full "why," including things that were tried and reverted, see*
 [`decisiones.md`](decisiones.md).

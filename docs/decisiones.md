@@ -2968,6 +2968,114 @@ this round). 574 tests passing (up from 565), lint clean,
 `examples/output_rutina_*.json`/`output_dieta_*.json` regenerated for
 all three example clients.
 
+## Direct editing for revision_reforzada plans: a real gap, scoped in two rounds
+
+A follow-up from the same session as the previous entry, prompted by a
+question about what was still missing. The trainer's first answer ("haz
+que los ajustes del entrenador sean mas generales") turned out to
+reference text that already existed verbatim from the prior turn — but
+a follow-up clarified the real ask was different: "que pueda editar yo
+con un boton las cosas que puedan necesiten de mi consulta" — being able
+to directly edit the generated plan, via a button, specifically for
+whatever needs the trainer's own judgment. Scoped through two rounds of
+`AskUserQuestion` before writing any code: WHAT to make editable (only
+content flagged for revision, plus free text — not the whole plan, not
+just text) and HOW (pick from a list of safe alternatives, not free
+text, for structured content).
+
+**Design.** Editing only ever renders for a `revision_reforzada` plan
+(`es_revision_reforzada` threaded into `_mostrar_rutina()`/
+`_mostrar_dieta()` as `editable`) — an `aprobado_automatico` plan is
+never shown this UI at all, matching "solo lo marcado para revisión."
+Two kinds of edits: a dropdown-based swap for every exercise and every
+meal ingredient (structured content, safety-relevant), and free text for
+`mensaje_para_el_cliente`/`resumen_enfoque` (prose, not safety-relevant).
+
+**The real architectural constraint.** `_ejecutar_y_mostrar()` re-runs
+the *entire* pipeline (`ejecutar_pipeline(perfil, ...)`) from scratch on
+every single Streamlit rerun — not just the click that first generated
+the plan — because the section-dispatch logic re-checks
+`st.session_state["ultimo_origen"]` every render, not just on the button
+click itself. Since generation is deterministic (seeded by
+`id_cliente`), this always reproduces byte-identical output. That means
+an edit can never live in the freshly-generated `estado.borrador_rutina`/
+`borrador_dieta` dict itself — it gets discarded and regenerated a
+moment after any widget interaction. The fix used what Streamlit already
+provides for free: give each edit widget a STABLE key (tied to
+`perfil["id_cliente"]` and the day/exercise/meal-field index, not
+`id(rutina)`, which is a fresh object every rerun) and let Streamlit's
+own session-state persistence carry the trainer's choice across reruns.
+`_mostrar_rutina()`/`_mostrar_dieta()` read each widget's current value
+and RETURN a patched copy of the draft, which `_ejecutar_y_mostrar()`
+reassigns onto `estado.borrador_rutina`/`borrador_dieta` before
+`_panel_aprobacion()` runs — so the edited version is what gets PDF'd,
+drafted, and saved, within the same rerun. No new session-state
+"overrides" layer needed; this is the exact same `_clave_selectbox()`/
+`_clave_multiselect()` pattern already used elsewhere in this file for
+surviving a language-toggle remount, applied to a new problem.
+
+**Safety.** Every dropdown is populated from the *same* filtering
+functions generation itself already calls —
+`rutina_reglas._candidatos(grupo, tipo, material, lesion_tags)` for
+exercises, `food_bank.fuentes_proteina_para()`/`fuentes_carbohidrato_para()`/
+`fuentes_grasa_para()` for foods — so a trainer's swap can only choose
+among alternatives the engine had already vetted as safe for this exact
+client. It's structurally impossible to pick something the validator
+would have flagged, because the option never appears in the list.
+
+**A disclosed simplification, not a silent one.** A food swap doesn't
+regenerate the meal's whole sentence from scratch: `plan_semanal`'s own
+schema (`_construir_comida()`'s return value) never surfaced the
+per-ingredient grams or the verdura/synergy-eligibility flags baked into
+`descripcion` -- only the final rendered sentence and the bare food
+names. Reconstructing the sentence properly would mean extending that
+schema (a real, larger change) just for this. Instead,
+`_sustituir_ingrediente_en_descripcion()` does a case-preserving,
+word-boundary-anchored text substitution of the old ingredient's
+displayed name for the new one, leaving the grams/pairing/synergy text
+exactly as originally generated. The portions now describe the new
+food's role approximately, not exactly -- consistent with this project's
+own stated "estimate, adjust from real progress" philosophy for
+`plan_semanal` overall, and disclosed directly in the UI caption next to
+the dropdowns rather than left implicit. An exercise swap clears that
+slot's `notas` (usually an injury-adaptation reason for the exercise
+being replaced, which doesn't necessarily still apply to the new pick).
+
+**Same-day follow-up.** With progresion already bulleted, the warm-up
+text (made longer and more specific earlier in the session -- rotator
+cuff, hip mobility) read as the next "wall of text." `CALENTAMIENTO_POR_DIA`
+was rewritten as two real sentences per entry (mobility drills, then
+warm-up sets) instead of one long comma-and-"+"-joined sentence,
+specifically so `gmail_client.dividir_en_puntos()` -- which splits on
+sentence-ending punctuation -- could bullet it the same way it already
+bullets `progresion`, in the PDF, the trainer panel, and the portal
+(joined with "·" there instead of a multi-line list, since it renders
+inside a single-line `st.caption()`).
+
+**Verification.** Live against the real "PEPE" test client (loaded via
+"Revisar cliente" by email, not the broken example-client selector --
+see below), whose real profile is `revision_reforzada` for a declared
+shoulder injury: all 18 exercise dropdowns (3 days × 6 exercises) and
+all 63 food dropdowns (7 days × 9 ingredient slots) rendered with the
+correct current value pre-selected and real, safe alternatives; the
+warm-up bullets rendered correctly; no server error. Nothing was
+approved, saved, or sent during verification -- generating a plan for
+"Revisar cliente" doesn't write to Notion (saves happen on approval, per
+the existing design), so this was safe to do against the real record.
+
+**A genuine tooling limitation, disclosed rather than routed around.**
+Verifying this live meant switching to a different example client or a
+different real client, and the in-app browser's automation repeatedly
+failed to reliably drive this Streamlit version's `st.selectbox` (a
+react-aria ComboBox under the hood) -- clicks opened it, but synthetic
+key/selection events didn't commit a real option, leaving the widget in
+an uncommitted text state. Worked around by using "Revisar cliente"'s
+plain email `st.text_input` instead of the broken example-client
+dropdown, which uses ordinary DOM text input the same automation drives
+reliably elsewhere in this project. The dropdown-driving limitation
+itself is a browser-automation-tooling gap, not a bug in the app --
+noted here rather than left unexplained.
+
 ---
 
 ## Fitness content disclaimer

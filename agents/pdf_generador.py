@@ -403,7 +403,15 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
         ejercicios = sesion.get("ejercicios", [])
         bloque_dia = [Paragraph(sesion.get("dia", ""), estilo_dia)]
         if sesion.get("calentamiento"):
-            bloque_dia.append(Paragraph(f"<b>{textos['calentamiento']}:</b> {sesion['calentamiento']}", estilo_subtexto))
+            bloque_dia.append(Paragraph(f"<b>{textos['calentamiento']}:</b>", estilo_subtexto))
+            # Bullets, same treatment as progresion below -- CALENTAMIENTO_POR_DIA
+            # is written as two sentences specifically so this can split it.
+            bloque_dia.append(
+                ListFlowable(
+                    [ListItem(Paragraph(p, estilo_subtexto)) for p in dividir_en_puntos(sesion["calentamiento"])],
+                    bulletType="bullet",
+                )
+            )
         if ejercicios:
             filas = [[
                 Paragraph(textos["col_ejercicio"], estilo_celda_cabecera),

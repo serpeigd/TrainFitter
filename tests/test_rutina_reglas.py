@@ -847,4 +847,4 @@ def test_every_session_has_a_mandatory_warmup_mentioning_the_right_joints(perfil
         assert sesion["calentamiento"]
     todos_calentamientos = " ".join(s["calentamiento"] for s in borrador["sesiones"])
     assert "hip" in todos_calentamientos.lower()
-    assert "rotator cuff" in todos_calentamientos.lower()
+    assert "rotator-cuff" in todos_calentamientos.lower()

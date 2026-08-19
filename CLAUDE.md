@@ -1062,6 +1062,55 @@ stored plan predates the wetaca-style meal format, so that specific
 piece is unit-tested rather than visible on his stale saved plan). 574
 tests passing (up from 565), lint clean, `examples/output_rutina_*.json`
 and `output_dieta_*.json` regenerated for all three example clients.
+Separately, found and fixed a real bug the same day: `historial_checkins()`
+returns every Check-ins row regardless of type (including "Plan sent" log
+entries), so the new "Semana N:" count was inflating past the real
+adherence-check-in count -- filtered to `tipo == "Adherence check-in"`.
+
+**Direct editing for `revision_reforzada` plans**, scoped through two
+rounds of clarifying questions (what to edit, how): a real gap
+distinguished from the trainer-adjustment dropdowns above — "que pueda
+editar yo con un boton las cosas que puedan necesiten de mi consulta."
+Scoped to exactly the flagged case (only rendered when
+`es_revision_reforzada`, an auto-approved plan is never shown this) and
+to two kinds of edits: swap-from-a-safe-list for exercises/foods, free
+text for the client message/summary. `_mostrar_rutina()`/`_mostrar_dieta()`
+now take `perfil`/`editable` and RETURN the (possibly patched) draft
+dict, reassigned onto `estado.borrador_rutina`/`estado.borrador_dieta` in
+`_ejecutar_y_mostrar()` — necessary because that function reruns the
+*entire* pipeline from `perfil` fresh on every Streamlit rerun (same
+deterministic output every time), so an edit has to come from the
+widgets' own persisted values, not from mutating a draft that gets
+thrown away and regenerated a moment later. Every dropdown is populated
+from the exact same safety-filtered pools generation itself already used
+— `rutina_reglas._candidatos()` (grupo/tipo/material/injury) for
+exercises, `food_bank.fuentes_*_para()` (diet type/allergy) for foods —
+so a swap can never introduce something the validator would have
+flagged; it can only choose among alternatives the engine already
+vetted. A food swap doesn't regenerate the meal's whole sentence from
+scratch (plan_semanal's own schema doesn't carry per-ingredient grams or
+the verdura/synergy flags needed to do that) — it's a case-preserving,
+word-boundary text substitution of the old ingredient's displayed name
+for the new one (`_sustituir_ingrediente_en_descripcion()`), a disclosed
+simplification consistent with this project's "estimate, don't be
+gram-perfect" philosophy, not something generation itself ever does. An
+exercise swap clears that slot's `notas` (often an injury-adaptation
+reason for the specific exercise being replaced, not necessarily the new
+one). Same-day follow-up: the warm-up text (now longer/more detailed)
+also got the bullet treatment in the PDF, trainer panel, and portal —
+`CALENTAMIENTO_POR_DIA` rewritten as two real sentences per entry instead
+of one long "+"-joined one, specifically so
+`gmail_client.dividir_en_puntos()` (which splits on sentence-ending
+punctuation) can bullet it the same way it already does for `progresion`.
+Verified live against the real "PEPE" client (loaded via "Revisar
+cliente," `revision_reforzada` for a declared shoulder injury): all 18
+exercise dropdowns (3 days × 6) and all 63 food dropdowns (7 days × 9)
+render with the correct pre-filled current value and real alternatives,
+the calentamiento bullets render correctly, and no server error.
+Nothing was approved/saved/sent during verification. 574 tests passing,
+lint clean (no dedicated unit tests for the new ui/app.py functions --
+ui/app.py is deliberately excluded from coverage project-wide, verified
+live instead, same convention as everywhere else in this file).
 
 ## Free-only guardrail
 

@@ -116,82 +116,88 @@ TIPO_DIA_LABELS = {
 # PLANTILLAS_DIA key has an entry so this is unconditionally set on every
 # session (see generar_borrador_rutina_reglas() below), never optional; also
 # rendered in the PDF (pdf_generador.py) and the trainer/portal panels.
+#
+# Two sentences per entry (mobility drills, then warm-up sets), not one
+# long "+"-joined sentence -- so gmail_client.dividir_en_puntos() (which
+# splits on sentence-ending punctuation) can bullet this the same way it
+# already does for progresion, instead of returning it as one unsplittable
+# fragment.
 CALENTAMIENTO_POR_DIA = {
     "en": {
         "Full Body": (
-            "5-10 min: light cardio to raise heart rate, then hip circles + leg swings (hips) and "
-            "banded external rotations (rotator cuff) + arm circles, finishing with 1-2 light sets "
-            "of the first exercise."
+            "5-10 min of light cardio to raise your heart rate, hip circles and leg swings for the "
+            "hips, and banded external rotations plus arm circles for the rotator cuff. "
+            "Finish with 1-2 light sets of the first exercise."
         ),
         "Upper A": (
-            "5 min: arm circles + banded external/internal rotations (rotator cuff activation) "
-            "+ wrist circles, then warm-up sets on the first exercise."
+            "5 min of arm circles, banded external/internal rotations for rotator-cuff activation, "
+            "and wrist circles. Then warm-up sets on the first exercise."
         ),
         "Upper B": (
-            "5 min: arm circles + banded external/internal rotations (rotator cuff activation) "
-            "+ wrist circles, then warm-up sets on the first exercise."
+            "5 min of arm circles, banded external/internal rotations for rotator-cuff activation, "
+            "and wrist circles. Then warm-up sets on the first exercise."
         ),
         "Lower A": (
-            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
-            "bridges + ankle circles, then warm-up sets before the working load."
+            "5-10 min of hip circles, leg swings (front-back and side-to-side), bodyweight glute "
+            "bridges, and ankle circles. Then warm-up sets before the working load."
         ),
         "Lower B": (
-            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
-            "bridges + ankle circles, then warm-up sets before the working load."
+            "5-10 min of hip circles, leg swings (front-back and side-to-side), bodyweight glute "
+            "bridges, and ankle circles. Then warm-up sets before the working load."
         ),
         "Push": (
-            "5 min: banded external/internal rotations (rotator cuff activation) + arm circles "
-            "+ scapular push-ups, then warm-up sets on the first exercise."
+            "5 min of banded external/internal rotations for rotator-cuff activation, arm circles, "
+            "and scapular push-ups. Then warm-up sets on the first exercise."
         ),
         "Pull": (
-            "5 min: banded external/internal rotations (rotator cuff activation) + scapular "
-            "retractions + arm circles, then warm-up sets on the first exercise."
+            "5 min of banded external/internal rotations for rotator-cuff activation, scapular "
+            "retractions, and arm circles. Then warm-up sets on the first exercise."
         ),
         "Legs": (
-            "5-10 min: hip circles + leg swings (front-back and side-to-side) + bodyweight glute "
-            "bridges + ankle circles, then warm-up sets before the working load."
+            "5-10 min of hip circles, leg swings (front-back and side-to-side), bodyweight glute "
+            "bridges, and ankle circles. Then warm-up sets before the working load."
         ),
     },
     "es": {
         "Full Body": (
-            "5-10 min: algo de cardio suave para elevar el pulso, seguido de círculos de cadera + "
-            "balanceos de pierna (cadera) y rotaciones externas con goma (manguito rotador) + "
-            "círculos de brazo, terminando con 1-2 series ligeras del primer ejercicio."
+            "5-10 min de cardio suave para elevar el pulso, círculos de cadera y balanceos de "
+            "pierna para la cadera, y rotaciones externas con goma más círculos de brazo para el "
+            "manguito rotador. Termina con 1-2 series ligeras del primer ejercicio."
         ),
         "Upper A": (
-            "5 min: círculos de brazo + rotaciones externas/internas con goma (activación del "
-            "manguito rotador) + círculos de muñeca, y series de calentamiento en el primer "
-            "ejercicio."
-        ),
-        "Upper B": (
-            "5 min: círculos de brazo + rotaciones externas/internas con goma (activación del "
-            "manguito rotador) + círculos de muñeca, y series de calentamiento en el primer "
-            "ejercicio."
-        ),
-        "Lower A": (
-            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
-            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
-            "la carga de trabajo."
-        ),
-        "Lower B": (
-            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
-            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
-            "la carga de trabajo."
-        ),
-        "Push": (
-            "5 min: rotaciones externas/internas con goma (activación del manguito rotador) + "
-            "círculos de brazo + flexiones escapulares, y series de calentamiento en el primer "
-            "ejercicio."
-        ),
-        "Pull": (
-            "5 min: rotaciones externas/internas con goma (activación del manguito rotador) + "
-            "retracciones escapulares + círculos de brazo, y series de calentamiento en el "
+            "5 min de círculos de brazo, rotaciones externas/internas con goma para activar el "
+            "manguito rotador, y círculos de muñeca. Después, series de calentamiento en el "
             "primer ejercicio."
         ),
+        "Upper B": (
+            "5 min de círculos de brazo, rotaciones externas/internas con goma para activar el "
+            "manguito rotador, y círculos de muñeca. Después, series de calentamiento en el "
+            "primer ejercicio."
+        ),
+        "Lower A": (
+            "5-10 min de círculos de cadera, balanceos de pierna (adelante-atrás y lateral), "
+            "puente de glúteo sin peso, y círculos de tobillo. Después, series de calentamiento "
+            "antes de la carga de trabajo."
+        ),
+        "Lower B": (
+            "5-10 min de círculos de cadera, balanceos de pierna (adelante-atrás y lateral), "
+            "puente de glúteo sin peso, y círculos de tobillo. Después, series de calentamiento "
+            "antes de la carga de trabajo."
+        ),
+        "Push": (
+            "5 min de rotaciones externas/internas con goma para activar el manguito rotador, "
+            "círculos de brazo, y flexiones escapulares. Después, series de calentamiento en el "
+            "primer ejercicio."
+        ),
+        "Pull": (
+            "5 min de rotaciones externas/internas con goma para activar el manguito rotador, "
+            "retracciones escapulares, y círculos de brazo. Después, series de calentamiento en "
+            "el primer ejercicio."
+        ),
         "Legs": (
-            "5-10 min: círculos de cadera + balanceos de pierna (adelante-atrás y lateral) + "
-            "puente de glúteo sin peso + círculos de tobillo, y series de calentamiento antes de "
-            "la carga de trabajo."
+            "5-10 min de círculos de cadera, balanceos de pierna (adelante-atrás y lateral), "
+            "puente de glúteo sin peso, y círculos de tobillo. Después, series de calentamiento "
+            "antes de la carga de trabajo."
         ),
     },
 }

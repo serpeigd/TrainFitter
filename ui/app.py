@@ -202,7 +202,12 @@ sys.path.insert(0, str(MCP_DIR))
 from adherencia_parser import resumir_adherencia, tendencia_peso, valoracion_desde_ratios  # noqa: E402
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
-from food_bank import categoria_inquietud_conocida  # noqa: E402
+from food_bank import (  # noqa: E402
+    categoria_inquietud_conocida,
+    fuentes_carbohidrato_para,
+    fuentes_grasa_para,
+    fuentes_proteina_para,
+)
 from food_bank import nombre_mostrado as alimento_mostrado  # noqa: E402
 from gmail_client import (  # noqa: E402
     GmailClientError,
@@ -238,6 +243,8 @@ from notion_connector import (  # noqa: E402
 from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import DIAS_SEMANA_DIETA  # noqa: E402
 from pdf_intake import es_intake_pdf, leer_intake_pdf  # noqa: E402
+from perfil_utils import tags_lesiones  # noqa: E402
+from rutina_reglas import _candidatos, _material_cliente  # noqa: E402
 
 st.set_page_config(
     page_title="TrainFitter",
@@ -943,6 +950,12 @@ TRANSLATIONS = {
         "progression_and_message": "Progression and message for the client",
         "progression_label": "**Progression:**",
         "for_client_label": "**For the client:**",
+        "edit_summary_label": "Summary",
+        "edit_before_approving_caption": (
+            "✏️ Enhanced review — swap anything below for a real alternative before approving. "
+            "Every option here is already safe for this client (same filtering the plan itself used); "
+            "portions/description update to match, but stay approximate rather than gram-perfect."
+        ),
         "download_routine": "Download routine (JSON)",
         "diet_header": "🍽️ Diet",
         "kcal_day": "Kcal/day",
@@ -1220,6 +1233,12 @@ TRANSLATIONS = {
         "progression_and_message": "Progresión y mensaje para el cliente",
         "progression_label": "**Progresión:**",
         "for_client_label": "**Para el cliente:**",
+        "edit_summary_label": "Resumen",
+        "edit_before_approving_caption": (
+            "✏️ Revisión reforzada — cambia lo que necesites por una alternativa real antes de aprobar. "
+            "Todas las opciones aquí ya son seguras para este cliente (mismo filtrado que usó el propio "
+            "plan); la descripción/porciones se actualizan, pero siguen siendo aproximadas, no exactas."
+        ),
         "download_routine": "Descargar rutina (JSON)",
         "diet_header": "🍽️ Dieta",
         "kcal_day": "Kcal/día",
@@ -2221,9 +2240,9 @@ def _ejecutar_y_mostrar(perfil: dict, guardar_en_notion: bool = False) -> None:
     # border wrapper, doesn't exist in this Streamlit version (the border is
     # applied directly to the shared stVerticalBlock element instead).
     with col_rutina, st.container(border=True, key="tf-card-rutina"):
-        _mostrar_rutina(estado.borrador_rutina)
+        estado.borrador_rutina = _mostrar_rutina(estado.borrador_rutina, perfil, editable=es_revision_reforzada)
     with col_dieta, st.container(border=True, key="tf-card-dieta"):
-        _mostrar_dieta(estado.borrador_dieta)
+        estado.borrador_dieta = _mostrar_dieta(estado.borrador_dieta, perfil, editable=es_revision_reforzada)
 
     st.divider()
     with st.container(border=True, key="tf-card-aprobacion"):
@@ -2249,41 +2268,117 @@ def _mostrar_veredicto(veredicto: dict, auto_envio: bool = False) -> None:
         st.success(t("no_review_reasons_success"))
 
 
-def _mostrar_rutina(rutina: dict) -> None:
+def _alternativas_ejercicio(ejercicio: dict, perfil: dict) -> list[str]:
+    """Every safe exercise for this exact slot -- same grupo/tipo, same
+    material/injury filtering rutina_reglas.py's own generation already
+    applies (see _candidatos()) -- plus the currently assigned exercise
+    itself, so the dropdown always includes what's already there. Niche
+    exercises are included regardless of the client's own commitment
+    level: niche only ever ADDS candidates, it's never a safety gate, so
+    there's no reason to hide a real, still-safe option from the trainer
+    here."""
+    candidatos = _candidatos(
+        ejercicio["grupo"], ejercicio["tipo"], _material_cliente(perfil), tags_lesiones(perfil), incluir_nicho=True,
+    )
+    nombres = sorted({c["nombre"] for c in candidatos})
+    if ejercicio["nombre"] not in nombres:
+        nombres = sorted([*nombres, ejercicio["nombre"]])
+    return nombres
+
+
+def _mostrar_rutina(rutina: dict, perfil: dict | None = None, editable: bool = False) -> dict:
+    """Renders the routine and, for a revision_reforzada plan, returns an
+    edited copy reflecting whatever the trainer changed via the widgets
+    below -- editable is only ever True there (see _ejecutar_y_mostrar()),
+    matching the direct request that editing is for the cases that
+    genuinely need the trainer's own judgment, not a free-text rewrite of
+    an already-safe auto-approved plan. Every dropdown only ever offers
+    exercises rutina_reglas.py's own generation would itself consider safe
+    for that slot (see _alternativas_ejercicio()) -- this can't introduce
+    an unsafe pick, only choose among ones the engine already vetted."""
     st.markdown(f'<div class="tf-section-rutina"><h3>{t("routine_header")}</h3></div>', unsafe_allow_html=True)
-    st.caption(rutina["resumen_enfoque"])
+    if editable:
+        rutina = {
+            **rutina,
+            "resumen_enfoque": st.text_area(
+                t("edit_summary_label"), value=rutina["resumen_enfoque"], key=f"edit_resumen_rutina_{perfil['id_cliente']}",
+            ),
+        }
+    else:
+        st.caption(rutina["resumen_enfoque"])
     st.markdown(
         f"{t('split_label')} {opt(rutina['split'])} · "
         f"{t('days_week_label')} {rutina['dias_por_semana']} · "
         f"{t('duration_label')} {rutina['duracion_sesion_min']} min"
     )
 
-    for sesion in rutina["sesiones"]:
+    if editable:
+        st.caption(t("edit_before_approving_caption"))
+
+    nuevas_sesiones = []
+    for d_idx, sesion in enumerate(rutina["sesiones"]):
         with st.expander(sesion["dia"]):
-            st.caption(sesion["calentamiento"])
-            filas = [
-                {
-                    # Exercise "nombre" stays canonical English in the underlying
-                    # dict (validator/JSON/email/Notion all rely on that — see
-                    # exercise_bank.py's docstring); translated here for display only.
-                    t("col_exercise"): ejercicio_mostrado(e["nombre"], st.session_state.lang),
-                    t("col_sets"): e["series"],
-                    t("col_reps"): e["repeticiones"],
-                    t("col_rest"): f"{e['descanso_seg']}s",
-                    t("col_notes"): e["notas"],
-                }
-                for e in sesion["ejercicios"]
-            ]
-            st.table(filas)
+            st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(sesion["calentamiento"])))
+            if editable:
+                nuevos_ejercicios = []
+                for e_idx, ejercicio in enumerate(sesion["ejercicios"]):
+                    opciones = _alternativas_ejercicio(ejercicio, perfil)
+                    clave = f"edit_ejercicio_{perfil['id_cliente']}_{d_idx}_{e_idx}"
+                    elegido = st.selectbox(
+                        f"{t('col_exercise')} {e_idx + 1}", opciones,
+                        index=opciones.index(ejercicio["nombre"]),
+                        format_func=lambda n: ejercicio_mostrado(n, st.session_state.lang),
+                        key=clave,
+                    )
+                    if elegido != ejercicio["nombre"]:
+                        # A swap picks from the same already-vetted-safe pool,
+                        # so the old exercise's own contextual note (often an
+                        # injury-adaptation reason) no longer necessarily
+                        # applies to the new one -- cleared rather than shown
+                        # stale.
+                        ejercicio = {**ejercicio, "nombre": elegido, "notas": ""}
+                    st.caption(
+                        f"{ejercicio['series']} x {ejercicio['repeticiones']} · "
+                        f"{t('col_rest')} {ejercicio['descanso_seg']}s"
+                        + (f" · {ejercicio['notas']}" if ejercicio["notas"] else "")
+                    )
+                    nuevos_ejercicios.append(ejercicio)
+                sesion = {**sesion, "ejercicios": nuevos_ejercicios}
+            else:
+                filas = [
+                    {
+                        # Exercise "nombre" stays canonical English in the underlying
+                        # dict (validator/JSON/email/Notion all rely on that — see
+                        # exercise_bank.py's docstring); translated here for display only.
+                        t("col_exercise"): ejercicio_mostrado(e["nombre"], st.session_state.lang),
+                        t("col_sets"): e["series"],
+                        t("col_reps"): e["repeticiones"],
+                        t("col_rest"): f"{e['descanso_seg']}s",
+                        t("col_notes"): e["notas"],
+                    }
+                    for e in sesion["ejercicios"]
+                ]
+                st.table(filas)
             if sesion.get("nota_esfuerzo"):
                 st.caption(f"{t('effort_label')} {sesion['nota_esfuerzo']}")
             if sesion.get("cardio_opcional"):
                 st.caption(f"{t('cardio_label')} {sesion['cardio_opcional']}")
+        nuevas_sesiones.append(sesion)
+    rutina = {**rutina, "sesiones": nuevas_sesiones}
 
     with st.expander(t("progression_and_message")):
         st.markdown(t("progression_label"))
         st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(rutina["progresion"])))
-        st.markdown(f"{t('for_client_label')} {rutina['mensaje_para_el_cliente']}")
+        if editable:
+            rutina = {
+                **rutina,
+                "mensaje_para_el_cliente": st.text_area(
+                    t("for_client_label"), value=rutina["mensaje_para_el_cliente"],
+                    key=f"edit_mensaje_rutina_{perfil['id_cliente']}",
+                ),
+            }
+        else:
+            st.markdown(f"{t('for_client_label')} {rutina['mensaje_para_el_cliente']}")
 
     st.download_button(
         t("download_routine"),
@@ -2291,11 +2386,64 @@ def _mostrar_rutina(rutina: dict) -> None:
         file_name="routine.json",
         mime="application/json",
     )
+    return rutina
 
 
-def _mostrar_dieta(dieta: dict) -> None:
+def _alternativas_alimento(campo: str, perfil: dict, actual: str | None) -> list[str]:
+    """Every safe food for this ingredient slot -- the same diet-type/
+    allergy-filtered pools food_bank.py's own fuentes_*_para() already
+    computes for generation (see planificador_comidas.py) -- plus
+    whatever's currently assigned, so the dropdown always includes it."""
+    fuente = {
+        "proteina": fuentes_proteina_para, "carbohidrato": fuentes_carbohidrato_para, "grasa": fuentes_grasa_para,
+    }[campo]
+    opciones = sorted(set(fuente(perfil)))
+    if actual and actual not in opciones:
+        opciones = sorted([*opciones, actual])
+    return opciones
+
+
+def _sustituir_ingrediente_en_descripcion(descripcion: str, nombre_viejo: str, nombre_nuevo: str) -> str:
+    """Swaps an ingredient's displayed name inside an already-rendered
+    plan_semanal description, case-insensitively and preserving whichever
+    case the original occurrence used (the dish-name prefix capitalizes
+    it, e.g. "Chicken with...", the gram breakdown doesn't, e.g.
+    "...130g chicken..." -- see planificador_comidas._nombrar_plato()).
+
+    DESIGN -- a text substitution, not a full re-render: the grams,
+    vegetable pairing, and synergy caveat already baked into this sentence
+    stay exactly as originally generated (only the swapped food's own
+    macros differ slightly from what those grams were solved for) --
+    plan_semanal's own dict doesn't carry the per-ingredient grams or
+    verdura/synergy flags needed to regenerate the sentence from scratch
+    (see _construir_comida()'s own returned schema), and this project's
+    stated philosophy is "estimate, adjust from real progress" rather than
+    gram-perfect anyway. Good enough for a trainer's manual swap; not used
+    anywhere generation itself runs."""
+    def _reemplazo(coincidencia: "re.Match[str]") -> str:
+        si_mayuscula = coincidencia.group(0)[:1].isupper()
+        return (nombre_nuevo[:1].upper() if si_mayuscula else nombre_nuevo[:1].lower()) + nombre_nuevo[1:]
+
+    patron = r"\b" + re.escape(nombre_viejo) + r"\b"
+    return re.sub(patron, _reemplazo, descripcion, flags=re.IGNORECASE)
+
+
+def _mostrar_dieta(dieta: dict, perfil: dict | None = None, editable: bool = False) -> dict:
+    """Renders the diet and, for a revision_reforzada plan, returns an
+    edited copy reflecting whatever the trainer changed -- same contract
+    and same safety guarantee as _mostrar_rutina(): every dropdown only
+    ever offers foods food_bank.py's own diet-type/allergy filtering
+    would itself allow for this client (see _alternativas_alimento())."""
     st.markdown(f'<div class="tf-section-dieta"><h3>{t("diet_header")}</h3></div>', unsafe_allow_html=True)
-    st.caption(dieta["resumen_enfoque"])
+    if editable:
+        dieta = {
+            **dieta,
+            "resumen_enfoque": st.text_area(
+                t("edit_summary_label"), value=dieta["resumen_enfoque"], key=f"edit_resumen_dieta_{perfil['id_cliente']}",
+            ),
+        }
+    else:
+        st.caption(dieta["resumen_enfoque"])
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(t("kcal_day"), dieta["calorias_objetivo_kcal"])
@@ -2326,14 +2474,51 @@ def _mostrar_dieta(dieta: dict) -> None:
     # field existed (or a hand-built one), same "degrades gracefully"
     # convention as every other optional field in this dict.
     if dieta.get("plan_semanal"):
+        if editable:
+            st.caption(t("edit_before_approving_caption"))
         with st.expander(t("weekly_plan_header")):
+            nuevos_dias = []
             for dia_info in dieta["plan_semanal"]:
                 st.markdown(f"**{dia_info['dia']}**")
-                for comida in dia_info["comidas"]:
-                    st.markdown(f"- *{comida['tipo']}* ({comida['aprox_kcal']} kcal): {comida['descripcion']}")
+                nuevas_comidas = []
+                for c_idx, comida in enumerate(dia_info["comidas"]):
+                    if editable:
+                        comida = dict(comida)
+                        for campo, etiqueta in (
+                            ("proteina", t("protein_label")), ("carbohidrato", t("carbs_label")), ("grasa", t("fat_label")),
+                        ):
+                            actual = comida.get(campo)
+                            if not actual:
+                                continue
+                            opciones = _alternativas_alimento(campo, perfil, actual)
+                            clave = f"edit_alimento_{perfil['id_cliente']}_{dia_info['dia']}_{c_idx}_{campo}"
+                            elegido = st.selectbox(
+                                f"{comida['tipo']} — {etiqueta}", opciones, index=opciones.index(actual),
+                                format_func=lambda n: alimento_mostrado(n, idioma), key=clave,
+                            )
+                            if elegido != actual:
+                                comida["descripcion"] = _sustituir_ingrediente_en_descripcion(
+                                    comida["descripcion"], alimento_mostrado(actual, idioma), alimento_mostrado(elegido, idioma),
+                                )
+                                comida[campo] = elegido
+                        st.caption(f"({comida['aprox_kcal']} kcal) {comida['descripcion']}")
+                    else:
+                        st.markdown(f"- *{comida['tipo']}* ({comida['aprox_kcal']} kcal): {comida['descripcion']}")
+                    nuevas_comidas.append(comida)
+                nuevos_dias.append({**dia_info, "comidas": nuevas_comidas})
+            dieta = {**dieta, "plan_semanal": nuevos_dias}
 
     with st.expander(t("client_message_header")):
-        st.markdown(dieta["mensaje_para_el_cliente"])
+        if editable:
+            dieta = {
+                **dieta,
+                "mensaje_para_el_cliente": st.text_area(
+                    t("client_message_header"), value=dieta["mensaje_para_el_cliente"],
+                    key=f"edit_mensaje_dieta_{perfil['id_cliente']}", label_visibility="collapsed",
+                ),
+            }
+        else:
+            st.markdown(dieta["mensaje_para_el_cliente"])
 
     st.download_button(
         t("download_diet"),
@@ -2341,6 +2526,7 @@ def _mostrar_dieta(dieta: dict) -> None:
         file_name="diet.json",
         mime="application/json",
     )
+    return dieta
 
 
 def _ejecutar_envio_automatico(estado) -> None:
@@ -3083,7 +3269,7 @@ def _vista_portal_cliente(codigo: str) -> None:
                 with st.container(border=True, key=f"portal-routine-card-{indice}"):
                     st.markdown(f"**🗓️ {sesion['dia']}**")
                     if sesion.get("calentamiento"):
-                        st.caption(f"🔥 {sesion['calentamiento']}")
+                        st.caption("🔥 " + " · ".join(dividir_en_puntos(sesion["calentamiento"])))
                     for ejercicio in sesion.get("ejercicios", []):
                         nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
                         linea = f"**{nombre_es}** — {ejercicio['series']} x {ejercicio['repeticiones']}"
