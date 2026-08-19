@@ -808,6 +808,11 @@ TRANSLATIONS = {
             "Load a client by email above to see and edit their plan — this section can't create a "
             "new client from scratch (use \"New client\" for that)."
         ),
+        "revise_client_relock_warning": (
+            "🔒 A client's health data isn't shown here until you re-enter the password above — "
+            "this re-locks every time you come back to this section, even if one was loaded earlier "
+            "in this browser session."
+        ),
         "intake_pdf_upload_header": "📤 Upload a filled intake PDF (instead of retyping it below)",
         "intake_pdf_upload_caption": (
             "If the client emailed back a filled-in intake form, upload it here to pre-fill the form "
@@ -1087,6 +1092,11 @@ TRANSLATIONS = {
         "revise_client_not_loaded": (
             "Carga un cliente por email arriba para ver y editar su plan — este apartado no sirve "
             "para crear un cliente nuevo desde cero (usa \"Cliente nuevo\" para eso)."
+        ),
+        "revise_client_relock_warning": (
+            "🔒 Los datos de salud del cliente no se muestran hasta que vuelvas a escribir la "
+            "contraseña arriba — esto se vuelve a bloquear cada vez que regresas a este apartado, "
+            "aunque hubieras cargado un cliente antes en esta misma sesión."
         ),
         "intake_pdf_upload_header": "📤 Subir una ficha PDF rellenada (en vez de escribirla abajo)",
         "intake_pdf_upload_caption": (
@@ -2050,18 +2060,27 @@ def _cargar_ficha_para_revisar() -> dict | None:
     the form's own widgets are instantiated fresh against that pre-seeded
     state, rather than relying on same-run ordering.
 
-    No password gate wraps this whole section anymore (removed at the
+    No password gate wraps the LOOKUP itself anymore (removed at the
     project owner's direct request -- asking for the password once just
     to reach the email field, then again right here, was pure friction).
-    This lookup's own re-check is the only gate that matters: it fires on
-    every single load, not a one-time session flag -- the session-level
-    unlock this used to sit behind only proved the trainer knew the
-    password *once*; without this, anyone at an already-unlocked session
-    (a shared screen, a laptop left open) could pull up *any* client's
-    full health profile just by knowing their email, with nothing tying
-    that specific lookup back to the trainer. Skipped entirely when
-    APPROVAL_PASSWORD is unset, same "off" degradation as everywhere
-    else -- local dev stays exactly as friction-free as before.
+    This lookup's own re-check is what matters for the lookup action: it
+    fires on every single load click, not a one-time session flag.
+
+    What DOES persist across renders is whether a client's full profile is
+    currently allowed to be SHOWN -- gated by "revisar_desbloqueado", set
+    True only by a successful password check right here, and reset False
+    every time the trainer switches INTO this section (see the
+    "_seccion_anterior" tracking next to st.segmented_control()). A prior
+    version of this gate only checked at the moment of the load click and
+    then let the rendered form persist across every later rerun
+    indefinitely -- a real gap: a second tab/window sharing the same
+    browser session, or an unattended already-open tab, could see an
+    already-loaded client's full health profile without anyone there ever
+    entering a password. Editing the loaded form (many reruns while
+    staying on this same tab/section) never re-locks -- only actually
+    leaving and coming back does. Skipped entirely when APPROVAL_PASSWORD
+    is unset, same "off" degradation as everywhere else -- local dev stays
+    exactly as friction-free as before.
 
     Rendered directly, not inside a collapsed st.expander -- another
     direct request ("que se abra automáticamente o quítalo"): the email
@@ -2096,6 +2115,7 @@ def _cargar_ficha_para_revisar() -> dict | None:
                     st.session_state[clave] = valor
                 st.session_state["revisar_pagina_id"] = registro["id"]
                 st.session_state["revisar_cargado_nombre"] = registro["perfil"]["datos_basicos"]["nombre"]
+                st.session_state["revisar_desbloqueado"] = True
                 st.rerun()
 
     if st.session_state.get("revisar_cargado_nombre"):
@@ -2104,6 +2124,14 @@ def _cargar_ficha_para_revisar() -> dict | None:
         st.info(t("revise_client_not_loaded"))
 
     if not st.session_state.get("revisar_pagina_id"):
+        return None
+    if APPROVAL_PASSWORD and not st.session_state.get("revisar_desbloqueado"):
+        # A client was loaded earlier this browser session, but this is a
+        # fresh visit to this section (or another tab/window sharing the
+        # same session) -- re-verifying the SAME email+password above
+        # re-enters this branch and unlocks it again, same one-click cost
+        # as a first-time load, never a dead end.
+        st.warning(t("revise_client_relock_warning"))
         return None
     return _formulario_ficha_nueva()
 
@@ -3697,6 +3725,21 @@ seccion_activa = st.segmented_control(
     key="seccion_activa",
     label_visibility="collapsed",
 )
+
+# Security: re-lock "Revisar cliente" every time the trainer switches INTO
+# it, not just once per browser session -- see _cargar_ficha_para_revisar()'s
+# own docstring for why a session-level unlock that persists indefinitely is
+# a real leak (a second tab/window sharing the same session, or an
+# unattended already-open tab, could see an already-loaded client's full
+# health data with no password of their own). Tracked here, at the one spot
+# that sees every section change, rather than inside
+# _cargar_ficha_para_revisar() itself -- that function only ever runs WHILE
+# already on "revisar", so it can't detect a round trip through another
+# section in between. Editing the loaded form (many reruns while staying on
+# this same tab) never re-locks, since seccion_activa doesn't change then.
+if seccion_activa == "revisar" and st.session_state.get("_seccion_anterior") != "revisar":
+    st.session_state["revisar_desbloqueado"] = False
+st.session_state["_seccion_anterior"] = seccion_activa
 
 # The generated plan is rendered *inside* whichever section produced it,
 # tagged with "ultimo_origen" — otherwise it would stay visible after
