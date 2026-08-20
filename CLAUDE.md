@@ -1201,6 +1201,20 @@ degrades to 0g (not a crash) for a client's plan saved before these
 fields existed. 590 tests passing (up from 581), lint clean,
 `output_dieta_*.json` regenerated (new gram fields only).
 
+Two same-day follow-ups to the meal-dislike button, both proposed
+proactively and confirmed before building. The dislike button was
+originally one-way (unlike like/unlike, which already had undo) — a real,
+disclosed inconsistency from the moment it shipped. `notion_connector.
+quitar_comida_no_deseada()` already existed server-side (used only for
+this session's own test cleanup) but was never wired into the portal.
+Now it is: the dislike button flips to "↩️ Deshacer" once a meal is
+marked, mirroring the like/unlike pattern exactly, and a disliked meal
+also gets a persistent "👎 Marcada como que no te gusta" caption (the
+liked-meal tag's counterpart) so the state reads at a glance after a
+reload, not just from the button label. Verified live against the real
+"PEPE" client: disliking, undoing, and a fresh page reload all
+round-tripped correctly against the real Notion record.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

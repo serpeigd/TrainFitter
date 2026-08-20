@@ -239,6 +239,7 @@ from notion_connector import (  # noqa: E402
     obtener_perfil_completo,
     obtener_registro_cliente,
     quitar_comida_favorita,
+    quitar_comida_no_deseada,
     resolver_referencia_portal,
     ultimo_checkin_por_cliente,
 )
@@ -1051,6 +1052,8 @@ TRANSLATIONS = {
         "portal_meal_unlike_button": "💔 Remove like",
         "portal_meal_liked_tag": "❤️ You like this one",
         "portal_meal_dislike_button": "👎 Not for me",
+        "portal_meal_undislike_button": "↩️ Undo",
+        "portal_meal_disliked_tag": "👎 Marked as not for you",
         "portal_meal_dislike_error": "Could not save that: {error}",
         "portal_meals_done": "That's every meal this week — nicely done!",
         "portal_meals_restart": "🔁 Go through them again",
@@ -1365,6 +1368,8 @@ TRANSLATIONS = {
         "portal_meal_unlike_button": "💔 Quitar me gusta",
         "portal_meal_liked_tag": "❤️ Te gusta esta",
         "portal_meal_dislike_button": "👎 No me gusta",
+        "portal_meal_undislike_button": "↩️ Deshacer",
+        "portal_meal_disliked_tag": "👎 Marcada como que no te gusta",
         "portal_meal_dislike_error": "No se pudo guardar: {error}",
         "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
         "portal_meals_restart": "🔁 Verlas de nuevo",
@@ -3414,6 +3419,8 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
             col_texto.markdown(f"**{emoji_comida} {comida['tipo']}**")
             if ya_favorita:
                 col_texto.caption(t("portal_meal_liked_tag"))
+            if ya_no_deseada:
+                col_texto.caption(t("portal_meal_disliked_tag"))
             col_texto.markdown(comida["descripcion"])
             col_texto.markdown(f"🔥 {comida['aprox_kcal']} kcal")
             etiqueta = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
@@ -3426,17 +3433,18 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
                     st.rerun()
                 except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
                     st.error(t("portal_meal_like_error").format(error=str(exc)))
-            # One-way (no "undo" here, unlike like/unlike) -- direct
-            # request ("un botón de 'No me gusta la comida' para quitarte
-            # esa comida a futuro"), scoped to exactly this combination
-            # (see notion_connector.agregar_comida_no_deseada()'s
-            # docstring for why that's meaningful, not just symbolic).
-            # Hidden once already marked, since there's nothing left to do.
-            if not ya_no_deseada and col_dislike.button(
-                t("portal_meal_dislike_button"), key=f"portal_dislike_{indice}_{i}",
-            ):
+            # Scoped to exactly this combination (see
+            # notion_connector.agregar_comida_no_deseada()'s docstring for
+            # why that's meaningful, not just symbolic). Reversible, same
+            # like/unlike pattern -- an accidental click shouldn't be
+            # permanent.
+            etiqueta_dislike = t("portal_meal_undislike_button") if ya_no_deseada else t("portal_meal_dislike_button")
+            if col_dislike.button(etiqueta_dislike, key=f"portal_dislike_{indice}_{i}"):
                 try:
-                    agregar_comida_no_deseada(pagina_id, eleccion)
+                    if ya_no_deseada:
+                        quitar_comida_no_deseada(pagina_id, eleccion)
+                    else:
+                        agregar_comida_no_deseada(pagina_id, eleccion)
                     st.rerun()
                 except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
                     st.error(t("portal_meal_dislike_error").format(error=str(exc)))
