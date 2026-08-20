@@ -55,7 +55,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 137,
+          "carbohidrato_g": 135,
+          "grasa_g": 12
         },
         {
           "tipo": "Lunch",
@@ -64,7 +67,10 @@
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
           "carbohidrato": "Quinoa",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 137,
+          "carbohidrato_g": 278,
+          "grasa_g": 108
         },
         {
           "tipo": "Dinner",
@@ -73,7 +79,10 @@
           "tipo_interno": "cena",
           "proteina": "Chickpeas",
           "carbohidrato": "Quinoa",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 137,
+          "carbohidrato_g": 278,
+          "grasa_g": 237
         }
       ]
     },
@@ -87,7 +96,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Potato / sweet potato",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 137,
+          "carbohidrato_g": 383,
+          "grasa_g": 14
         },
         {
           "tipo": "Lunch",
@@ -96,7 +108,10 @@
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
           "carbohidrato": "Rice",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 137,
+          "carbohidrato_g": 256,
+          "grasa_g": 29
         },
         {
           "tipo": "Dinner",
@@ -105,7 +120,10 @@
           "tipo_interno": "cena",
           "proteina": "Tempeh",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 117,
+          "carbohidrato_g": 253,
+          "grasa_g": 43
         }
       ]
     },
@@ -119,7 +137,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Potato / sweet potato",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 60,
+          "carbohidrato_g": 383,
+          "grasa_g": 8
         },
         {
           "tipo": "Lunch",
@@ -128,7 +149,10 @@
           "tipo_interno": "comida",
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 117,
+          "carbohidrato_g": 86,
+          "grasa_g": 20
         },
         {
           "tipo": "Dinner",
@@ -137,7 +161,10 @@
           "tipo_interno": "cena",
           "proteina": "Lentils",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 193,
+          "carbohidrato_g": 253,
+          "grasa_g": 76
         }
       ]
     },
@@ -151,7 +178,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 117,
+          "carbohidrato_g": 86,
+          "grasa_g": 12
         },
         {
           "tipo": "Lunch",
@@ -160,7 +190,10 @@
           "tipo_interno": "comida",
           "proteina": "Lentils",
           "carbohidrato": "Oats",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 193,
+          "carbohidrato_g": 86,
+          "grasa_g": 29
         },
         {
           "tipo": "Dinner",
@@ -169,7 +202,10 @@
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 60,
+          "carbohidrato_g": 135,
+          "grasa_g": 237
         }
       ]
     },
@@ -183,7 +219,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 137,
+          "carbohidrato_g": 135,
+          "grasa_g": 43
         },
         {
           "tipo": "Lunch",
@@ -192,7 +231,10 @@
           "tipo_interno": "comida",
           "proteina": "Edamame",
           "carbohidrato": "Quinoa",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 185,
+          "carbohidrato_g": 278,
+          "grasa_g": 20
         },
         {
           "tipo": "Dinner",
@@ -201,7 +243,10 @@
           "tipo_interno": "cena",
           "proteina": "Edamame",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 185,
+          "carbohidrato_g": 269,
+          "grasa_g": 237
         }
       ]
     },
@@ -215,7 +260,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 137,
+          "carbohidrato_g": 135,
+          "grasa_g": 14
         },
         {
           "tipo": "Lunch",
@@ -224,7 +272,10 @@
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 137,
+          "carbohidrato_g": 135,
+          "grasa_g": 29
         },
         {
           "tipo": "Dinner",
@@ -233,7 +284,10 @@
           "tipo_interno": "cena",
           "proteina": "Edamame",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 185,
+          "carbohidrato_g": 269,
+          "grasa_g": 237
         }
       ]
     },
@@ -247,7 +301,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 137,
+          "carbohidrato_g": 253,
+          "grasa_g": 12
         },
         {
           "tipo": "Lunch",
@@ -256,7 +313,10 @@
           "tipo_interno": "comida",
           "proteina": "Chickpeas",
           "carbohidrato": "Quinoa",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 137,
+          "carbohidrato_g": 278,
+          "grasa_g": 29
         },
         {
           "tipo": "Dinner",
@@ -265,7 +325,10 @@
           "tipo_interno": "cena",
           "proteina": "Tempeh",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Nuts (walnuts, almonds)"
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 117,
+          "carbohidrato_g": 269,
+          "grasa_g": 63
         }
       ]
     }

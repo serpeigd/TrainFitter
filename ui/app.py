@@ -203,6 +203,7 @@ from adherencia_parser import resumir_adherencia, tendencia_peso, valoracion_des
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import (  # noqa: E402
+    INDICE_ALIMENTOS,
     categoria_inquietud_conocida,
     fuentes_carbohidrato_para,
     fuentes_grasa_para,
@@ -227,6 +228,7 @@ from notion_connector import (  # noqa: E402
     actualizar_email_cliente,
     actualizar_registro_cliente,
     agregar_comida_favorita,
+    agregar_comida_no_deseada,
     buscar_cliente_por_email,
     crear_registro_checkin,
     generar_referencia_portal,
@@ -1042,14 +1044,24 @@ TRANSLATIONS = {
         "diet_label": "Diet:",
         "portal_meals_header": "🍽️ Meals",
         "portal_meals_caption": "Liked meals show up more often in your future plans.",
+        "portal_pick_day_label": "Pick a day",
         "portal_meal_back_button": "⬅️ Back",
         "portal_day_next_button": "➡️ Next day",
         "portal_meal_like_button": "❤️ Like it",
         "portal_meal_unlike_button": "💔 Remove like",
         "portal_meal_liked_tag": "❤️ You like this one",
+        "portal_meal_dislike_button": "👎 Not for me",
+        "portal_meal_dislike_error": "Could not save that: {error}",
         "portal_meals_done": "That's every meal this week — nicely done!",
         "portal_meals_restart": "🔁 Go through them again",
         "portal_meal_like_error": "Could not save that: {error}",
+        "portal_macros_header": "📊 Today's macros",
+        "portal_macros_caption": "Approximate, from today's meals — not a live tracker.",
+        "portal_kcal_label": "Calories",
+        "portal_protein_label": "Protein",
+        "portal_carbs_label": "Carbs",
+        "portal_fat_label": "Fat",
+        "portal_micro_highlights_label": "Today's plan is a good source of:",
         "portal_routine_header": "🏋️ Routine",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "✅ How's it going?",
@@ -1346,14 +1358,24 @@ TRANSLATIONS = {
         "diet_label": "Dieta:",
         "portal_meals_header": "🍽️ Comidas",
         "portal_meals_caption": "Las comidas que te gusten aparecerán más a menudo en tus próximos planes.",
+        "portal_pick_day_label": "Elige un día",
         "portal_meal_back_button": "⬅️ Atrás",
         "portal_day_next_button": "➡️ Día siguiente",
         "portal_meal_like_button": "❤️ Me gusta",
         "portal_meal_unlike_button": "💔 Quitar me gusta",
         "portal_meal_liked_tag": "❤️ Te gusta esta",
+        "portal_meal_dislike_button": "👎 No me gusta",
+        "portal_meal_dislike_error": "No se pudo guardar: {error}",
         "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
         "portal_meals_restart": "🔁 Verlas de nuevo",
         "portal_meal_like_error": "No se pudo guardar: {error}",
+        "portal_macros_header": "📊 Macros de hoy",
+        "portal_macros_caption": "Aproximado, según las comidas de hoy — no es un contador en tiempo real.",
+        "portal_kcal_label": "Calorías",
+        "portal_protein_label": "Proteína",
+        "portal_carbs_label": "Carbohidratos",
+        "portal_fat_label": "Grasa",
+        "portal_micro_highlights_label": "El plan de hoy es buena fuente de:",
         "portal_routine_header": "🏋️ Rutina",
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "✅ ¿Cómo va todo?",
@@ -1561,6 +1583,27 @@ AJUSTES_RUTINA_OPCIONES = [
 # Purely visual -- keyed by tipo_interno (language-independent, unlike
 # "tipo") so it works regardless of the portal's own language.
 EMOJI_TIPO_COMIDA = {"desayuno": "🍳", "comida": "🍽️", "cena": "🌙", "snack": "🍎"}
+
+# Qualitative "micro" highlights for the portal's macro/micro section --
+# direct request ("números de los macros y micros... si le interesa"), but
+# this project has no quantified micronutrient data per food (only
+# macros_100g -- kcal/protein/carb/fat), so exact numbers would be
+# fabricated. food_bank.py's own "sinergias" tags are real, existing
+# qualitative signals (already used to drive synergy pairing/tips
+# elsewhere), reused here as an honest "good source of" list instead of
+# invented mg/mcg figures.
+ETIQUETA_SINERGIA = {
+    "en": {
+        "vitamina_c": "Vitamin C", "magnesio": "Magnesium", "hierro_no_hemo": "Iron",
+        "fibra_alta": "Fiber", "antiinflamatorio": "Anti-inflammatory foods",
+        "probiotico": "Probiotics", "prebiotico_fibra": "Prebiotic fiber", "beta_caroteno": "Beta-carotene",
+    },
+    "es": {
+        "vitamina_c": "Vitamina C", "magnesio": "Magnesio", "hierro_no_hemo": "Hierro",
+        "fibra_alta": "Fibra", "antiinflamatorio": "Alimentos antiinflamatorios",
+        "probiotico": "Probióticos", "prebiotico_fibra": "Fibra prebiótica", "beta_caroteno": "Betacaroteno",
+    },
+}
 
 
 def _lista_desde_texto(texto: str) -> list[str]:
@@ -3223,37 +3266,110 @@ def _panel_aprobacion(estado, guardar_en_notion: bool = False) -> None:
             _render_historial_checkins(email_cliente, perfil["objetivo"]["principal"])
 
 
-def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagina_id: str) -> None:
+def _render_resumen_macros_dia(dia_info: dict) -> None:
+    """Optional macro/micro summary for the current day -- direct request
+    ("que la persona tenga una gráfica o números de los macros y micros...
+    si le interesa"), collapsed by default so it doesn't get in the way of
+    a client who just wants to see what's for dinner.
+
+    Macros are real numbers, summed from this exact day's own meals
+    (aprox_kcal/proteina_g/carbohidrato_g/grasa_g -- see
+    planificador_comidas._construir_comida()'s returned dict). "Micros"
+    are deliberately qualitative, not numeric: this project has no
+    quantified micronutrient data per food (food_bank.py's macros_100g is
+    kcal/protein/carb/fat only), so exact mg/mcg figures would be
+    fabricated. food_bank.py's own "sinergias" tags (the same ones
+    already driving synergy pairing/tips elsewhere) are real, existing
+    signals, reused here as an honest "good source of" list computed from
+    each meal's own protein/carb/fat picks -- vegetable/fruit picks aren't
+    included since plan_semanal doesn't store those separately from the
+    rendered description, a small, disclosed gap rather than a silently
+    incomplete list."""
+    comidas = dia_info.get("comidas", [])
+    if not comidas:
+        return
+    idioma = st.session_state.lang
+    with st.expander(t("portal_macros_header")):
+        st.caption(t("portal_macros_caption"))
+        kcal_total = sum(c.get("aprox_kcal", 0) for c in comidas)
+        proteina_total = sum(c.get("proteina_g", 0) for c in comidas)
+        carbohidrato_total = sum(c.get("carbohidrato_g", 0) for c in comidas)
+        grasa_total = sum(c.get("grasa_g", 0) for c in comidas)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(t("portal_kcal_label"), kcal_total)
+        m2.metric(t("portal_protein_label"), f"{proteina_total} g")
+        m3.metric(t("portal_carbs_label"), f"{carbohidrato_total} g")
+        m4.metric(t("portal_fat_label"), f"{grasa_total} g")
+
+        etiquetas_sinergia = ETIQUETA_SINERGIA[idioma]
+        tags_presentes = set()
+        for comida in comidas:
+            for clave in ("proteina", "carbohidrato", "grasa"):
+                nombre = comida.get(clave)
+                if nombre and nombre in INDICE_ALIMENTOS:
+                    tags_presentes |= INDICE_ALIMENTOS[nombre]["sinergias"]
+        etiquetas_mostradas = sorted(etiquetas_sinergia[tag] for tag in tags_presentes if tag in etiquetas_sinergia)
+        if etiquetas_mostradas:
+            st.caption(f"{t('portal_micro_highlights_label')} " + ", ".join(etiquetas_mostradas) + ".")
+
+
+def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_deseadas: list[dict], pagina_id: str) -> None:
     """One DAY at a time (all its meals together -- breakfast, lunch,
-    dinner...), each with its own like button, instead of one isolated
-    meal per screen. Direct correction ("que salgan todas las comidas del
-    día juntas... ahora solo sale 1"): the original per-meal swipe made it
-    hard to see a day as a whole, and "skip" never meant anything beyond
-    "move on without liking" -- with every meal already visible together,
-    a per-meal skip button added a click without adding a decision, so it's
-    gone; only "next day" advances now. Real bug fixed alongside the
-    original version of this flow: liking used to be one-way (no way to
-    undo a like), tracked only in session state (lost on reload) -- both
-    the un-like path (quitar_comida_favorita()) and the liked/not-liked
-    state itself (`favoritas`, read fresh from Notion on every rerun via
-    obtener_registro_cliente()) are real, not session-local.
+    dinner...), each with its own like/dislike buttons, instead of one
+    isolated meal per screen. Direct correction ("que salgan todas las
+    comidas del día juntas... ahora solo sale 1"): the original per-meal
+    swipe made it hard to see a day as a whole, and "skip" never meant
+    anything beyond "move on without liking" -- with every meal already
+    visible together, a per-meal skip button added a click without adding
+    a decision, so it's gone; only "next day" advances now. Real bug fixed
+    alongside the original version of this flow: liking used to be
+    one-way (no way to undo a like), tracked only in session state (lost
+    on reload) -- both the un-like path (quitar_comida_favorita()) and the
+    liked/not-liked state itself (`favoritas`, read fresh from Notion on
+    every rerun via obtener_registro_cliente()) are real, not
+    session-local.
 
     Walks through `plan_semanal` (already grouped by day) via a
     session-scoped index (`portal_dia_idx`) -- reset once the end is
     reached, so the client can go through the week again. A "Back" button
     steps the index back one day instead of only ever moving forward,
-    both mid-flow and from the final "done" screen."""
+    both mid-flow and from the final "done" screen. `portal_dia_idx`
+    stays the ONE source of truth for which day is showing: the day
+    picker below (`st.segmented_control`) drives it FORWARD (a click
+    there updates `portal_dia_idx`), and Back/Next/Restart drive it back
+    by clearing the picker's own widget key so its `default=` picks up
+    the new day next render -- never by writing that key directly on
+    every render, which was tried first and is a real bug: Streamlit
+    applies a click to session_state before this function runs again, so
+    force-writing the key back to the OLD day on every render silently
+    discarded the trainer's own click before the widget ever reflected
+    it, caught live in the browser (the pill highlighted but the day
+    never actually changed)."""
     total_dias = len(plan_semanal)
     indice = st.session_state.get("portal_dia_idx", 0)
+
+    # The day-picker widget's own key (see below) -- cleared, not
+    # force-written, whenever Back/Next/Restart change portal_dia_idx
+    # programmatically. A real bug caught live: writing this key on EVERY
+    # render (to "keep it synced") silently overwrote the trainer's own
+    # click on a day pill before the widget ever saw it, since Streamlit
+    # already applies a click to session_state before this function runs
+    # again -- the pill never actually switched days. Clearing the key
+    # only from Back/Next's own handlers lets a genuine click through,
+    # and still makes the widget pick up portal_dia_idx's new value via
+    # its `default=` the next time it's freshly instantiated.
+    clave_selector_dia = "portal_dia_selector"
 
     if indice >= total_dias:
         st.success(t("portal_meals_done"))
         col_atras_final, col_reiniciar = st.columns(2)
         if col_atras_final.button(t("portal_meal_back_button"), key="portal_dias_atras_final"):
             st.session_state["portal_dia_idx"] = total_dias - 1
+            st.session_state.pop(clave_selector_dia, None)
             st.rerun()
         if col_reiniciar.button(t("portal_meals_restart"), key="portal_dias_reiniciar"):
             st.session_state["portal_dia_idx"] = 0
+            st.session_state.pop(clave_selector_dia, None)
             st.rerun()
         return
 
@@ -3261,21 +3377,20 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
     st.progress((indice + 1) / total_dias, text=f"{indice + 1}/{total_dias}")
 
     # Jump to any day directly, not just step-by-step -- direct request
-    # ("moverte por toda la dieta de toda la semana"). Plain buttons, not a
-    # persisted-value widget (st.segmented_control), so there's only ever
-    # one source of truth for the current day (portal_dia_idx) -- Back/Next
-    # below already work this same way, and mixing the two patterns would
-    # risk them disagreeing about which day is showing.
-    columnas_dias = st.columns(total_dias)
-    for i, columna in enumerate(columnas_dias):
-        if columna.button(
-            plan_semanal[i]["dia"][:3], key=f"portal_dia_jump_{i}",
-            type="primary" if i == indice else "secondary", use_container_width=True,
-        ) and i != indice:
-            st.session_state["portal_dia_idx"] = i
-            st.rerun()
+    # ("elegir mejor los días... más fácil e intuitivo"). A single
+    # st.segmented_control reads as a native day-tab row, clearer active
+    # state than a manual row of buttons.
+    dias_nombres = [d["dia"] for d in plan_semanal]
+    dia_elegido = st.segmented_control(
+        t("portal_pick_day_label"), dias_nombres, default=dias_nombres[indice], key=clave_selector_dia,
+        label_visibility="collapsed",
+    )
+    if dia_elegido and dias_nombres.index(dia_elegido) != indice:
+        st.session_state["portal_dia_idx"] = dias_nombres.index(dia_elegido)
+        st.rerun()
 
     st.markdown(f"### {dia_info['dia']}")
+    _render_resumen_macros_dia(dia_info)
 
     for i, comida in enumerate(dia_info.get("comidas", [])):
         eleccion = {
@@ -3285,6 +3400,7 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
             "grasa": comida.get("grasa"),
         }
         ya_favorita = eleccion in favoritas
+        ya_no_deseada = eleccion in no_deseadas
         emoji_comida = EMOJI_TIPO_COMIDA.get(comida.get("tipo_interno"), "🍽️")
 
         # Own CSS class (via key=) for a subtle hover lift, matching the
@@ -3294,7 +3410,7 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
         # button's own label) makes the state readable at a glance
         # without reading the button text.
         with st.container(border=True, key=f"portal-meal-card-{indice}-{i}"):
-            col_texto, col_boton = st.columns([3, 1])
+            col_texto, col_boton, col_dislike = st.columns([3, 1, 1])
             col_texto.markdown(f"**{emoji_comida} {comida['tipo']}**")
             if ya_favorita:
                 col_texto.caption(t("portal_meal_liked_tag"))
@@ -3310,13 +3426,29 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], pagin
                     st.rerun()
                 except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
                     st.error(t("portal_meal_like_error").format(error=str(exc)))
+            # One-way (no "undo" here, unlike like/unlike) -- direct
+            # request ("un botón de 'No me gusta la comida' para quitarte
+            # esa comida a futuro"), scoped to exactly this combination
+            # (see notion_connector.agregar_comida_no_deseada()'s
+            # docstring for why that's meaningful, not just symbolic).
+            # Hidden once already marked, since there's nothing left to do.
+            if not ya_no_deseada and col_dislike.button(
+                t("portal_meal_dislike_button"), key=f"portal_dislike_{indice}_{i}",
+            ):
+                try:
+                    agregar_comida_no_deseada(pagina_id, eleccion)
+                    st.rerun()
+                except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+                    st.error(t("portal_meal_dislike_error").format(error=str(exc)))
 
     col_atras, col_siguiente = st.columns(2)
     if indice > 0 and col_atras.button(t("portal_meal_back_button"), key=f"portal_dia_atras_{indice}"):
         st.session_state["portal_dia_idx"] = indice - 1
+        st.session_state.pop(clave_selector_dia, None)
         st.rerun()
     if col_siguiente.button(t("portal_day_next_button"), key=f"portal_dia_siguiente_{indice}", type="primary"):
         st.session_state["portal_dia_idx"] = indice + 1
+        st.session_state.pop(clave_selector_dia, None)
         st.rerun()
 
 
@@ -3475,7 +3607,10 @@ def _vista_portal_cliente(codigo: str) -> None:
     if plan_semanal:
         with st.expander(t("portal_meals_header"), expanded=True):
             st.caption(t("portal_meals_caption"))
-            _render_swipe_comidas(plan_semanal, registro.get("comidas_favoritas") or [], carga["pagina"])
+            _render_swipe_comidas(
+                plan_semanal, registro.get("comidas_favoritas") or [], registro.get("comidas_no_deseadas") or [],
+                carga["pagina"],
+            )
 
     # Moved up to right after Meals (was the very last section, after
     # Routine/History) and given its own highlighted border (see

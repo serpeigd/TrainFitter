@@ -314,6 +314,41 @@ def test_no_favorites_behaves_exactly_like_before(perfil_base):
     assert sin_favoritos == con_lista_vacia
 
 
+def test_disliked_meal_stops_reappearing_for_the_same_client(perfil_base):
+    """Meal selection is seeded by id_cliente -- regenerating the SAME
+    client's plan with no change reproduces the exact same picks. Marking
+    one meal disliked (see notion_connector.agregar_comida_no_deseada())
+    and regenerating with the SAME id_cliente must break that
+    determinism for that one slot, or the client would see the disliked
+    meal again immediately."""
+    plan_base = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    desayuno_base = next(c for d in plan_base for c in d["comidas"] if c["tipo_interno"] == "desayuno")
+
+    perfil_base["nutricion"]["comidas_no_deseadas"] = [
+        {
+            "tipo": "desayuno", "proteina": desayuno_base["proteina"],
+            "carbohidrato": desayuno_base["carbohidrato"], "grasa": desayuno_base["grasa"],
+        },
+    ]
+    plan_tras_dislike = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    desayunos_tras_dislike = [c for d in plan_tras_dislike for c in d["comidas"] if c["tipo_interno"] == "desayuno"]
+    combo_disliked = (desayuno_base["proteina"], desayuno_base["carbohidrato"], desayuno_base["grasa"])
+    assert not any(
+        (c["proteina"], c["carbohidrato"], c["grasa"]) == combo_disliked for c in desayunos_tras_dislike
+    )
+
+
+def test_no_dislikes_behaves_exactly_like_before(perfil_base):
+    """A profile without comidas_no_deseadas at all (every existing
+    client) must produce byte-identical plans to before this feature
+    existed."""
+    assert "comidas_no_deseadas" not in perfil_base["nutricion"]
+    sin_no_deseadas = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    perfil_base["nutricion"]["comidas_no_deseadas"] = []
+    con_lista_vacia = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    assert sin_no_deseadas == con_lista_vacia
+
+
 def test_liked_meal_dropped_if_food_no_longer_a_valid_candidate(perfil_base):
     """A safety-adjacent guarantee: if the liked food is no longer a
     candidate (e.g. a new allergy since the meal was liked), it must

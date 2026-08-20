@@ -338,6 +338,12 @@ def _sesgar_por_nivel_compromiso(
 # for why "often" specifically).
 PROBABILIDAD_REPETIR_FAVORITO = 0.6
 
+# How many times _construir_comida() re-rolls a meal slot before giving up
+# and accepting a disliked combo anyway -- see that function's own comment.
+# Bounded so a client with a small candidate pool (e.g. strict allergies)
+# who's disliked most of it still gets a real plan.
+MAX_INTENTOS_EVITAR_NO_DESEADA = 5
+
 
 def _sesgar_por_favoritos(tipo: str, candidatos: dict, comidas_favoritas: list[dict], rng: random.Random) -> dict | None:
     """Looks for a client-liked meal (see docs/decisiones.md's "repeat a
@@ -500,8 +506,8 @@ def _describir_desayuno_o_snack(
 
 def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
-    preferencias: set[str], comidas_favoritas: list[dict], nivel_compromiso: str | None,
-    idioma: str, rng: random.Random,
+    preferencias: set[str], comidas_favoritas: list[dict], comidas_no_deseadas: list[dict],
+    nivel_compromiso: str | None, idioma: str, rng: random.Random,
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -558,6 +564,24 @@ def _construir_comida(
         proteina_nombre = rng.choice(candidatos["proteina"])
         carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
         grasa_nombre = rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None
+
+    # The client's own "no me gusta" (see notion_connector.
+    # agregar_comida_no_deseada()'s docstring for why an exact-combo
+    # exclusion is meaningful here, not just symbolic) -- a real exclusion,
+    # not a bias: re-roll independently up to MAX_INTENTOS_EVITAR_NO_DESEADA
+    # times whenever the picked combo exactly matches a disliked one.
+    # Bounded, not "until it's not disliked," so a client who's disliked
+    # most of a small candidate pool still gets a real meal rather than an
+    # infinite loop -- same "exclude, but never break generation" pattern
+    # as every other safety-adjacent filter in this project.
+    intentos = 0
+    while intentos < MAX_INTENTOS_EVITAR_NO_DESEADA and {
+        "tipo": tipo, "proteina": proteina_nombre, "carbohidrato": carbohidrato_nombre, "grasa": grasa_nombre,
+    } in comidas_no_deseadas:
+        proteina_nombre = rng.choice(candidatos["proteina"])
+        carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
+        grasa_nombre = rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None
+        intentos += 1
 
     kcal_proteina = kcal_objetivo * ratios["proteina"]
     kcal_carbohidrato = kcal_objetivo * ratios["carbohidrato"]
@@ -621,6 +645,15 @@ def _construir_comida(
         "proteina": proteina_nombre,
         "carbohidrato": carbohidrato_nombre,
         "grasa": grasa_nombre,
+        # Grams alongside the bare names above -- direct request ("que la
+        # persona tenga una gráfica o números de los macros... si le
+        # interesa"): the portal has no other way to total up real protein/
+        # carb/fat for a day, since these are the same grams already solved
+        # for kcal_objetivo/kcal_grasa above, just not previously surfaced
+        # on the returned dict.
+        "proteina_g": proteina["gramos"],
+        "carbohidrato_g": carbohidrato["gramos"],
+        "grasa_g": grasa["gramos"],
     }
 
 
@@ -677,6 +710,10 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     # (see docs/decisiones.md) -- absent for a brand-new client, same
     # "no field, no bias" degradation as every other optional signal here.
     comidas_favoritas = perfil.get("nutricion", {}).get("comidas_favoritas") or []
+    # The client's own "no me gusta" from the portal (see
+    # notion_connector.agregar_comida_no_deseada()) -- excluded, not just
+    # downweighted, from this regeneration.
+    comidas_no_deseadas = perfil.get("nutricion", {}).get("comidas_no_deseadas") or []
     # Drives both _sesgar_por_nivel_compromiso() (food selection) and
     # aplicar_sinergias (pairing/explanatory text) inside _construir_comida()
     # -- read once here, same "no field, defaults to normal" degradation as
@@ -706,7 +743,7 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
             comida = _construir_comida(
                 tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas,
-                nivel_compromiso, idioma, rng,
+                comidas_no_deseadas, nivel_compromiso, idioma, rng,
             )
             if tipo == "snack" and slots.count("snack") > 1:
                 contador_snack += 1

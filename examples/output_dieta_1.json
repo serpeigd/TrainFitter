@@ -65,7 +65,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Algae oil (vegan omega-3)"
+          "grasa": "Algae oil (vegan omega-3)",
+          "proteina_g": 44,
+          "carbohidrato_g": 127,
+          "grasa_g": 7
         },
         {
           "tipo": "Lunch",
@@ -74,7 +77,10 @@
           "tipo_interno": "comida",
           "proteina": "Tempeh",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 85,
+          "carbohidrato_g": 254,
+          "grasa_g": 30
         },
         {
           "tipo": "Dinner",
@@ -83,7 +89,10 @@
           "tipo_interno": "cena",
           "proteina": "Lean beef",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 80,
+          "carbohidrato_g": 127,
+          "grasa_g": 37
         },
         {
           "tipo": "Snack",
@@ -92,7 +101,10 @@
           "tipo_interno": "snack",
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 28,
+          "carbohidrato_g": 27,
+          "grasa_g": 37
         }
       ]
     },
@@ -106,7 +118,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Tofu",
           "carbohidrato": "Quinoa",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 113,
+          "carbohidrato_g": 262,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -115,7 +130,10 @@
           "tipo_interno": "comida",
           "proteina": "Eggs",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 105,
+          "carbohidrato_g": 238,
+          "grasa_g": 93
         },
         {
           "tipo": "Dinner",
@@ -124,7 +142,10 @@
           "tipo_interno": "cena",
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
-          "grasa": "Extra virgin olive oil"
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 85,
+          "carbohidrato_g": 81,
+          "grasa_g": 37
         },
         {
           "tipo": "Snack",
@@ -133,7 +154,10 @@
           "tipo_interno": "snack",
           "proteina": "Lentils",
           "carbohidrato": "Potato / sweet potato",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 47,
+          "carbohidrato_g": 120,
+          "grasa_g": 37
         }
       ]
     },
@@ -147,7 +171,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Chickpeas",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 100,
+          "carbohidrato_g": 81,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -156,7 +183,10 @@
           "tipo_interno": "comida",
           "proteina": "Lentils",
           "carbohidrato": "Oats",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 141,
+          "carbohidrato_g": 81,
+          "grasa_g": 30
         },
         {
           "tipo": "Dinner",
@@ -165,7 +195,10 @@
           "tipo_interno": "cena",
           "proteina": "Tofu",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 113,
+          "carbohidrato_g": 127,
+          "grasa_g": 204
         },
         {
           "tipo": "Snack",
@@ -174,7 +207,10 @@
           "tipo_interno": "snack",
           "proteina": "Greek yogurt / whipped fresh cheese",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 92,
+          "carbohidrato_g": 27,
+          "grasa_g": 37
         }
       ]
     },
@@ -188,7 +224,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Natto",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 77,
+          "carbohidrato_g": 254,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -197,7 +236,10 @@
           "tipo_interno": "comida",
           "proteina": "Lean beef",
           "carbohidrato": "Potato / sweet potato",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 80,
+          "carbohidrato_g": 361,
+          "grasa_g": 93
         },
         {
           "tipo": "Dinner",
@@ -206,7 +248,10 @@
           "tipo_interno": "cena",
           "proteina": "White fish (hake, sole)",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 181,
+          "carbohidrato_g": 254,
+          "grasa_g": 204
         },
         {
           "tipo": "Snack",
@@ -215,7 +260,10 @@
           "tipo_interno": "snack",
           "proteina": "Edamame",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 45,
+          "carbohidrato_g": 27,
+          "grasa_g": 37
         }
       ]
     },
@@ -229,7 +277,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Natto",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 77,
+          "carbohidrato_g": 81,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -238,7 +289,10 @@
           "tipo_interno": "comida",
           "proteina": "Greek yogurt / whipped fresh cheese",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 277,
+          "carbohidrato_g": 254,
+          "grasa_g": 93
         },
         {
           "tipo": "Dinner",
@@ -247,7 +301,10 @@
           "tipo_interno": "cena",
           "proteina": "Turkey",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 121,
+          "carbohidrato_g": 238,
+          "grasa_g": 204
         },
         {
           "tipo": "Snack",
@@ -256,7 +313,10 @@
           "tipo_interno": "snack",
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 33,
+          "carbohidrato_g": 42,
+          "grasa_g": 37
         }
       ]
     },
@@ -270,7 +330,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Tempeh",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 85,
+          "carbohidrato_g": 254,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -279,7 +342,10 @@
           "tipo_interno": "comida",
           "proteina": "Tofu",
           "carbohidrato": "Oats",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 113,
+          "carbohidrato_g": 81,
+          "grasa_g": 93
         },
         {
           "tipo": "Dinner",
@@ -288,7 +354,10 @@
           "tipo_interno": "cena",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Seeds (chia, flax)"
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 44,
+          "carbohidrato_g": 238,
+          "grasa_g": 65
         },
         {
           "tipo": "Snack",
@@ -297,7 +366,10 @@
           "tipo_interno": "snack",
           "proteina": "Lentils",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 47,
+          "carbohidrato_g": 79,
+          "grasa_g": 37
         }
       ]
     },
@@ -311,7 +383,10 @@
           "tipo_interno": "desayuno",
           "proteina": "Eggs",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 105,
+          "carbohidrato_g": 238,
+          "grasa_g": 37
         },
         {
           "tipo": "Lunch",
@@ -320,7 +395,10 @@
           "tipo_interno": "comida",
           "proteina": "Tempeh",
           "carbohidrato": "Farro",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 85,
+          "carbohidrato_g": 185,
+          "grasa_g": 93
         },
         {
           "tipo": "Dinner",
@@ -329,7 +407,10 @@
           "tipo_interno": "cena",
           "proteina": "Natto",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 77,
+          "carbohidrato_g": 238,
+          "grasa_g": 204
         },
         {
           "tipo": "Snack",
@@ -338,7 +419,10 @@
           "tipo_interno": "snack",
           "proteina": "Edamame",
           "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado"
+          "grasa": "Avocado",
+          "proteina_g": 45,
+          "carbohidrato_g": 79,
+          "grasa_g": 37
         }
       ]
     }

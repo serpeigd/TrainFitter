@@ -1170,6 +1170,37 @@ free text). 581 tests passing (up from 574), lint clean, no
 example-output diffs (none of the three example clients' saved text
 happens to match the new keywords).
 
+Three follow-ups shipped together. A "meal dislike" button mirrors meal-
+liking exactly but inverted: a new "Disliked Meals (JSON)" Notion property
+(added to the real database via the schema API), `notion_connector.
+agregar_comida_no_deseada()`/`quitar_comida_no_deseada()`, and
+`planificador_comidas._construir_comida()` re-rolling a meal slot up to
+`MAX_INTENTOS_EVITAR_NO_DESEADA` times whenever the picked combo exactly
+matches a disliked one — scoped to the exact combination (confirmed via
+`AskUserQuestion`), which is genuinely meaningful here (not just
+symbolic) since meal selection is seeded by `id_cliente`: without this,
+a regenerated plan would keep reproducing the same disliked meal
+indefinitely. The portal's day-picker became a real `st.segmented_control`
+instead of a manual button row — **a real bug caught live**: the first
+version force-wrote the widget's session-state key back to the OLD day
+on every single render (meant to "keep it synced"), which silently
+discarded the trainer's own click before the widget ever reflected it,
+since Streamlit already applies a click to session_state before the
+script re-runs. Fixed by only clearing that key from Back/Next/Restart's
+own handlers (letting `default=` pick up the new day) rather than
+force-writing it unconditionally — confirmed live both directions (a
+day-pill click and Next both correctly update the display, no desync).
+An optional "Macros de hoy" section shows real per-day kcal/protein/carb/
+fat totals (`_construir_comida()`'s returned dict gained `proteina_g`/
+`carbohidrato_g`/`grasa_g` fields alongside the existing bare names) and
+a qualitative micronutrient "good source of" list built from
+`food_bank.py`'s own `sinergias` tags — deliberately not numeric mg/mcg
+figures, since this project has no quantified micronutrient data per
+food and fabricating precision would be dishonest; verified live that it
+degrades to 0g (not a crash) for a client's plan saved before these
+fields existed. 590 tests passing (up from 581), lint clean,
+`output_dieta_*.json` regenerated (new gram fields only).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

@@ -201,7 +201,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Verdict (select), Summary (text), Email Sent (checkbox),
        Email (email), Source message ID (text),
        Full Profile (JSON) (text), Weekly Meal Plan (JSON) (text),
-       Liked Meals (JSON) (text), Weekly Routine (JSON) (text),
+       Liked Meals (JSON) (text), Disliked Meals (JSON) (text),
+       Weekly Routine (JSON) (text),
        Liked Exercises (JSON) (text), Portal Reference (text),
        Portal Reference Expires (date), Language (select: en/es),
        Routine Message (text), Diet Message (text)
@@ -602,11 +603,21 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
         comidas_favoritas = json.loads(texto_favoritas) if texto_favoritas else []
     except ValueError:
         comidas_favoritas = []
+    # Mirrors "Liked Meals (JSON)" exactly -- see agregar_comida_no_deseada()'s
+    # own docstring for why an exact-combo dislike is meaningful here (unlike
+    # a bare "less common" bias): meal selection is seeded by id_cliente, so
+    # without this, a regenerated plan would keep reproducing the SAME
+    # disliked combo indefinitely.
+    texto_no_deseadas = _unir_bloques_notion(propiedades.get("Disliked Meals (JSON)", {}))
+    try:
+        comidas_no_deseadas = json.loads(texto_no_deseadas) if texto_no_deseadas else []
+    except ValueError:
+        comidas_no_deseadas = []
     return {
         "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
         "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones, "idioma": idioma,
         "mensaje_rutina": mensaje_rutina, "mensaje_dieta": mensaje_dieta,
-        "comidas_favoritas": comidas_favoritas,
+        "comidas_favoritas": comidas_favoritas, "comidas_no_deseadas": comidas_no_deseadas,
     }
 
 
@@ -866,6 +877,109 @@ def quitar_comida_favorita(pagina_id: str, comida: dict) -> None:
         raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
+def agregar_comida_no_deseada(pagina_id: str, comida: dict) -> None:
+    """
+    Appends one disliked meal to a client's "Disliked Meals (JSON)"
+    property -- called from the client portal when they mark a meal from
+    their current week's plan as one they don't want to see again.
+    agents/planificador_comidas.py's _excluir_no_deseadas() reads this
+    back (via _perfil_desde_propiedades() merging it into perfil
+    ["nutricion"]["comidas_no_deseadas"]) the next time a plan is
+    regenerated for this client.
+
+    DESIGN -- excludes the exact combination, not a single ingredient:
+    the trainer already has a coarser "disliked FOODS" field
+    (nutricion.alimentos_que_no_le_gustan, food_bank.alimentos_no_deseados())
+    that excludes an ingredient everywhere; this is the client's own,
+    narrower "not THIS meal specifically" signal, so disliking one salmon
+    dish doesn't quietly remove salmon from every other meal it could
+    still work well in. This exact-combo exclusion is genuinely meaningful
+    here (not just symbolic) because meal selection is seeded by
+    id_cliente -- without it, a regenerated plan would keep reproducing
+    the SAME disliked combo indefinitely, the same reason
+    "Liked Meals (JSON)" needed real persistence rather than session-local
+    tracking (see agregar_comida_favorita()'s own docstring).
+
+    Same narrow-property, dedupe-by-exact-match, read-modify-write shape
+    as agregar_comida_favorita() -- see that function's docstring for the
+    full reasoning, which applies identically here.
+
+    Args:
+        pagina_id: the Notion page ID (from the portal's signed token).
+        comida: same shape as agregar_comida_favorita()'s own argument.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+        texto_actual = _unir_bloques_notion(pagina["properties"].get("Disliked Meals (JSON)", {}))
+        try:
+            no_deseadas = json.loads(texto_actual) if texto_actual else []
+        except ValueError:
+            no_deseadas = []  # corrupt existing data -- start fresh rather than blocking the dislike
+        if comida not in no_deseadas:
+            no_deseadas.append(comida)
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={
+                "Disliked Meals (JSON)": {
+                    "rich_text": _dividir_bloques_notion(json.dumps(no_deseadas, ensure_ascii=False))
+                }
+            },
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
+def quitar_comida_no_deseada(pagina_id: str, comida: dict) -> None:
+    """
+    The inverse of agregar_comida_no_deseada() above -- removes one
+    disliked meal from "Disliked Meals (JSON)" if present, same
+    undo-a-mistaken-click reasoning as quitar_comida_favorita(). A no-op
+    (not an error) if the meal wasn't actually marked disliked.
+
+    Args:
+        pagina_id: the Notion page ID (from the portal's reference code).
+        comida: same shape as agregar_comida_favorita()'s own argument.
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        pagina = cliente.pages.retrieve(page_id=pagina_id)
+        texto_actual = _unir_bloques_notion(pagina["properties"].get("Disliked Meals (JSON)", {}))
+        try:
+            no_deseadas = json.loads(texto_actual) if texto_actual else []
+        except ValueError:
+            no_deseadas = []  # corrupt existing data -- nothing coherent to remove from
+        no_deseadas = [f for f in no_deseadas if f != comida]
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={
+                "Disliked Meals (JSON)": {
+                    "rich_text": _dividir_bloques_notion(json.dumps(no_deseadas, ensure_ascii=False))
+                }
+            },
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
+
+
 def agregar_ejercicio_favorito(pagina_id: str, ejercicio: dict) -> None:
     """
     Appends one liked exercise to a client's "Liked Exercises (JSON)"
@@ -994,6 +1108,15 @@ def _perfil_desde_propiedades(propiedades: dict) -> dict:
     if texto_ejercicios_favoritos:
         try:
             perfil.setdefault("experiencia", {})["ejercicios_favoritos"] = json.loads(texto_ejercicios_favoritos)
+        except ValueError:
+            pass
+
+    # Mirrors "Liked Meals (JSON)" above -- see agregar_comida_no_deseada()'s
+    # own docstring.
+    texto_no_deseadas = _unir_bloques_notion(propiedades.get("Disliked Meals (JSON)", {}))
+    if texto_no_deseadas:
+        try:
+            perfil.setdefault("nutricion", {})["comidas_no_deseadas"] = json.loads(texto_no_deseadas)
         except ValueError:
             pass
 
