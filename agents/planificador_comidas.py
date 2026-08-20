@@ -295,7 +295,7 @@ PROBABILIDAD_PREFERIR_NO_COMUN = 0.5
 
 
 def _sesgar_por_nivel_compromiso(
-    candidatos_categoria: list[str], nivel_compromiso: str | None, rng: random.Random,
+    candidatos_categoria: list[str], nivel_compromiso: str | None, rng: random.Random, preferencias: set[str] = frozenset(),
 ) -> list[str]:
     """"basico" leans this category's picks toward food_bank.py's
     "comun" entries (recognizable, everyday foods); "avanzado" leans
@@ -305,10 +305,22 @@ def _sesgar_por_nivel_compromiso(
     this slot (e.g. a vegan client's only protein options are all
     specialty), or when nivel_compromiso is "normal"/"tryhard" (a no-op
     for both -- "tryhard" already gets true "nicho" foods separately, see
-    food_bank.py's fuentes_*_para())."""
+    food_bank.py's fuentes_*_para()).
+
+    "tiempo_o_presupuesto_limitado" (food_bank.preferencias_blandas(),
+    set from the "poco tiempo para cocinar"/"presupuesto ajustado" preset
+    dropdowns -- see ui/app.py's nutrition-context/job-type fields) leans
+    the SAME direction as "basico" -- common, everyday foods tend to also
+    be the quicker and cheaper ones, since there's no separate prep-time
+    or price data in food_bank.py to bias on directly. Only applies when
+    nivel_compromiso isn't already pulling the opposite way ("avanzado"):
+    an explicit commitment-level choice outranks an inferred lifestyle
+    signal."""
     if not candidatos_categoria:
         return candidatos_categoria
-    if nivel_compromiso == "basico":
+    if nivel_compromiso == "basico" or (
+        nivel_compromiso != "avanzado" and "tiempo_o_presupuesto_limitado" in preferencias
+    ):
         comunes = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c].get("comun", True)]
         if comunes and rng.random() < PROBABILIDAD_PREFERIR_COMUN:
             return comunes
@@ -530,7 +542,7 @@ def _construir_comida(
     # above so an explicit request still narrows the field first, common-
     # ness only breaks ties within whatever's left.
     candidatos = {
-        categoria: _sesgar_por_nivel_compromiso(lista, nivel_compromiso, rng)
+        categoria: _sesgar_por_nivel_compromiso(lista, nivel_compromiso, rng, preferencias)
         for categoria, lista in candidatos.items()
     }
 

@@ -265,6 +265,29 @@ def test_active_job_not_flagged_as_sedentary(perfil_base):
     assert "trabajo_sedentario" not in preferencias_blandas(perfil_base)
 
 
+@pytest.mark.parametrize("texto", ["little time to cook", "poco tiempo para cocinar", "tight budget", "presupuesto ajustado"])
+def test_limited_time_or_budget_detected_in_nutrition_context(perfil_base, texto):
+    """Direct request: nutricion.contexto/estilo_de_vida.tipo_trabajo became
+    preset dropdowns (ui/app.py's OPCIONES_CONTEXTO_NUTRICION/
+    OPCIONES_TIPO_TRABAJO) storing exactly these phrases, so this category
+    only actually helps if the keyword match genuinely recognizes them."""
+    perfil_base["nutricion"]["contexto"] = texto
+    assert "tiempo_o_presupuesto_limitado" in preferencias_blandas(perfil_base)
+
+
+def test_limited_time_or_budget_also_detected_via_job_type_field(perfil_base):
+    """preferencias_texto_libre() pools tipo_trabajo too now -- the
+    "little free time during the week" preset lives there, not in
+    nutricion.contexto."""
+    perfil_base["estilo_de_vida"]["tipo_trabajo"] = "little free time during the week"
+    assert "tiempo_o_presupuesto_limitado" in preferencias_blandas(perfil_base)
+
+
+def test_known_category_reverse_maps_new_presets(perfil_base):
+    assert categoria_inquietud_conocida("tight budget") == "tiempo_o_presupuesto_limitado"
+    assert categoria_inquietud_conocida("presupuesto ajustado") == "tiempo_o_presupuesto_limitado"
+
+
 def test_reducir_gluten_excludes_gluten_but_keeps_gluten_traces(perfil_base):
     """The soft "lower gluten" preference is deliberately narrower than a
     declared allergy: it excludes `gluten`-tagged foods (bread, pasta,

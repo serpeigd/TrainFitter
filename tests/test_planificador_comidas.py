@@ -367,6 +367,37 @@ def test_basico_leans_toward_common_foods_over_specialty_ones(perfil_base):
     assert proporcion_basico < proporcion_normal
 
 
+def test_limited_time_or_budget_also_leans_toward_common_foods(perfil_base):
+    """Direct request: nutricion.contexto's "tight budget"/"little time to
+    cook" presets (ui/app.py's OPCIONES_CONTEXTO_NUTRICION) should adapt
+    the plan "como el resto" -- reuses the exact same comun-food bias
+    "basico" gets (see _sesgar_por_nivel_compromiso()'s own docstring),
+    confirmed statistically at "normal" commitment level so nivel_
+    compromiso's own bias isn't what's being measured here."""
+    perfil_base["experiencia"]["nivel_compromiso"] = "normal"
+    perfil_sin_contexto = {**perfil_base, "nutricion": {**perfil_base["nutricion"], "contexto": ""}}
+    perfil_con_contexto = {**perfil_base, "nutricion": {**perfil_base["nutricion"], "contexto": "tight budget"}}
+
+    def _proporcion(perfil, sufijo, n=20):
+        perfil["nutricion"]["tipo_dieta"] = "vegana"
+        total, no_comunes = 0, 0
+        for i in range(n):
+            perfil["id_cliente"] = f"tiempo_{sufijo}_{i}"
+            plan = generar_plan_semanal(perfil, NECESIDADES, 4, "en", _rng(perfil))
+            for dia in plan:
+                for comida in dia["comidas"]:
+                    for clave in ("proteina", "carbohidrato", "grasa"):
+                        nombre = comida[clave]
+                        if nombre is None:
+                            continue
+                        total += 1
+                        if not INDICE_ALIMENTOS[nombre].get("comun", True):
+                            no_comunes += 1
+        return no_comunes / total
+
+    assert _proporcion(perfil_con_contexto, "con") < _proporcion(perfil_sin_contexto, "sin")
+
+
 def test_basico_still_uses_specialty_foods_when_nothing_common_is_left(perfil_base):
     """Bias, not exclusion: a vegan client whose ONLY protein candidates
     are specialty items (every common option disliked) must still get a

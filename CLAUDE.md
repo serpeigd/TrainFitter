@@ -1148,6 +1148,28 @@ hide options rather than focus them — disclosed as the reason for this
 asymmetry directly in the UI caption, not silently different behavior
 between the two panels.
 
+`nutricion.contexto`/`estilo_de_vida.tipo_trabajo` became preset
+dropdowns too ("hazlo con opciones desplegables que adapten como el
+resto," scoped to a "tiempo/logística" theme via `AskUserQuestion`) --
+both fields were ALREADY pooled into `food_bank.preferencias_texto_libre()`'s
+keyword matching, so a trainer typing the "wrong" words silently got no
+adaptation; presets now guarantee the match. A new keyword category,
+`"tiempo_o_presupuesto_limitado"` ("poco tiempo para cocinar"/
+"presupuesto ajustado"/"poco tiempo libre"), reuses the exact bias
+`_sesgar_por_nivel_compromiso()` already applies for `"basico"` (lean
+toward `food_bank.py`'s `"comun": True` foods) — confirmed statistically,
+same discipline as the `basico`/`avanzado` bias tests. `tipo_trabajo`'s
+existing free-text `"sedentario"/"oficina"` detection (already a real,
+working mechanism, not something this touched) got its own two presets
+too. Both fields keep an "Otra" free-text fallback, exact same pattern
+`nutricion.inquietud_principal` already established; a saved client's
+pre-dropdown free text reverse-maps onto a preset on "Revisar cliente"
+load via exact-phrase matching (not `categoria_inquietud_conocida()`'s
+substring search, since these are the project's own presets, not open
+free text). 581 tests passing (up from 574), lint clean, no
+example-output diffs (none of the three example clients' saved text
+happens to match the new keywords).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

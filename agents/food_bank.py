@@ -452,21 +452,38 @@ _PALABRAS_CLAVE_PREFERENCIA_BLANDA = {
         "mas hierro", "más hierro", "deficit de hierro", "déficit de hierro", "anemia",
         "more iron", "iron deficiency", "low iron", "iron-rich",
     ),
+    # Direct follow-up ("Contexto (cocina, tiempo, presupuesto...)"/"Tipo
+    # de trabajo" -- make these adapt "como el resto"): a logistics
+    # preference, not a nutrition one, but matched the same way -- see
+    # planificador_comidas._sesgar_por_nivel_compromiso()'s own docstring
+    # for the mechanical effect (bias toward common/everyday foods, same
+    # lever "basico" already uses, since there's no separate prep-time or
+    # price data to bias on directly).
+    "tiempo_o_presupuesto_limitado": (
+        "poco tiempo para cocinar", "poco tiempo", "presupuesto ajustado", "presupuesto limitado",
+        "presupuesto reducido", "poco tiempo libre",
+        "little time to cook", "short on time", "tight budget", "limited budget", "little free time",
+    ),
 }
 
 
 def preferencias_texto_libre(perfil: dict) -> str:
     """Pools every free-text field a client might have expressed a dietary
     preference in -- their goal in their own words, the nutrition context
-    box, the dedicated `inquietud_principal` field, and general free
-    notes -- into one lowercased string, so a preference mentioned in any
-    one of them gets picked up rather than only a single specific box."""
+    box, the dedicated `inquietud_principal` field, their job-type field
+    (see "tiempo_o_presupuesto_limitado" -- a client's own "poco tiempo
+    libre" preset there is a logistics signal, same class as the context
+    box's "poco tiempo para cocinar"), and general free notes -- into one
+    lowercased string, so a preference mentioned in any one of them gets
+    picked up rather than only a single specific box."""
     objetivo = perfil.get("objetivo", {})
     nutricion = perfil.get("nutricion", {})
+    estilo = perfil.get("estilo_de_vida", {})
     partes = [
         objetivo.get("en_sus_palabras") or "",
         nutricion.get("contexto") or "",
         nutricion.get("inquietud_principal") or "",
+        estilo.get("tipo_trabajo") or "",
         perfil.get("notas_libres") or "",
     ]
     return " ".join(partes).lower()

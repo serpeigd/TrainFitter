@@ -902,6 +902,8 @@ TRANSLATIONS = {
         "main_dietary_concern_placeholder": "e.g. more energy in the mornings, joint pain...",
         "meals_per_day": "Preferred meals per day",
         "nutrition_context": "Context (cooking, time, budget...)",
+        "nutrition_context_other_label": "Describe it",
+        "nutrition_context_placeholder": "e.g. cooks in batch on Sundays, travels a lot for work...",
         "diet_adjustments_label": "Trainer diet adjustments",
         "diet_adjustments_caption": (
             "Search and pick any that apply -- applied for real (protein, carbs/fat, calories, dairy, "
@@ -914,6 +916,8 @@ TRANSLATIONS = {
         "stress_level": "Perceived stress level",
         "daily_steps": "Approx. daily steps",
         "job_type": "Type of job / day-to-day",
+        "job_type_other_label": "Describe it",
+        "job_type_placeholder": "e.g. shift work, freelance, physically active job...",
         "sec_notes": "8. Free notes",
         "other_notes": "Anything else they'd like to share",
         "submit_button": "Create intake and generate plan",
@@ -1199,6 +1203,8 @@ TRANSLATIONS = {
         "main_dietary_concern_placeholder": "ej. más energía por las mañanas, dolor articular...",
         "meals_per_day": "Comidas al día preferidas",
         "nutrition_context": "Contexto (cocina, tiempo, presupuesto...)",
+        "nutrition_context_other_label": "Descríbelo",
+        "nutrition_context_placeholder": "ej. cocina en batch los domingos, viaja mucho por trabajo...",
         "diet_adjustments_label": "Ajustes de dieta del entrenador",
         "diet_adjustments_caption": (
             "Busca y elige los que apliquen — se aplican de verdad (proteína, carbohidratos/grasa, "
@@ -1212,6 +1218,8 @@ TRANSLATIONS = {
         "stress_level": "Nivel de estrés percibido",
         "daily_steps": "Pasos diarios aprox.",
         "job_type": "Tipo de trabajo / día a día",
+        "job_type_other_label": "Descríbelo",
+        "job_type_placeholder": "ej. turnos, autónomo, trabajo físicamente activo...",
         "sec_notes": "8. Notas libres",
         "other_notes": "Cualquier otra cosa que quiera contarnos",
         "submit_button": "Crear ficha y generar plan",
@@ -1408,6 +1416,8 @@ OPTION_LABELS = {
         "": "None", "antiinflamatorio": "Anti-inflammatory", "reducir_gluten": "Lower gluten",
         "salud_digestiva": "Gut health", "mas_fibra": "More fiber", "mas_hierro": "More iron (anemia)",
         "otra": "Other (describe below)",
+        "poco_tiempo": "Little time to cook", "presupuesto_ajustado": "Tight budget",
+        "oficina_sedentario": "Sedentary office job", "poco_tiempo_libre": "Little free time during the week",
     },
     "es": {
         "mujer": "Mujer", "hombre": "Hombre",
@@ -1435,6 +1445,8 @@ OPTION_LABELS = {
         "": "Ninguna", "antiinflamatorio": "Antiinflamatoria", "reducir_gluten": "Bajar el gluten",
         "salud_digestiva": "Salud digestiva", "mas_fibra": "Más fibra", "mas_hierro": "Más hierro (anemia)",
         "otra": "Otra (descríbelo abajo)",
+        "poco_tiempo": "Poco tiempo para cocinar", "presupuesto_ajustado": "Presupuesto ajustado",
+        "oficina_sedentario": "Trabajo de oficina, sedentario", "poco_tiempo_libre": "Poco tiempo libre entre semana",
     },
 }
 
@@ -1502,6 +1514,29 @@ _FRASE_POR_INQUIETUD = {
         "mas_fibra": "más fibra",
         "mas_hierro": "más hierro",
     },
+}
+
+
+# Preset dropdowns for nutricion.contexto/estilo_de_vida.tipo_trabajo --
+# direct follow-up ("hazlo con opciones desplegables que adapten como el
+# resto"): both fields were free text that already fed
+# food_bank.preferencias_texto_libre()'s keyword matching, so a trainer
+# typing the "wrong" words silently got no adaptation. Presets store the
+# exact phrase food_bank.py's "tiempo_o_presupuesto_limitado" keyword list
+# recognizes (same "no food_bank.py changes needed" trick OPCIONES_INQUIETUD
+# already uses) -- same real effect (bias toward common/everyday foods,
+# see planificador_comidas._sesgar_por_nivel_compromiso()), not just
+# better-looking widgets. "Otra"/free text stays for anything these two
+# presets don't cover.
+OPCIONES_CONTEXTO_NUTRICION = ["", "poco_tiempo", "presupuesto_ajustado", "otra"]
+_FRASE_POR_CONTEXTO_NUTRICION = {
+    "en": {"poco_tiempo": "little time to cook", "presupuesto_ajustado": "tight budget"},
+    "es": {"poco_tiempo": "poco tiempo para cocinar", "presupuesto_ajustado": "presupuesto ajustado"},
+}
+OPCIONES_TIPO_TRABAJO = ["", "oficina_sedentario", "poco_tiempo_libre", "otra"]
+_FRASE_POR_TIPO_TRABAJO = {
+    "en": {"oficina_sedentario": "sedentary office job", "poco_tiempo_libre": "little free time during the week"},
+    "es": {"oficina_sedentario": "trabajo de oficina, sedentario", "poco_tiempo_libre": "poco tiempo libre entre semana"},
 }
 
 
@@ -1741,6 +1776,24 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
     inquietud_guardada = nutricion.get("inquietud_principal", "")
     categoria_inquietud = categoria_inquietud_conocida(inquietud_guardada) if inquietud_guardada else ""
 
+    # Same reverse-map idea as inquietud_principal above, for the two other
+    # fields that became preset dropdowns -- exact-match, not
+    # categoria_inquietud_conocida()'s substring search, since these are
+    # OUR OWN presets (not open free text), checked against both languages
+    # since a saved profile could've been created in either.
+    def _preset_desde_frase(frase: str, frases_por_idioma: dict) -> str:
+        frase_normalizada = frase.strip().lower()
+        for idioma_dict in frases_por_idioma.values():
+            for clave, texto in idioma_dict.items():
+                if texto.lower() == frase_normalizada:
+                    return clave
+        return ""
+
+    contexto_guardado = nutricion.get("contexto", "")
+    preset_contexto = _preset_desde_frase(contexto_guardado, _FRASE_POR_CONTEXTO_NUTRICION) if contexto_guardado else ""
+    trabajo_guardado = estilo.get("tipo_trabajo", "")
+    preset_trabajo = _preset_desde_frase(trabajo_guardado, _FRASE_POR_TIPO_TRABAJO) if trabajo_guardado else ""
+
     return {
         "nombre": datos["nombre"],
         "email": datos.get("email", ""),
@@ -1776,12 +1829,14 @@ def _campos_formulario_desde_perfil(perfil: dict) -> dict:
         "inquietud_valor": categoria_inquietud or ("otra" if inquietud_guardada else ""),
         "inquietud_otra_texto": "" if categoria_inquietud else inquietud_guardada,
         "comidas": nutricion.get("comidas_al_dia_preferidas", 3),
-        "contexto": nutricion.get("contexto", ""),
+        "contexto_dd_valor": preset_contexto or ("otra" if contexto_guardado else ""),
+        "contexto_otra_texto": "" if preset_contexto else contexto_guardado,
         "ajustes_dieta_valor": nutricion.get("ajustes_dieta", []),
         "sueno": estilo.get("horas_sueno_promedio", 7.0),
         "estres_valor": estilo.get("nivel_estres_percibido", "medio"),
         "pasos": estilo.get("pasos_diarios_aprox", 6000),
-        "tipo_trabajo": estilo.get("tipo_trabajo", ""),
+        "tipo_trabajo_dd_valor": preset_trabajo or ("otra" if trabajo_guardado else ""),
+        "tipo_trabajo_otra_texto": "" if preset_trabajo else trabajo_guardado,
         "notas_libres": perfil.get("notas_libres", ""),
         "analitica_previa": salud.get("analitica_adjunta"),
     }
@@ -1936,7 +1991,23 @@ def _formulario_ficha_nueva() -> dict | None:
     else:
         inquietud_principal = _FRASE_POR_INQUIETUD[st.session_state.lang].get(inquietud_valor, "")
     comidas_al_dia = st.number_input(t("meals_per_day"), min_value=2, max_value=6, value=3, key="comidas")
-    contexto_nutricion = st.text_area(t("nutrition_context"), key="contexto")
+    # Preset dropdown, same "known phrase + Otra free text" pattern as
+    # inquietud_principal above -- direct follow-up ("hazlo con opciones
+    # desplegables que adapten como el resto"). See OPCIONES_CONTEXTO_
+    # NUTRICION's own module-level comment for what actually happens when
+    # one is picked.
+    clave_contexto_dd, indice_contexto = _clave_selectbox("contexto_dd", OPCIONES_CONTEXTO_NUTRICION, "")
+    contexto_valor = st.selectbox(
+        t("nutrition_context"), OPCIONES_CONTEXTO_NUTRICION, format_func=opt, index=indice_contexto,
+        key=clave_contexto_dd,
+    )
+    if contexto_valor == "otra":
+        contexto_nutricion = st.text_area(
+            t("nutrition_context_other_label"), key="contexto_otra_texto",
+            placeholder=t("nutrition_context_placeholder"),
+        ).strip()
+    else:
+        contexto_nutricion = _FRASE_POR_CONTEXTO_NUTRICION[st.session_state.lang].get(contexto_valor, "")
     # Searchable multiselect (type to filter) for the trainer's own diet
     # tweaks -- direct request ("que el entrenador pueda cambiar algo de
     # la dieta... un desplegable extenso en el que pueda buscar la
@@ -1956,7 +2027,20 @@ def _formulario_ficha_nueva() -> dict | None:
     clave_estres, indice_estres = _clave_selectbox("estres", niveles_estres, "medio")
     estres = c17.selectbox(t("stress_level"), niveles_estres, format_func=opt, index=indice_estres, key=clave_estres)
     pasos = c18.number_input(t("daily_steps"), min_value=0, max_value=30000, value=6000, step=500, key="pasos")
-    tipo_trabajo = st.text_input(t("job_type"), key="tipo_trabajo")
+    # Same preset-dropdown treatment as contexto_nutricion above. The
+    # existing "sedentary office job" preset feeds food_bank.py's own
+    # already-working keyword match for trabajo_sedentario (higher fiber);
+    # "little free time" feeds the new tiempo_o_presupuesto_limitado bias.
+    clave_trabajo_dd, indice_trabajo = _clave_selectbox("tipo_trabajo_dd", OPCIONES_TIPO_TRABAJO, "")
+    trabajo_valor = st.selectbox(
+        t("job_type"), OPCIONES_TIPO_TRABAJO, format_func=opt, index=indice_trabajo, key=clave_trabajo_dd,
+    )
+    if trabajo_valor == "otra":
+        tipo_trabajo = st.text_input(
+            t("job_type_other_label"), key="tipo_trabajo_otra_texto", placeholder=t("job_type_placeholder"),
+        ).strip()
+    else:
+        tipo_trabajo = _FRASE_POR_TIPO_TRABAJO[st.session_state.lang].get(trabajo_valor, "")
 
     st.subheader(t("sec_notes"))
     notas_libres = st.text_area(t("other_notes"), key="notas_libres")

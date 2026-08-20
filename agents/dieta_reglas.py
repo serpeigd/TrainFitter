@@ -371,6 +371,10 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
                 "Has pedido más hierro: el plan prioriza fuentes de hierro no hemo (legumbres, "
                 "tofu) y las combina con vitamina C en la misma comida para mejorar su absorción."
             ),
+            "tiempo_o_presupuesto_limitado": (
+                "Con poco tiempo para cocinar o presupuesto ajustado, el plan prioriza alimentos "
+                "comunes y de uso cotidiano por encima de opciones más especiales."
+            ),
         }
     else:
         textos = {
@@ -403,11 +407,15 @@ def _consejos_por_preferencias_blandas(perfil: dict, idioma: str = "en") -> list
                 "You asked for more iron: this plan leans on non-heme iron sources (legumes, "
                 "tofu) and pairs them with vitamin C in the same meal to help absorption."
             ),
+            "tiempo_o_presupuesto_limitado": (
+                "With limited time to cook or a tight budget, this plan leans on common, "
+                "everyday foods over more specialty options."
+            ),
         }
     return [
         textos[p] for p in (
             "reducir_gluten", "antiinflamatorio", "estres_alto_o_sueno_bajo", "trabajo_sedentario",
-            "salud_digestiva", "mas_fibra", "mas_hierro",
+            "salud_digestiva", "mas_fibra", "mas_hierro", "tiempo_o_presupuesto_limitado",
         ) if p in preferencias
     ]
 
