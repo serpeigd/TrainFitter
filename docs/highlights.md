@@ -273,5 +273,28 @@ what caught it, not testing harder.
 
 ---
 
+## 22. A second reversal of the same guarantee — scoped narrower, not looser
+
+#19 kept `revision_reforzada` completely untouched when `aprobado_automatico`
+plans started sending themselves: still a mandatory draft, still a human
+send, no exceptions. That held right up until the trainer's own review moved
+*into* the panel itself — the new edit controls (#21) plus a
+password-gated Approve click already are the review, so a second look inside
+Gmail afterward added friction, not safety. `_panel_aprobacion()`'s primary
+action is now "Enviar el plan por email," calling `enviar_plan()` directly;
+"Crear borrador en Gmail en su lugar" stays as an explicit secondary button
+for a trainer who wants a second look anyway, and as the real fallback if
+the send itself fails. `revision_reforzada` is now the *only* category left
+in this project that gates a real, no-draft-in-between send behind a
+password — the same reasoning as #19, applied one step further once the
+thing that reasoning depended on (a human already looked) became true here
+too. **Why it matters:** the guarantee didn't get weaker twice by
+coincidence — each reversal was justified by a *specific* mechanism (the
+validator's own verdict, then the panel's own review) actually satisfying
+what the removed step used to provide, not by "we already crossed this line
+once."
+
+---
+
 *For the full "why," including things that were tried and reverted, see*
 [`decisiones.md`](decisiones.md).

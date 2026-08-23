@@ -138,19 +138,25 @@ This repository is built phase by phase, as a learning project. Right now:
   [`docs/base_conocimiento/sinergias_nutrientes.md`](docs/base_conocimiento/sinergias_nutrientes.md)
   — not just listed as a separate tip. Renders as a styled table in the diet
   PDF and in the trainer's on-screen review, in whichever language the UI
-  is set to. A client can **like a meal from their own portal**, and it
-  biases (never forces — same "prefer, don't lock" philosophy as the
-  synergy pairing above) toward reappearing in their next generated week,
-  dropped automatically if it's no longer a safe/valid pick (e.g. a new
-  allergy) — verified against the real workspace, not just mocked: a real
-  liked meal reappeared in ~55% of 15 regenerations, matching the ~60%
-  design target. **Liking an exercise works exactly the same way** on the
-  routine side (see [`agents/rutina_reglas.py`](agents/rutina_reglas.py)'s
+  is set to. A client can **like or dislike a meal from their own portal**
+  (both undoable — a like/dislike toggles back off the same way it was
+  set), and a like biases (never forces — same "prefer, don't lock"
+  philosophy as the synergy pairing above) toward reappearing in their next
+  generated week, while a dislike biases the same meal combination away
+  from a future week; either is dropped automatically if it's no longer a
+  safe/valid pick (e.g. a new allergy) — verified against the real
+  workspace, not just mocked: a real liked meal reappeared in ~55% of 15
+  regenerations, matching the ~60% design target. **The same bias mechanism
+  exists on the routine side** (see
+  [`agents/rutina_reglas.py`](agents/rutina_reglas.py)'s
   `_sesgar_por_favoritos()`): a liked exercise is preferred, never pinned,
   and is dropped silently the moment a new injury makes it unsafe — the
   safety cross-check always outranks the preference. Verified live against
   a real client record: a liked exercise came back in ~74% of 30
-  regenerations.
+  regenerations. Unlike meals, exercise-liking has no portal UI anymore —
+  it was removed there by direct request, so today it's only ever set on a
+  client's stored profile directly; the bias itself still runs whenever
+  `ejercicios_favoritos` is present.
 - Both rule engines use most of what the intake form actually collects:
   training level and session length shape routine volume/complexity,
   disliked foods and lifestyle signals (stress/sleep, job type) bias diet
@@ -358,11 +364,6 @@ actually been verified:
 - **A magic link can be revoked early, but only by hand in Notion** — clearing the
   client's "Portal Reference" property invalidates it immediately. There's no
   "revoke" button in the app itself; the default is still its own expiry (7 days).
-- **A liked meal/exercise in the client portal can't be un-liked from the portal
-  itself.** The 🤍/❤️ button is one-way by design (see `ui/app.py`'s
-  `_vista_portal_cliente()`) — `agregar_comida_favorita()`/`agregar_ejercicio_favorito()`
-  only ever append; removing one means editing "Liked Meals (JSON)"/"Liked Exercises
-  (JSON)" in Notion directly.
 - **The Streamlit Community Cloud free tier sleeps after inactivity.** The first request
   after a period of no traffic triggers a cold start (can take up to a minute); this is a
   hosting trade-off, not an application bug.

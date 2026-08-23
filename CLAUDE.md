@@ -34,7 +34,7 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
   [`docs/decisiones.md`](docs/decisiones.md) — read it only if you need the
   *why* behind a past call; don't load it by default (it's long).
 - [`docs/highlights.md`](docs/highlights.md) is the condensed, interview-ready
-  version of the same log (18 decisions, ~2 pages) — update it when a change adds
+  version of the same log (22 decisions, ~2 pages) — update it when a change adds
   a genuinely new "defensible decision," not for routine work.
 - **Scheduled documentation-sync runs (added 2026-08-07, explicit decision in
   chat): standing authorization to merge doc-only PRs from that recurring task
@@ -54,9 +54,12 @@ design. Public repo: **github.com/serpeigd/TrainFitter**.
 Client intake JSON → routine_agent + diet_agent (motor="reglas"|"llm", same output schema)
                    → validator_agent (ALWAYS rule-based, re-derives risk from raw profile)
                    → verdict: aprobado_automatico | revision_reforzada
-                   → aprobado_automatico: sent automatically (mcp/gmail_client.py's enviar_plan(),
-                     as of 2026-08-19 — see below)
-                   → revision_reforzada: human review, ALWAYS, no auto-send (unchanged)
+                   → aprobado_automatico: sent automatically, zero clicks (mcp/gmail_client.py's
+                     enviar_plan(), as of 2026-08-19 — see below)
+                   → revision_reforzada: human review, ALWAYS, before anything sends — but once
+                     approved, "send" now means enviar_plan() directly too (a real send, no draft
+                     in between); a Gmail draft is a secondary, explicit fallback button, not the
+                     default path (see below)
 ```
 
 - **Two interchangeable engines** per generation agent: `"reglas"` (default,
