@@ -516,3 +516,44 @@ def test_cooking_tip_is_translated_in_spanish(perfil_base):
     plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "es", _rng(perfil_base))
     descripciones = " ".join(c["descripcion"] for dia in plan for c in dia["comidas"])
     assert "Opcional:" in descripciones
+
+
+def test_common_combo_gets_a_curated_recipe_name(perfil_base):
+    """Direct follow-up request ("diseña platos concretos saludables y
+    dale nombre a la receta"): the most common protein+carb combinations
+    (NOMBRES_PLATO_CURADOS) get a real recipe name instead of just the
+    mechanical "carb con proteína" fallback. Runs many client IDs and
+    looks for at least one curated name surfacing somewhere across the
+    week -- meal selection is random per slot, so no single seed is
+    guaranteed to land on a specific combo."""
+    from planificador_comidas import NOMBRES_PLATO_CURADOS
+
+    nombres_curados_en = {v["en"] for v in NOMBRES_PLATO_CURADOS.values()}
+    encontrado = False
+    for i in range(20):
+        perfil_base["id_cliente"] = f"receta_curada_{i}"
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+        for dia in plan:
+            for comida in dia["comidas"]:
+                nombre_plato = comida["descripcion"].split(": ", 1)[0]
+                if nombre_plato in nombres_curados_en:
+                    encontrado = True
+    assert encontrado, "no curated recipe name showed up across 20 client IDs"
+
+
+def test_lunch_and_dinner_never_share_the_exact_same_combo(perfil_base):
+    """Direct request: "que no te toque comer y cenar lo mismo el mismo
+    día". A real, bounded exclusion (see _construir_comida()'s
+    combos_dia_previos), checked across several different client IDs
+    since meal selection is seeded per client -- not just one lucky
+    draw."""
+    for i in range(15):
+        perfil_base["id_cliente"] = f"sin_repetir_dia_{i}"
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 3, "en", _rng(perfil_base))
+        for dia in plan:
+            por_tipo = {c["tipo_interno"]: c for c in dia["comidas"]}
+            almuerzo, cena = por_tipo.get("comida"), por_tipo.get("cena")
+            assert almuerzo and cena
+            combo_almuerzo = (almuerzo["proteina"], almuerzo["carbohidrato"], almuerzo["grasa"])
+            combo_cena = (cena["proteina"], cena["carbohidrato"], cena["grasa"])
+            assert combo_almuerzo != combo_cena, f"{dia['dia']} (client {i}): {combo_almuerzo}"

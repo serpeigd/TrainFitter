@@ -113,7 +113,7 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Tofu with quinoa: 262g quinoa, 113g tofu, 37g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
+          "descripcion": "Tofu and quinoa bowl: 262g quinoa, 113g tofu, 37g avocado. Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
           "aprox_kcal": 536,
           "tipo_interno": "desayuno",
           "proteina": "Tofu",
@@ -202,7 +202,7 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "Greek yogurt / whipped fresh cheese with oats: 27g oats, 92g greek yogurt / whipped fresh cheese, 80g carrot, 37g avocado. (a probiotic + prebiotic-fiber combo.) Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "descripcion": "Greek yogurt oat bowl: 27g oats, 92g greek yogurt / whipped fresh cheese, 80g carrot, 37g avocado. (a probiotic + prebiotic-fiber combo.) Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
           "aprox_kcal": 252,
           "tipo_interno": "snack",
           "proteina": "Greek yogurt / whipped fresh cheese",
@@ -231,7 +231,7 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Lean beef with potato / sweet potato: 80g lean beef, 361g potato / sweet potato, 100g broccoli, with 93g avocado. Optional: cook and cool it before eating, same trick as rice — same resistant-starch effect.",
+          "descripcion": "Beef stew with potatoes: 80g lean beef, 361g potato / sweet potato, 100g broccoli, with 93g avocado. Optional: cook and cool it before eating, same trick as rice — same resistant-starch effect.",
           "aprox_kcal": 662,
           "tipo_interno": "comida",
           "proteina": "Lean beef",

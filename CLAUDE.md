@@ -1215,6 +1215,53 @@ reload, not just from the button label. Verified live against the real
 "PEPE" client: disliking, undoing, and a fresh page reload all
 round-tripped correctly against the real Notion record.
 
+Four follow-ups shipped together, all direct requests. The macro summary
+became a minimalist `st.metric` (kcal) plus a small horizontal
+`st.bar_chart` (protein/carb/fat grams) — replacing the original 4-metric
+row, which read as more numbers than a client glancing at this section
+wants; degrades to plain text if altair/pandas are ever missing, same
+lazy-import convention as `_render_historial_checkins()`'s own chart. The
+portal's Routine section gained the same `st.segmented_control` day-picker
+the meal section already had (`_render_dias_rutina()`), replacing every
+day stacked in one long scroll — pure browsing, so no Back/Next/"done"
+screen unlike the meal flow's swipe-and-act pattern. A real, reproducible
+bug got fixed: every portal widget (both day pickers, every check-in
+slider/checkbox) used a fixed `session_state` key never scoped to a
+specific client, and `st.session_state` persists across a full page
+navigation within the same browser tab — loading a DIFFERENT client's
+portal link right after another one's left every widget showing the
+PREVIOUS client's stale values, since a widget's `value=`/`default=` is
+only honored the FIRST time its key is ever set. New
+`_reiniciar_estado_portal_si_cambia_cliente()` clears every portal-scoped
+key whenever the resolved email changes, same "track the previous X,
+reset on change" pattern already used for `_cargar_ficha_para_revisar()`'s
+re-lock logic — verified live that a single client's own defaults
+(previstas=3, diet=7 for "PEPE") are still correct after the fix; the
+cross-client scenario itself is verified by code/pattern reasoning rather
+than a live two-client test, since only one real Notion test client
+exists in the workspace — a disclosed, not a hidden, gap.
+
+Meal planning got two real improvements to `agents/planificador_comidas.py`.
+First, lunch and dinner (and every other slot) can no longer land on the
+exact same protein+carbohydrate+fat combination on the same day
+("que no te toque comer y cenar lo mismo") — `_construir_comida()` gained
+`combos_dia_previos`, checked in the same bounded reroll loop
+`comidas_no_deseadas` already uses, tracked and reset per day by
+`generar_plan_semanal()`. Second, `_nombrar_plato()` now checks a new
+curated table, `NOMBRES_PLATO_CURADOS` (~15 common protein+carb pairings,
+e.g. "Arroz con pollo"/"Chicken and rice bowl"), before falling back to
+the original mechanical "carb con proteína" construction — same
+"curated, not exhaustive" convention as `CONSEJOS_COCINA`, so every meal
+still gets a real name even for the long tail of pairings outside the
+table. `diet_agent.py`'s LLM prompt updated for parity on both (never
+repeat lunch/dinner's exact combo; curated-style dish name examples).
+Both new pytest tests run across many client IDs (seeded, not luck of one
+draw) and pass; `examples/output_dieta_*.json` regenerated (all three
+example clients are vegetarian/vegan, so none happen to hit a curated
+combo — verified directly against a real generated week instead: named
+dishes and same-day variety both confirmed by reading the actual output).
+592 tests passing (up from 590), lint clean.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

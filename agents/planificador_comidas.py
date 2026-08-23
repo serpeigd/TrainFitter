@@ -189,13 +189,58 @@ def _consejo_cocina(proteina_nombre: str, carbohidrato_nombre: str, idioma: str)
     return ""
 
 
-def _nombrar_plato(nombre_carb: str, nombre_prot: str, idioma: str) -> str:
-    """Wetaca-style named dish ("Lentejas con pollo") instead of just a
-    flat ingredient list -- direct request. Mechanical (carb + protein,
-    already-translated display names), not a hand-authored name per
-    combination: with 10+ proteins x 10+ carbs across 2 languages, a real
-    per-combination name database isn't a proportionate build here, and
-    this reads naturally for the vast majority of real combinations."""
+# Curated, real dish names for the most common protein+carb combinations --
+# same "curated, not exhaustive" convention as CONSEJOS_COCINA above. Keyed
+# by (canonical English carb name, canonical English protein name), the
+# same names food_bank.py uses (never displayed directly -- see module
+# docstring). Direct follow-up request ("diseña platos concretos
+# saludables y dale nombre a la receta"): with 10+ proteins x 10+ carbs,
+# hand-authoring every combination isn't proportionate, but the pairings a
+# client will actually see most often (the everyday proteins/carbs) now
+# read as a genuine recipe name, not just an ingredient list with a colon
+# after it. Anything outside this table still falls back to
+# _nombrar_plato()'s original mechanical construction below.
+NOMBRES_PLATO_CURADOS = {
+    ("Rice", "Chicken breast"): {"es": "Arroz con pollo", "en": "Chicken and rice bowl"},
+    ("Potato / sweet potato", "Chicken breast"): {"es": "Pollo asado con patatas", "en": "Roast chicken with potatoes"},
+    ("Whole wheat pasta", "Chicken breast"): {
+        "es": "Pollo salteado con pasta integral", "en": "Chicken stir-fry with whole wheat pasta",
+    },
+    ("Rice", "Salmon / oily fish"): {"es": "Salmón al horno con arroz", "en": "Baked salmon with rice"},
+    ("Quinoa", "Salmon / oily fish"): {"es": "Bowl de salmón y quinoa", "en": "Salmon and quinoa bowl"},
+    ("Potato / sweet potato", "Lean beef"): {"es": "Estofado de ternera con patatas", "en": "Beef stew with potatoes"},
+    ("Rice", "Lean beef"): {"es": "Ternera salteada con arroz", "en": "Beef stir-fry with rice"},
+    ("Whole wheat pasta", "Turkey"): {
+        "es": "Boloñesa de pavo con pasta integral", "en": "Turkey bolognese with whole wheat pasta",
+    },
+    ("Rice", "Chickpeas"): {"es": "Curry de garbanzos con arroz", "en": "Chickpea curry with rice"},
+    ("Rice", "Lentils"): {"es": "Guiso de lentejas con arroz", "en": "Lentil stew with rice"},
+    ("Whole wheat bread", "Eggs"): {"es": "Tostada con huevos revueltos", "en": "Scrambled eggs on toast"},
+    ("Oats", "Greek yogurt / whipped fresh cheese"): {
+        "es": "Bowl de avena y yogur griego", "en": "Greek yogurt oat bowl",
+    },
+    ("Quinoa", "Tofu"): {"es": "Bowl de tofu y quinoa", "en": "Tofu and quinoa bowl"},
+    ("Rice", "Tofu"): {"es": "Tofu salteado con arroz", "en": "Stir-fried tofu with rice"},
+    ("Potato / sweet potato", "White fish (hake, sole)"): {
+        "es": "Pescado al horno con patatas", "en": "Baked fish with potatoes",
+    },
+    ("Rice", "White fish (hake, sole)"): {"es": "Pescado a la plancha con arroz", "en": "Grilled fish with rice"},
+}
+
+
+def _nombrar_plato(nombre_carb_canonico: str, nombre_prot_canonico: str, idioma: str) -> str:
+    """A curated real dish name for common combinations (NOMBRES_PLATO_CURADOS,
+    Wetaca-style: "Arroz con pollo", not just an ingredient list) -- direct
+    follow-up request. Falls back to the original mechanical "carb con
+    proteína" construction (canonical names translated for display via
+    nombre_mostrado()) for any combination outside that curated table, so
+    every meal still gets a real name even for the long tail of less
+    common pairings, and this reads naturally for those too."""
+    curado = NOMBRES_PLATO_CURADOS.get((nombre_carb_canonico, nombre_prot_canonico))
+    if curado:
+        return curado[idioma]
+    nombre_carb = nombre_mostrado(nombre_carb_canonico, idioma)
+    nombre_prot = nombre_mostrado(nombre_prot_canonico, idioma)
     if idioma == "es":
         return f"{nombre_carb} con {nombre_prot.lower()}"
     return f"{nombre_prot} with {nombre_carb.lower()}"
@@ -436,7 +481,7 @@ def _describir_comida_principal(
     nombre_grasa, g_grasa = nombre_mostrado(grasa["nombre"], idioma), grasa["gramos"]
     verdura = nombre_mostrado(verdura, idioma) if verdura else None
     consejo = _consejo_cocina(proteina["nombre"], carbohidrato["nombre"], idioma)
-    plato = _nombrar_plato(nombre_carb, nombre_prot, idioma)
+    plato = _nombrar_plato(carbohidrato["nombre"], proteina["nombre"], idioma)
 
     if idioma == "es":
         partes = [f"{g_prot}g de {nombre_prot.lower()}", f"{g_carb}g de {nombre_carb.lower()}"]
@@ -476,7 +521,7 @@ def _describir_desayuno_o_snack(
     nombre_grasa, g_grasa = nombre_mostrado(grasa["nombre"], idioma), grasa["gramos"]
     fruta = nombre_mostrado(fruta, idioma) if fruta else None
     consejo = _consejo_cocina(proteina["nombre"], carbohidrato["nombre"], idioma)
-    plato = _nombrar_plato(nombre_carb, nombre_prot, idioma)
+    plato = _nombrar_plato(carbohidrato["nombre"], proteina["nombre"], idioma)
 
     if idioma == "es":
         partes = [f"{g_carb}g de {nombre_carb.lower()}", f"{g_prot}g de {nombre_prot.lower()}"]
@@ -508,6 +553,7 @@ def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
     preferencias: set[str], comidas_favoritas: list[dict], comidas_no_deseadas: list[dict],
     nivel_compromiso: str | None, idioma: str, rng: random.Random,
+    combos_dia_previos: set[tuple] = frozenset(),
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -515,7 +561,16 @@ def _construir_comida(
     directly as `kcal_grasa` (see generar_plan_semanal()'s _pesos_grasa()
     call) rather than derived from kcal_objetivo, so dinner ends up with
     the day's largest fat portion regardless of what the day's overall fat
-    ratio alone would give this one meal by size."""
+    ratio alone would give this one meal by size.
+
+    combos_dia_previos: (proteina, carbohidrato, grasa) tuples already used
+    earlier THIS SAME DAY (see generar_plan_semanal()) -- direct request
+    ("que no te toque comer y cenar lo mismo el mismo día"). Checked
+    alongside comidas_no_deseadas in the same bounded reroll loop below;
+    unlike comidas_no_deseadas (which is scoped to one specific tipo), this
+    check ignores tipo on purpose -- lunch and dinner landing on the exact
+    same protein+carb+fat pick is the case being avoided, even though
+    they're different slots."""
     aplicar_sinergias = nivel_compromiso in ("avanzado", "tryhard")
     # Both filters are about kcal *budget* size, not meal identity: a snack
     # (small budget) is the only slot small enough that "Assorted fruit"
@@ -575,9 +630,12 @@ def _construir_comida(
     # infinite loop -- same "exclude, but never break generation" pattern
     # as every other safety-adjacent filter in this project.
     intentos = 0
-    while intentos < MAX_INTENTOS_EVITAR_NO_DESEADA and {
-        "tipo": tipo, "proteina": proteina_nombre, "carbohidrato": carbohidrato_nombre, "grasa": grasa_nombre,
-    } in comidas_no_deseadas:
+    while intentos < MAX_INTENTOS_EVITAR_NO_DESEADA and (
+        {
+            "tipo": tipo, "proteina": proteina_nombre, "carbohidrato": carbohidrato_nombre, "grasa": grasa_nombre,
+        } in comidas_no_deseadas
+        or (proteina_nombre, carbohidrato_nombre, grasa_nombre) in combos_dia_previos
+    ):
         proteina_nombre = rng.choice(candidatos["proteina"])
         carbohidrato_nombre = rng.choice(candidatos["carbohidrato"])
         grasa_nombre = rng.choice(candidatos["grasa"]) if candidatos["grasa"] else None
@@ -738,13 +796,20 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     for dia in DIAS_SEMANA[idioma]:
         comidas = []
         contador_snack = 0
+        # Reset per day -- direct request ("que no te toque comer y cenar
+        # lo mismo el mismo día"): each meal built so far today is
+        # excluded from the NEXT one's picks (see _construir_comida()'s
+        # combos_dia_previos), but a Tuesday repeating Monday's lunch is
+        # fine, so this never carries over across days.
+        combos_dia = set()
         for tipo, peso_kcal, peso_grasa in zip(slots, pesos_kcal, pesos_grasa):
             kcal_objetivo = kcal_dia * (peso_kcal / total_peso_kcal)
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
             comida = _construir_comida(
                 tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas,
-                comidas_no_deseadas, nivel_compromiso, idioma, rng,
+                comidas_no_deseadas, nivel_compromiso, idioma, rng, combos_dia,
             )
+            combos_dia.add((comida["proteina"], comida["carbohidrato"], comida["grasa"]))
             if tipo == "snack" and slots.count("snack") > 1:
                 contador_snack += 1
                 comida["tipo"] = f"{comida['tipo']} {contador_snack}"

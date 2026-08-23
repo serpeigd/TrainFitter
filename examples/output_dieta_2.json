@@ -74,15 +74,15 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Chickpeas with quinoa: 137g chickpeas, 278g quinoa, 100g carrot, with 237g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 978,
+          "descripcion": "Tempeh with oats: 117g tempeh, 86g oats, 100g spinach, with 76g seeds (chia, flax). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
+          "aprox_kcal": 962,
           "tipo_interno": "cena",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Quinoa",
-          "grasa": "Avocado",
-          "proteina_g": 137,
-          "carbohidrato_g": 278,
-          "grasa_g": 237
+          "proteina": "Tempeh",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 117,
+          "carbohidrato_g": 86,
+          "grasa_g": 76
         }
       ]
     },
@@ -91,26 +91,26 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Chickpeas with potato / sweet potato: 383g potato / sweet potato, 137g chickpeas, 80g tomato, 14g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 642,
+          "descripcion": "Tempeh with legumes (also a carb source): 253g legumes (also a carb source), 117g tempeh, 43g avocado.",
+          "aprox_kcal": 627,
           "tipo_interno": "desayuno",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Potato / sweet potato",
-          "grasa": "Seeds (chia, flax)",
-          "proteina_g": 137,
-          "carbohidrato_g": 383,
-          "grasa_g": 14
+          "proteina": "Tempeh",
+          "carbohidrato": "Legumes (also a carb source)",
+          "grasa": "Avocado",
+          "proteina_g": 117,
+          "carbohidrato_g": 253,
+          "grasa_g": 43
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Chickpeas with rice: 137g chickpeas, 256g rice, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 778,
+          "descripcion": "Edamame with legumes (also a carb source): 185g edamame, 253g legumes (also a carb source), 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds).",
+          "aprox_kcal": 779,
           "tipo_interno": "comida",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Rice",
+          "proteina": "Edamame",
+          "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 137,
-          "carbohidrato_g": 256,
+          "proteina_g": 185,
+          "carbohidrato_g": 253,
           "grasa_g": 29
         },
         {

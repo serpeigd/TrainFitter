@@ -1064,6 +1064,7 @@ TRANSLATIONS = {
         "portal_protein_label": "Protein",
         "portal_carbs_label": "Carbs",
         "portal_fat_label": "Fat",
+        "portal_macros_grams_unit": "grams",
         "portal_micro_highlights_label": "Today's plan is a good source of:",
         "portal_routine_header": "🏋️ Routine",
         "portal_history_header": "📈 Your check-in history",
@@ -1380,6 +1381,7 @@ TRANSLATIONS = {
         "portal_protein_label": "Proteína",
         "portal_carbs_label": "Carbohidratos",
         "portal_fat_label": "Grasa",
+        "portal_macros_grams_unit": "gramos",
         "portal_micro_highlights_label": "El plan de hoy es buena fuente de:",
         "portal_routine_header": "🏋️ Rutina",
         "portal_history_header": "📈 Tu historial de check-ins",
@@ -3300,11 +3302,32 @@ def _render_resumen_macros_dia(dia_info: dict) -> None:
         proteina_total = sum(c.get("proteina_g", 0) for c in comidas)
         carbohidrato_total = sum(c.get("carbohidrato_g", 0) for c in comidas)
         grasa_total = sum(c.get("grasa_g", 0) for c in comidas)
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric(t("portal_kcal_label"), kcal_total)
-        m2.metric(t("portal_protein_label"), f"{proteina_total} g")
-        m3.metric(t("portal_carbs_label"), f"{carbohidrato_total} g")
-        m4.metric(t("portal_fat_label"), f"{grasa_total} g")
+
+        # One clean number for kcal (a different scale than grams, so it
+        # doesn't belong in the same bar chart) plus a small horizontal bar
+        # for the three macros -- a follow-up request ("una pequeña gráfica
+        # y algo de números, más minimalista y limpia") replacing the
+        # original 4-metric row, which read as more numbers than a client
+        # glancing at this section actually wants.
+        st.metric(t("portal_kcal_label"), f"{kcal_total} kcal")
+        try:
+            # Lazy import, same convention as _render_historial_checkins()'s
+            # own chart -- this section never needs pandas/altair installed
+            # unless a client actually opens it, and a missing chart
+            # library degrades to no chart, never a broken page.
+            import pandas as pd
+
+            datos_macros = pd.DataFrame(
+                {t("portal_macros_grams_unit"): [proteina_total, carbohidrato_total, grasa_total]},
+                index=[t("portal_protein_label"), t("portal_carbs_label"), t("portal_fat_label")],
+            )
+            st.bar_chart(datos_macros, horizontal=True, height=160, color="primary")
+        except (ImportError, ModuleNotFoundError):
+            st.caption(
+                f"{t('portal_protein_label')}: {proteina_total} g · "
+                f"{t('portal_carbs_label')}: {carbohidrato_total} g · "
+                f"{t('portal_fat_label')}: {grasa_total} g"
+            )
 
         etiquetas_sinergia = ETIQUETA_SINERGIA[idioma]
         tags_presentes = set()
@@ -3316,6 +3339,45 @@ def _render_resumen_macros_dia(dia_info: dict) -> None:
         etiquetas_mostradas = sorted(etiquetas_sinergia[tag] for tag in tags_presentes if tag in etiquetas_sinergia)
         if etiquetas_mostradas:
             st.caption(f"{t('portal_micro_highlights_label')} " + ", ".join(etiquetas_mostradas) + ".")
+
+
+_CLAVES_ESTADO_PORTAL = [
+    "portal_dia_idx",
+    "portal_dia_selector",
+    "portal_rutina_dia_idx",
+    "portal_rutina_dia_selector",
+    "portal_totales_rutina",
+    "portal_mas_de_lo_planeado",
+    "portal_completados_rutina",
+    "portal_notas_rutina",
+    "portal_totales_dieta",
+    "portal_mas_dieta_de_lo_planeado",
+    "portal_seguidos_dieta",
+    "portal_notas_dieta",
+    "portal_compartir_peso",
+    "portal_peso_actual",
+]
+
+
+def _reiniciar_estado_portal_si_cambia_cliente(email: str) -> None:
+    """Every portal widget (day pickers, check-in sliders/checkboxes) uses a
+    fixed session_state key, never scoped to a specific client -- and
+    st.session_state persists across a full page navigation within the
+    same browser session/tab. Real, reported bug ("los días no están
+    predeterminados aún"): loading a DIFFERENT client's portal link right
+    after another one's (same tab, a new ?ref=...) left every widget
+    showing the PREVIOUS client's stale values, since a widget's
+    value=/default= argument is only honored the first time its key is
+    ever set in session_state -- once set, it's ignored on every later
+    render regardless of what value= now says. Clearing the keys here
+    whenever the resolved email changes forces every widget to
+    re-initialize from its own value=/default= on the very next render,
+    same "track the previous X, reset on change" pattern already used for
+    _cargar_ficha_para_revisar()'s re-lock logic."""
+    if st.session_state.get("_portal_cliente_actual") != email:
+        for clave in _CLAVES_ESTADO_PORTAL:
+            st.session_state.pop(clave, None)
+        st.session_state["_portal_cliente_actual"] = email
 
 
 def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_deseadas: list[dict], pagina_id: str) -> None:
@@ -3460,6 +3522,49 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
         st.rerun()
 
 
+def _render_dias_rutina(sesiones: list[dict]) -> None:
+    """Same st.segmented_control day-picker pattern as the meal section's
+    _render_swipe_comidas() -- direct request ("extender el selector de
+    días tipo pill a la sección de Rutina") for a consistent way to move
+    between days across both sections, instead of routine staying a long
+    scroll of every day stacked at once. Its own session-state key
+    (portal_rutina_dia_idx) is independent of the meal picker's -- picking
+    a day for meals shouldn't also jump the routine view, since a plan's
+    training days and diet days aren't the same thing. No Back/Next/"done"
+    screen here (unlike meals) -- routine is pure browsing, not a
+    swipe-through-and-act flow, so the pills alone are enough."""
+    dias_nombres = [s["dia"] for s in sesiones]
+    indice = st.session_state.get("portal_rutina_dia_idx", 0)
+    if indice >= len(dias_nombres):
+        indice = 0
+
+    dia_elegido = st.segmented_control(
+        t("portal_pick_day_label"), dias_nombres, default=dias_nombres[indice], key="portal_rutina_dia_selector",
+        label_visibility="collapsed",
+    )
+    if dia_elegido and dias_nombres.index(dia_elegido) != indice:
+        st.session_state["portal_rutina_dia_idx"] = dias_nombres.index(dia_elegido)
+        st.rerun()
+
+    sesion = sesiones[indice]
+    with st.container(border=True, key=f"portal-routine-card-{indice}"):
+        st.markdown(f"**🗓️ {sesion['dia']}**")
+        if sesion.get("calentamiento"):
+            st.caption("🔥 " + " · ".join(dividir_en_puntos(sesion["calentamiento"])))
+        for ejercicio in sesion.get("ejercicios", []):
+            nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
+            linea = f"**{nombre_es}** — {ejercicio['series']} x {ejercicio['repeticiones']}"
+            if ejercicio.get("descanso_seg"):
+                linea += f" ({t('col_rest')} {ejercicio['descanso_seg']}s)"
+            st.markdown(linea)
+            if ejercicio.get("notas"):
+                st.caption(ejercicio["notas"])
+        if sesion.get("nota_esfuerzo"):
+            st.markdown(f"{t('effort_label')} {sesion['nota_esfuerzo']}")
+        if sesion.get("cardio_opcional"):
+            st.markdown(f"{t('cardio_label')} {sesion['cardio_opcional']}")
+
+
 def _formulario_reenviar_link_portal() -> None:
     """Shown wherever a client's own portal link isn't working (invalid,
     expired, or a Notion hiccup on the resolve/load step) -- requested
@@ -3577,6 +3682,8 @@ def _vista_portal_cliente(codigo: str) -> None:
         _formulario_reenviar_link_portal()
         return
 
+    _reiniciar_estado_portal_si_cambia_cliente(carga["email"])
+
     # The portal is a fresh, standalone session for the client (never
     # shares state with the trainer's own panel) -- rendering it in
     # whatever language the plan itself was generated in, rather than
@@ -3635,26 +3742,13 @@ def _vista_portal_cliente(codigo: str) -> None:
         with st.expander(t("portal_routine_header")):
             # Same card treatment as the meal section (bordered container +
             # hover-lift CSS, see _inyectar_estilos()) -- direct request
-            # ("hazlo mas bonito visualmente"), and now shows the full
-            # session detail (warmup, rest, effort, cardio) the portal used
-            # to drop entirely, not just exercise names.
-            for indice, sesion in enumerate(sesiones):
-                with st.container(border=True, key=f"portal-routine-card-{indice}"):
-                    st.markdown(f"**🗓️ {sesion['dia']}**")
-                    if sesion.get("calentamiento"):
-                        st.caption("🔥 " + " · ".join(dividir_en_puntos(sesion["calentamiento"])))
-                    for ejercicio in sesion.get("ejercicios", []):
-                        nombre_es = ejercicio_mostrado(ejercicio["nombre"], st.session_state.lang)
-                        linea = f"**{nombre_es}** — {ejercicio['series']} x {ejercicio['repeticiones']}"
-                        if ejercicio.get("descanso_seg"):
-                            linea += f" ({t('col_rest')} {ejercicio['descanso_seg']}s)"
-                        st.markdown(linea)
-                        if ejercicio.get("notas"):
-                            st.caption(ejercicio["notas"])
-                    if sesion.get("nota_esfuerzo"):
-                        st.markdown(f"{t('effort_label')} {sesion['nota_esfuerzo']}")
-                    if sesion.get("cardio_opcional"):
-                        st.markdown(f"{t('cardio_label')} {sesion['cardio_opcional']}")
+            # ("hazlo mas bonito visualmente"), and shows the full session
+            # detail (warmup, rest, effort, cardio) the portal used to drop
+            # entirely, not just exercise names. Day-at-a-time via the same
+            # pill picker the meal section uses, not every day stacked at
+            # once -- direct request ("extender el selector de días tipo
+            # pill a la sección de Rutina").
+            _render_dias_rutina(sesiones)
 
     # Same row-formatting logic the trainer's own panel already uses (see
     # _render_historial_checkins()) -- a client only ever sees their own

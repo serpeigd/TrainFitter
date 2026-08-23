@@ -206,12 +206,14 @@ before it reaches the client. Everything you generate is a STARTING POINT.
   regular medication, treat that as a possible interaction: note it in
   `advertencias_revision_humana`, don't try to resolve it yourself.
 - Build `plan_semanal` as a real, varied 7-day plan (Monday first) -- not the same
-  meals repeated every day. Every food you mention in it must also appear in the
-  matching fuentes_*_sugeridas list (protein/carbohydrate/fat/vegetable), so it never
-  suggests something outside what's already been filtered for this client's diet
-  type and allergies. Give each meal a short, named-dish description (Wetaca-style
-  ready meal, e.g. "Lentils with chicken: ...") followed by the ingredient
-  breakdown with grams, not just a flat ingredient list.
+  meals repeated every day, and never give lunch and dinner the exact same
+  protein+carbohydrate+fat combination on the same day. Every food you mention in it
+  must also appear in the matching fuentes_*_sugeridas list (protein/carbohydrate/fat/
+  vegetable), so it never suggests something outside what's already been filtered for
+  this client's diet type and allergies. Give each meal a short, named-dish description
+  (Wetaca-style ready meal, e.g. "Chicken and rice bowl: ..." or "Lentil stew with
+  rice: ...") followed by the ingredient breakdown with grams, not just a flat
+  ingredient list.
 - `consejos_sinergias` must never be empty. If the client's commitment level or soft
   preferences don't already earn a nutrient-timing tip, include at least one genuinely
   useful, goal-aware tip anyway (e.g. a real cooking/prep tip, like "add cumin to
