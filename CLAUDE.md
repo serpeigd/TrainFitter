@@ -1262,6 +1262,38 @@ combo — verified directly against a real generated week instead: named
 dishes and same-day variety both confirmed by reading the actual output).
 592 tests passing (up from 590), lint clean.
 
+The portal's check-in section now shows a small confirmation banner
+("✅ You already checked in this week (2026-08-20)") when the client's
+most recent "Adherence check-in" row falls in the current calendar week —
+direct request. `_fecha_checkin_esta_semana()` reuses the same
+"Adherence check-in"-only filter the "Semana N:" counter already applies
+(a "Plan sent" row doesn't count), best-effort like every other Notion
+read on this page. Doesn't hide or discourage the form on a repeat
+submission -- a client training more than once a week can legitimately
+check in again, the banner is informational only.
+
+A **second real Notion test client, "NURIA"**, was created alongside the
+existing "PEPE" one specifically to test cross-client scenarios PEPE
+alone couldn't cover (e.g. the portal session-state leak fixed earlier
+this session) -- deliberately different from PEPE in every way that
+matters: no injury (`aprobado_automatico`, vs PEPE's
+`revision_reforzada`), vegetarian, `nivel_compromiso` "avanzado", 5
+routine sessions/week on a Push/Pull/Legs split. A real, live-caught
+mistake while building her: `nutricion.tipo_dieta` must be exactly
+`"omnivora"`/`"vegetariana_ovolacto"`/`"vegana"` --
+`food_bank.fuentes_*_para()` matches against those exact literals, so a
+plain `"vegetariana"` silently produced an EMPTY `plan_semanal` (no
+crash, no error) until caught by actually reading
+`obtener_registro_cliente()`'s output rather than assuming success from
+the pipeline not raising. Verified live end-to-end with both real
+clients open in the same browser session: changing PEPE's "sessions
+planned" slider away from its default and then loading NURIA's own
+portal link showed NURIA's correct own default (5), not PEPE's changed
+value -- the exact scenario the state-reset fix from earlier this
+session couldn't be verified against before. Neither test client's page
+ID/email is committed to this file (public repo); both are recorded in
+the project owner's own private notes.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

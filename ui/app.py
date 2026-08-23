@@ -1073,6 +1073,7 @@ TRANSLATIONS = {
             "**Takes under a minute — just move the sliders below.** Your trainer sees it right away, "
             "and your plan updates to match how the week actually went."
         ),
+        "portal_checkin_done_this_week": "✅ You already checked in this week ({fecha}). Sending another one is fine too.",
         "portal_routine_section_title": "🏋️ Routine",
         "portal_diet_section_title": "🍽️ Diet",
         "portal_routine_completed_label": "Sessions completed",
@@ -1390,6 +1391,7 @@ TRANSLATIONS = {
             "**Te lleva menos de un minuto — solo mueve las barras de abajo.** Tu entrenador/a lo ve al "
             "momento, y tu plan se actualiza según cómo te haya ido la semana de verdad."
         ),
+        "portal_checkin_done_this_week": "✅ Ya hiciste tu check-in esta semana ({fecha}). Enviar otro también está bien.",
         "portal_routine_section_title": "🏋️ Rutina",
         "portal_diet_section_title": "🍽️ Dieta",
         "portal_routine_completed_label": "Sesiones completadas",
@@ -3025,6 +3027,26 @@ def _render_grafico_tendencia(historial: list[dict]) -> None:
         pass
 
 
+def _fecha_checkin_esta_semana(historial: list[dict]) -> str | None:
+    """Returns the ISO date of the most recent "Adherence check-in" row if
+    it falls within the current calendar week (Monday-Sunday, UTC), else
+    None -- direct request ('indicador de ya hiciste esta semana el
+    check-in'). Lets a returning client see at a glance whether they still
+    need to check in this week, instead of opening the history expander
+    and comparing dates themselves. "Plan sent"/"Manual check-in" rows are
+    ignored, same filter historial_checkins() callers already use to count
+    real adherence check-ins (see the check-in form's own "Semana N:"
+    counter)."""
+    hoy = datetime.now(timezone.utc).date()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    for fila in historial:
+        if fila["tipo"] != "Adherence check-in" or not fila["fecha"]:
+            continue
+        if datetime.fromisoformat(fila["fecha"]).date() >= inicio_semana:
+            return fila["fecha"]
+    return None
+
+
 def _render_historial_checkins(email: str, objetivo: str | None = None) -> None:
     """Renders a client's Check-ins history (a trend chart when there's
     enough data, then each row with rating/weight/notes, most recent
@@ -3736,6 +3758,15 @@ def _vista_portal_cliente(codigo: str) -> None:
     checkin_expander = st.expander(t("portal_checkin_header"), expanded=True, key="portal-checkin-highlight")
     checkin_expander.markdown(t("portal_checkin_intro"))
     with checkin_expander:
+        # Best-effort, same degrade-on-error spirit as every other Notion
+        # read here -- a failure just skips the banner, never blocks the
+        # form itself from rendering.
+        try:
+            fecha_checkin_semana = _fecha_checkin_esta_semana(historial_checkins(carga["email"]))
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            fecha_checkin_semana = None
+        if fecha_checkin_semana:
+            st.success(t("portal_checkin_done_this_week").format(fecha=fecha_checkin_semana))
         _render_formulario_checkin_portal(carga, registro, sesiones)
 
     if sesiones:
