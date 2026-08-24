@@ -1339,6 +1339,33 @@ regenerated (a real, disclosed consequence of fixing a value computed at
 save time, not read live), NURIA's Notion record was refreshed as part of
 this verification.
 
+The "Clients" dashboard's caption got much shorter (direct request), and
+its two charts were rebuilt using the `dataviz` skill's own method instead
+of the plain `st.bar_chart` calls that shipped with the tab originally.
+Chart form picked by the data's actual job, not by eye: verdict mix and
+adherence-rating mix are both "part-to-whole" of a few categories, which
+the skill's own form table resolves to a labeled 100%-stacked bar — a
+donut was the tempting first instinct and was deliberately rejected (bars
+beat arc angles for precise comparison, per the skill's anti-patterns).
+Colors come from this project's validated palette (`_COLOR_VEREDICTO`,
+`_COLOR_VALORACION`): verdict uses categorical slots 1-2 (blue/orange,
+never the reserved status colors, since `revision_reforzada` is a routine
+safety-gate outcome, not an alert); adherence uses the palette's
+diverging blue↔red pair with a gray neutral midpoint, since Low/Medium/
+High is a genuinely ordered scale (the skill's own table names this exact
+shape — "ordered-scale share, Likert" — a diverging treatment). Both
+charts are now direct-labeled with their percentage share, so the read
+never depends on a legend. A third, new chart (`dashboard_growth_chart`,
+a cumulative client-admissions line by month) answers a real question the
+other two never could — "is the client base actually growing" — from
+data (`fecha`) already available and still fully anonymous once
+aggregated by month. Same zero-extra-Notion-query, zero-PII discipline as
+the rest of this section: no client name or email is ever read by the new
+code, only `veredicto`/`valoracion`/`fecha`. Verified live against the
+real workspace (12 real+test client records): both proportion bars render
+with correct percentage labels and legend colors, the growth line renders
+with real monthly buckets, no console errors.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

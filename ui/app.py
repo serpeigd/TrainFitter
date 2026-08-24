@@ -795,10 +795,7 @@ TRANSLATIONS = {
         "tab_revise_client": "🔄 Revise client",
         "tab_clients": "👥 Clients",
         "clients_panel_header": "### 👥 All clients",
-        "clients_panel_caption": (
-            "How your clients are doing at a glance, anonymized — headcounts and trends, no names or "
-            "emails. Look up an individual client in \"Revise client,\" or open Notion directly."
-        ),
+        "clients_panel_caption": "An anonymous snapshot of your clients — no names or emails.",
         "clients_panel_error": "Could not load the client list: {error}",
         "clients_panel_empty": "No clients saved yet.",
         "dashboard_total_clients": "Clients",
@@ -807,7 +804,10 @@ TRANSLATIONS = {
         "dashboard_no_checkin": "No check-in yet",
         "dashboard_unknown": "Unknown",
         "dashboard_verdict_chart": "Plans by verdict",
-        "dashboard_adherence_chart": "Latest adherence rating (per client)",
+        "dashboard_adherence_chart": "Latest adherence rating, by client",
+        "dashboard_growth_chart": "Clients over time",
+        "dashboard_chart_count": "clients",
+        "dashboard_chart_percent": "share",
         "revise_client_header": "🔎 Load an existing client to revise",
         "revise_client_caption": (
             "Find a past client by email, edit anything below, and regenerate their plan — "
@@ -1110,10 +1110,7 @@ TRANSLATIONS = {
         "tab_revise_client": "🔄 Revisar cliente",
         "tab_clients": "👥 Clientes",
         "clients_panel_header": "### 👥 Todos los clientes",
-        "clients_panel_caption": (
-            "Cómo van tus clientes de un vistazo, anonimizado — totales y tendencias, sin nombres ni "
-            "emails. Para ver a un cliente concreto usa \"Revisar cliente\", o abre Notion directamente."
-        ),
+        "clients_panel_caption": "Vistazo anónimo de tus clientes — sin nombres ni emails.",
         "clients_panel_error": "No se pudo cargar la lista de clientes: {error}",
         "clients_panel_empty": "Todavía no hay clientes guardados.",
         "dashboard_total_clients": "Clientes",
@@ -1122,7 +1119,10 @@ TRANSLATIONS = {
         "dashboard_no_checkin": "Sin check-in todavía",
         "dashboard_unknown": "Desconocido",
         "dashboard_verdict_chart": "Planes por veredicto",
-        "dashboard_adherence_chart": "Última valoración de adherencia (por cliente)",
+        "dashboard_adherence_chart": "Última valoración de adherencia, por cliente",
+        "dashboard_growth_chart": "Clientes a lo largo del tiempo",
+        "dashboard_chart_count": "clientes",
+        "dashboard_chart_percent": "proporción",
         "revise_client_header": "🔎 Cargar un cliente existente para revisar",
         "revise_client_caption": (
             "Busca un cliente anterior por email, edita lo que necesites y regenera su plan — "
@@ -4030,16 +4030,76 @@ def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: lis
         pass
 
 
+# Categorical slots 1-2 (blue/orange) from this project's validated palette
+# (dataviz skill, palette.md) -- Approved gets the calmer default hue, the
+# category that actually needs the trainer's attention gets the "look here"
+# one. Not the reserved status colors (good/warning/...): a revision_reforzada
+# verdict is an expected, routine outcome of the safety gate, not an alert.
+_COLOR_VEREDICTO = {"aprobado_automatico": "#2a78d6", "revision_reforzada": "#eb6834"}
+# Diverging pair (blue<->red) + neutral gray midpoint, same palette -- Low/
+# Medium/High is an ordered scale (a Likert-style share), so color should
+# read the order, not just tell the categories apart. Using the palette's
+# validated diverging poles rather than a literal traffic-light red/yellow/
+# green, which isn't part of this project's documented, CVD-checked palette.
+_COLOR_VALORACION = {"Low": "#e34948", "Medium": "#c3c2b7", "High": "#2a78d6"}
+_ORDEN_VALORACION = ["Low", "Medium", "High"]
+
+
+def _grafico_barra_apilada_100(df, dominio: list[str], colores: list[str]):
+    """One shared recipe for both proportion charts below: a single
+    horizontal 100%-stacked bar (see dataviz skill's choosing-a-form.md --
+    "part-to-whole" -> stacked bar; a 2-3-slice donut was deliberately
+    rejected, bars compare more precisely than arc angles), each segment
+    direct-labeled with its share so the read doesn't depend on a legend.
+    `df` needs "categoria" (already display-translated) and "cuenta"
+    columns; `dominio`/`colores` fix both the color mapping AND the
+    left-to-right stacking order (Vega-Lite would otherwise resolve stack
+    order from encounter order, which isn't guaranteed stable)."""
+    import altair as alt
+
+    df = df.copy()
+    df["fila"] = ""
+    df["orden"] = df["categoria"].apply(lambda c: dominio.index(c) if c in dominio else len(dominio))
+    df["porcentaje"] = df["cuenta"] / df["cuenta"].sum()
+
+    base = alt.Chart(df).encode(
+        x=alt.X("cuenta:Q", stack="normalize", axis=None),
+        y=alt.Y("fila:N", axis=None, title=None),
+        order=alt.Order("orden:O"),
+        color=alt.Color(
+            "categoria:N", sort=dominio, scale=alt.Scale(domain=dominio, range=colores),
+            legend=alt.Legend(title=None, orient="bottom"),
+        ),
+        tooltip=[
+            alt.Tooltip("categoria:N", title=""),
+            alt.Tooltip("cuenta:Q", title=t("dashboard_chart_count")),
+            alt.Tooltip("porcentaje:Q", title=t("dashboard_chart_percent"), format=".0%"),
+        ],
+    )
+    barras = base.mark_bar(height=32, cornerRadiusTopLeft=4, cornerRadiusBottomLeft=4)
+    etiquetas = base.mark_text(color="white", fontWeight="bold", fontSize=12).encode(
+        text=alt.Text("porcentaje:Q", format=".0%"),
+    )
+    return (barras + etiquetas).properties(height=90)
+
+
 def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str, dict]) -> None:
-    """The entire "Clients" section's content: headcount KPIs plus two bar
-    charts (verdict mix, latest adherence-rating mix) -- aggregate counts
-    only, never an individual client's name/email/details, by design (see
+    """The entire "Clients" section's content: headcount KPIs, two 100%-
+    stacked proportion bars (verdict mix, latest adherence-rating mix), and
+    a client-growth-over-time line -- aggregate counts only, never an
+    individual client's name/email/details, by design (see
     _panel_todos_los_clientes()'s docstring). Deliberately zero extra
     cost -- reuses the exact same `clientes`/`ultimos_checkins`
     _panel_todos_los_clientes() already fetched, just aggregated
-    differently, rather than issuing new Notion queries. Same "missing
-    chart library degrades to no chart, never a broken page" pattern as
-    _render_grafico_tendencia()."""
+    differently, rather than issuing new Notion queries.
+
+    Chart forms picked per the dataviz skill's choosing-a-form.md, not by
+    eye: verdict/adherence are both "part-to-whole" of a small number of
+    categories -> a labeled 100%-stacked bar (a donut was the tempting
+    default and was deliberately rejected -- bars beat arc angles for
+    precise comparison); admission date over time is squarely "trend over
+    time" -> a line. Same "missing chart library degrades to no chart,
+    never a broken page" pattern as _render_grafico_tendencia()."""
     total = len(clientes)
     con_checkin = len(ultimos_checkins)
     necesitan_atencion = sum(1 for u in ultimos_checkins.values() if u["valoracion"] == "Low")
@@ -4052,7 +4112,8 @@ def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str,
 
     try:
         # Lazy import, same convention as _render_grafico_tendencia(): only
-        # this chart-rendering path needs pandas, not the rest of the app.
+        # this chart-rendering path needs pandas/altair, not the rest of
+        # the app.
         import pandas as pd
 
         # Verdict (list) stores VEREDICTO_LABELS' English text as a stable
@@ -4068,25 +4129,58 @@ def _render_dashboard_clientes(clientes: list[dict], ultimos_checkins: dict[str,
         col_a, col_b = st.columns(2)
         with col_a:
             conteo_veredicto: dict[str, int] = {}
+            color_por_etiqueta_veredicto: dict[str, str] = {}
             for cliente in clientes:
                 veredicto_crudo = cliente["veredicto"]
                 clave_interna = veredicto_a_clave.get(veredicto_crudo)
                 clave = etiqueta_veredicto_traducida.get(clave_interna, veredicto_crudo) if veredicto_crudo else t("dashboard_unknown")
                 conteo_veredicto[clave] = conteo_veredicto.get(clave, 0) + 1
+                color_por_etiqueta_veredicto[clave] = _COLOR_VEREDICTO.get(clave_interna, "#898781")
             if conteo_veredicto:
                 st.caption(t("dashboard_verdict_chart"))
-                st.bar_chart(pd.DataFrame({"count": list(conteo_veredicto.values())}, index=list(conteo_veredicto)))
+                dominio_v = list(conteo_veredicto)
+                df_v = pd.DataFrame({"categoria": dominio_v, "cuenta": [conteo_veredicto[k] for k in dominio_v]})
+                colores_v = [color_por_etiqueta_veredicto[k] for k in dominio_v]
+                st.altair_chart(_grafico_barra_apilada_100(df_v, dominio_v, colores_v), width="stretch")
 
         with col_b:
-            conteo_valoracion = {"High": 0, "Medium": 0, "Low": 0}
+            conteo_valoracion = {clave: 0 for clave in _ORDEN_VALORACION}
             for ultimo in ultimos_checkins.values():
                 if ultimo["valoracion"] in conteo_valoracion:
                     conteo_valoracion[ultimo["valoracion"]] += 1
-            if any(conteo_valoracion.values()):
+            presentes = [k for k in _ORDEN_VALORACION if conteo_valoracion[k] > 0]
+            if presentes:
                 st.caption(t("dashboard_adherence_chart"))
-                st.bar_chart(
-                    pd.DataFrame({"count": list(conteo_valoracion.values())}, index=list(conteo_valoracion)),
-                )
+                df_a = pd.DataFrame({"categoria": presentes, "cuenta": [conteo_valoracion[k] for k in presentes]})
+                colores_a = [_COLOR_VALORACION[k] for k in presentes]
+                st.altair_chart(_grafico_barra_apilada_100(df_a, presentes, colores_a), width="stretch")
+
+        # New: admission dates are already anonymous (no client identity
+        # attached once aggregated), and a cumulative count over time
+        # answers a real question a static snapshot can't -- "is the
+        # client base actually growing" -- that neither chart above ever
+        # could. "trend over time" -> line (dataviz skill), single hue.
+        fechas = sorted(c["fecha"] for c in clientes if c.get("fecha"))
+        if fechas:
+            import altair as alt
+
+            df_fechas = pd.DataFrame({"fecha": pd.to_datetime(fechas)})
+            df_fechas["mes"] = df_fechas["fecha"].values.astype("datetime64[M]")
+            por_mes = df_fechas.groupby("mes").size().reset_index(name="nuevos")
+            por_mes["acumulado"] = por_mes["nuevos"].cumsum()
+
+            st.caption(t("dashboard_growth_chart"))
+            base_linea = alt.Chart(por_mes).encode(
+                x=alt.X("mes:T", axis=alt.Axis(title=None, format="%b %Y")),
+                y=alt.Y("acumulado:Q", axis=alt.Axis(title=None)),
+                tooltip=[
+                    alt.Tooltip("mes:T", title="", format="%b %Y"),
+                    alt.Tooltip("acumulado:Q", title=t("dashboard_chart_count")),
+                ],
+            )
+            linea = base_linea.mark_line(color="#2a78d6", strokeWidth=2)
+            puntos = base_linea.mark_point(color="#2a78d6", filled=True, size=45)
+            st.altair_chart((linea + puntos).properties(height=180), width="stretch")
     except (ImportError, ModuleNotFoundError):
         pass
 
