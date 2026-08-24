@@ -1388,6 +1388,43 @@ unreviewed send during verification) -- exactly the kind of bug that
 gap was always going to eventually let through. 597 tests passing, lint
 clean.
 
+A second real bug surfaced live the same day, immediately after the
+`enviar_plan()` body-shape fix above: "Invalid To header" from Gmail's
+API. Traced to `_validar_destinatario()`'s check being far looser than
+it looked -- it only required an "@" present, not at the very start/end,
+so `dd@.com` (a real, reported case: an empty domain label right after
+`@`) sailed through the local check and only failed once it reached
+Gmail's own header parser, as an opaque JSON blob instead of a clear
+message at the point of entry. Replaced with a real (if not full RFC
+5322) regex requiring a non-empty local part, a non-empty domain, and at
+least one dot with non-empty labels on both sides -- rejects `dd@.com`
+and `client@localhost` (no dot in the domain at all) with the same clear
+"doesn't look like a valid email address" message the loose check
+already had, just actually enforced now. Two new parametrized cases
+added to the existing test.
+
+Same day: "quiero que al principio tenga la opción también de enviar a
+borrador" -- the `aprobado_automatico` auto-send panel
+(`_panel_envio_automatico()`) only ever offered "Enviar ahora"; "create a
+draft instead" existed only as a fallback shown AFTER a real send already
+failed (exactly what the two bugs above had just forced the project
+owner to hit). On any deployment with `APPROVAL_PASSWORD` set, the panel
+now shows both buttons side by side from the first screen -- new
+`_ejecutar_borrador_automatico()`/`_dialogo_borrador_automatico()` mirror
+the existing send path exactly (same Notion save, same portal-link
+generation, `crear_borrador()` instead of `enviar_plan()`), with their
+own terminal success/error states in `_panel_envio_automatico()`. The
+password-free (zero-click, trainer-only) deployment path is deliberately
+untouched -- pausing to offer a choice there would break the whole point
+of that setting, which is firing the send the instant the panel renders
+with no human interaction at all. Verified live: loaded the real NURIA
+test client via "Revisar cliente" against a locally-run instance with a
+test `APP_APPROVAL_PASSWORD` set, confirmed both buttons render together
+and each opens its own correctly-worded password dialog -- stopped
+before actually submitting either, same "never trigger a real send
+during verification" convention as everywhere else in this project. 599
+tests passing (up from 597), lint clean.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

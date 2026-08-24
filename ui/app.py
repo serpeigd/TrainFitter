@@ -960,6 +960,8 @@ TRANSLATIONS = {
         "auto_send_success": "✅ Sent automatically to **{email}**.",
         "auto_send_error": "Could not send automatically: {error}",
         "auto_send_fallback_caption": "You can still approve and send it manually below.",
+        "auto_draft_dialog_caption": "This creates a Gmail draft addressed to {email} instead — nothing is sent until you open it and hit send yourself.",
+        "auto_draft_error_fallback_caption": "You can still approve and send it manually below.",
         "routine_header": "🏋️ Routine",
         "split_label": "**Split:**",
         "days_week_label": "**Days/week:**",
@@ -1278,6 +1280,11 @@ TRANSLATIONS = {
         "auto_send_success": "✅ Enviado automáticamente a **{email}**.",
         "auto_send_error": "No se pudo enviar automáticamente: {error}",
         "auto_send_fallback_caption": "Aún puedes aprobarlo y enviarlo manualmente más abajo.",
+        "auto_draft_dialog_caption": (
+            "Esto crea un borrador en Gmail dirigido a {email} en su lugar — no se envía nada hasta que lo "
+            "abras y le des a enviar tú mismo."
+        ),
+        "auto_draft_error_fallback_caption": "Aún puedes aprobarlo y enviarlo manualmente más abajo.",
         "routine_header": "🏋️ Rutina",
         "split_label": "**Split:**",
         "days_week_label": "**Días/semana:**",
@@ -2850,6 +2857,68 @@ def _ejecutar_envio_automatico(estado) -> None:
     st.session_state["auto_envio_error_para"] = None
 
 
+def _ejecutar_borrador_automatico(estado) -> None:
+    """The draft-creation counterpart to _ejecutar_envio_automatico(), for
+    an aprobado_automatico plan -- direct request ("quiero que al
+    principio tenga la opción también de enviar a borrador"): a trainer
+    who wants a last look in Gmail before an auto-approved plan goes out
+    (or who lands here after a real send just failed, e.g. the "Invalid
+    To header"/wrong-body-shape bugs this exact flow hit live) can create
+    a draft instead of sending directly, from the very first screen, not
+    only as an error-triggered fallback.
+
+    Same Notion-save step as the send path (there's no separate "Aprobar"
+    click in this flow to have already done it) -- crear_borrador()
+    instead of enviar_plan() is the only real difference. Nothing is
+    actually sent until the trainer opens the draft in Gmail themselves."""
+    perfil = estado.perfil_cliente
+    idioma = _idioma_del_perfil(perfil)
+    email = perfil["datos_basicos"].get("email", "").strip()
+    nombre = perfil["datos_basicos"]["nombre"]
+
+    with st.spinner(t("auto_send_sending")):
+        es_revision = st.session_state.get("revisar_perfil_id") == id(perfil)
+        try:
+            if es_revision:
+                resultado = actualizar_registro_cliente(
+                    st.session_state["revisar_pagina_id"], perfil, estado.borrador_rutina, estado.borrador_dieta,
+                    estado.veredicto, idioma=idioma,
+                )
+            else:
+                resultado = guardar_registro_cliente(
+                    perfil, estado.borrador_rutina, estado.borrador_dieta, estado.veredicto, idioma=idioma,
+                )
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.session_state["auto_borrador_error"] = str(exc)
+            st.session_state["auto_borrador_error_para"] = id(perfil)
+            return
+
+        pagina_id = resultado["id"]
+        try:
+            codigo = generar_referencia_portal(pagina_id, email)
+            url_portal = f"{PORTAL_BASE_URL}?ref={codigo}"
+            resultado_borrador = crear_borrador(
+                email, nombre, estado.borrador_rutina, estado.borrador_dieta, idioma=idioma, url_portal=url_portal,
+            )
+        except (GmailClientError, PortalTokenError, NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            # Notion record already saved above at this point, same as
+            # _ejecutar_envio_automatico()'s own error branch -- a Gmail/
+            # portal-reference failure here doesn't undo that.
+            st.session_state["auto_borrador_error"] = str(exc)
+            st.session_state["auto_borrador_error_para"] = id(perfil)
+            return
+
+        try:
+            actualizar_email_cliente(pagina_id, email)
+        except (NotionClientError, ImportError, ModuleNotFoundError):
+            pass
+
+    st.session_state["auto_borrador_para"] = id(perfil)
+    st.session_state["auto_borrador_url"] = resultado_borrador["url"]
+    st.session_state["auto_borrador_error"] = None
+    st.session_state["auto_borrador_error_para"] = None
+
+
 @st.dialog(t("auto_send_dialog_title"))
 def _dialogo_envio_automatico(estado) -> None:
     """Popup shown instead of sending directly, on any deployment where
@@ -2876,21 +2945,45 @@ def _dialogo_envio_automatico(estado) -> None:
         st.rerun()
 
 
+@st.dialog(t("auto_send_dialog_title"))
+def _dialogo_borrador_automatico(estado) -> None:
+    """Draft-creation counterpart to _dialogo_envio_automatico() -- same
+    password gate (a real, addressed Gmail draft for a specific client is
+    still real data a public-demo visitor shouldn't get to create for
+    free, even though nothing is actually sent yet)."""
+    email = estado.perfil_cliente["datos_basicos"].get("email", "")
+    st.caption(t("auto_draft_dialog_caption").format(email=email))
+    password_ingresada = st.text_input(t("approval_password_label"), type="password", key="auto_borrador_password_dialog")
+    if st.button(t("create_draft_button"), type="primary"):
+        if _password_bloqueada():
+            st.error(t("approval_password_locked").format(minutos=COOLDOWN_MINUTOS))
+            return
+        if not _verificar_password(password_ingresada):
+            st.error(t("approval_password_wrong"))
+            return
+        _ejecutar_borrador_automatico(estado)
+        st.session_state["mostrar_dialogo_borrador_automatico"] = False
+        st.rerun()
+
+
 def _panel_envio_automatico(estado) -> bool:
     """Renders in place of _panel_aprobacion() for a plan that qualifies
     for auto-send (see _califica_para_auto_envio()) -- a validator
     verdict of "aprobado_automatico", a real client (not the
-    example-client demo), with a usable email on file.
+    example-client demo), with a usable email on file. On a deployment
+    with APPROVAL_PASSWORD set, offers both "send now" and "create a
+    draft instead" from the start, not only as a fallback after a failed
+    send.
 
     Returns:
         True once this plan has been fully handled here (already sent,
-        or a confirm step is currently showing) -- the caller skips
-        _panel_aprobacion() entirely in that case. False tells the
-        caller to fall back to the normal manual panel instead: a real
-        send just failed and manual recovery (approve, then create a
-        draft by hand) is the right next step. _califica_para_auto_envio()
-        already ruled out every case where this function isn't even
-        called in the first place."""
+        a draft was created instead, or a confirm dialog is currently
+        showing) -- the caller skips _panel_aprobacion() entirely in that
+        case. False tells the caller to fall back to the normal manual
+        panel instead: a real send or draft attempt just failed and
+        manual recovery (approve, then send/draft by hand) is the right
+        next step. _califica_para_auto_envio() already ruled out every
+        case where this function isn't even called in the first place."""
     perfil = estado.perfil_cliente
     email = perfil["datos_basicos"].get("email", "").strip()
 
@@ -2899,20 +2992,48 @@ def _panel_envio_automatico(estado) -> bool:
         st.success(t("auto_send_success").format(email=st.session_state.get("auto_envio_email", email)))
         return True
 
+    # Draft-created terminal state -- its own branch, mirroring the
+    # send-success one above, for a trainer who chose "create a draft
+    # instead" below.
+    if st.session_state.get("auto_borrador_para") == id(perfil):
+        st.markdown(t("approval_header"))
+        st.success(t("draft_created_success").format(url=st.session_state.get("auto_borrador_url", "")))
+        return True
+
     if st.session_state.get("auto_envio_error_para") == id(perfil):
         st.markdown(t("approval_header"))
         st.error(t("auto_send_error").format(error=st.session_state["auto_envio_error"]))
         st.caption(t("auto_send_fallback_caption"))
         return False
 
+    if st.session_state.get("auto_borrador_error_para") == id(perfil):
+        st.markdown(t("approval_header"))
+        st.error(t("draft_error").format(error=st.session_state["auto_borrador_error"]))
+        st.caption(t("auto_draft_error_fallback_caption"))
+        return False
+
     st.markdown(t("approval_header"))
     st.info(t("auto_send_ready").format(email=email))
     if APPROVAL_PASSWORD:
-        if st.button(t("auto_send_confirm_button"), type="primary"):
+        # Both options available from the start (direct request: "quiero
+        # que al principio tenga la opción también de enviar a borrador"),
+        # not only as a fallback after a failed send -- a trainer who
+        # wants a last look in Gmail before an auto-approved plan goes out
+        # shouldn't have to hit a real send error first to get that choice.
+        col_enviar, col_borrador = st.columns(2)
+        if col_enviar.button(t("auto_send_confirm_button"), type="primary"):
             st.session_state["mostrar_dialogo_envio_automatico"] = True
+        if col_borrador.button(t("create_draft_button")):
+            st.session_state["mostrar_dialogo_borrador_automatico"] = True
         if st.session_state.get("mostrar_dialogo_envio_automatico"):
             _dialogo_envio_automatico(estado)
+        if st.session_state.get("mostrar_dialogo_borrador_automatico"):
+            _dialogo_borrador_automatico(estado)
     else:
+        # No password set (a private, trainer-only deployment) -- stays
+        # genuinely zero-click, exactly as before: firing the send the
+        # instant this panel renders is the whole point of that setting,
+        # so it can't also pause here to offer a "draft instead" choice.
         _ejecutar_envio_automatico(estado)
         st.rerun()
     return True

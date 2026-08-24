@@ -44,7 +44,17 @@ def test_valid_email_passes_through_stripped():
     assert _validar_destinatario("  client@example.com  ") == "client@example.com"
 
 
-@pytest.mark.parametrize("destinatario", ["not-an-email", "", "   ", "@example.com", "client@"])
+@pytest.mark.parametrize(
+    "destinatario",
+    [
+        "not-an-email", "", "   ", "@example.com", "client@",
+        # Real, reported case: an empty domain label right after "@" (Gmail's
+        # real API rejects this with an opaque "Invalid To header" -- this
+        # local check now catches it earlier with a clear message instead.
+        "dd@.com",
+        "client@localhost",  # no dot at all in the domain
+    ],
+)
 def test_invalid_email_raises(destinatario):
     with pytest.raises(GmailClientError):
         _validar_destinatario(destinatario)

@@ -224,9 +224,20 @@ class GmailClientError(Exception):
     expected to catch this and show a clear message instead of crashing."""
 
 
+
+# Not RFC 5322 -- just enough to reject the class of typo that reaches
+# Gmail's API and comes back as an opaque "Invalid To header" HttpError
+# instead of a clear message at the point of entry: an empty local part,
+# no "@", or a domain with an empty label (e.g. "dd@.com" -- a real,
+# reported case; note the "." right after "@"). A local part with no dot
+# at all in the domain (e.g. "dd@com") is also rejected -- every real
+# mail domain has one.
+_PATRON_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 def _validar_destinatario(destinatario: str) -> str:
     destinatario = destinatario.strip()
-    if not destinatario or "@" not in destinatario or destinatario.startswith("@") or destinatario.endswith("@"):
+    if not _PATRON_EMAIL.match(destinatario):
         raise GmailClientError(f"'{destinatario}' doesn't look like a valid email address.")
     return destinatario
 
