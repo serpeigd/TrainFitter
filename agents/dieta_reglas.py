@@ -32,7 +32,7 @@ from food_bank import (
     fuentes_verdura_para,
     preferencias_blandas,
 )
-from planificador_comidas import generar_plan_semanal
+from planificador_comidas import generar_lista_compra, generar_plan_semanal
 from variacion import elegir_variante, rng_para_cliente
 
 # g of protein per kg of body weight, by goal (docs/base_conocimiento/nutricion.md,
@@ -798,6 +798,10 @@ def generar_borrador_dieta_reglas(perfil_cliente: dict, idioma: str = "en") -> d
         "fuentes_grasa_sugeridas": fuentes_grasa_para(perfil_cliente),
         "fuentes_verdura_sugeridas": fuentes_verdura_para(perfil_cliente),
         "plan_semanal": plan_semanal,
+        # Derived from plan_semanal, not a separately-tracked target -- see
+        # generar_lista_compra()'s own docstring. Empty list for an empty
+        # plan_semanal (never crashes).
+        "lista_compra": generar_lista_compra(plan_semanal, idioma),
         "consejos_sinergias": (
             _consejos_sinergias(perfil_cliente, idioma)
             + _consejos_por_preferencias_blandas(perfil_cliente, idioma)

@@ -56,9 +56,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 137,
-          "carbohidrato_g": 135,
-          "grasa_g": 12
+          "proteina_g": 12.3,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 6.2,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 12,
+          "verdura": null,
+          "verdura_alimento_g": 0
         },
         {
           "tipo": "Lunch",
@@ -68,9 +73,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Quinoa",
           "grasa": "Avocado",
-          "proteina_g": 137,
-          "carbohidrato_g": 278,
-          "grasa_g": 108
+          "proteina_g": 12.3,
+          "carbohidrato_g": 58.4,
+          "grasa_g": 16.2,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 278,
+          "grasa_alimento_g": 108,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -80,9 +90,14 @@
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
           "grasa": "Seeds (chia, flax)",
-          "proteina_g": 117,
-          "carbohidrato_g": 86,
-          "grasa_g": 76
+          "proteina_g": 23.4,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 25.8,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 76,
+          "verdura": "Spinach",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -97,9 +112,14 @@
           "proteina": "Tempeh",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado",
-          "proteina_g": 117,
-          "carbohidrato_g": 253,
-          "grasa_g": 43
+          "proteina_g": 23.4,
+          "carbohidrato_g": 60.7,
+          "grasa_g": 6.5,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 253,
+          "grasa_alimento_g": 43,
+          "verdura": null,
+          "verdura_alimento_g": 0
         },
         {
           "tipo": "Lunch",
@@ -109,9 +129,14 @@
           "proteina": "Edamame",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 185,
-          "carbohidrato_g": 253,
-          "grasa_g": 29
+          "proteina_g": 22.2,
+          "carbohidrato_g": 60.7,
+          "grasa_g": 15.1,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 253,
+          "grasa_alimento_g": 29,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -121,9 +146,14 @@
           "proteina": "Tempeh",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Extra virgin olive oil",
-          "proteina_g": 117,
-          "carbohidrato_g": 253,
-          "grasa_g": 43
+          "proteina_g": 23.4,
+          "carbohidrato_g": 60.7,
+          "grasa_g": 43.0,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 253,
+          "grasa_alimento_g": 43,
+          "verdura": "Carrot",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -138,9 +168,14 @@
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Potato / sweet potato",
           "grasa": "Extra virgin olive oil",
-          "proteina_g": 60,
-          "carbohidrato_g": 383,
-          "grasa_g": 8
+          "proteina_g": 46.8,
+          "carbohidrato_g": 76.6,
+          "grasa_g": 8.0,
+          "proteina_alimento_g": 60,
+          "carbohidrato_alimento_g": 383,
+          "grasa_alimento_g": 8,
+          "verdura": null,
+          "verdura_alimento_g": 0
         },
         {
           "tipo": "Lunch",
@@ -150,9 +185,14 @@
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
           "grasa": "Extra virgin olive oil",
-          "proteina_g": 117,
-          "carbohidrato_g": 86,
-          "grasa_g": 20
+          "proteina_g": 23.4,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 20.0,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 20,
+          "verdura": "Tomato",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -162,9 +202,14 @@
           "proteina": "Lentils",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Seeds (chia, flax)",
-          "proteina_g": 193,
-          "carbohidrato_g": 253,
-          "grasa_g": 76
+          "proteina_g": 17.4,
+          "carbohidrato_g": 60.7,
+          "grasa_g": 25.8,
+          "proteina_alimento_g": 193,
+          "carbohidrato_alimento_g": 253,
+          "grasa_alimento_g": 76,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -179,9 +224,14 @@
           "proteina": "Tempeh",
           "carbohidrato": "Oats",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 117,
-          "carbohidrato_g": 86,
-          "grasa_g": 12
+          "proteina_g": 23.4,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 6.2,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 12,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80
         },
         {
           "tipo": "Lunch",
@@ -191,9 +241,14 @@
           "proteina": "Lentils",
           "carbohidrato": "Oats",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 193,
-          "carbohidrato_g": 86,
-          "grasa_g": 29
+          "proteina_g": 17.4,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 15.1,
+          "proteina_alimento_g": 193,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 29,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -203,9 +258,14 @@
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado",
-          "proteina_g": 60,
-          "carbohidrato_g": 135,
-          "grasa_g": 237
+          "proteina_g": 46.8,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 35.5,
+          "proteina_alimento_g": 60,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 237,
+          "verdura": "Tomato",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -220,9 +280,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado",
-          "proteina_g": 137,
-          "carbohidrato_g": 135,
-          "grasa_g": 43
+          "proteina_g": 12.3,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 6.5,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 43,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80
         },
         {
           "tipo": "Lunch",
@@ -232,9 +297,14 @@
           "proteina": "Edamame",
           "carbohidrato": "Quinoa",
           "grasa": "Extra virgin olive oil",
-          "proteina_g": 185,
-          "carbohidrato_g": 278,
-          "grasa_g": 20
+          "proteina_g": 22.2,
+          "carbohidrato_g": 58.4,
+          "grasa_g": 20.0,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 278,
+          "grasa_alimento_g": 20,
+          "verdura": "Carrot",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -244,9 +314,14 @@
           "proteina": "Edamame",
           "carbohidrato": "Whole wheat pasta",
           "grasa": "Avocado",
-          "proteina_g": 185,
-          "carbohidrato_g": 269,
-          "grasa_g": 237
+          "proteina_g": 22.2,
+          "carbohidrato_g": 67.2,
+          "grasa_g": 35.5,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 269,
+          "grasa_alimento_g": 237,
+          "verdura": "Red bell pepper",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -261,9 +336,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
           "grasa": "Seeds (chia, flax)",
-          "proteina_g": 137,
-          "carbohidrato_g": 135,
-          "grasa_g": 14
+          "proteina_g": 12.3,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 4.8,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 14,
+          "verdura": "Red bell pepper",
+          "verdura_alimento_g": 80
         },
         {
           "tipo": "Lunch",
@@ -273,9 +353,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Whole wheat bread",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 137,
-          "carbohidrato_g": 135,
-          "grasa_g": 29
+          "proteina_g": 12.3,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 15.1,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 29,
+          "verdura": "Carrot",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -285,9 +370,14 @@
           "proteina": "Edamame",
           "carbohidrato": "Whole wheat pasta",
           "grasa": "Avocado",
-          "proteina_g": 185,
-          "carbohidrato_g": 269,
-          "grasa_g": 237
+          "proteina_g": 22.2,
+          "carbohidrato_g": 67.2,
+          "grasa_g": 35.5,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 269,
+          "grasa_alimento_g": 237,
+          "verdura": "Mixed salad greens",
+          "verdura_alimento_g": 100
         }
       ]
     },
@@ -302,9 +392,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 137,
-          "carbohidrato_g": 253,
-          "grasa_g": 12
+          "proteina_g": 12.3,
+          "carbohidrato_g": 60.7,
+          "grasa_g": 6.2,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 253,
+          "grasa_alimento_g": 12,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 80
         },
         {
           "tipo": "Lunch",
@@ -314,9 +409,14 @@
           "proteina": "Chickpeas",
           "carbohidrato": "Quinoa",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 137,
-          "carbohidrato_g": 278,
-          "grasa_g": 29
+          "proteina_g": 12.3,
+          "carbohidrato_g": 58.4,
+          "grasa_g": 15.1,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 278,
+          "grasa_alimento_g": 29,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 100
         },
         {
           "tipo": "Dinner",
@@ -326,11 +426,128 @@
           "proteina": "Tempeh",
           "carbohidrato": "Whole wheat pasta",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 117,
-          "carbohidrato_g": 269,
-          "grasa_g": 63
+          "proteina_g": 23.4,
+          "carbohidrato_g": 67.2,
+          "grasa_g": 32.8,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 269,
+          "grasa_alimento_g": 63,
+          "verdura": "Tomato",
+          "verdura_alimento_g": 100
         }
       ]
+    }
+  ],
+  "lista_compra": [
+    {
+      "categoria": "Carbs",
+      "alimento": "Legumes (also a carb source)",
+      "gramos_totales": 1300
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Quinoa",
+      "gramos_totales": 850
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Whole wheat pasta",
+      "gramos_totales": 850
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Whole wheat bread",
+      "gramos_totales": 700
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Potato / sweet potato",
+      "gramos_totales": 400
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Oats",
+      "gramos_totales": 350
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Avocado",
+      "gramos_totales": 950
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Nuts (walnuts, almonds)",
+      "gramos_totales": 250
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Seeds (chia, flax)",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Extra virgin olive oil",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Chickpeas",
+      "gramos_totales": 1000
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Tempeh",
+      "gramos_totales": 750
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Edamame",
+      "gramos_totales": 750
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Lentils",
+      "gramos_totales": 400
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Protein powder (plant-based)",
+      "gramos_totales": 150
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Citrus (orange, lemon)",
+      "gramos_totales": 500
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Carrot",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Tomato",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Kiwi",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Red bell pepper",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Spinach",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Mixed salad greens",
+      "gramos_totales": 100
     }
   ],
   "consejos_sinergias": [

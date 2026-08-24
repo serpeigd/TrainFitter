@@ -78,6 +78,7 @@ covering every food this planner could ever use, with no changes needed
 there beyond adding the new vegetable list to what it checks.
 """
 
+import math
 import random
 
 from food_bank import (
@@ -645,14 +646,29 @@ def _construir_comida(
     kcal_carbohidrato = kcal_objetivo * ratios["carbohidrato"]
 
     def _porcion(nombre: str, clave_macro: str, kcal_para_esta_comida: float) -> dict:
+        # "gramos" is the FOOD's own portion weight (e.g. grams of chicken
+        # breast) -- what the shopping list needs. "gramos_macro" is the
+        # actual macro-nutrient content of that portion (clave_macro read
+        # from the same macros_100g table food_bank.py already has) -- a
+        # real, live-caught bug fix: this function used to accept
+        # clave_macro and never read it, so the meal dict's own
+        # "proteina_g"/"carbohidrato_g"/"grasa_g" fields (added for the
+        # portal's macro chart) were silently the wrong number -- e.g. 94g
+        # of tofu (the portion) mislabeled as "94g of protein," when tofu
+        # is only ~8g protein per 100g. See generar_lista_compra() for why
+        # portion weight is still kept, under its own clearly-named field.
         macros = INDICE_ALIMENTOS[nombre]["macros_100g"]
         kcal_100g = macros["kcal"] or 1  # never actually 0 in this bank; guards a future entry that could be
         gramos = round(max(kcal_para_esta_comida, 0) / kcal_100g * 100)
-        return {"nombre": nombre, "gramos": gramos}
+        gramos_macro = round(macros[clave_macro] * gramos / 100, 1)
+        return {"nombre": nombre, "gramos": gramos, "gramos_macro": gramos_macro}
 
     proteina = _porcion(proteina_nombre, "proteina_g", kcal_proteina)
     carbohidrato = _porcion(carbohidrato_nombre, "carbohidratos_g", kcal_carbohidrato)
-    grasa = _porcion(grasa_nombre, "grasa_g", kcal_grasa) if grasa_nombre else {"nombre": None, "gramos": 0}
+    grasa = (
+        _porcion(grasa_nombre, "grasa_g", kcal_grasa) if grasa_nombre
+        else {"nombre": None, "gramos": 0, "gramos_macro": 0}
+    )
 
     # Gated by aplicar_sinergias -- "basico"/"normal" still pick a valid,
     # macro-matched vegetable/fruit, just not deliberately narrowed to a
@@ -679,6 +695,8 @@ def _construir_comida(
             and "prebiotico_fibra" in INDICE_ALIMENTOS[carbohidrato_nombre]["sinergias"]
         )
         descripcion = _describir_desayuno_o_snack(tipo, proteina, carbohidrato, grasa, fruta, sinergia_probiotica, idioma)
+        # Unified name for the return dict below -- see its own comment for why.
+        verdura_extra, gramos_verdura_extra = fruta, (PORCION_FRUTA_SNACK_G if fruta else 0)
     else:
         verdura = _elegir_verdura_para_sinergia(candidatos["verdura"], requiere_vitamina_c, rng) if candidatos["verdura"] else None
         if verdura:
@@ -687,6 +705,7 @@ def _construir_comida(
         descripcion = _describir_comida_principal(
             tipo, proteina, carbohidrato, grasa, verdura, verdura_por_sinergia, aplicar_sinergias, idioma,
         )
+        verdura_extra, gramos_verdura_extra = verdura, (PORCION_VERDURA_PRINCIPAL_G if verdura else 0)
 
     return {
         "tipo": ETIQUETA_COMIDA[idioma][tipo],
@@ -703,15 +722,24 @@ def _construir_comida(
         "proteina": proteina_nombre,
         "carbohidrato": carbohidrato_nombre,
         "grasa": grasa_nombre,
-        # Grams alongside the bare names above -- direct request ("que la
-        # persona tenga una gráfica o números de los macros... si le
-        # interesa"): the portal has no other way to total up real protein/
-        # carb/fat for a day, since these are the same grams already solved
-        # for kcal_objetivo/kcal_grasa above, just not previously surfaced
-        # on the returned dict.
-        "proteina_g": proteina["gramos"],
-        "carbohidrato_g": carbohidrato["gramos"],
-        "grasa_g": grasa["gramos"],
+        # Real macro-nutrient grams (direct request: "que la persona tenga
+        # una gráfica o números de los macros... si le interesa") -- what
+        # the portal's macro chart sums per day. Fixed bug: these used to
+        # hold the FOOD's portion weight instead (see _porcion()'s comment
+        # above for the concrete example of how wrong that read).
+        "proteina_g": proteina["gramos_macro"],
+        "carbohidrato_g": carbohidrato["gramos_macro"],
+        "grasa_g": grasa["gramos_macro"],
+        # Portion weight (grams of the actual food, e.g. grams of chicken
+        # breast) -- what generar_lista_compra() aggregates into a weekly
+        # shopping list. verdura_extra/gramos_verdura_extra come from
+        # whichever branch above ran (fruit for desayuno/snack, vegetable
+        # otherwise) -- None/0 when this meal has no vegetable/fruit slot.
+        "proteina_alimento_g": proteina["gramos"],
+        "carbohidrato_alimento_g": carbohidrato["gramos"],
+        "grasa_alimento_g": grasa["gramos"],
+        "verdura": verdura_extra,
+        "verdura_alimento_g": gramos_verdura_extra,
     }
 
 
@@ -817,3 +845,62 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
         plan.append({"dia": dia, "comidas": comidas})
 
     return plan
+
+
+CATEGORIA_LISTA_COMPRA_LABEL = {
+    "en": {"proteina": "Protein", "carbohidrato": "Carbs", "grasa": "Fat", "verdura": "Vegetables & fruit"},
+    "es": {"proteina": "Proteína", "carbohidrato": "Carbohidratos", "grasa": "Grasa", "verdura": "Verdura y fruta"},
+}
+
+# A shopping list is bought in real-world portions, not exact
+# kcal-solved grams -- rounding each total UP to the nearest 50g avoids a
+# list that says "buy 483g of chicken," which nobody can actually shop for.
+REDONDEO_LISTA_COMPRA_G = 50
+
+
+def generar_lista_compra(plan_semanal: list[dict], idioma: str) -> list[dict]:
+    """Aggregates every distinct food across a full week's plan_semanal
+    into a shopping list -- direct feature idea grounded in competitor
+    research (Harbiz auto-generates one from its nutrition plans, 2026-08-24).
+    Reuses `_construir_comida()`'s own `*_alimento_g` portion-weight fields
+    (see that function's own comment for the macro-vs-portion distinction),
+    summed across every meal that used that food in that role -- e.g.
+    legumes picked as the protein source in one meal and the carb source
+    in another produce two separate entries (different shopping quantities
+    for different purposes), not one merged line.
+
+    Only meaningful for motor="reglas": the LLM engine's plan_semanal
+    doesn't carry these structured per-meal food/gram fields (see
+    diet_agent.py's tool schema) -- same accepted engine asymmetry as the
+    existing meal-liking feature, not a new gap.
+
+    Returns:
+        A list of {"categoria": str, "alimento": str, "gramos_totales": int}
+        dicts, sorted by category then by descending weight -- empty for a
+        missing/empty plan_semanal (a record saved before this field
+        existed, or a client with no diet), never raises.
+    """
+    totales: dict[tuple[str, str], float] = {}
+    for dia in plan_semanal or []:
+        for comida in dia.get("comidas", []):
+            for categoria, clave_gramos in (
+                ("proteina", "proteina_alimento_g"), ("carbohidrato", "carbohidrato_alimento_g"),
+                ("grasa", "grasa_alimento_g"), ("verdura", "verdura_alimento_g"),
+            ):
+                nombre = comida.get(categoria)
+                gramos = comida.get(clave_gramos) or 0
+                if nombre and gramos:
+                    clave = (categoria, nombre)
+                    totales[clave] = totales.get(clave, 0) + gramos
+
+    etiquetas = CATEGORIA_LISTA_COMPRA_LABEL[idioma]
+    lista = [
+        {
+            "categoria": etiquetas[categoria],
+            "alimento": nombre_mostrado(nombre, idioma),
+            "gramos_totales": math.ceil(gramos / REDONDEO_LISTA_COMPRA_G) * REDONDEO_LISTA_COMPRA_G,
+        }
+        for (categoria, nombre), gramos in totales.items()
+    ]
+    lista.sort(key=lambda f: (f["categoria"], -f["gramos_totales"]))
+    return lista

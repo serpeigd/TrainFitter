@@ -247,6 +247,7 @@ from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import DIAS_SEMANA_DIETA  # noqa: E402
 from pdf_intake import es_intake_pdf, leer_intake_pdf  # noqa: E402
 from perfil_utils import tags_lesiones  # noqa: E402
+from planificador_comidas import generar_lista_compra  # noqa: E402
 from rutina_reglas import _candidatos, _material_cliente  # noqa: E402
 
 st.set_page_config(
@@ -996,6 +997,8 @@ TRANSLATIONS = {
         "fat_sources_label": "**Fat**\n",
         "veg_sources_label": "**Vegetables & fruit**\n",
         "weekly_plan_header": "📅 Weekly meal plan",
+        "shopping_list_header": "🛒 Shopping list",
+        "shopping_list_caption": "Everything the weekly meal plan needs, added up and rounded to real portions.",
         "synergy_tips_header": "Nutritional synergy tips",
         "client_message_header": "Message for the client",
         "download_diet": "Download diet (JSON)",
@@ -1313,6 +1316,8 @@ TRANSLATIONS = {
         "fat_sources_label": "**Grasa**\n",
         "veg_sources_label": "**Verduras y fruta**\n",
         "weekly_plan_header": "📅 Plan semanal de comidas",
+        "shopping_list_header": "🛒 Lista de la compra",
+        "shopping_list_caption": "Todo lo que necesita el plan semanal, sumado y redondeado a porciones reales.",
         "synergy_tips_header": "Consejos de sinergias nutricionales",
         "client_message_header": "Mensaje para el cliente",
         "download_diet": "Descargar dieta (JSON)",
@@ -2638,6 +2643,24 @@ def _sustituir_ingrediente_en_descripcion(descripcion: str, nombre_viejo: str, n
     return re.sub(patron, _reemplazo, descripcion, flags=re.IGNORECASE)
 
 
+def _render_lista_compra(lista_compra: list[dict]) -> None:
+    """Renders a shopping list (planificador_comidas.generar_lista_compra()'s
+    output) grouped by category, each with its own subheader -- shared by
+    the trainer's on-screen review (_mostrar_dieta()) and the client
+    portal (_vista_portal_cliente()), same "one rendering, two callers"
+    pattern already used for _render_historial_checkins(). No-op for an
+    empty list (an old saved plan, or motor="llm" -- see
+    generar_lista_compra()'s own docstring)."""
+    if not lista_compra:
+        return
+    categoria_actual = None
+    for item in lista_compra:
+        if item["categoria"] != categoria_actual:
+            categoria_actual = item["categoria"]
+            st.markdown(f"**{categoria_actual}**")
+        st.markdown(f"- {item['alimento']}: {item['gramos_totales']} g")
+
+
 def _mostrar_dieta(dieta: dict, perfil: dict | None = None, editable: bool = False) -> dict:
     """Renders the diet and, for a revision_reforzada plan, returns an
     edited copy reflecting whatever the trainer changed -- same contract
@@ -2717,6 +2740,15 @@ def _mostrar_dieta(dieta: dict, perfil: dict | None = None, editable: bool = Fal
                     nuevas_comidas.append(comida)
                 nuevos_dias.append({**dia_info, "comidas": nuevas_comidas})
             dieta = {**dieta, "plan_semanal": nuevos_dias}
+
+    # Derived from the plan as originally generated, not recomputed after
+    # an ingredient edit above -- same "estimate, don't chase gram-perfect
+    # accuracy through every edit" spirit as the ingredient-swap feature
+    # itself (which doesn't reflow portion sizes either).
+    if dieta.get("lista_compra"):
+        with st.expander(t("shopping_list_header")):
+            st.caption(t("shopping_list_caption"))
+            _render_lista_compra(dieta["lista_compra"])
 
     with st.expander(t("client_message_header")):
         if editable:
@@ -3748,6 +3780,18 @@ def _vista_portal_cliente(codigo: str) -> None:
                 plan_semanal, registro.get("comidas_favoritas") or [], registro.get("comidas_no_deseadas") or [],
                 carga["pagina"],
             )
+
+        # Computed on the fly from plan_semanal (already read above), not a
+        # separately stored Notion property -- direct feature idea grounded
+        # in competitor research (Harbiz auto-generates a shopping list
+        # from its nutrition plans), see generar_lista_compra()'s own
+        # docstring. Collapsed by default -- a client opens Meals far more
+        # often than they go shopping mid-session.
+        lista_compra = generar_lista_compra(plan_semanal, st.session_state.lang)
+        if lista_compra:
+            with st.expander(t("shopping_list_header")):
+                st.caption(t("shopping_list_caption"))
+                _render_lista_compra(lista_compra)
 
     # Moved up to right after Meals (was the very last section, after
     # Routine/History) and given its own highlighted border (see

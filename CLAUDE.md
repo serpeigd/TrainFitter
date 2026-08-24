@@ -1297,6 +1297,48 @@ session couldn't be verified against before. Neither test client's page
 ID/email is committed to this file (public repo); both are recorded in
 the project owner's own private notes.
 
+Researched a competitor (Harbiz, a personal-trainer SaaS) for improvement
+ideas, per direct request ("tómate tu tiempo"). That research surfaced a
+real, live bug in this project's own code, not just feature ideas: while
+scoping a shopping-list feature (Harbiz auto-generates one from its
+nutrition plans), tracing `_construir_comida()`'s `proteina_g`/
+`carbohidrato_g`/`grasa_g` fields (added earlier this session for the
+portal's macro chart) showed `_porcion()` accepted a `clave_macro`
+parameter and never read it — those fields silently held the picked
+FOOD's portion weight (e.g. 94g of tofu) instead of that portion's actual
+macro-nutrient content (~8g of protein per 100g of tofu), so the macro
+chart was summing the wrong number the whole time. Fixed by finally using
+`clave_macro` to read the real value from `food_bank.py`'s own
+`macros_100g` table; the portion weight itself is kept under new,
+honestly-named `proteina_alimento_g`/`carbohidrato_alimento_g`/
+`grasa_alimento_g` fields instead of being silently mislabeled. Verdura/
+fruta picks are now also exposed on each meal (`"verdura"`/
+`"verdura_alimento_g"`) — closes a small disclosed gap from earlier this
+session (micro-highlights not covering vegetable/fruit picks) as a side
+effect. New `generar_lista_compra(plan_semanal, idioma)` aggregates every
+distinct food across the week (by category, since the same food picked as
+a protein in one meal and a carb in another gets two separate,
+differently-sized entries — a real shopping distinction, not a
+duplicate), rounds up to the nearest 50g (a shopping list is bought in
+real portions, not exact kcal-solved grams), and is wired into all three
+existing surfaces that already show `plan_semanal` — the trainer's
+on-screen review, the diet PDF (a new table, same styling as the weekly
+plan), and the portal (computed on the fly from Notion's stored
+`plan_semanal`, no new Notion property needed). `motor="llm"` doesn't get
+a shopping list — its `plan_semanal` schema has no structured per-meal
+food/gram fields to aggregate from, same accepted engine asymmetry as the
+existing meal-liking feature. 597 tests passing (up from 592, five new:
+the macro-gram fix cross-checked directly against `food_bank.py`'s own
+table, plus shopping-list aggregation/rounding/category-splitting/sort
+order/empty-plan coverage). Verified live end-to-end: the corrected macro
+chart, the shopping list in the portal, the trainer's on-screen review,
+and the PDF table (extracted and read back, correct Spanish labels and
+totals) all confirmed against a freshly regenerated plan — PEPE's and the
+original NURIA save still carry the OLD, pre-fix numbers until
+regenerated (a real, disclosed consequence of fixing a value computed at
+save time, not read live), NURIA's Notion record was refreshed as part of
+this verification.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

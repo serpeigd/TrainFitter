@@ -156,6 +156,20 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
     estilo_celda_cabecera = ParagraphStyle(
         "CeldaCabecera", parent=estilo_celda, textColor=colors.white, fontName="Helvetica-Bold",
     )
+    # Shared by the weekly-plan table and the shopping-list table below --
+    # kept outside the "if plan_semanal:" block so the shopping-list table
+    # (a separate, independently-gated section) never risks referencing it
+    # before it's defined.
+    estilo_tabla = TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_COLOR_TABLA_CABECERA)),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(_COLOR_TABLA_FILA_ALTERNA)]),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor(_COLOR_TABLA_BORDE)),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ])
 
     m = borrador_dieta["macros"]
     if idioma == "es":
@@ -168,9 +182,13 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
             ),
             "reparto": "Reparto de comidas",
             "plan_semanal": "Plan semanal de comidas",
+            "lista_compra": "Lista de la compra",
             "col_comida": "Comida",
             "col_kcal": "kcal aprox.",
             "col_que_comer": "Qué comer",
+            "col_categoria": "Categoría",
+            "col_alimento": "Alimento",
+            "col_gramos": "Cantidad",
             "proteina": "Fuentes de proteína sugeridas",
             "carbohidrato": "Fuentes de carbohidrato sugeridas",
             "grasa": "Fuentes de grasa sugeridas",
@@ -188,9 +206,13 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
             ),
             "reparto": "Meal distribution",
             "plan_semanal": "Weekly meal plan",
+            "lista_compra": "Shopping list",
             "col_comida": "Meal",
             "col_kcal": "~kcal",
             "col_que_comer": "What to eat",
+            "col_categoria": "Category",
+            "col_alimento": "Food",
+            "col_gramos": "Amount",
             "proteina": "Suggested protein sources",
             "carbohidrato": "Suggested carbohydrate sources",
             "grasa": "Suggested fat sources",
@@ -215,16 +237,6 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
 
     if plan_semanal:
         contenido.append(Paragraph(textos["plan_semanal"], estilo_seccion))
-        estilo_tabla = TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(_COLOR_TABLA_CABECERA)),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(_COLOR_TABLA_FILA_ALTERNA)]),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor(_COLOR_TABLA_BORDE)),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ])
         for dia_info in plan_semanal:
             filas = [[
                 Paragraph(textos["col_comida"], estilo_celda_cabecera),
@@ -263,6 +275,28 @@ def generar_pdf_dieta(borrador_dieta: dict, nombre_cliente: str, idioma: str = "
                     bulletType="bullet",
                 )
             )
+
+    # Derived from plan_semanal at generation time (see
+    # planificador_comidas.generar_lista_compra()) -- absent for a
+    # motor="llm" draft or one generated before this field existed, same
+    # "degrades to no section" convention as plan_semanal itself.
+    lista_compra = borrador_dieta.get("lista_compra") or []
+    if lista_compra:
+        contenido.append(Paragraph(textos["lista_compra"], estilo_seccion))
+        filas = [[
+            Paragraph(textos["col_categoria"], estilo_celda_cabecera),
+            Paragraph(textos["col_alimento"], estilo_celda_cabecera),
+            Paragraph(textos["col_gramos"], estilo_celda_cabecera),
+        ]]
+        for item in lista_compra:
+            filas.append([
+                Paragraph(item["categoria"], estilo_celda),
+                Paragraph(item["alimento"], estilo_celda),
+                Paragraph(f"{item['gramos_totales']} g", estilo_celda),
+            ])
+        tabla_compra = Table(filas, colWidths=[3.4 * cm, 8.2 * cm, 4.5 * cm])
+        tabla_compra.setStyle(estilo_tabla)
+        contenido.append(tabla_compra)
 
     if borrador_dieta["consejos_sinergias"]:
         contenido.append(Paragraph(textos["consejos"], estilo_seccion))

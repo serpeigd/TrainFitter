@@ -7,7 +7,7 @@ and the two portion-realism fixes found by actually generating and reading
 a real week (see docs/decisiones.md)."""
 
 from food_bank import INDICE_ALIMENTOS
-from planificador_comidas import generar_plan_semanal
+from planificador_comidas import generar_lista_compra, generar_plan_semanal
 from variacion import rng_para_cliente
 
 NECESIDADES = {
@@ -557,3 +557,110 @@ def test_lunch_and_dinner_never_share_the_exact_same_combo(perfil_base):
             combo_almuerzo = (almuerzo["proteina"], almuerzo["carbohidrato"], almuerzo["grasa"])
             combo_cena = (cena["proteina"], cena["carbohidrato"], cena["grasa"])
             assert combo_almuerzo != combo_cena, f"{dia['dia']} (client {i}): {combo_almuerzo}"
+
+
+# --- Macro-gram bug fix + shopping list ------------------------------------
+
+
+def test_meal_macro_grams_are_the_actual_nutrient_content_not_portion_weight(perfil_base):
+    """Real bug fix, caught while researching a competitor's nutrition
+    tracking for improvement ideas: _porcion() used to accept clave_macro
+    and never read it, so "proteina_g"/"carbohidrato_g"/"grasa_g" on each
+    meal silently held the FOOD's portion weight (e.g. 94g of tofu)
+    instead of that portion's actual macro-nutrient content (~8g of
+    protein per 100g of tofu) -- the portal's macro chart was summing the
+    wrong number. Cross-checks the returned value directly against
+    food_bank.py's own macros_100g table, and confirms it's smaller than
+    the portion weight for every real food in this bank (no food is >100%
+    of any single macro by weight)."""
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    revisados = 0
+    for dia in plan:
+        for comida in dia["comidas"]:
+            for rol, clave_macro in (
+                ("proteina", "proteina_g"), ("carbohidrato", "carbohidratos_g"), ("grasa", "grasa_g"),
+            ):
+                nombre = comida.get(rol)
+                if not nombre:
+                    continue
+                gramos_alimento = comida[f"{rol}_alimento_g"]
+                macro_100g = INDICE_ALIMENTOS[nombre]["macros_100g"][clave_macro]
+                esperado = round(macro_100g * gramos_alimento / 100, 1)
+                assert comida[f"{rol}_g"] == esperado, f"{rol} ({nombre}): {comida[f'{rol}_g']} != {esperado}"
+                assert comida[f"{rol}_g"] <= gramos_alimento
+                revisados += 1
+    assert revisados > 0
+
+
+def test_lista_compra_aggregates_across_the_week_and_rounds_up(perfil_base):
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    lista = generar_lista_compra(plan, "en")
+    assert lista
+    # Every entry is a real multiple of REDONDEO_LISTA_COMPRA_G (50g), and
+    # a food used across several meals sums to more than any single
+    # meal's own portion -- proves this is an aggregate, not just one
+    # meal's grams copied through.
+    mayor_portion_individual = max(
+        comida.get(f"{rol}_alimento_g", 0)
+        for dia in plan for comida in dia["comidas"] for rol in ("proteina", "carbohidrato", "grasa", "verdura")
+    )
+    assert any(item["gramos_totales"] > mayor_portion_individual for item in lista)
+    for item in lista:
+        assert item["gramos_totales"] % 50 == 0
+        assert item["gramos_totales"] > 0
+        assert item["alimento"]
+        assert item["categoria"]
+
+
+def test_lista_compra_groups_the_same_food_by_role_separately(perfil_base):
+    """Legumes can be picked as the protein source in one meal and the
+    carbohydrate source in another (food_bank.py tags it for both) --
+    generar_lista_compra() deliberately keeps those as two separate
+    entries (different categories), not merged into one, since they
+    answer two different "how much do I need" questions."""
+    plan = [
+        {"dia": "Monday", "comidas": [
+            {
+                "proteina": "Legumes (also a carb source)", "proteina_alimento_g": 100,
+                "carbohidrato": "Rice", "carbohidrato_alimento_g": 50,
+                "grasa": "Extra virgin olive oil", "grasa_alimento_g": 10, "verdura": None, "verdura_alimento_g": 0,
+            },
+            {
+                "proteina": "Chicken breast", "proteina_alimento_g": 80,
+                "carbohidrato": "Legumes (also a carb source)", "carbohidrato_alimento_g": 60,
+                "grasa": None, "grasa_alimento_g": 0, "verdura": "Broccoli", "verdura_alimento_g": 100,
+            },
+        ]},
+    ]
+    lista = generar_lista_compra(plan, "en")
+    legumbres = [item for item in lista if "Legumes" in item["alimento"]]
+    assert len(legumbres) == 2
+    categorias = {item["categoria"] for item in legumbres}
+    assert categorias == {"Protein", "Carbs"}
+
+
+def test_lista_compra_is_sorted_by_category_then_descending_weight():
+    plan = [
+        {"dia": "Monday", "comidas": [
+            {
+                "proteina": "Tofu", "proteina_alimento_g": 100,
+                "carbohidrato": "Rice", "carbohidrato_alimento_g": 300,
+                "grasa": None, "grasa_alimento_g": 0, "verdura": None, "verdura_alimento_g": 0,
+            },
+            {
+                "proteina": "Chicken breast", "proteina_alimento_g": 400,
+                "carbohidrato": None, "carbohidrato_alimento_g": 0,
+                "grasa": None, "grasa_alimento_g": 0, "verdura": None, "verdura_alimento_g": 0,
+            },
+        ]},
+    ]
+    lista = generar_lista_compra(plan, "en")
+    categorias_orden = [item["categoria"] for item in lista]
+    assert categorias_orden == sorted(categorias_orden)
+    proteinas = [item for item in lista if item["categoria"] == "Protein"]
+    assert proteinas[0]["gramos_totales"] >= proteinas[1]["gramos_totales"]
+
+
+def test_lista_compra_empty_for_empty_plan():
+    assert generar_lista_compra([], "en") == []
+    assert generar_lista_compra(None, "en") == []
