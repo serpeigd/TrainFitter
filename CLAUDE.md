@@ -1366,6 +1366,28 @@ real workspace (12 real+test client records): both proportion bars render
 with correct percentage labels and legend colors, the growth line renders
 with real monthly buckets, no console errors.
 
+A real production bug, reported directly by the project owner hitting it
+on the live app: `enviar_plan()` (the function behind BOTH the
+`aprobado_automatico` zero-click auto-send and the `revision_reforzada`
+"send directly" button) called `messages().send(body=cuerpo)` where
+`cuerpo` was `_construir_mensaje_raw()`'s `{"message": {"raw": ...}}`
+shape -- correct for `drafts().create()`, but `messages().send()` wants
+the inner `{"raw": ...}` dict directly, unwrapped, exactly like the
+other three `messages().send()` call sites in this file already did
+(one of them even has a comment explaining the distinction).
+`enviar_plan()` alone missed it, so Gmail's real API rejected every
+actual send with "'raw' RFC822 payload message string ... required".
+This project's own mocked tests didn't catch it -- a `MagicMock` accepts
+any `body=` shape without complaint, and the existing assertions
+happened to check `kwargs["body"]["message"]["raw"]`, which only passes
+if the bug is present; fixed to assert the real shape (`"raw" in
+kwargs["body"]`, `"message" not in kwargs["body"]`), which now fails
+loudly if this regresses. Matches this project's own disclosed testing
+gap for `enviar_plan()` (mocked, never live-verified, to avoid a real
+unreviewed send during verification) -- exactly the kind of bug that
+gap was always going to eventually let through. 597 tests passing, lint
+clean.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

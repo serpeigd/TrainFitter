@@ -187,6 +187,18 @@ def test_enviar_plan_sends_not_drafts(monkeypatch, borrador_rutina, borrador_die
     assert resultado == {"message_id": "msg-1", "thread_id": "thread-1"}
     servicio.users.return_value.drafts.return_value.create.assert_not_called()
 
+    # Real, reported production bug: messages().send()'s body must be the
+    # {"raw": ...} envelope directly, NOT wrapped in an outer "message" key
+    # the way drafts().create() wants -- this function used to pass the
+    # wrapped dict straight through, which Gmail's real API rejected with
+    # "'raw' RFC822 payload message string ... required" on every actual
+    # send. A MagicMock accepts any body= shape without complaint, so this
+    # explicit assertion (not just "was called") is what actually catches
+    # the regression.
+    _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
+    assert "raw" in kwargs["body"]
+    assert "message" not in kwargs["body"]
+
 
 def test_enviar_plan_attaches_the_same_pdfs_as_crear_borrador(monkeypatch, borrador_rutina, borrador_dieta):
     """Shares _preparar_envio_plan() with crear_borrador() -- confirms the
@@ -199,7 +211,7 @@ def test_enviar_plan_attaches_the_same_pdfs_as_crear_borrador(monkeypatch, borra
     gmail_client.enviar_plan("client@example.com", "Ana", borrador_rutina, borrador_dieta)
 
     _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
-    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
     mensaje = message_from_bytes(raw)
     nombres_adjuntos = {p.get_filename() for p in mensaje.get_payload()[1:]}
     assert nombres_adjuntos == {"routine-plan.pdf", "diet-plan.pdf"}
@@ -216,7 +228,7 @@ def test_enviar_plan_includes_the_portal_link_when_given(monkeypatch, borrador_r
     )
 
     _args, kwargs = servicio.users.return_value.messages.return_value.send.call_args
-    raw = base64.urlsafe_b64decode(kwargs["body"]["message"]["raw"].encode("utf-8"))
+    raw = base64.urlsafe_b64decode(kwargs["body"]["raw"].encode("utf-8"))
     mensaje = message_from_bytes(raw)
     cuerpo = mensaje.get_payload()[0].get_payload(decode=True).decode("utf-8")
     assert "https://example.com/?ref=abc123" in cuerpo

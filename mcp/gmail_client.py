@@ -674,7 +674,19 @@ def enviar_plan(
 
     try:
         servicio = build("gmail", "v1", credentials=credenciales)
-        mensaje = servicio.users().messages().send(userId="me", body=cuerpo).execute()
+        # Real, reported production bug: messages().send()'s body is the
+        # {"raw": ...} envelope directly -- unlike drafts().create(), it
+        # isn't wrapped in an outer "message" key (see
+        # enviar_enlace_portal()'s own comment on this exact distinction,
+        # which this function failed to follow). Passing the wrapped dict
+        # straight through made Gmail's API reject every real send with
+        # "'raw' RFC822 payload message string ... required" -- the
+        # aprobado_automatico zero-click path and the revision_reforzada
+        # "send directly" button both call this function, so both were
+        # broken. Missed by this project's own mocked-network tests
+        # because the mock never validated the real API's body shape --
+        # see tests/test_gmail_client_network.py's matching fix.
+        mensaje = servicio.users().messages().send(userId="me", body=cuerpo["message"]).execute()
     except HttpError as exc:
         raise GmailClientError(f"Gmail API error: {exc}") from exc
 
