@@ -1425,6 +1425,32 @@ before actually submitting either, same "never trigger a real send
 during verification" convention as everywhere else in this project. 599
 tests passing (up from 597), lint clean.
 
+Two same-day follow-ups to the auto-send panel, both direct requests.
+"Ponlo en un sitio mas visible": the two buttons were `st.columns(2)`
+(two fixed half-width columns), which left the secondary "create a
+draft instead" button stranded with a big empty gap between it and
+"Enviar ahora" -- replaced with `st.container(horizontal=True)`, a
+compact adjacent row instead. "Cuando se envie borrador o email, salga
+el mensaje de enviado, pero pueda volver a enviarlo, manten los botones
+debajo": the success branches used to `return True` immediately, ending
+the whole panel the moment a send/draft succeeded -- a trainer who
+needed to resend (wrong address, wanted a draft copy too) had no way
+back in short of reloading the page. Both success branches now fall
+through instead of returning early, so the confirmation banner and the
+same two buttons+dialogs render together below it every time. The
+password-free zero-click deployment path is untouched, same reasoning
+as the draft-option addition above. Verified live against the real NURIA client with a local test password:
+both buttons render together without the gap, and both dialogs open
+with the right recipient/wording. The actual post-success "buttons stay
+visible" behavior wasn't confirmed by completing a real send/draft in
+the browser -- this session's own browser-automation tooling hit a
+password-field timing glitch (the dialog's password value wasn't
+committed before the confirm click read it) on two scripted attempts,
+and the shared brute-force counter made a third attempt unsafe to try
+locally. Verified by code review instead (the success branches no
+longer `return True`, so control falls through to the same button block
+every other case already renders) -- disclosed, not glossed over.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

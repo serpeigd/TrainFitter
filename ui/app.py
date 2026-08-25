@@ -2973,69 +2973,75 @@ def _panel_envio_automatico(estado) -> bool:
     example-client demo), with a usable email on file. On a deployment
     with APPROVAL_PASSWORD set, offers both "send now" and "create a
     draft instead" from the start, not only as a fallback after a failed
-    send.
+    send -- and keeps both buttons available even after a success, so a
+    trainer can resend or create a draft copy afterward instead of the
+    panel just ending there.
 
     Returns:
-        True once this plan has been fully handled here (already sent,
-        a draft was created instead, or a confirm dialog is currently
-        showing) -- the caller skips _panel_aprobacion() entirely in that
-        case. False tells the caller to fall back to the normal manual
-        panel instead: a real send or draft attempt just failed and
-        manual recovery (approve, then send/draft by hand) is the right
-        next step. _califica_para_auto_envio() already ruled out every
-        case where this function isn't even called in the first place."""
+        True once this plan has been handled or is currently being acted
+        on here (sent, drafted, or a confirm dialog is showing) -- the
+        caller skips _panel_aprobacion() entirely in that case, even
+        after a success, since the retry buttons stay right here instead.
+        False tells the caller to fall back to the normal manual panel
+        instead: a real send or draft attempt just failed and manual
+        recovery (approve, then send/draft by hand) is the right next
+        step. _califica_para_auto_envio() already ruled out every case
+        where this function isn't even called in the first place."""
     perfil = estado.perfil_cliente
     email = perfil["datos_basicos"].get("email", "").strip()
 
-    if st.session_state.get("auto_envio_para") == id(perfil):
-        st.markdown(t("approval_header"))
-        st.success(t("auto_send_success").format(email=st.session_state.get("auto_envio_email", email)))
-        return True
-
-    # Draft-created terminal state -- its own branch, mirroring the
-    # send-success one above, for a trainer who chose "create a draft
-    # instead" below.
-    if st.session_state.get("auto_borrador_para") == id(perfil):
-        st.markdown(t("approval_header"))
-        st.success(t("draft_created_success").format(url=st.session_state.get("auto_borrador_url", "")))
-        return True
+    st.markdown(t("approval_header"))
 
     if st.session_state.get("auto_envio_error_para") == id(perfil):
-        st.markdown(t("approval_header"))
         st.error(t("auto_send_error").format(error=st.session_state["auto_envio_error"]))
         st.caption(t("auto_send_fallback_caption"))
         return False
 
     if st.session_state.get("auto_borrador_error_para") == id(perfil):
-        st.markdown(t("approval_header"))
         st.error(t("draft_error").format(error=st.session_state["auto_borrador_error"]))
         st.caption(t("auto_draft_error_fallback_caption"))
         return False
 
-    st.markdown(t("approval_header"))
-    st.info(t("auto_send_ready").format(email=email))
+    ya_enviado = st.session_state.get("auto_envio_para") == id(perfil)
+    ya_borrador = st.session_state.get("auto_borrador_para") == id(perfil)
+
+    # Direct request: "cuando se envie borrador o email, salga el mensaje
+    # de enviado, pero pueda volver a enviarlo, manten los botones
+    # debajo" -- success no longer ends this panel early; the buttons
+    # stay available right below the confirmation instead of the whole
+    # section just disappearing, so a trainer can resend, or create a
+    # draft copy after already sending directly (or vice versa).
+    if ya_enviado:
+        st.success(t("auto_send_success").format(email=st.session_state.get("auto_envio_email", email)))
+    elif ya_borrador:
+        st.success(t("draft_created_success").format(url=st.session_state.get("auto_borrador_url", "")))
+    else:
+        st.info(t("auto_send_ready").format(email=email))
+        if not APPROVAL_PASSWORD:
+            # No password set (a private, trainer-only deployment) --
+            # stays genuinely zero-click, exactly as before: firing the
+            # send the instant this panel first renders, only while
+            # nothing has been sent/drafted yet, is the whole point of
+            # that setting.
+            _ejecutar_envio_automatico(estado)
+            st.rerun()
+
     if APPROVAL_PASSWORD:
         # Both options available from the start (direct request: "quiero
-        # que al principio tenga la opción también de enviar a borrador"),
-        # not only as a fallback after a failed send -- a trainer who
-        # wants a last look in Gmail before an auto-approved plan goes out
-        # shouldn't have to hit a real send error first to get that choice.
-        col_enviar, col_borrador = st.columns(2)
-        if col_enviar.button(t("auto_send_confirm_button"), type="primary"):
-            st.session_state["mostrar_dialogo_envio_automatico"] = True
-        if col_borrador.button(t("create_draft_button")):
-            st.session_state["mostrar_dialogo_borrador_automatico"] = True
+        # que al principio tenga la opción también de enviar a
+        # borrador"), not only as a fallback after a failed send. A
+        # compact, adjacent row (not two half-width columns, which left a
+        # big visual gap between them) -- direct request ("ponlo en un
+        # sitio mas visible").
+        with st.container(horizontal=True):
+            if st.button(t("auto_send_confirm_button"), type="primary", key="auto_envio_btn"):
+                st.session_state["mostrar_dialogo_envio_automatico"] = True
+            if st.button(t("create_draft_button"), key="auto_borrador_btn"):
+                st.session_state["mostrar_dialogo_borrador_automatico"] = True
         if st.session_state.get("mostrar_dialogo_envio_automatico"):
             _dialogo_envio_automatico(estado)
         if st.session_state.get("mostrar_dialogo_borrador_automatico"):
             _dialogo_borrador_automatico(estado)
-    else:
-        # No password set (a private, trainer-only deployment) -- stays
-        # genuinely zero-click, exactly as before: firing the send the
-        # instant this panel renders is the whole point of that setting,
-        # so it can't also pause here to offer a "draft instead" choice.
-        _ejecutar_envio_automatico(estado)
-        st.rerun()
     return True
 
 
