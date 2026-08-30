@@ -287,7 +287,7 @@ This repository is built phase by phase, as a learning project. Right now:
   client's own signed link so there's no way to see anyone else's data.
 - A **"Clients"** tab gives the trainer an anonymized, fleet-level view of how
   every real client is doing — headcount, plans-by-verdict, and
-  latest-adherence-mix, as KPI cards plus two bar charts — instead of a
+  latest-adherence-mix, as KPI cards plus three charts (see below) — instead of a
   per-client roster (that table existed briefly and was removed: this tab is
   meant for "how's everyone doing at a glance," not a second, weaker copy of
   what Notion's own database view already does better for looking up one
@@ -326,6 +326,20 @@ This repository is built phase by phase, as a learning project. Right now:
   staying diet-type aware (never suggests oily fish to a vegetarian/vegan
   client) and never confusing a soft preference with a real declared
   allergy.
+- A **shopping list** ([`agents/planificador_comidas.py`](agents/planificador_comidas.py)'s
+  `generar_lista_compra()`) aggregates every distinct food across the week's
+  meal plan — by category, so the same food picked as a protein in one meal
+  and a carb in another gets two separate, differently-sized entries, not a
+  duplicate — and rounds each total up to the nearest 50g (a shopping list is
+  bought in real portions, not exact kcal-solved grams). Shown on all three
+  surfaces that already display the weekly plan: the trainer's on-screen
+  review, the diet PDF, and the client portal. Only meaningful for
+  `motor="reglas"` — the LLM engine's `plan_semanal` doesn't carry the
+  structured per-meal food/gram fields it's built from.
+- The **"Clients" dashboard** shows a third chart alongside the verdict-mix
+  and adherence-mix bars: a cumulative client-growth line by admission month,
+  built from the same anonymous data already fetched for the other two —
+  no new Notion query, no client name or email ever read.
 
 ## What it doesn't include yet
 

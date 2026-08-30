@@ -84,16 +84,18 @@ gate should be deterministic and auditable, not a model's "opinion" — see
      ┌──────────────┘                              └──────────────┐
      ▼ aprobado_automatico                                        ▼ revision_reforzada
 Notion "Clients" record saved                          Human review (ALWAYS, no exceptions)
-     │                                                             ▼
-     ▼                                                  Notion "Clients" record saved
-gmail_client.enviar_plan() — a real,                               ▼
-sent email (plan PDFs + portal link),               Gmail draft created (mcp/gmail_client.py)
-no draft, no further review                         — trainer reviews and sends it themselves
-     │                                                             ▼
-     ▼                                              Trainer confirms the send ("Check if it was sent")
-Notion "Email Sent" ticked +                                       ▼
-a "Check-ins" row added                              Notion "Email Sent" ticked + a "Check-ins" row added
-   automatically, immediately
+     │                                             — can swap any flagged exercise/food first
+     ▼                                                             ▼
+gmail_client.enviar_plan() — a real,                    Notion "Clients" record saved
+sent email (plan PDFs + portal link),                              ▼
+no draft, no further review                        Trainer approves → "Enviar el plan por email"
+     │                                              calls enviar_plan() directly (real send, no
+     │                                              draft) — "Crear borrador en Gmail" stays as an
+     │                                              explicit secondary button/fallback instead
+     ▼                                                             ▼
+Notion "Email Sent" ticked +                        Notion "Email Sent" ticked + a "Check-ins" row
+a "Check-ins" row added                             added (automatically on a real send; manually,
+   automatically, immediately                       via "Check if it was sent," if a draft was used)
 ```
 
 The `aprobado_automatico` branch only applies to a real client
@@ -187,8 +189,9 @@ the view back to the first tab (reproduced and confirmed while building this;
   re-approving updates the existing Notion record in place instead of
   duplicating it (see "Revise client" below).
 - **"Clients" section (`_panel_todos_los_clientes()`):** an anonymized,
-  fleet-level dashboard — headcount KPIs plus two bar charts (verdict mix,
-  latest-adherence mix), built from `notion_connector.listar_clientes()`
+  fleet-level dashboard — headcount KPIs plus three charts (a 100%-stacked
+  verdict-mix bar, a 100%-stacked latest-adherence-mix bar, and a cumulative
+  client-growth line by admission month), built from `notion_connector.listar_clientes()`
   joined in Python with each client's most recent Check-ins row
   (`ultimo_checkin_por_cliente()` — Notion has no native "latest row per
   group" query). No per-client roster table — that used to live here (name,
@@ -204,24 +207,36 @@ the view back to the first tab (reproduced and confirmed while building this;
 - **Result:** verdict (with reasons if enhanced review applies), routine broken down
   by session with an exercise table, diet with macros and suggested sources, and JSON
   download buttons.
-- **Approval + Gmail draft (`revision_reforzada` plans only):** an "Approve and
-  mark as ready to send" checklist button, plus a real "Create Gmail draft"
-  action (`mcp/gmail_client.py`) that takes the client's email (now pre-filled
-  from the intake's own `datos_basicos.email` field, editable) and creates an
-  actual draft in a dedicated Gmail account. On real new-client plans,
-  approving also saves a record to a Notion "Clients" database
+- **Approval + send (`revision_reforzada` plans only):** for a flagged
+  exercise/food (one `rutina_reglas.py`/`dieta_reglas.py` adapted for a
+  specific reason, e.g. a declared injury), an editable dropdown lets the
+  trainer swap it for a real, still-safe alternative drawn from the exact
+  same safety-filtered candidate pool generation itself used, before
+  approving. An "Approve" checklist button (password-gated on a deployment
+  with `APP_APPROVAL_PASSWORD` set) then unlocks "Enviar el plan por email"
+  — the primary action, calling `gmail_client.enviar_plan()` directly (a
+  real send, no draft) — with "Crear borrador en Gmail en su lugar" as an
+  explicit secondary button for a trainer who wants a second look in Gmail
+  first, or as the recovery path if the real send fails. On real new-client
+  plans, approving also saves a record to a Notion "Clients" database
   (`mcp/notion_connector.py`).
 - **Automatic send (`aprobado_automatico` plans, real clients only):**
   `_panel_envio_automatico()` replaces the whole panel above — no Approve
-  click, no draft. `gmail_client.enviar_plan()` sends the plan directly
+  click by default. `gmail_client.enviar_plan()` sends the plan directly
   (`messages().send()`, not `drafts().create()`), with the client portal's
-  magic link folded into the same email. Gated behind one password
-  confirmation when `APP_APPROVAL_PASSWORD` is set (the public demo);
-  genuinely zero-click otherwise. A failure here (Gmail or Notion) falls back
-  to the manual panel above so the trainer can still send it by hand.
+  magic link folded into the same email. On a deployment with no
+  `APP_APPROVAL_PASSWORD` set (private, trainer-only), this is genuinely
+  zero-click. When a password is set (the public demo), the panel instead
+  shows "Enviar ahora" and "Crear borrador en su lugar" side by side from
+  the first screen — not only as a fallback after a failed send — each
+  behind its own password-confirmation dialog; both stay available after a
+  success too, so the trainer can resend or pull a draft copy afterward. A
+  failure on either path falls back to the manual panel above so the
+  trainer can still send it by hand.
 - **Send confirmation + Check-ins:** a "Check if it was sent" button calls
-  `gmail_client.verificar_envio()` (needs the added `gmail.metadata` scope —
-  labels/headers only) to check whether the trainer actually sent the draft,
+  `gmail_client.verificar_envio()` (uses the `gmail.readonly` scope, but only
+  ever reads labels/headers — `format="metadata"` — never the message body)
+  to check whether the trainer actually sent the draft,
   not just created it. On a confirmed send, it ticks "Email Sent" on the
   Clients record and logs a row in a second Notion "Check-ins" database
   (joined by email, not a relation property) — the interaction history for
