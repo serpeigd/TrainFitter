@@ -655,9 +655,15 @@ def enviar_plan(
     PDFs, the trainer's own generated content) with no draft/review step
     at all. Confirmed directly with the project owner before being built,
     same as every other exception to "TrainFitter always drafts, never
-    sends" -- ui/app.py only calls this for a plan whose validator
-    verdict is "aprobado_automatico" (no reason for a human to look
-    first), never for "revision_reforzada". See docs/decisiones.md.
+    sends" -- ui/app.py calls this for a plan whose validator verdict is
+    "aprobado_automatico" (no reason for a human to look first, zero-click
+    when APPROVAL_PASSWORD is unset) AND, since the "direct send" reversal
+    for "revision_reforzada" (see docs/decisiones.md), for a
+    "revision_reforzada" plan too -- there the trainer's own review already
+    happened in the approval panel itself (edit controls + the Approve
+    click, both password-gated when APPROVAL_PASSWORD is set), so this
+    function's caller changed but its own behavior and safety boundary
+    (password gate, email validation) didn't.
 
     Args: same as crear_borrador().
 
