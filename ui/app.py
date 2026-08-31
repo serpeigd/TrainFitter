@@ -454,16 +454,6 @@ def _inyectar_estilos() -> None:
             transform: translateY(-2px);
         }}
 
-        /* Client portal check-in section -- a visibly distinct border/glow
-        (not just "open by default" like before) so it reads as one of the
-        two main things to do here, on equal footing with Meals, not just
-        another collapsible section in the list. Direct request ("pon MAS
-        destacado"). */
-        [class*="st-key-portal-checkin-highlight"] [data-testid="stExpander"] {{
-            border: 2px solid rgba(5, 160, 129, 0.55) !important;
-            box-shadow: 0 0 0 3px rgba(5, 160, 129, 0.12);
-            border-radius: 12px !important;
-        }}
         [data-testid="stExpander"] {{
             border: 1px solid {COLOR_BORDER};
             border-radius: 12px;
@@ -1050,6 +1040,20 @@ TRANSLATIONS = {
         "portal_resend_not_found": "We couldn't find an account with that email — check it and try again.",
         "portal_resend_error": "Could not send a new link: {error}",
         "portal_welcome": "Hi {nombre} 👋",
+        "portal_tab_home": "🏠 Home",
+        "portal_tab_meals": "🍽️ Meals",
+        "portal_tab_routine": "🏋️ Routine",
+        "portal_tab_checkin": "✅ Check-in",
+        "portal_tab_progress": "📈 Progress",
+        "portal_home_checkin_reminder": "You haven't checked in this week yet.",
+        "portal_home_go_checkin": "Check in now →",
+        "portal_home_today_meals": "Today's meals",
+        "portal_home_go_meals": "See meals →",
+        "portal_home_today_routine": "Today's session",
+        "portal_home_routine_summary": "{n} exercises · {grupos}",
+        "portal_home_go_routine": "See routine →",
+        "portal_meals_empty": "No meal plan on file yet — check back once your trainer has one ready.",
+        "portal_routine_empty": "No routine on file yet — check back once your trainer has one ready.",
         "portal_notes_header": "📝 Notes from your trainer",
         "routine_label": "Routine:",
         "diet_label": "Diet:",
@@ -1382,6 +1386,20 @@ TRANSLATIONS = {
         "portal_resend_not_found": "No encontramos ninguna cuenta con ese email — revísalo e inténtalo de nuevo.",
         "portal_resend_error": "No se pudo enviar un enlace nuevo: {error}",
         "portal_welcome": "Hola {nombre} 👋",
+        "portal_tab_home": "🏠 Inicio",
+        "portal_tab_meals": "🍽️ Comidas",
+        "portal_tab_routine": "🏋️ Rutina",
+        "portal_tab_checkin": "✅ Check-in",
+        "portal_tab_progress": "📈 Progreso",
+        "portal_home_checkin_reminder": "Todavía no has hecho tu check-in esta semana.",
+        "portal_home_go_checkin": "Hacer check-in →",
+        "portal_home_today_meals": "Comidas de hoy",
+        "portal_home_go_meals": "Ver comidas →",
+        "portal_home_today_routine": "Sesión de hoy",
+        "portal_home_routine_summary": "{n} ejercicios · {grupos}",
+        "portal_home_go_routine": "Ver rutina →",
+        "portal_meals_empty": "Todavía no hay un plan de comidas guardado — vuelve cuando tu entrenador/a lo tenga listo.",
+        "portal_routine_empty": "Todavía no hay una rutina guardada — vuelve cuando tu entrenador/a la tenga lista.",
         "portal_notes_header": "📝 Notas de tu entrenador/a",
         "routine_label": "Rutina:",
         "diet_label": "Dieta:",
@@ -3549,6 +3567,7 @@ def _render_resumen_macros_dia(dia_info: dict) -> None:
 
 
 _CLAVES_ESTADO_PORTAL = [
+    "portal_tab_activa",
     "portal_dia_idx",
     "portal_dia_selector",
     "portal_rutina_dia_idx",
@@ -3880,6 +3899,89 @@ def _formulario_reenviar_link_portal() -> None:
     st.rerun()
 
 
+def _ir_a_pestana_portal(etiqueta: str) -> None:
+    """Programmatic tab jump for the portal's Home cards ("Ver comidas →"
+    etc.) -- st.tabs(key=..., on_change="rerun") tracks its active tab in
+    st.session_state[key] (the tab's own label). MUST run as a button's
+    on_click callback, not after checking the button's own return value:
+    a real crash caught live -- Streamlit raises StreamlitAPIException
+    ("cannot be modified after the widget... is instantiated") if this
+    key is written to AFTER st.tabs() already ran earlier in the same
+    script pass, which is exactly when it's called from inside a tab's
+    own body. A callback runs (and can freely set session_state) BEFORE
+    the next script pass reaches st.tabs() again, and Streamlit reruns
+    automatically once the callback returns -- no manual st.rerun()
+    needed or safe to add here."""
+    st.session_state["portal_tab_activa"] = etiqueta
+
+
+def _render_portal_home(
+    registro: dict, plan_semanal: list[dict], sesiones: list[dict], fecha_checkin_semana: str | None,
+    mensaje_rutina: str, mensaje_dieta: str,
+) -> None:
+    """The portal's landing tab -- an at-a-glance "how am I doing today"
+    summary instead of making the client open each section themselves to
+    find out. Direct request ("sinergia entera modo app, fácil e
+    intuitivo"): the old design was a flat list of independently-
+    collapsed sections with no single "home" a client could glance at.
+
+    Deliberately read-only/summary only -- every actual interaction
+    (liking a meal, logging a check-in) still happens in its own
+    dedicated tab; this just surfaces today's plan and status, with
+    buttons that jump straight there via _ir_a_pestana_portal()."""
+    if fecha_checkin_semana:
+        st.success(t("portal_checkin_done_this_week").format(fecha=fecha_checkin_semana))
+    else:
+        st.info(t("portal_home_checkin_reminder"))
+        st.button(
+            t("portal_home_go_checkin"), key="portal_home_ir_checkin",
+            on_click=_ir_a_pestana_portal, args=(t("portal_tab_checkin"),),
+        )
+
+    if mensaje_rutina or mensaje_dieta:
+        with st.container(border=True):
+            st.markdown(f"**{t('portal_notes_header')}**")
+            if mensaje_rutina:
+                st.markdown(f"**{t('routine_label')}**")
+                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_rutina)))
+            if mensaje_dieta:
+                st.markdown(f"**{t('diet_label')}**")
+                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_dieta)))
+
+    if not (plan_semanal or sesiones):
+        return
+
+    col_comidas, col_rutina = st.columns(2, vertical_alignment="top")
+
+    if plan_semanal:
+        indice_hoy = datetime.now(timezone.utc).weekday() % len(plan_semanal)
+        dia_comidas = plan_semanal[indice_hoy]
+        with col_comidas.container(border=True):
+            st.markdown(f"**🍽️ {t('portal_home_today_meals')}**")
+            st.caption(dia_comidas["dia"])
+            for comida in dia_comidas["comidas"]:
+                emoji_comida = EMOJI_TIPO_COMIDA.get(comida.get("tipo_interno"), "🍽️")
+                st.markdown(f"{emoji_comida} {comida['tipo']} · {comida['aprox_kcal']} kcal")
+            st.button(
+                t("portal_home_go_meals"), key="portal_home_ir_comidas",
+                on_click=_ir_a_pestana_portal, args=(t("portal_tab_meals"),),
+            )
+
+    if sesiones:
+        indice_sugerido = _sesion_sugerida_hoy(len(sesiones))
+        sesion_hoy = sesiones[indice_sugerido]
+        with col_rutina.container(border=True):
+            st.markdown(f"**🏋️ {t('portal_home_today_routine')}**")
+            st.caption(sesion_hoy["dia"])
+            grupos = ", ".join(sesion_hoy.get("grupos_musculares", []))
+            n_ejercicios = len(sesion_hoy.get("ejercicios", []))
+            st.markdown(t("portal_home_routine_summary").format(n=n_ejercicios, grupos=grupos))
+            st.button(
+                t("portal_home_go_routine"), key="portal_home_ir_rutina",
+                on_click=_ir_a_pestana_portal, args=(t("portal_tab_routine"),),
+            )
+
+
 def _vista_portal_cliente(codigo: str) -> None:
     """The entire page for a client who followed their own magic link
     (?ref=..., see mcp/notion_connector.py's generar_referencia_portal()/
@@ -3889,16 +3991,18 @@ def _vista_portal_cliente(codigo: str) -> None:
     sees any of that; this function is a dead end, not a sub-section of
     the trainer's page.
 
-    Kept deliberately minimal -- real feedback from live use, twice over:
-    first that the old version opened on a long prose summary (dropped
-    entirely), and now that even the trimmed version read as one long
-    page instead of something organized ("apartados como desplegables
-    por secciones... más minimalista, intuitivo o visual"). Every section
-    is now its own `st.expander`, collapsed by default except "Meals" --
-    the one reason most clients follow this link at all keeps needing
-    zero clicks; everything else (tips, routine, history, check-in) is
-    tidied away a tap behind its own labeled, iconed section instead of
-    stacked as one long scroll.
+    Kept deliberately minimal -- real feedback from live use, several
+    rounds over: first that the old version opened on a long prose
+    summary (dropped entirely), then that even the trimmed version read
+    as one long page instead of something organized (moved to
+    independently-collapsed `st.expander` sections), and now a bigger
+    request ("sinergia entera modo app, fácil e intuitivo") to make the
+    whole portal read like one app instead of a stack of unrelated
+    sections. `st.tabs` replaces that expander stack -- a persistent,
+    always-visible nav bar (Home/Meals/Routine/Check-in/Progress) a
+    client switches between without losing their place, plus a new Home
+    tab (_render_portal_home()) that surfaces today's plan and status at
+    a glance instead of making the client open each section to find out.
 
     On the resolve step specifically: real bug, `NotionClientError` (a
     transient Notion API failure -- plausible right when a cold-started
@@ -3944,21 +4048,12 @@ def _vista_portal_cliente(codigo: str) -> None:
     # Same minimal, concrete content the plan email shows (a real tip,
     # not the trainer's generic note -- see gmail_client.
     # obtener_texto_cliente()), already reduced and greeting-stripped at
-    # save time (mcp/notion_connector.py), so only dividir_en_puntos()'s
-    # own bullet split is needed here. Empty for a record saved before
+    # save time (mcp/notion_connector.py). Empty for a record saved before
     # "Routine Message"/"Diet Message" existed -- that section just
     # doesn't render, same degrade-gracefully spirit as every other
     # best-effort read here.
     mensaje_rutina = registro.get("mensaje_rutina")
     mensaje_dieta = registro.get("mensaje_dieta")
-    if mensaje_rutina or mensaje_dieta:
-        with st.expander(t("portal_notes_header")):
-            if mensaje_rutina:
-                st.markdown(f"**{t('routine_label')}**")
-                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_rutina)))
-            if mensaje_dieta:
-                st.markdown(f"**{t('diet_label')}**")
-                st.markdown("\n".join(f"- {p}" for p in dividir_en_puntos(mensaje_dieta)))
 
     # "plan_semanal"/"sesiones" are empty for a record saved before those
     # properties existed -- degrades to no section at all, same spirit as
@@ -3966,48 +4061,60 @@ def _vista_portal_cliente(codigo: str) -> None:
     plan_semanal = registro.get("plan_semanal") or []
     sesiones = registro.get("sesiones") or []
 
-    if plan_semanal:
-        with st.expander(t("portal_meals_header"), expanded=True):
+    # Fetched once here (not inside _render_historial_checkins(), which
+    # still does its own separate fetch for the trend chart/digest -- a
+    # pre-existing, small redundancy this doesn't add to) so both the
+    # Home tab and the Check-in tab's banner can use the same result
+    # without a second Notion round-trip for the SAME thing. Best-effort,
+    # same degrade-on-error spirit as every other Notion read here -- a
+    # failure just skips the banner, never blocks anything else.
+    try:
+        fecha_checkin_semana = _fecha_checkin_esta_semana(historial_checkins(carga["email"]))
+    except (NotionClientError, ImportError, ModuleNotFoundError):
+        fecha_checkin_semana = None
+
+    # st.tabs replaces the old stack of independently-collapsed
+    # st.expander sections -- a persistent nav bar instead of a long page
+    # of accordions ("sinergia entera modo app, fácil e intuitivo"). key=
+    # + on_change="rerun" makes the active tab trackable/settable via
+    # st.session_state, which is what lets the Home tab's "Ver comidas →"
+    # etc. buttons jump straight to another tab (_ir_a_pestana_portal()).
+    etiqueta_home, etiqueta_comidas, etiqueta_rutina, etiqueta_checkin, etiqueta_progreso = (
+        t("portal_tab_home"), t("portal_tab_meals"), t("portal_tab_routine"),
+        t("portal_tab_checkin"), t("portal_tab_progress"),
+    )
+    tab_home, tab_comidas, tab_rutina, tab_checkin, tab_progreso = st.tabs(
+        [etiqueta_home, etiqueta_comidas, etiqueta_rutina, etiqueta_checkin, etiqueta_progreso],
+        key="portal_tab_activa", default=etiqueta_home, on_change="rerun",
+    )
+
+    with tab_home:
+        _render_portal_home(registro, plan_semanal, sesiones, fecha_checkin_semana, mensaje_rutina, mensaje_dieta)
+
+    with tab_comidas:
+        if plan_semanal:
             st.caption(t("portal_meals_caption"))
             _render_swipe_comidas(
                 plan_semanal, registro.get("comidas_favoritas") or [], registro.get("comidas_no_deseadas") or [],
                 carga["pagina"],
             )
+            # Computed on the fly from plan_semanal (already read above), not
+            # a separately stored Notion property -- direct feature idea
+            # grounded in competitor research (Harbiz auto-generates a
+            # shopping list from its nutrition plans), see
+            # generar_lista_compra()'s own docstring. Collapsed by default --
+            # a client opens Meals far more often than they go shopping
+            # mid-session.
+            lista_compra = generar_lista_compra(plan_semanal, st.session_state.lang)
+            if lista_compra:
+                with st.expander(t("shopping_list_header")):
+                    st.caption(t("shopping_list_caption"))
+                    _render_lista_compra(lista_compra)
+        else:
+            st.caption(t("portal_meals_empty"))
 
-        # Computed on the fly from plan_semanal (already read above), not a
-        # separately stored Notion property -- direct feature idea grounded
-        # in competitor research (Harbiz auto-generates a shopping list
-        # from its nutrition plans), see generar_lista_compra()'s own
-        # docstring. Collapsed by default -- a client opens Meals far more
-        # often than they go shopping mid-session.
-        lista_compra = generar_lista_compra(plan_semanal, st.session_state.lang)
-        if lista_compra:
-            with st.expander(t("shopping_list_header")):
-                st.caption(t("shopping_list_caption"))
-                _render_lista_compra(lista_compra)
-
-    # Moved up to right after Meals (was the very last section, after
-    # Routine/History) and given its own highlighted border (see
-    # _inyectar_estilos()'s "st-key-portal-checkin-highlight" rule) -- direct
-    # request to make this "MAS destacado": logging a check-in is the other
-    # primary reason to visit this page, on equal footing with Meals, not
-    # something a client has to scroll past two more sections to reach.
-    checkin_expander = st.expander(t("portal_checkin_header"), expanded=True, key="portal-checkin-highlight")
-    checkin_expander.markdown(t("portal_checkin_intro"))
-    with checkin_expander:
-        # Best-effort, same degrade-on-error spirit as every other Notion
-        # read here -- a failure just skips the banner, never blocks the
-        # form itself from rendering.
-        try:
-            fecha_checkin_semana = _fecha_checkin_esta_semana(historial_checkins(carga["email"]))
-        except (NotionClientError, ImportError, ModuleNotFoundError):
-            fecha_checkin_semana = None
-        if fecha_checkin_semana:
-            st.success(t("portal_checkin_done_this_week").format(fecha=fecha_checkin_semana))
-        _render_formulario_checkin_portal(carga, registro, sesiones)
-
-    if sesiones:
-        with st.expander(t("portal_routine_header")):
+    with tab_rutina:
+        if sesiones:
             # Same card treatment as the meal section (bordered container +
             # hover-lift CSS, see _inyectar_estilos()) -- direct request
             # ("hazlo mas bonito visualmente"), and shows the full session
@@ -4017,13 +4124,21 @@ def _vista_portal_cliente(codigo: str) -> None:
             # once -- direct request ("extender el selector de días tipo
             # pill a la sección de Rutina").
             _render_dias_rutina(sesiones)
+        else:
+            st.caption(t("portal_routine_empty"))
 
-    # Same row-formatting logic the trainer's own panel already uses (see
-    # _render_historial_checkins()) -- a client only ever sees their own
-    # history (carga["email"] comes from the resolved reference, never
-    # typed in), same best-effort degrade-on-error behavior as everywhere
-    # else here.
-    with st.expander(t("portal_history_header")):
+    with tab_checkin:
+        st.markdown(t("portal_checkin_intro"))
+        if fecha_checkin_semana:
+            st.success(t("portal_checkin_done_this_week").format(fecha=fecha_checkin_semana))
+        _render_formulario_checkin_portal(carga, registro, sesiones)
+
+    with tab_progreso:
+        # Same row-formatting logic the trainer's own panel already uses
+        # (see _render_historial_checkins()) -- a client only ever sees
+        # their own history (carga["email"] comes from the resolved
+        # reference, never typed in), same best-effort degrade-on-error
+        # behavior as everywhere else here.
         _render_historial_checkins(carga["email"], registro.get("objetivo"))
 
 def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: list[dict]) -> None:

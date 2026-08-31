@@ -1577,6 +1577,37 @@ a dinner still reads a little unusual, just not nonsensical the way
 instead of independent per-category sampling, scoped as a possible later
 phase, not done here.
 
+**Client portal redesign, direct request ("sinergia entera modo app, fácil e
+intuitivo"):** the old design was a stack of independently-collapsed
+`st.expander` sections a client scrolled through one at a time. Replaced with
+`st.tabs` (🏠 Home · 🍽️ Meals · 🏋️ Routine · ✅ Check-in · 📈 Progress) --
+a persistent nav bar instead of a scroll of accordions -- plus a brand new
+Home tab (`_render_portal_home()`) that surfaces a check-in-this-week
+status, the trainer's notes, and TODAY's meals/session as two compact cards
+(reusing the same "today" logic the meal/routine sections already compute --
+see the earlier "Hoy toca" entry above), each with a "See meals →"/
+"See routine →" button that jumps straight to that tab
+(`_ir_a_pestana_portal()`). Every existing section's own internals
+(swipe-through meal cards, day-pill routine picker, check-in form, adherence
+history/digest) are unchanged -- only the outer container moved from
+`st.expander` to a `st.tabs` panel. A real crash was caught live during this
+same session's own verification, not by the test suite (`ui/app.py` is
+deliberately excluded from it, same convention as ever): `st.tabs(key=...,
+on_change="rerun")` tracks its active tab in `st.session_state[key]`, and
+`StreamlitAPIException` fires if that key is written to AFTER the widget
+already ran earlier in the same script pass -- exactly what the jump
+buttons were doing (calling the state-setting function after checking
+`st.button(...)`'s own return value, from INSIDE the tab body that runs
+after `st.tabs()`). Fixed by making it a button `on_click` callback instead
+(callbacks run, and can freely set session_state, before the next script
+pass reaches `st.tabs()` again) -- confirmed live afterward that all three
+jump buttons work with no crash, in both languages, against both real
+Notion test clients (NURIA: fresh data with the no-cook/quick-cook badges
+and per-meal picks; PEPE: an older record, plus real Check-ins history
+showing the monthly digest rendering correctly inside the new Progress
+tab). 622 tests passing, lint clean -- no rule-engine files touched, so no
+`examples/output_*.json` regeneration needed.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
