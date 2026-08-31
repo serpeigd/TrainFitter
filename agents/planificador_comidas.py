@@ -226,6 +226,24 @@ NOMBRES_PLATO_CURADOS = {
         "es": "Pescado al horno con patatas", "en": "Baked fish with potatoes",
     },
     ("Rice", "White fish (hake, sole)"): {"es": "Pescado a la plancha con arroz", "en": "Grilled fish with rice"},
+    # Added alongside the "franjas" fix (see food_bank.py's own DESIGN note)
+    # -- these combos only became common now that breakfast/snack protein
+    # and carb picks are actually breakfast-appropriate, instead of
+    # sometimes landing on something like lentils or broccoli.
+    ("Assorted fruit", "Greek yogurt / whipped fresh cheese"): {
+        "es": "Yogur griego con fruta", "en": "Greek yogurt with fruit",
+    },
+    ("Oats", "Protein powder (plant-based)"): {"es": "Porridge de avena con proteína", "en": "Protein oatmeal"},
+    ("Assorted fruit", "Protein powder (plant-based)"): {
+        "es": "Batido de proteína con fruta", "en": "Fruit protein shake",
+    },
+    ("Whole wheat pasta", "Salmon / oily fish"): {"es": "Pasta integral con salmón", "en": "Salmon pasta"},
+    ("Quinoa", "Chicken breast"): {"es": "Bowl de pollo y quinoa", "en": "Chicken and quinoa bowl"},
+    ("Potato / sweet potato", "Tofu"): {"es": "Tofu con boniato asado", "en": "Tofu with roasted sweet potato"},
+    ("Whole wheat pasta", "Tofu"): {"es": "Pasta integral con tofu", "en": "Tofu pasta"},
+    ("Rice", "Turkey"): {"es": "Pavo salteado con arroz", "en": "Turkey stir-fry with rice"},
+    ("Quinoa", "Lentils"): {"es": "Quinoa con lentejas", "en": "Lentil quinoa bowl"},
+    ("Potato / sweet potato", "Turkey"): {"es": "Pavo asado con patatas", "en": "Roast turkey with potatoes"},
 }
 
 
@@ -257,43 +275,31 @@ PESO_KCAL_SNACK = 0.5
 # docstring); breakfast/lunch/snacks share the rest, weighted toward lunch.
 PESO_GRASA_POR_COMIDA = {"desayuno": 0.10, "comida": 0.25, "cena": 0.55, "snack": 0.10}
 
-# Whole-cut savory proteins/fats read oddly as a "breakfast" or "snack"
-# item (a plain rng.choice() across the full candidate pool picked "salmon
-# + potato + salad" for a snack while this module was being built -- not
-# unsafe, just an unrealistic-looking suggestion). Excluded from
-# desayuno/snack's own candidate pool specifically, falling back to the
-# unfiltered pool only if that exclusion would leave nothing to choose
-# from (never happens today -- every diet type always keeps at least
-# eggs/yogurt/legumes/tofu for protein and olive oil/avocado/nuts/seeds
-# for fat -- but this guards a future food-bank entry from ever making
-# desayuno/snack unsatisfiable).
-PROTEINAS_POCO_TIPICAS_PARA_COMIDA_LIGERA = {
-    "Chicken breast", "Turkey", "Lean beef", "White fish (hake, sole)", "Salmon / oily fish",
-}
-GRASAS_POCO_TIPICAS_PARA_COMIDA_LIGERA = {"Oily fish (EPA/DHA)"}
-
-# The reverse problem, caught by generating a real week and looking at it
-# (not by reading the code): "Assorted fruit" is low enough in kcal/100g
-# that solving for lunch/dinner's carb kcal budget from it alone produced
-# absurd portions (500g+ of fruit as a dinner side). Excluded from
-# comida/cena's own carb candidate pool specifically -- it stays available
-# for desayuno/snack, where the smaller kcal budget keeps its portion
-# plausible (closer to a real piece or two of fruit).
-CARBOHIDRATOS_POCO_DENSOS_PARA_COMIDA_PRINCIPAL = {"Assorted fruit"}
-
-
-def _candidatos_para_comida_principal(candidatos: dict) -> dict:
-    carbohidrato_denso = [c for c in candidatos["carbohidrato"] if c not in CARBOHIDRATOS_POCO_DENSOS_PARA_COMIDA_PRINCIPAL]
-    return {**candidatos, "carbohidrato": carbohidrato_denso or candidatos["carbohidrato"]}
-
-
-def _candidatos_para_comida_ligera(candidatos: dict) -> dict:
-    proteina_ligera = [c for c in candidatos["proteina"] if c not in PROTEINAS_POCO_TIPICAS_PARA_COMIDA_LIGERA]
-    grasa_ligera = [c for c in candidatos["grasa"] if c not in GRASAS_POCO_TIPICAS_PARA_COMIDA_LIGERA]
+# Real, reported bug ("avena + lentejas" makes no sense, and a live-
+# verified case of broccoli turning up as a breakfast "fruit"): a plain
+# rng.choice() across each category's FULL candidate pool doesn't know a
+# lentil stew isn't a breakfast food, or that broccoli isn't a fruit.
+# food_bank.py's curated "franjas" tag (defaults to {"principal"} -- see
+# its own DESIGN note) now governs every category uniformly. This
+# replaces three narrower, category-specific fixes that used to live
+# here separately: whole-cut savory proteins/fats excluded from
+# desayuno/snack, dense fruit excluded from comida/cena's carb pool, and
+# -- the actual gap that let broccoli slip in -- no filter on vegetables
+# at all.
+def _candidatos_para_franja(candidatos: dict, franja: str) -> dict:
+    """Filters every food category (protein/carb/fat/veg) down to foods
+    tagged appropriate for this meal-slot franja ("desayuno" covers both
+    breakfast and snack; "principal" covers lunch and dinner). Falls back
+    to the unfiltered list, per category, whenever that filter would
+    leave nothing to choose from (never happens today -- every diet type
+    keeps at least eggs/yogurt/protein-powder for desayuno protein and
+    olive oil/avocado/nuts/seeds for desayuno fat -- but this guards a
+    future food-bank entry from ever making a franja unsatisfiable)."""
     return {
-        **candidatos,
-        "proteina": proteina_ligera or candidatos["proteina"],
-        "grasa": grasa_ligera or candidatos["grasa"],
+        categoria: (
+            [c for c in lista if franja in INDICE_ALIMENTOS[c].get("franjas", {"principal"})] or lista
+        )
+        for categoria, lista in candidatos.items()
     }
 
 
@@ -586,18 +592,17 @@ def _construir_comida(
     same protein+carb+fat pick is the case being avoided, even though
     they're different slots."""
     aplicar_sinergias = nivel_compromiso in ("avanzado", "tryhard")
-    # Both filters are about kcal *budget* size, not meal identity: a snack
-    # (small budget) is the only slot small enough that "Assorted fruit"
-    # alone still yields a plausible portion as its carb pick, so
-    # _candidatos_para_comida_principal() applies to every OTHER slot,
-    # breakfast included -- the same 500g-of-fruit-for-breakfast problem
-    # showed up there too before this covered it. _candidatos_para_comida_
-    # ligera() is the opposite split: only breakfast/snack are "light"
-    # meals, lunch/dinner keep the full protein/fat pool.
-    if tipo in {"desayuno", "snack"}:
-        candidatos = _candidatos_para_comida_ligera(candidatos)
-    if tipo != "snack":
-        candidatos = _candidatos_para_comida_principal(candidatos)
+    # See _candidatos_para_franja()'s own docstring for the bug this fixes.
+    # "desayuno" covers both breakfast and snack (the same "light meal"
+    # bucket this module has always treated them as); everything else is
+    # "principal". A real, secondary fix that fell out of unifying this:
+    # "Assorted fruit" is now correctly available as a main carb pick at
+    # BOTH desayuno and snack (its comment always said it should be), not
+    # just snack -- the two-condition version this replaced accidentally
+    # ran desayuno through the lunch/dinner-only filter too and excluded
+    # it there, contradicting that same comment.
+    franja = "desayuno" if tipo in {"desayuno", "snack"} else "principal"
+    candidatos = _candidatos_para_franja(candidatos, franja)
 
     # Soft-preference bias (antiinflamatorio/magnesio/fibra_alta -- see
     # SESGO_POR_PREFERENCIA) applies on top of the realism filters above,

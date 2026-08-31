@@ -113,6 +113,26 @@ since they're not exotic there, they're often necessary. Natto stays
 plain "nicho" (unconditionally tryhard-only): being unusual has nothing
 to do with diet type there, unlike these soy/gluten protein alternatives.
 
+DESIGN — "franjas" (real, reported bug: "avena + lentejas", and a live-
+verified case of broccoli turning up as a breakfast "fruit" -- neither
+is unsafe, just nonsensical): which meal slots a food is a realistic
+candidate for, "desayuno" (covers breakfast AND snack -- the same two
+slots planificador_comidas.py already treats as one "light meal" bucket)
+and/or "principal" (lunch/dinner). Defaults to `{"principal"}` via
+`.get("franjas", {"principal"})` -- the safer assumption when a food
+isn't explicitly marked breakfast-appropriate, same "restrictive is the
+safe default" convention as "sin_coccion" below. Only foods that are
+genuinely breakfast-appropriate (eggs, yogurt, oats, bread, fruit,
+protein powder, and every fat -- olive oil/avocado/nuts/seeds/algae oil
+read as fine at either meal) carry an explicit tag; every savory
+protein, starchy carb, and vegetable defaults to "principal" only, no
+per-entry edit needed. planificador_comidas.py's _candidatos_para_franja()
+applies this uniformly across ALL four categories (protein/carb/fat/veg)
+-- replacing three narrower, category-specific exclusion sets it used to
+be split across (savory meats out of breakfast, dense fruit out of
+mains, and -- the gap that let broccoli slip in as a "breakfast fruit"
+-- no filter on vegetables at all).
+
 DESIGN — "sin_coccion" (no-cook, added for the portal's meal prep-time/
 difficulty badge -- direct feature idea from competitor research, a
 coaching app's per-recipe kcal/prep-time/difficulty cards): a curated,
@@ -161,12 +181,13 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Eggs", "nombre_es": "Huevos",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"huevo"}, "sinergias": set(),
+        "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 155, "proteina_g": 13, "carbohidratos_g": 1.1, "grasa_g": 11},
     },
     {
         "nombre": "Greek yogurt / whipped fresh cheese", "nombre_es": "Yogur griego / queso fresco batido",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}, "sinergias": {"probiotico"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno"},
         "macros_100g": {"kcal": 59, "proteina_g": 10, "carbohidratos_g": 3.6, "grasa_g": 0.4},
     },
     {
@@ -217,7 +238,7 @@ FUENTES_PROTEINA = [
         # the one specific brand/type recommended over any other.
         "nombre": "Protein powder (plant-based)", "nombre_es": "Proteína en polvo (vegetal)",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
-        "comun": False, "nicho_omnivoro": True, "sin_coccion": True,
+        "comun": False, "nicho_omnivoro": True, "sin_coccion": True, "franjas": {"desayuno"},
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },
     {
@@ -247,7 +268,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Oats", "nombre_es": "Avena",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten_trazas"},
-        "sinergias": {"prebiotico_fibra", "magnesio", "fibra_alta"},
+        "sinergias": {"prebiotico_fibra", "magnesio", "fibra_alta"}, "franjas": {"desayuno"},
         "macros_100g": {"kcal": 389, "proteina_g": 16.9, "carbohidratos_g": 66, "grasa_g": 6.9},
     },
     {
@@ -258,7 +279,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Whole wheat bread", "nombre_es": "Pan integral",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 247, "proteina_g": 13, "carbohidratos_g": 41, "grasa_g": 3.4},
     },
     {
@@ -280,7 +301,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Assorted fruit", "nombre_es": "Fruta variada",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno"},
         "macros_100g": {"kcal": 60, "proteina_g": 0.5, "carbohidratos_g": 15, "grasa_g": 0.2},
     },
     {
@@ -294,25 +315,25 @@ FUENTES_GRASA = [
     {
         "nombre": "Extra virgin olive oil", "nombre_es": "Aceite de oliva virgen extra",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
     {
         "nombre": "Avocado", "nombre_es": "Aguacate",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "fibra_alta"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 160, "proteina_g": 2, "carbohidratos_g": 8.5, "grasa_g": 15},
     },
     {
         "nombre": "Nuts (walnuts, almonds)", "nombre_es": "Frutos secos (nueces, almendras)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"frutos_secos"},
-        "sinergias": {"antiinflamatorio", "magnesio"}, "sin_coccion": True,
+        "sinergias": {"antiinflamatorio", "magnesio"}, "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 600, "proteina_g": 20, "carbohidratos_g": 15, "grasa_g": 52},
     },
     {
         "nombre": "Seeds (chia, flax)", "nombre_es": "Semillas (chía, lino)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "magnesio"},
-        "comun": False, "sin_coccion": True,
+        "comun": False, "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 500, "proteina_g": 18, "carbohidratos_g": 34, "grasa_g": 34},
     },
     # The one entry that ISN'T universally compatible -- omnivore only.
@@ -329,7 +350,7 @@ FUENTES_GRASA = [
     {
         "nombre": "Algae oil (vegan omega-3)", "nombre_es": "Aceite de algas (omega-3 vegano)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"}, "nicho": True,
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
 ]
@@ -383,13 +404,13 @@ FUENTES_VERDURA = [
     {
         "nombre": "Kiwi", "nombre_es": "Kiwi",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 61, "proteina_g": 1.1, "carbohidratos_g": 15, "grasa_g": 0.5},
     },
     {
         "nombre": "Citrus (orange, lemon)", "nombre_es": "Cítricos (naranja, limón)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
-        "sin_coccion": True,
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 47, "proteina_g": 0.9, "carbohidratos_g": 12, "grasa_g": 0.1},
     },
     {

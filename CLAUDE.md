@@ -1537,6 +1537,46 @@ don't -- graceful degradation confirmed, not just assumed -- and his
 real Check-ins history rendered the digest correctly in Spanish:
 "Últimos 30 días: 2 check-ins, adherencia con tendencia baja."
 
+**A real, reported meal-coherence bug fixed the same day: "avena +
+lentejas" makes no sense, and generation could nonsensically produce it.**
+Root cause: `_construir_comida()` picked protein/carb/fat fully
+independently via `rng.choice()` per category, with only two narrow,
+one-off exclusions (whole-cut meats out of breakfast; dense fruit out of
+main-meal carbs) -- nothing stopped a lentil stew, or any other savory
+main-meal protein, from landing at breakfast. A second, worse instance of
+the same root cause was caught live during this session's own
+verification: `candidatos["verdura"]` was never filtered by meal slot at
+all, so a real generated plan put 80g of broccoli in a breakfast "fruit"
+slot. Fixed by replacing the two narrow, category-specific filters with
+one general mechanism: a new curated `"franjas"` tag in `food_bank.py`
+(same "nicho"/"comun"/"sin_coccion" convention -- defaults to
+`{"principal"}`, the safer assumption, so only the handful of genuinely
+breakfast-appropriate foods -- eggs, yogurt, oats, bread, fruit, protein
+powder, every fat, kiwi/citrus -- need an explicit tag) plus
+`planificador_comidas._candidatos_para_franja()`, applied uniformly to
+ALL four categories (protein/carb/fat/veg) instead of two ad-hoc
+functions covering three of them. A genuine secondary bug fell out of
+unifying this: "Assorted fruit" was being accidentally excluded from
+breakfast too (only snack), contradicting its own comment -- now
+available at both, as originally intended. `NOMBRES_PLATO_CURADOS` also
+grew ~10 entries (yogurt+fruit, protein oatmeal, fruit protein shake,
+salmon pasta, chicken quinoa bowl, ...) covering combinations that only
+became common once breakfast/snack picks are actually
+breakfast-appropriate. 622 tests passing (up from 617; new regression
+tests lock in that breakfast never gets a legume/soy/meat protein, a
+starchy/savory carb, or a savory vegetable as its fruit slot, and that
+lunch/dinner never gets oats), lint clean, `examples/output_dieta_*.json`
+regenerated for all three example clients -- reading the real regenerated
+output directly (not just the tests) confirms it: no more legume/savory-
+vegetable breakfasts anywhere, every meal's protein+carb pairing is at
+least plausible now, though not yet curated-recipe-quality across the
+board (a real, disclosed remaining softness -- e.g. "beef with bread" as
+a dinner still reads a little unusual, just not nonsensical the way
+"oats with lentils" was) -- closing that gap further would mean growing
+`NOMBRES_PLATO_CURADOS` into an actual constrained recipe-template bank
+instead of independent per-category sampling, scoped as a possible later
+phase, not done here.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

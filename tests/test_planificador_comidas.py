@@ -666,6 +666,81 @@ def test_lista_compra_empty_for_empty_plan():
     assert generar_lista_compra(None, "en") == []
 
 
+# --- franjas (real, reported bug: "avena + lentejas" / broccoli-as-breakfast) --
+
+
+PROTEINAS_SOLO_PRINCIPAL = {
+    "Chicken breast", "Turkey", "Lean beef", "White fish (hake, sole)", "Salmon / oily fish",
+    "Lentils", "Chickpeas", "Tofu", "Tempeh", "Edamame", "Seitan", "Natto",
+}
+CARBOHIDRATOS_SOLO_PRINCIPAL = {
+    "Rice", "Potato / sweet potato", "Quinoa", "Legumes (also a carb source)", "Farro",
+}
+VERDURAS_SOLO_PRINCIPAL = {
+    "Broccoli", "Spinach", "Red bell pepper", "Tomato", "Carrot", "Mixed salad greens", "Kimchi",
+}
+
+
+def _generar_muchos_planes(perfil_base, n=25):
+    for i in range(n):
+        perfil_base["id_cliente"] = f"franjas_test_{i}"
+        yield generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+
+
+def test_breakfast_never_gets_a_legume_or_soy_or_meat_protein(perfil_base):
+    """The exact reported bug class ("avena + lentejas" doesn't make
+    sense) -- a lentil stew, a whole-cut steak, etc. should never be
+    picked as a breakfast/snack protein."""
+    for plan in _generar_muchos_planes(perfil_base):
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] in ("desayuno", "snack"):
+                    assert comida["proteina"] not in PROTEINAS_SOLO_PRINCIPAL
+
+
+def test_breakfast_never_gets_a_starchy_or_savory_carb(perfil_base):
+    for plan in _generar_muchos_planes(perfil_base):
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] in ("desayuno", "snack"):
+                    assert comida["carbohidrato"] not in CARBOHIDRATOS_SOLO_PRINCIPAL
+
+
+def test_breakfast_never_gets_a_savory_vegetable_as_its_fruit_slot(perfil_base):
+    """Real, live-caught bug: candidatos["verdura"] was never filtered by
+    meal slot at all, so a real generated plan once put 80g of broccoli
+    in a breakfast. Only real fruit (Kiwi, Citrus) should ever fill
+    desayuno/snack's "verdura" slot now."""
+    for plan in _generar_muchos_planes(perfil_base):
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] in ("desayuno", "snack") and comida["verdura"]:
+                    assert comida["verdura"] not in VERDURAS_SOLO_PRINCIPAL
+
+
+def test_lunch_and_dinner_never_get_oats_as_their_carb(perfil_base):
+    for plan in _generar_muchos_planes(perfil_base):
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] in ("comida", "cena"):
+                    assert comida["carbohidrato"] != "Oats"
+
+
+def test_assorted_fruit_is_available_as_a_breakfast_or_snack_carb(perfil_base):
+    """Secondary fix that fell out of unifying the old two-condition
+    filter into one: "Assorted fruit" was being accidentally excluded
+    from desayuno too (only snack), contradicting its own comment.
+    Statistical existence check (same discipline as the no-cook/quick-
+    cook badge tests) that it's now reachable at desayuno specifically."""
+    encontrado = False
+    for plan in _generar_muchos_planes(perfil_base, n=40):
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["tipo_interno"] == "desayuno" and comida["carbohidrato"] == "Assorted fruit":
+                    encontrado = True
+    assert encontrado, "expected 'Assorted fruit' to appear as a breakfast carb across 40 clients"
+
+
 # --- requiere_coccion (portal no-cook/quick-cook badge) --------------------
 
 
