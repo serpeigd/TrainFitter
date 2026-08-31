@@ -4072,7 +4072,12 @@ def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: lis
     try:
         crear_registro_checkin(
             carga["email"], nombre, "Adherence check-in", datetime.now(timezone.utc).date().isoformat(),
-            notas=resumir_adherencia(datos), valoracion=valoracion, peso_kg=peso_kg,
+            # Real, reported bug: resumir_adherencia() used to always
+            # label this in English regardless of the client's own plan
+            # language -- st.session_state.lang is already set to that
+            # language for this whole portal view (see
+            # _vista_portal_cliente()).
+            notas=resumir_adherencia(datos, st.session_state.lang), valoracion=valoracion, peso_kg=peso_kg,
         )
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_submit_error").format(error=str(exc)))

@@ -46,10 +46,12 @@ from adherencia_parser import checklist_tiene_contenido_real, resumir_adherencia
 from gmail_client import GmailClientError, buscar_intakes_nuevos, buscar_respuestas_adherencia  # noqa: E402
 from notion_connector import (  # noqa: E402
     NotionClientError,
+    buscar_cliente_por_email,
     crear_registro_checkin,
     existe_checkin_para_mensaje,
     existe_cliente_para_mensaje,
     guardar_registro_cliente,
+    obtener_registro_cliente,
 )
 from orchestrator import ejecutar_pipeline  # noqa: E402
 from pdf_generador import leer_checklist_pdf  # noqa: E402
@@ -87,6 +89,20 @@ def procesar_adherencia() -> None:
             print(f"Skipping {respuesta['id_mensaje']} from {respuesta['remitente']}: checklist looks blank.")
             continue
 
+        # Real, reported bug: resumir_adherencia() used to always label
+        # this in English -- best-effort lookup of the client's own saved
+        # "Language" (see notion_connector.py's "Language" DESIGN note),
+        # defaulting to "en" on any failure (a client not found, or any
+        # Notion error) rather than blocking this check-in from being
+        # logged over a label-language lookup.
+        idioma_cliente = "en"
+        try:
+            coincidencia = buscar_cliente_por_email(respuesta["remitente"])
+            if coincidencia:
+                idioma_cliente = obtener_registro_cliente(coincidencia["id"]).get("idioma") or "en"
+        except NotionClientError:
+            pass
+
         # Gmail only gives us the sender's address here, not the name on
         # file in Notion's Clients database -- the address is still a
         # perfectly fine row title, and it's the actual join key back to
@@ -97,7 +113,7 @@ def procesar_adherencia() -> None:
                 nombre_cliente=respuesta["remitente"],
                 tipo="Adherence check-in",
                 fecha=respuesta["fecha"],
-                notas=resumir_adherencia(datos),
+                notas=resumir_adherencia(datos, idioma_cliente),
                 valoracion=datos["valoracion"],
                 id_mensaje=respuesta["id_mensaje"],
             )

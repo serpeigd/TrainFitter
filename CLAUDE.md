@@ -1451,6 +1451,35 @@ locally. Verified by code review instead (the success branches no
 longer `return True`, so control falls through to the same button block
 every other case already renders) -- disclosed, not glossed over.
 
+A real, reported mixed-language bug: the trainer notification email sent
+when a client submits a portal check-in ("Juan acaba de enviar un
+check-in... Routine: 3/3 sessions completed...") mixed Spanish (the
+email's own wrapper text, the client's free-text notes) with English
+(`resumir_adherencia()`'s "Routine:"/"Diet:" labels,
+`sugerencia_seguimiento()`'s suggestion line) -- neither function took an
+`idioma` parameter at all, unlike every other text-generating function in
+this module (`tendencia_peso()` already did). Both fixed to accept
+`idioma` ("en" default, unchanged for every existing untouched caller)
+and localize their output; `_construir_cuerpo_notificacion_checkin()`
+itself was already correctly bilingual and needed no change. Fixed at
+all three call sites: `gmail_client.enviar_notificacion_checkin()` (the
+reported bug itself, `idioma` was already in scope there and simply
+wasn't threaded through), the portal's own check-in form in `ui/app.py`
+(`st.session_state.lang`, already the client's plan language), and
+`main.py`'s scheduled inbox scan (no client profile in scope at that
+point -- added a best-effort `buscar_cliente_por_email()` +
+`obtener_registro_cliente()` lookup for the saved "Language" property,
+defaulting to "en" on any failure rather than blocking the check-in from
+being logged). `ejecutar_pipeline()`'s own default language for a
+brand-new automated intake (`main.py`'s other job,
+`procesar_intakes_nuevos()`) was deliberately left untouched -- that's a
+different, pre-existing, accepted default (the trainer reviews and can
+regenerate in Spanish before anything is ever sent), not an instance of
+this bug. 603 tests passing (up from 599), lint clean. Verified directly
+against the exact reported example (Juan, 3/3 routine, 0/3 diet, "Solo
+hay legumbre, añade variedad") -- the reconstructed notification body is
+now fully Spanish end to end.
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

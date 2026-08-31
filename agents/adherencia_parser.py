@@ -41,7 +41,7 @@ def valoracion_desde_ratios(ratios: list[float]) -> str | None:
     return "Low"
 
 
-def sugerencia_seguimiento(valoracion: str | None) -> str:
+def sugerencia_seguimiento(valoracion: str | None, idioma: str = "en") -> str:
     """A short, rule-based "what to consider next" line for the trainer --
     used by ui/app.py's portal check-in notification email
     (see mcp/gmail_client.py's enviar_notificacion_checkin()). Same
@@ -50,7 +50,27 @@ def sugerencia_seguimiento(valoracion: str | None) -> str:
     it -- see docs/base_conocimiento/adherencia_y_cambio_de_conducta.md,
     the same evidence already backing this whole check-in loop's design
     (Lally et al. 2010 on a missed day not being a failure state is why
-    "Low" reads as "worth a conversation", not "the client failed")."""
+    "Low" reads as "worth a conversation", not "the client failed").
+
+    idioma: "en" (default) or "es" -- real, reported bug: this used to
+    always return English regardless of the client's own plan language,
+    so a Spanish client's portal check-in produced a trainer notification
+    email mixing Spanish (the client's own free-text notes) with English
+    (this line and resumir_adherencia()'s labels)."""
+    if idioma == "es":
+        if valoracion == "High":
+            return "La adherencia se ve sólida -- buen momento para plantear una pequeña progresión en el próximo ciclo."
+        if valoracion == "Medium":
+            return (
+                "Adherencia decente, pero vale la pena hacer un check-in rápido para ver qué está dificultando "
+                "las cosas antes de subir la exigencia."
+            )
+        if valoracion == "Low":
+            return (
+                "La adherencia es baja -- tómalo como una señal para simplificar el plan o abordar una barrera "
+                "real, no para forzar el progreso."
+            )
+        return "No hay suficientes datos en este check-in para valorar la adherencia -- considera hacer un seguimiento directo."
     if valoracion == "High":
         return "Adherence looks strong -- a good moment to consider a small progression next cycle."
     if valoracion == "Medium":
@@ -88,16 +108,24 @@ def checklist_tiene_contenido_real(datos: dict) -> bool:
     return False
 
 
-def resumir_adherencia(datos: dict) -> str:
+def resumir_adherencia(datos: dict, idioma: str = "en") -> str:
     """Turns leer_checklist_pdf()'s structured output into the short plain-
-    text summary main.py saves as a Check-ins "Adherence notes" property.
+    text summary main.py saves as a Check-ins "Adherence notes" property
+    (and ui/app.py's portal check-in form reuses for the same field).
     Pure formatting, no I/O.
 
     Args:
         datos: {"dias_rutina_completados", "dias_rutina_totales",
             "notas_rutina", "dias_dieta_seguidos", "dias_dieta_totales",
             "notas_dieta"} -- see pdf_generador.leer_checklist_pdf().
+        idioma: "en" (default) or "es" -- real, reported bug: these labels
+            used to always be English regardless of the client's own plan
+            language, so a Spanish client's check-in mixed English labels
+            with their own Spanish free-text notes in the same summary
+            (both here and in the trainer notification email built from
+            it -- see sugerencia_seguimiento()'s matching fix).
     """
+    etiquetas = _ETIQUETAS_RESUMEN[idioma]
     partes = []
     # dias_rutina_totales == 0 means no routine checkboxes were found at
     # all (e.g. the checklist PDF's routine section was left completely
@@ -106,17 +134,37 @@ def resumir_adherencia(datos: dict) -> str:
     # routine data in this reply", so the line is skipped entirely instead,
     # same as the diet line already does below.
     if datos["dias_rutina_totales"]:
-        partes.append(f"Routine: {datos['dias_rutina_completados']}/{datos['dias_rutina_totales']} sessions completed.")
+        partes.append(
+            etiquetas["rutina"].format(
+                completados=datos["dias_rutina_completados"], totales=datos["dias_rutina_totales"],
+            )
+        )
     if datos["notas_rutina"]:
-        partes.append(f"Routine notes: {datos['notas_rutina']}")
+        partes.append(f"{etiquetas['notas_rutina']}: {datos['notas_rutina']}")
 
     if datos["dias_dieta_totales"]:
         seguidos = datos["dias_dieta_seguidos"] if datos["dias_dieta_seguidos"] is not None else "?"
-        partes.append(f"Diet: {seguidos}/{datos['dias_dieta_totales']} days followed.")
+        partes.append(etiquetas["dieta"].format(seguidos=seguidos, totales=datos["dias_dieta_totales"]))
     if datos["notas_dieta"]:
-        partes.append(f"Diet notes: {datos['notas_dieta']}")
+        partes.append(f"{etiquetas['notas_dieta']}: {datos['notas_dieta']}")
 
     return " ".join(partes)[:2000]  # Notion rich_text limit, same truncation as notion_connector.py
+
+
+_ETIQUETAS_RESUMEN = {
+    "en": {
+        "rutina": "Routine: {completados}/{totales} sessions completed.",
+        "notas_rutina": "Routine notes",
+        "dieta": "Diet: {seguidos}/{totales} days followed.",
+        "notas_dieta": "Diet notes",
+    },
+    "es": {
+        "rutina": "Rutina: {completados}/{totales} sesiones completadas.",
+        "notas_rutina": "Notas de rutina",
+        "dieta": "Dieta: {seguidos}/{totales} días seguidos.",
+        "notas_dieta": "Notas de dieta",
+    },
+}
 
 
 # Only goals with an unambiguous expected weight direction get a trend

@@ -105,6 +105,42 @@ def test_sugerencia_low_points_toward_simplifying_not_pushing():
     assert "simplify" in sugerencia or "barrier" in sugerencia
 
 
+# --- Language: real, reported bug (mixed-language trainer notification) ---
+
+
+def test_summary_labels_are_translated_in_spanish():
+    resumen = resumir_adherencia(
+        _datos(notas_rutina="Molestia en la rodilla.", notas_dieta="Cuesta los findes."), idioma="es",
+    )
+    assert "Rutina: 3/4 sesiones completadas." in resumen
+    assert "Notas de rutina: Molestia en la rodilla." in resumen
+    assert "Dieta: 5/7 días seguidos." in resumen
+    assert "Notas de dieta: Cuesta los findes." in resumen
+    # No English label should leak through when idioma="es". ("Diet" is
+    # deliberately not checked as a bare substring -- it's contained
+    # inside "Dieta" itself.)
+    assert "Routine" not in resumen
+    assert "sessions completed" not in resumen
+    assert "days followed" not in resumen
+
+
+def test_summary_diet_blank_answer_in_spanish():
+    resumen = resumir_adherencia(_datos(dias_dieta_seguidos=None, dias_dieta_totales=7), idioma="es")
+    assert "Dieta: ?/7 días seguidos." in resumen
+
+
+def test_sugerencia_for_each_valoracion_is_distinct_and_non_empty_in_spanish():
+    sugerencias = {v: sugerencia_seguimiento(v, idioma="es") for v in ["High", "Medium", "Low", None]}
+    assert len(set(sugerencias.values())) == 4
+    assert all(sugerencias.values())
+
+
+def test_sugerencia_es_default_stays_english_for_backward_compatibility():
+    """No idioma argument passed -- every existing caller before this fix
+    keeps getting English until it's updated to pass idioma explicitly."""
+    assert sugerencia_seguimiento("High") == sugerencia_seguimiento("High", idioma="en")
+
+
 # --- checklist_tiene_contenido_real() (forward-tracking safety net) -------
 
 

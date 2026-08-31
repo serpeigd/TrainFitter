@@ -865,8 +865,11 @@ def enviar_notificacion_checkin(
     """
     from adherencia_parser import resumir_adherencia, sugerencia_seguimiento, tendencia_peso
 
-    resumen = resumir_adherencia(datos_checkin)
-    sugerencia = sugerencia_seguimiento(valoracion)
+    # Real, reported bug: neither of these took idioma before, so a
+    # Spanish client's check-in produced a notification mixing English
+    # labels/suggestions with the client's own Spanish free-text notes.
+    resumen = resumir_adherencia(datos_checkin, idioma)
+    sugerencia = sugerencia_seguimiento(valoracion, idioma)
     tendencia = tendencia_peso(historial, objetivo, idioma) if historial is not None else None
     asunto = (
         f"Nuevo check-in: {nombre_cliente}" if idioma == "es" else f"New check-in: {nombre_cliente}"
