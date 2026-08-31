@@ -664,3 +664,52 @@ def test_lista_compra_is_sorted_by_category_then_descending_weight():
 def test_lista_compra_empty_for_empty_plan():
     assert generar_lista_compra([], "en") == []
     assert generar_lista_compra(None, "en") == []
+
+
+# --- requiere_coccion (portal no-cook/quick-cook badge) --------------------
+
+
+def test_every_meal_has_a_requiere_coccion_flag(perfil_base):
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    for dia in plan:
+        for comida in dia["comidas"]:
+            assert comida["requiere_coccion"] in (True, False)
+
+
+def test_finds_both_no_cook_and_quick_cook_meals_across_many_clients(perfil_base):
+    """Statistical existence check (same discipline as
+    test_liked_meal_reappears_more_often_than_baseline): breakfast/snack
+    slots are the ones most likely to land on an all-"sin_coccion" combo
+    (e.g. yogurt + fruit + nuts), while lunch/dinner built around chicken,
+    lentils, rice etc. should reliably need cooking. Scanning enough
+    clients should find both outcomes -- proving _requiere_coccion() (via
+    _construir_comida()) actually reaches both branches, not just that it
+    never crashes."""
+    encontrado_no_cook = False
+    encontrado_cocina = False
+    for i in range(30):
+        perfil_base["id_cliente"] = f"coccion_test_{i}"
+        plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+        for dia in plan:
+            for comida in dia["comidas"]:
+                if comida["requiere_coccion"] is False:
+                    encontrado_no_cook = True
+                else:
+                    encontrado_cocina = True
+    assert encontrado_no_cook, "expected at least one no-cook meal (e.g. yogurt + fruit) across 30 clients"
+    assert encontrado_cocina, "expected at least one meal needing to cook (e.g. chicken + rice) across 30 clients"
+
+
+def test_a_meal_needs_cooking_if_any_pick_is_not_sin_coccion(perfil_base):
+    """Direct cross-check against food_bank.py's own tags: a real lunch/
+    dinner meal's protein and carb picks are virtually never BOTH tagged
+    "sin_coccion" in this bank (every whole-food protein needs cooking),
+    so every main-meal slot should read as needing to cook."""
+    plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    principales = [c for d in plan for c in d["comidas"] if c["tipo_interno"] in ("comida", "cena")]
+    assert principales
+    for comida in principales:
+        proteina_sin_coccion = INDICE_ALIMENTOS[comida["proteina"]].get("sin_coccion", False)
+        carbohidrato_sin_coccion = INDICE_ALIMENTOS[comida["carbohidrato"]].get("sin_coccion", False)
+        if not (proteina_sin_coccion and carbohidrato_sin_coccion):
+            assert comida["requiere_coccion"] is True

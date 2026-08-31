@@ -63,7 +63,8 @@
           "carbohidrato_alimento_g": 135,
           "grasa_alimento_g": 12,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -80,7 +81,8 @@
           "carbohidrato_alimento_g": 278,
           "grasa_alimento_g": 108,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -97,7 +99,8 @@
           "carbohidrato_alimento_g": 86,
           "grasa_alimento_g": 76,
           "verdura": "Spinach",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     },
@@ -119,7 +122,8 @@
           "carbohidrato_alimento_g": 253,
           "grasa_alimento_g": 43,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -136,7 +140,8 @@
           "carbohidrato_alimento_g": 253,
           "grasa_alimento_g": 29,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -153,7 +158,8 @@
           "carbohidrato_alimento_g": 253,
           "grasa_alimento_g": 43,
           "verdura": "Carrot",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     },
@@ -175,7 +181,8 @@
           "carbohidrato_alimento_g": 383,
           "grasa_alimento_g": 8,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -192,7 +199,8 @@
           "carbohidrato_alimento_g": 86,
           "grasa_alimento_g": 20,
           "verdura": "Tomato",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -209,7 +217,8 @@
           "carbohidrato_alimento_g": 253,
           "grasa_alimento_g": 76,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     },
@@ -231,7 +240,8 @@
           "carbohidrato_alimento_g": 86,
           "grasa_alimento_g": 12,
           "verdura": "Kiwi",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -248,7 +258,8 @@
           "carbohidrato_alimento_g": 86,
           "grasa_alimento_g": 29,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -265,7 +276,8 @@
           "carbohidrato_alimento_g": 135,
           "grasa_alimento_g": 237,
           "verdura": "Tomato",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": false
         }
       ]
     },
@@ -287,7 +299,8 @@
           "carbohidrato_alimento_g": 135,
           "grasa_alimento_g": 43,
           "verdura": "Kiwi",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -304,7 +317,8 @@
           "carbohidrato_alimento_g": 278,
           "grasa_alimento_g": 20,
           "verdura": "Carrot",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -321,7 +335,8 @@
           "carbohidrato_alimento_g": 269,
           "grasa_alimento_g": 237,
           "verdura": "Red bell pepper",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     },
@@ -343,7 +358,8 @@
           "carbohidrato_alimento_g": 135,
           "grasa_alimento_g": 14,
           "verdura": "Red bell pepper",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -360,7 +376,8 @@
           "carbohidrato_alimento_g": 135,
           "grasa_alimento_g": 29,
           "verdura": "Carrot",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -377,7 +394,8 @@
           "carbohidrato_alimento_g": 269,
           "grasa_alimento_g": 237,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     },
@@ -399,7 +417,8 @@
           "carbohidrato_alimento_g": 253,
           "grasa_alimento_g": 12,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -416,7 +435,8 @@
           "carbohidrato_alimento_g": 278,
           "grasa_alimento_g": 29,
           "verdura": "Kiwi",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -433,7 +453,8 @@
           "carbohidrato_alimento_g": 269,
           "grasa_alimento_g": 63,
           "verdura": "Tomato",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         }
       ]
     }

@@ -1480,6 +1480,63 @@ against the exact reported example (Juan, 3/3 routine, 0/3 diet, "Solo
 hay legumbre, añade variedad") -- the reconstructed notification body is
 now fully Spanish end to end.
 
+Three features requested directly, all grounded in competitor research
+(reels/stories from real coaching accounts the project owner shared,
+"empieza con la 1 y la 2 y 3"). **Free monthly digest**: new
+`agents/adherencia_parser.py` function `resumen_mensual_tendencia()`
+aggregates the last 30 days of the same Check-ins rows
+`_render_historial_checkins()` already fetches -- an adherence trend
+label (average of Low/Medium/High, same numeric mapping the UI's own
+trend chart uses) plus a weight delta -- and reproduces a paid coaching
+app's "AI Monthly Report" feature as a deterministic aggregation instead
+of an LLM call, honoring this project's free-only guardrail below.
+Rendered as a caption above the trend chart, shared by both the
+trainer's own adherence-history expander and the client portal's history
+section (one shared function, no duplicated surface). **"Hoy toca"
+(today's session/meal)**: the portal's meal picker now defaults to
+TODAY's actual weekday instead of always Monday -- `plan_semanal` is
+always Monday-first, 7 real weekday entries meant to repeat every week
+(see `generar_plan_semanal()`), so `datetime.now(timezone.utc).weekday()`
+indexes it exactly, no guessing needed. The routine section has no real
+weekday assignment at all (a client picks their own actual training
+days -- generic "Día 1"/"Día 2" labels), so `_sesion_sugerida_hoy()`
+spreads the plan's N sessions evenly across the week (Mon/Wed/Fri for a
+3-day plan, etc.) as a disclosed, deliberate approximation for a default
+landing view only, with an explicit caption saying so -- never presented
+as the client's real fixed schedule. Both sections show a small
+"📅 Today"/"📅 Hoy" tag next to the day heading when the shown day matches.
+**Meal prep-time/difficulty badges**: a new curated, opt-in
+`"sin_coccion"` tag in `food_bank.py` (same convention as "nicho"/
+"comun", defaults to `False` -- "needs cooking" is the safer assumption)
+marks foods genuinely eaten as-is (yogurt, fruit, raw vegetables, nuts,
+oils, bread); `planificador_comidas._requiere_coccion()` flags a whole
+MEAL "no cook" only when every one of its actual picks carries that tag,
+so a lunch/dinner built around chicken or lentils still correctly reads
+as needing to cook even with an all-raw side salad. Shown as a
+"🥣 No cook · ~5 min" / "🔥 Quick cook · ~15-20 min" caption on each
+portal meal card -- a deliberately coarse two-tier badge, not a
+per-recipe prep-time estimate this project has no real data for, same
+"estimate, don't fabricate precision" philosophy already stated for
+macros/micros elsewhere. `motor="llm"` doesn't get this field (its
+`plan_semanal` schema has no structured per-meal food picks to check
+tags against) -- same accepted engine asymmetry as the shopping list and
+same-day-combo guard; the badge rendering degrades to nothing for a plan
+saved before this field existed, same as every other optional field
+added to this project's meal dict over time. 617 tests passing (up from
+603), lint clean, `examples/output_dieta_*.json` regenerated (routine
+outputs untouched -- none of the three features touch routine
+generation). Verified live end-to-end against the real "NURIA" test
+client (regenerated fresh so her plan actually carries the new field):
+the meal section correctly landed on "Monday · 📅 Today" with badges
+("🔥 Quick cook" on breakfast/lunch/dinner, "🥣 No cook" on a
+protein-powder-and-bread snack), and the routine section landed on
+"Day 1 — Push · 📅 Today" with its disclosure caption. Also verified
+against the real "PEPE" test client (an OLDER saved plan, predating this
+field): the "Today" tags still render correctly, and the badges silently
+don't -- graceful degradation confirmed, not just assumed -- and his
+real Check-ins history rendered the digest correctly in Spanish:
+"Últimos 30 días: 2 check-ins, adherencia con tendencia baja."
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

@@ -550,6 +550,19 @@ def _describir_desayuno_o_snack(
     return descripcion
 
 
+def _requiere_coccion(nombres: list[str | None]) -> bool:
+    """Whether this meal needs a stove/oven at all -- True unless EVERY one
+    of its actual food picks (protein/carb/fat/veg, None slots skipped)
+    carries food_bank.py's curated "sin_coccion" tag. Drives the portal's
+    no-cook/quick-cook badge (see _construir_comida()'s "requiere_coccion"
+    field) -- a coarse, honest two-tier signal, not a per-recipe prep-time
+    estimate this project has no real data for. A lunch/dinner built
+    around chicken or lentils still (correctly) reads as needing to cook
+    even with an all-raw side salad, since those proteins/carbs aren't
+    tagged "sin_coccion"."""
+    return any(not INDICE_ALIMENTOS[nombre].get("sin_coccion", False) for nombre in nombres if nombre)
+
+
 def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
     preferencias: set[str], comidas_favoritas: list[dict], comidas_no_deseadas: list[dict],
@@ -740,6 +753,14 @@ def _construir_comida(
         "grasa_alimento_g": grasa["gramos"],
         "verdura": verdura_extra,
         "verdura_alimento_g": gramos_verdura_extra,
+        # Portal prep-time/difficulty badge -- direct feature idea from
+        # competitor research. motor="llm" doesn't get this field (its
+        # plan_semanal schema has no structured per-meal food picks to
+        # check food_bank.py's "sin_coccion" tag against) -- same accepted
+        # engine asymmetry as the shopping list and same-day-combo guard;
+        # ui/app.py's badge rendering already degrades to "no badge" when
+        # this key is absent.
+        "requiere_coccion": _requiere_coccion([proteina_nombre, carbohidrato_nombre, grasa_nombre, verdura_extra]),
     }
 
 

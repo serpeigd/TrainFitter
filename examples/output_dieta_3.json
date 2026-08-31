@@ -62,7 +62,8 @@
           "carbohidrato_alimento_g": 345,
           "grasa_alimento_g": 31,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -79,7 +80,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 77,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -96,7 +98,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 170,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -113,7 +116,8 @@
           "carbohidrato_alimento_g": 76,
           "grasa_alimento_g": 31,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     },
@@ -135,7 +139,8 @@
           "carbohidrato_alimento_g": 77,
           "grasa_alimento_g": 31,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -152,7 +157,8 @@
           "carbohidrato_alimento_g": 77,
           "grasa_alimento_g": 77,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -169,7 +175,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 54,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": false
         },
         {
           "tipo": "Snack",
@@ -186,7 +193,8 @@
           "carbohidrato_alimento_g": 76,
           "grasa_alimento_g": 6,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     },
@@ -208,7 +216,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 31,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -225,7 +234,8 @@
           "carbohidrato_alimento_g": 242,
           "grasa_alimento_g": 77,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -242,7 +252,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 170,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -259,7 +270,8 @@
           "carbohidrato_alimento_g": 81,
           "grasa_alimento_g": 31,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         }
       ]
     },
@@ -281,7 +293,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 31,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -298,7 +311,8 @@
           "carbohidrato_alimento_g": 242,
           "grasa_alimento_g": 77,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -315,7 +329,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 31,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -332,7 +347,8 @@
           "carbohidrato_alimento_g": 76,
           "grasa_alimento_g": 31,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     },
@@ -354,7 +370,8 @@
           "carbohidrato_alimento_g": 242,
           "grasa_alimento_g": 31,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -371,7 +388,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 77,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -388,7 +406,8 @@
           "carbohidrato_alimento_g": 231,
           "grasa_alimento_g": 170,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -405,7 +424,8 @@
           "carbohidrato_alimento_g": 26,
           "grasa_alimento_g": 31,
           "verdura": "Carrot",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     },
@@ -427,7 +447,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 6,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -444,7 +465,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 77,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -461,7 +483,8 @@
           "carbohidrato_alimento_g": 121,
           "grasa_alimento_g": 170,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -478,7 +501,8 @@
           "carbohidrato_alimento_g": 77,
           "grasa_alimento_g": 31,
           "verdura": "Broccoli",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     },
@@ -500,7 +524,8 @@
           "carbohidrato_alimento_g": 227,
           "grasa_alimento_g": 31,
           "verdura": null,
-          "verdura_alimento_g": 0
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
@@ -517,7 +542,8 @@
           "carbohidrato_alimento_g": 250,
           "grasa_alimento_g": 77,
           "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
@@ -534,7 +560,8 @@
           "carbohidrato_alimento_g": 77,
           "grasa_alimento_g": 170,
           "verdura": "Mixed salad greens",
-          "verdura_alimento_g": 100
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
         },
         {
           "tipo": "Snack",
@@ -551,7 +578,8 @@
           "carbohidrato_alimento_g": 167,
           "grasa_alimento_g": 31,
           "verdura": "Kiwi",
-          "verdura_alimento_g": 80
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
         }
       ]
     }

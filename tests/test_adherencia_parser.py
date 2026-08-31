@@ -6,8 +6,11 @@ agents/pdf_generador.py). Reading structured data out of a reply is now
 tested in tests/test_pdf_generador.py; this file only covers what's left
 here: the rating heuristic and the summary formatter."""
 
+from datetime import date, timedelta
+
 from adherencia_parser import (
     checklist_tiene_contenido_real,
+    resumen_mensual_tendencia,
     resumir_adherencia,
     sugerencia_seguimiento,
     tendencia_peso,
@@ -251,3 +254,108 @@ def test_no_flag_when_a_date_is_malformed():
     so silence is the right failure mode if it somehow isn't."""
     historial = [_checkin("not-a-date", 80.0), _checkin("2026-08-15", 79.9)]
     assert tendencia_peso(historial, "perdida_grasa") is None
+
+
+# --- resumen_mensual_tendencia() (free monthly digest) ---------------------
+
+
+def _hace(dias: int) -> str:
+    return (date.today() - timedelta(days=dias)).isoformat()
+
+
+def _fila(fecha, tipo="Adherence check-in", valoracion=None, peso_kg=None, notas=""):
+    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "peso_kg": peso_kg, "notas": notas}
+
+
+def test_none_for_empty_history():
+    assert resumen_mensual_tendencia([]) is None
+
+
+def test_none_when_everything_is_older_than_the_window():
+    historial = [
+        _fila(_hace(45), valoracion="High"),
+        _fila(_hace(40), peso_kg=80.0),
+        _fila(_hace(35), peso_kg=79.0),
+    ]
+    assert resumen_mensual_tendencia(historial) is None
+
+
+def test_none_with_a_single_recent_weight_point_and_no_checkins():
+    """One weight point in the window, no adherence check-ins at all --
+    same "don't fabricate a trend from one data point" bar as
+    tendencia_peso()."""
+    assert resumen_mensual_tendencia([_fila(_hace(5), peso_kg=80.0)]) is None
+
+
+def test_reports_adherence_trend_from_recent_checkins():
+    historial = [
+        _fila(_hace(2), valoracion="High"),
+        _fila(_hace(10), valoracion="High"),
+        _fila(_hace(20), valoracion="Medium"),
+    ]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "3 check-ins" in resumen
+    assert "trending strong" in resumen  # average (3+3+2)/3 = 2.67 -> rounds to 3 -> "strong"
+
+
+def test_ignores_plan_sent_rows_for_the_adherence_count():
+    historial = [
+        _fila(_hace(1), tipo="Plan sent"),
+        _fila(_hace(2), valoracion="High"),
+    ]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "1 check-in," in resumen  # singular, and the "Plan sent" row isn't counted
+
+
+def test_reports_weight_change_when_available():
+    historial = [_fila(_hace(25), peso_kg=80.0), _fila(_hace(2), peso_kg=78.5)]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "Weight: 80.0kg → 78.5kg (-1.5kg)." in resumen
+
+
+def test_weight_gain_shows_a_plus_sign():
+    historial = [_fila(_hace(25), peso_kg=70.0), _fila(_hace(2), peso_kg=71.2)]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "(+1.2kg)" in resumen
+
+
+def test_combines_adherence_and_weight_in_one_message():
+    historial = [
+        _fila(_hace(2), valoracion="Low", peso_kg=None),
+        _fila(_hace(20), peso_kg=80.0),
+        _fila(_hace(3), peso_kg=79.0),
+    ]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "1 check-in, adherence trending low." in resumen
+    assert "Weight: 80.0kg → 79.0kg (-1.0kg)." in resumen
+
+
+def test_ignores_rows_older_than_the_window_even_when_mixed_with_recent_ones():
+    historial = [
+        _fila(_hace(2), valoracion="High"),
+        _fila(_hace(45), valoracion="Low"),  # outside the 30-day window -- must not count
+    ]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "1 check-in, adherence trending strong." in resumen
+
+
+def test_translates_to_spanish():
+    historial = [_fila(_hace(2), valoracion="High"), _fila(_hace(20), peso_kg=80.0), _fila(_hace(3), peso_kg=79.0)]
+    resumen = resumen_mensual_tendencia(historial, idioma="es")
+    assert "Últimos 30 días: 1 check-in, adherencia con tendencia alta." in resumen
+    assert "Peso: 80.0kg → 79.0kg (-1.0kg)." in resumen
+    assert "Weight" not in resumen
+    assert "trending" not in resumen
+
+
+def test_ignores_a_malformed_or_missing_date_rather_than_crashing():
+    """Degrades to "excluded from the window" rather than crashing --
+    same discipline as tendencia_peso()'s own malformed-date test."""
+    historial = [
+        _fila("not-a-date", valoracion="High"),
+        _fila(None, peso_kg=999.0),
+        _fila(_hace(2), valoracion="Low"),
+    ]
+    resumen = resumen_mensual_tendencia(historial)
+    assert "1 check-in, adherence trending low." in resumen
+    assert "999.0" not in resumen

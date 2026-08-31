@@ -20,7 +20,7 @@ fillable PDF form (see docs/decisiones.md) — pdf_generador.py now owns
 extracting structured data from a reply, this module just formats it.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 
 def valoracion_desde_ratios(ratios: list[float]) -> str | None:
@@ -185,6 +185,102 @@ UMBRAL_KG_TENDENCIA = 0.3
 # trend from noise -- same reasoning as the kg threshold above, just on
 # the time axis.
 DIAS_MINIMOS_TENDENCIA = 10
+
+
+_VENTANA_RESUMEN_MENSUAL_DIAS = 30
+# Same numeric mapping ui/app.py's VALORACION_A_NUMERO already uses for its
+# adherence trend chart -- duplicated rather than imported, since ui/app.py
+# imports FROM this module, not the other way around.
+_VALORACION_A_NUMERO_RESUMEN = {"Low": 1, "Medium": 2, "High": 3}
+_NUMERO_A_ETIQUETA_TENDENCIA = {
+    "en": {1: "low", 2: "moderate", 3: "strong"},
+    "es": {1: "baja", 2: "media", 3: "alta"},
+}
+
+
+def resumen_mensual_tendencia(historial: list[dict], idioma: str = "en") -> str | None:
+    """A short, free, rule-based monthly digest -- an adherence trend label
+    plus a weight change -- built from the exact same Check-ins rows
+    _render_historial_checkins() (ui/app.py) already fetches; no new
+    Notion query needed.
+
+    Directly grounded in competitor research: a paid coaching app's "AI
+    Monthly Report" feature (see docs/decisiones.md), reproduced here as a
+    deterministic aggregation instead of an LLM call -- this project's
+    free-only guardrail (CLAUDE.md) applies to this too. Deliberately just
+    a digest for the trainer/client to read: never touches the diet's own
+    calorie math automatically, same "trainer always reviews" principle as
+    tendencia_peso(), which this function complements rather than
+    replaces -- that one flags a goal MISMATCH (needs an objetivo); this
+    one just reports what happened over the last month, no goal needed.
+
+    Returns None when the last _VENTANA_RESUMEN_MENSUAL_DIAS days don't
+    have enough to summarize (no real adherence check-ins in that window,
+    AND fewer than two weight points) -- same "don't fabricate a trend
+    from one data point" discipline as tendencia_peso().
+
+    Args:
+        historial: notion_connector.historial_checkins()'s own return
+            shape ({"fecha", "tipo", "valoracion", "notas", "peso_kg"}
+            dicts, any order -- this function doesn't assume sorting).
+        idioma: "en" (default) or "es".
+    """
+    limite = date.today() - timedelta(days=_VENTANA_RESUMEN_MENSUAL_DIAS)
+
+    def _en_ventana(fecha_str: str | None) -> bool:
+        if not fecha_str:
+            return False
+        try:
+            return date.fromisoformat(fecha_str) >= limite
+        except ValueError:
+            return False
+
+    # "Adherence check-in" only -- same filter historial_checkins() callers
+    # already apply elsewhere (the check-in form's "Semana N:" counter,
+    # _fecha_checkin_esta_semana()) -- a "Plan sent" row isn't adherence data.
+    valoraciones = [
+        _VALORACION_A_NUMERO_RESUMEN[fila["valoracion"]]
+        for fila in historial
+        if fila["tipo"] == "Adherence check-in"
+        and fila["valoracion"] in _VALORACION_A_NUMERO_RESUMEN
+        and _en_ventana(fila["fecha"])
+    ]
+    con_peso = sorted(
+        (
+            (fila["fecha"], fila["peso_kg"])
+            for fila in historial
+            if fila.get("peso_kg") is not None and _en_ventana(fila["fecha"])
+        ),
+        key=lambda par: par[0],
+    )
+
+    if not valoraciones and len(con_peso) < 2:
+        return None
+
+    n_checkins = len(valoraciones)
+    palabra_checkin = "check-in" if n_checkins == 1 else "check-ins"  # kept as a loanword in both languages,
+    # same convention as "Adherence check-in"'s own untranslated type name elsewhere in this project.
+    if n_checkins:
+        etiqueta = _NUMERO_A_ETIQUETA_TENDENCIA[idioma][round(sum(valoraciones) / n_checkins)]
+        primera_parte = (
+            f"Últimos {_VENTANA_RESUMEN_MENSUAL_DIAS} días: {n_checkins} {palabra_checkin}, "
+            f"adherencia con tendencia {etiqueta}."
+            if idioma == "es" else
+            f"Last {_VENTANA_RESUMEN_MENSUAL_DIAS} days: {n_checkins} {palabra_checkin}, adherence trending {etiqueta}."
+        )
+    else:
+        primera_parte = (
+            f"Últimos {_VENTANA_RESUMEN_MENSUAL_DIAS} días:" if idioma == "es"
+            else f"Last {_VENTANA_RESUMEN_MENSUAL_DIAS} days:"
+        )
+    partes = [primera_parte]
+
+    if len(con_peso) >= 2:
+        primer_peso, ultimo_peso = con_peso[0][1], con_peso[-1][1]
+        etiqueta_peso = "Peso" if idioma == "es" else "Weight"
+        partes.append(f"{etiqueta_peso}: {primer_peso}kg → {ultimo_peso}kg ({ultimo_peso - primer_peso:+.1f}kg).")
+
+    return " ".join(partes)
 
 
 def tendencia_peso(historial: list[dict], objetivo: str | None, idioma: str = "en") -> str | None:

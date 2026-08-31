@@ -112,6 +112,22 @@ a vegetarian/vegan client still sees them at every level, same as before,
 since they're not exotic there, they're often necessary. Natto stays
 plain "nicho" (unconditionally tryhard-only): being unusual has nothing
 to do with diet type there, unlike these soy/gluten protein alternatives.
+
+DESIGN — "sin_coccion" (no-cook, added for the portal's meal prep-time/
+difficulty badge -- direct feature idea from competitor research, a
+coaching app's per-recipe kcal/prep-time/difficulty cards): a curated,
+opt-in tag (same convention as "nicho"/"comun", defaults to `False` via
+`.get("sin_coccion", False)` -- "needs cooking" is the safer assumption
+when unsure) on foods genuinely eaten as-is, no stove/oven -- yogurt,
+fruit, raw vegetables, nuts, oils, bread. planificador_comidas.py's
+_requiere_coccion() marks a whole MEAL "no cook" only when every one of
+its actual picks (protein/carb/fat/veg) carries this tag -- a lunch/
+dinner built around chicken or lentils still (correctly) reads as
+needing to cook, regardless of a raw side salad. Deliberately a coarse
+two-tier badge (no-cook vs. quick-cook), not a per-recipe prep-time
+estimate this project has no real data for -- same "estimate, don't
+fabricate precision" philosophy already stated for macros/micros
+elsewhere in this codebase.
 """
 
 import unicodedata
@@ -150,6 +166,7 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Greek yogurt / whipped fresh cheese", "nombre_es": "Yogur griego / queso fresco batido",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}, "sinergias": {"probiotico"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 59, "proteina_g": 10, "carbohidratos_g": 3.6, "grasa_g": 0.4},
     },
     {
@@ -200,7 +217,7 @@ FUENTES_PROTEINA = [
         # the one specific brand/type recommended over any other.
         "nombre": "Protein powder (plant-based)", "nombre_es": "Proteína en polvo (vegetal)",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": set(), "sinergias": set(),
-        "comun": False, "nicho_omnivoro": True,
+        "comun": False, "nicho_omnivoro": True, "sin_coccion": True,
         "macros_100g": {"kcal": 373, "proteina_g": 78, "carbohidratos_g": 6, "grasa_g": 6},
     },
     {
@@ -241,6 +258,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Whole wheat bread", "nombre_es": "Pan integral",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 247, "proteina_g": 13, "carbohidratos_g": 41, "grasa_g": 3.4},
     },
     {
@@ -262,6 +280,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Assorted fruit", "nombre_es": "Fruta variada",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 60, "proteina_g": 0.5, "carbohidratos_g": 15, "grasa_g": 0.2},
     },
     {
@@ -275,23 +294,25 @@ FUENTES_GRASA = [
     {
         "nombre": "Extra virgin olive oil", "nombre_es": "Aceite de oliva virgen extra",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
     {
         "nombre": "Avocado", "nombre_es": "Aguacate",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "fibra_alta"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 160, "proteina_g": 2, "carbohidratos_g": 8.5, "grasa_g": 15},
     },
     {
         "nombre": "Nuts (walnuts, almonds)", "nombre_es": "Frutos secos (nueces, almendras)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"frutos_secos"},
-        "sinergias": {"antiinflamatorio", "magnesio"},
+        "sinergias": {"antiinflamatorio", "magnesio"}, "sin_coccion": True,
         "macros_100g": {"kcal": 600, "proteina_g": 20, "carbohidratos_g": 15, "grasa_g": 52},
     },
     {
         "nombre": "Seeds (chia, flax)", "nombre_es": "Semillas (chía, lino)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "magnesio"},
-        "comun": False,
+        "comun": False, "sin_coccion": True,
         "macros_100g": {"kcal": 500, "proteina_g": 18, "carbohidratos_g": 34, "grasa_g": 34},
     },
     # The one entry that ISN'T universally compatible -- omnivore only.
@@ -308,6 +329,7 @@ FUENTES_GRASA = [
     {
         "nombre": "Algae oil (vegan omega-3)", "nombre_es": "Aceite de algas (omega-3 vegano)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"}, "nicho": True,
+        "sin_coccion": True,
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
 ]
@@ -338,38 +360,42 @@ FUENTES_VERDURA = [
     {
         "nombre": "Red bell pepper", "nombre_es": "Pimiento rojo",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 31, "proteina_g": 1, "carbohidratos_g": 6, "grasa_g": 0.3},
     },
     {
         "nombre": "Tomato", "nombre_es": "Tomate",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
-        "sinergias": {"vitamina_c", "beta_caroteno", "antiinflamatorio"},
+        "sinergias": {"vitamina_c", "beta_caroteno", "antiinflamatorio"}, "sin_coccion": True,
         "macros_100g": {"kcal": 18, "proteina_g": 0.9, "carbohidratos_g": 3.9, "grasa_g": 0.2},
     },
     {
         "nombre": "Carrot", "nombre_es": "Zanahoria",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"beta_caroteno", "fibra_alta"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 41, "proteina_g": 0.9, "carbohidratos_g": 10, "grasa_g": 0.2},
     },
     {
         "nombre": "Mixed salad greens", "nombre_es": "Ensalada variada",
-        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"fibra_alta"},
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"fibra_alta"}, "sin_coccion": True,
         "macros_100g": {"kcal": 20, "proteina_g": 1.5, "carbohidratos_g": 3.5, "grasa_g": 0.2},
     },
     {
         "nombre": "Kiwi", "nombre_es": "Kiwi",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 61, "proteina_g": 1.1, "carbohidratos_g": 15, "grasa_g": 0.5},
     },
     {
         "nombre": "Citrus (orange, lemon)", "nombre_es": "Cítricos (naranja, limón)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
+        "sin_coccion": True,
         "macros_100g": {"kcal": 47, "proteina_g": 0.9, "carbohidratos_g": 12, "grasa_g": 0.1},
     },
     {
         "nombre": "Kimchi", "nombre_es": "Kimchi",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
-        "sinergias": {"probiotico", "vitamina_c"}, "nicho": True,
+        "sinergias": {"probiotico", "vitamina_c"}, "nicho": True, "sin_coccion": True,
         "macros_100g": {"kcal": 15, "proteina_g": 1.1, "carbohidratos_g": 2.4, "grasa_g": 0.5},
     },
 ]

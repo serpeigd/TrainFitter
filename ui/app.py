@@ -199,7 +199,12 @@ COLOR_TEXT_MUTED = "#94A3B8"
 sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
-from adherencia_parser import resumir_adherencia, tendencia_peso, valoracion_desde_ratios  # noqa: E402
+from adherencia_parser import (  # noqa: E402
+    resumen_mensual_tendencia,
+    resumir_adherencia,
+    tendencia_peso,
+    valoracion_desde_ratios,
+)
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import (  # noqa: E402
@@ -1060,6 +1065,8 @@ TRANSLATIONS = {
         "portal_meal_undislike_button": "↩️ Undo",
         "portal_meal_disliked_tag": "👎 Marked as not for you",
         "portal_meal_dislike_error": "Could not save that: {error}",
+        "portal_meal_no_cook_badge": "🥣 No cook · ~5 min",
+        "portal_meal_quick_cook_badge": "🔥 Quick cook · ~15-20 min",
         "portal_meals_done": "That's every meal this week — nicely done!",
         "portal_meals_restart": "🔁 Go through them again",
         "portal_meal_like_error": "Could not save that: {error}",
@@ -1072,6 +1079,11 @@ TRANSLATIONS = {
         "portal_macros_grams_unit": "grams",
         "portal_micro_highlights_label": "Today's plan is a good source of:",
         "portal_routine_header": "🏋️ Routine",
+        "portal_today_tag": "📅 Today",
+        "portal_routine_today_caption": (
+            "We've guessed today's session by spreading your sessions evenly across the week — "
+            "pick a different day if your real schedule doesn't match."
+        ),
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "✅ How's it going?",
         "portal_checkin_intro": (
@@ -1385,6 +1397,8 @@ TRANSLATIONS = {
         "portal_meal_undislike_button": "↩️ Deshacer",
         "portal_meal_disliked_tag": "👎 Marcada como que no te gusta",
         "portal_meal_dislike_error": "No se pudo guardar: {error}",
+        "portal_meal_no_cook_badge": "🥣 Sin cocinar · ~5 min",
+        "portal_meal_quick_cook_badge": "🔥 Cocina rápida · ~15-20 min",
         "portal_meals_done": "¡Ya has visto todas las comidas de esta semana!",
         "portal_meals_restart": "🔁 Verlas de nuevo",
         "portal_meal_like_error": "No se pudo guardar: {error}",
@@ -1397,6 +1411,11 @@ TRANSLATIONS = {
         "portal_macros_grams_unit": "gramos",
         "portal_micro_highlights_label": "El plan de hoy es buena fuente de:",
         "portal_routine_header": "🏋️ Rutina",
+        "portal_today_tag": "📅 Hoy",
+        "portal_routine_today_caption": (
+            "Hemos adivinado la sesión de hoy repartiendo tus sesiones a lo largo de la semana — "
+            "elige otro día si tu horario real es distinto."
+        ),
         "portal_history_header": "📈 Tu historial de check-ins",
         "portal_checkin_header": "✅ ¿Cómo va todo?",
         "portal_checkin_intro": (
@@ -3237,6 +3256,13 @@ def _render_historial_checkins(email: str, objetivo: str | None = None) -> None:
     if tendencia:
         st.warning(tendencia)
 
+    # Free, rule-based counterpart to the "AI Monthly Report" feature spotted
+    # in competitor research (see docs/decisiones.md) -- no LLM call, just an
+    # aggregation over the same rows already fetched above.
+    resumen_mensual = resumen_mensual_tendencia(historial, st.session_state.lang)
+    if resumen_mensual:
+        st.caption(f"📅 {resumen_mensual}")
+
     _render_grafico_tendencia(historial)
 
     for fila in historial:
@@ -3594,7 +3620,14 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
     it, caught live in the browser (the pill highlighted but the day
     never actually changed)."""
     total_dias = len(plan_semanal)
-    indice = st.session_state.get("portal_dia_idx", 0)
+    # First-ever render for this client lands on TODAY's actual day, not
+    # always Monday -- plan_semanal is always Monday-first, 7 real weekday
+    # entries meant to repeat every week (see generar_plan_semanal()'s own
+    # DIAS_SEMANA loop), so weekday() indexes it exactly, no guessing
+    # needed (unlike the routine section below, whose sessions have no
+    # real weekday assignment). Direct feature idea from competitor
+    # research -- a coaching app's "Hoy toca: X" today's-plan card.
+    indice = st.session_state.get("portal_dia_idx", datetime.now(timezone.utc).weekday() % total_dias)
 
     # The day-picker widget's own key (see below) -- cleared, not
     # force-written, whenever Back/Next/Restart change portal_dia_idx
@@ -3637,7 +3670,8 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
         st.session_state["portal_dia_idx"] = dias_nombres.index(dia_elegido)
         st.rerun()
 
-    st.markdown(f"### {dia_info['dia']}")
+    etiqueta_hoy = f" · {t('portal_today_tag')}" if indice == datetime.now(timezone.utc).weekday() % total_dias else ""
+    st.markdown(f"### {dia_info['dia']}{etiqueta_hoy}")
     _render_resumen_macros_dia(dia_info)
 
     for i, comida in enumerate(dia_info.get("comidas", [])):
@@ -3666,6 +3700,16 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
                 col_texto.caption(t("portal_meal_disliked_tag"))
             col_texto.markdown(comida["descripcion"])
             col_texto.markdown(f"🔥 {comida['aprox_kcal']} kcal")
+            # Direct feature idea from competitor research (a coaching
+            # app's recipe cards showing prep time/difficulty). Absent
+            # (None) for a plan saved before this field existed, or from
+            # motor="llm" -- degrades to no badge, same pattern as every
+            # other optional field here.
+            requiere_coccion = comida.get("requiere_coccion")
+            if requiere_coccion is False:
+                col_texto.caption(t("portal_meal_no_cook_badge"))
+            elif requiere_coccion is True:
+                col_texto.caption(t("portal_meal_quick_cook_badge"))
             etiqueta = t("portal_meal_unlike_button") if ya_favorita else t("portal_meal_like_button")
             if col_boton.button(etiqueta, key=f"portal_like_{indice}_{i}", type="primary" if not ya_favorita else "secondary"):
                 try:
@@ -3703,6 +3747,25 @@ def _render_swipe_comidas(plan_semanal: list[dict], favoritas: list[dict], no_de
         st.rerun()
 
 
+def _sesion_sugerida_hoy(n_sesiones: int) -> int:
+    """Which of the plan's N sessions is "today's", assuming they're spread
+    evenly across the week starting Monday -- e.g. a 3-day plan lands on
+    Mon/Wed/Fri, a 4-day plan on Mon/Tue/Thu/Fri. Direct feature idea from
+    competitor research (a coaching app's "Hoy toca: Torso" today's-session
+    card) -- but unlike the meal section's own weekday default above,
+    TrainFitter's routine schema has no real weekday assignment at all (a
+    client picks their own actual training days -- see rutina_reglas.py's
+    generic "Día 1"/"Día 2" labels), so this is a disclosed, deliberate
+    approximation for a default landing view only, never presented as the
+    client's real fixed schedule (see the caption shown alongside it)."""
+    if n_sesiones <= 0:
+        return 0
+    hoy = datetime.now(timezone.utc).weekday()
+    dias_asignados = [round(i * 7 / n_sesiones) for i in range(n_sesiones)]
+    candidatos = [i for i, dia in enumerate(dias_asignados) if dia <= hoy]
+    return candidatos[-1] if candidatos else n_sesiones - 1
+
+
 def _render_dias_rutina(sesiones: list[dict]) -> None:
     """Same st.segmented_control day-picker pattern as the meal section's
     _render_swipe_comidas() -- direct request ("extender el selector de
@@ -3715,10 +3778,12 @@ def _render_dias_rutina(sesiones: list[dict]) -> None:
     screen here (unlike meals) -- routine is pure browsing, not a
     swipe-through-and-act flow, so the pills alone are enough."""
     dias_nombres = [s["dia"] for s in sesiones]
-    indice = st.session_state.get("portal_rutina_dia_idx", 0)
+    sugerido = _sesion_sugerida_hoy(len(sesiones))
+    indice = st.session_state.get("portal_rutina_dia_idx", sugerido)
     if indice >= len(dias_nombres):
         indice = 0
 
+    st.caption(t("portal_routine_today_caption"))
     dia_elegido = st.segmented_control(
         t("portal_pick_day_label"), dias_nombres, default=dias_nombres[indice], key="portal_rutina_dia_selector",
         label_visibility="collapsed",
@@ -3728,8 +3793,9 @@ def _render_dias_rutina(sesiones: list[dict]) -> None:
         st.rerun()
 
     sesion = sesiones[indice]
+    etiqueta_hoy = f" · {t('portal_today_tag')}" if indice == sugerido else ""
     with st.container(border=True, key=f"portal-routine-card-{indice}"):
-        st.markdown(f"**🗓️ {sesion['dia']}**")
+        st.markdown(f"**🗓️ {sesion['dia']}{etiqueta_hoy}**")
         if sesion.get("calentamiento"):
             st.caption("🔥 " + " · ".join(dividir_en_puntos(sesion["calentamiento"])))
         for ejercicio in sesion.get("ejercicios", []):
