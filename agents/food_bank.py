@@ -166,6 +166,10 @@ perfil["nutricion"]["estilo_cocina_preferido"]. planificador_comidas.py's
 _sesgar_por_estilo_cocina() applies it as a bias, not an exclusion --
 same "prefer, don't force" pattern as every other soft preference here --
 so a client with no answer set (the default) sees no change at all.
+Also deliberately scoped to only 1-2 days of the generated week (see
+generar_plan_semanal()'s own "dias_con_estilo_cocina") rather than
+every meal -- direct correction: "no vas a comer toda la semana
+asiático... que sea una sugerencia de 1 o 2 días."
 """
 
 import unicodedata

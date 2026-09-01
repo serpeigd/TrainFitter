@@ -750,13 +750,17 @@ def test_assorted_fruit_is_only_ever_the_snack_carb_not_breakfast(perfil_base):
 def test_estilo_cocina_preference_increases_matching_food_frequency(perfil_base):
     """Statistical check (same discipline as the antiinflamatorio/basico
     bias tests above): a client who answered "mediterraneo" to the
-    portal's "¿Qué te apetece?" question should see food_bank.py's
-    mediterraneo-tagged olive oil show up noticeably more often as the
-    fat pick than an unbiased baseline (only olive oil and tahini carry
-    that tag among fats, so this isn't diluted by other tagged foods)."""
+    portal's "¿Qué te apetece?" question should see meals where 2+ of
+    protein/carb/fat are simultaneously mediterraneo-tagged noticeably
+    more often than an unbiased baseline. Measuring CO-OCCURRENCE within
+    one meal, not just "does this meal contain any tagged food at all" --
+    the food bank has enough mediterraneo-tagged entries spread across
+    every category that the latter is already common by pure chance
+    (~73% of days, measured directly), which would drown out the
+    bias-vs-baseline signal entirely."""
 
-    def _tasa_aceite_oliva(estilo, n=30):
-        apariciones = total = 0
+    def _tasa_doble_tag(estilo, n=40):
+        con_doble = total = 0
         for i in range(n):
             perfil_base["id_cliente"] = f"estilo_cocina_test_{estilo}_{i}"
             if estilo:
@@ -766,19 +770,26 @@ def test_estilo_cocina_preference_increases_matching_food_frequency(perfil_base)
             plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
             for dia in plan:
                 for comida in dia["comidas"]:
-                    if comida["grasa"]:
-                        total += 1
-                        if comida["grasa"] == "Extra virgin olive oil":
-                            apariciones += 1
-        return apariciones / total if total else 0
+                    total += 1
+                    n_tags = sum(
+                        bool(comida[clave]) and estilo_de(comida[clave]) for clave in ("proteina", "carbohidrato", "grasa")
+                    )
+                    if n_tags >= 2:
+                        con_doble += 1
+        return con_doble / total if total else 0
 
-    tasa_base = _tasa_aceite_oliva(None)
-    tasa_mediterraneo = _tasa_aceite_oliva("mediterraneo")
-    # Relative, not absolute, threshold: olive oil's baseline share is
-    # already diluted by other bias mechanisms (nivel_compromiso's own
-    # comun/nicho pull among fats), so a fixed absolute delta isn't the
-    # right bar here -- a clear multiple of the baseline is.
-    assert tasa_mediterraneo > tasa_base * 2
+    def estilo_de(nombre):
+        return "mediterraneo" in INDICE_ALIMENTOS[nombre].get("estilo_cocina", set())
+
+    tasa_base = _tasa_doble_tag(None)
+    tasa_mediterraneo = _tasa_doble_tag("mediterraneo")
+    assert tasa_mediterraneo > tasa_base * 2  # a real, measurable effect...
+    # ...but bounded well below "every meal" territory -- direct
+    # correction ("no vas a comer toda la semana asiático... que sea una
+    # sugerencia de 1 o 2 días"): only 1-2 of the week's 7 days ever get
+    # this bias at all (see generar_plan_semanal()'s "dias_con_estilo_
+    # cocina"), so the week-wide average can never approach saturation.
+    assert tasa_mediterraneo < 0.30
 
 
 def test_no_estilo_cocina_preference_behaves_exactly_like_before(perfil_base):

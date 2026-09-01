@@ -354,11 +354,11 @@ def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[
     return candidatos_categoria
 
 
-# Same bias strength as _sesgar_por_preferencias() above (0.75) -- a
-# client-set "what are you in the mood for" answer deserves to show up
-# clearly, not just occasionally, while still leaving room for variety
-# (a full week that's 100% one cuisine would read as repetitive, not
-# personalized).
+# Same bias strength as _sesgar_por_preferencias() above (0.75) -- once
+# generar_plan_semanal() has already decided TODAY is one of the 1-2 days
+# this preference gets to apply to at all (see its own
+# "dias_con_estilo_cocina"), it should show up clearly on that day, not
+# just occasionally get diluted away to nothing.
 PROBABILIDAD_PREFERIR_ESTILO_COCINA = 0.75
 
 
@@ -369,7 +369,14 @@ def _sesgar_por_estilo_cocina(candidatos_categoria: list[str], estilo: str | Non
     _sesgar_por_preferencias(): falls back to the untouched list when no
     preference is set, or when none of this category's candidates happen
     to carry the requested style (most categories/slots won't -- only
-    ~30 foods across the whole bank are tagged at all)."""
+    ~30 foods across the whole bank are tagged at all).
+
+    `estilo` is None here for most calls even when the client HAS a
+    preference set -- generar_plan_semanal() only passes the real value
+    through on the 1-2 days it picked for this week (direct correction:
+    "no vas a comer toda la semana asiático... que sea una sugerencia de
+    1 o 2 días"), so this function itself has no day-awareness at all,
+    it just does what it's told for whichever meal it's called for."""
     if not estilo or not candidatos_categoria:
         return candidatos_categoria
     preferidos = [c for c in candidatos_categoria if estilo in INDICE_ALIMENTOS[c].get("estilo_cocina", set())]
@@ -902,10 +909,23 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     pesos_grasa = _pesos_grasa(slots)
     total_peso_grasa = sum(pesos_grasa) or 1  # only 0 if every fat candidate list is empty
 
+    # Real, direct correction: the cuisine preference used to apply to
+    # EVERY meal, every day -- a "mediterraneo" answer skewed the whole
+    # week that direction, when the actual ask was "a suggestion for a
+    # day or two, not what you eat all week." Picked once here (1-2 of
+    # the 7 days, this client's own seeded rng -- deterministic like
+    # everything else in this module) and only those days' meals ever see
+    # `estilo_cocina`; the rest of the week is completely unaffected by it
+    # (still shaped by liked meals/other preferences as always).
+    dias_con_estilo_cocina = (
+        set(rng.sample(range(7), rng.randint(1, 2))) if estilo_cocina else set()
+    )
+
     plan = []
-    for dia in DIAS_SEMANA[idioma]:
+    for indice_dia, dia in enumerate(DIAS_SEMANA[idioma]):
         comidas = []
         contador_snack = 0
+        estilo_cocina_del_dia = estilo_cocina if indice_dia in dias_con_estilo_cocina else None
         # Reset per day -- direct request ("que no te toque comer y cenar
         # lo mismo el mismo día"): each meal built so far today is
         # excluded from the NEXT one's picks (see _construir_comida()'s
@@ -917,7 +937,7 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
             comida = _construir_comida(
                 tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas,
-                comidas_no_deseadas, nivel_compromiso, idioma, rng, combos_dia, estilo_cocina,
+                comidas_no_deseadas, nivel_compromiso, idioma, rng, combos_dia, estilo_cocina_del_dia,
             )
             combos_dia.add((comida["proteina"], comida["carbohidrato"], comida["grasa"]))
             if tipo == "snack" and slots.count("snack") > 1:

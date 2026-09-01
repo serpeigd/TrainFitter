@@ -1660,6 +1660,29 @@ citrus, tomato, aubergine dominating) — the bias is not just present in
 code, it visibly changes a real generated week. `examples/output_dieta_*.
 json` regenerated for all three example clients (routine untouched).
 
+Same-day direct correction, after actually seeing NURIA's full regenerated
+week (see above -- Mediterranean-tagged foods showing up in literally every
+meal): "no vas a comer toda la semana asiático... que sea una sugerencia de
+1 o 2 días." `generar_plan_semanal()` now picks 1-2 of the week's 7 days up
+front (`dias_con_estilo_cocina`, this client's own seeded rng, so still
+fully deterministic) and only passes `estilo_cocina` through to
+`_construir_comida()` for THOSE days' meals -- every other day gets `None`,
+regardless of the client's saved preference, and is exactly as unbiased as
+a client with no preference at all. `_sesgar_por_estilo_cocina()` itself is
+unchanged (still a per-meal, per-category bias) -- it simply gets called
+with `None` most of the time now. The statistical test needed reworking
+too: measuring "does this meal contain any mediterraneo-tagged food at
+all" turned out to be a bad signal (~73% of days already hit that by pure
+chance, food_bank.py's tagged foods are spread across every category) --
+switched to "meals where 2+ of protein/carb/fat are simultaneously
+mediterraneo-tagged" (co-occurrence), a much rarer baseline event with a
+real, measurable, but properly bounded lift. Verified live: regenerated
+NURIA's real plan again -- Tuesday reads clearly Mediterranean (Greek
+yogurt, chickpeas + whole wheat pasta + tomato twice), every other day
+shows normal, unrelated variety (tofu/buckwheat, seitan/barley, tempeh/
+quinoa...). No example-output diff (none of the three example clients set
+a cuisine preference, so this path never executes for them).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.
