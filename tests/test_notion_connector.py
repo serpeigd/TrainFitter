@@ -258,6 +258,31 @@ def test_perfil_desde_propiedades_without_liked_exercises_has_no_key(perfil_base
     assert "ejercicios_favoritos" not in perfil["experiencia"]
 
 
+def test_perfil_desde_propiedades_merges_cuisine_preference(perfil_base, borrador_rutina, borrador_dieta):
+    """Same pattern as the liked-meals/liked-exercises merges above --
+    Cuisine Preference (the portal's own "¿Qué te apetece?" answer)
+    merges into perfil["nutricion"]["estilo_cocina_preferido"]."""
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    propiedades["Cuisine Preference"] = {"select": {"name": "asiatico"}}
+
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert perfil["nutricion"]["estilo_cocina_preferido"] == "asiatico"
+
+
+def test_perfil_desde_propiedades_without_cuisine_preference_has_no_key(perfil_base, borrador_rutina, borrador_dieta):
+    veredicto = {"veredicto": "aprobado_automatico", "motivos": []}
+    propiedades = _construir_propiedades_pagina(perfil_base, borrador_rutina, borrador_dieta, veredicto)
+    propiedades["Full Profile (JSON)"] = {
+        "rich_text": [{"plain_text": b["text"]["content"]} for b in propiedades["Full Profile (JSON)"]["rich_text"]]
+    }
+    perfil = _perfil_desde_propiedades(propiedades)
+    assert "estilo_cocina_preferido" not in perfil["nutricion"]
+
+
 def test_dividir_bloques_notion_splits_long_text_under_the_block_limit():
     texto = "x" * 5000
     bloques = _dividir_bloques_notion(texto)
@@ -522,6 +547,7 @@ def test_fila_registro_cliente_extracts_expected_fields():
         "mensaje_dieta": "",
         "comidas_favoritas": [],
         "comidas_no_deseadas": [],
+        "estilo_cocina": "",
     }
 
 

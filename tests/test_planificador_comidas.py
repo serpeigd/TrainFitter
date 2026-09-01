@@ -441,7 +441,7 @@ def test_basico_still_uses_specialty_foods_when_nothing_common_is_left(perfil_ba
     perfil_base["experiencia"]["nivel_compromiso"] = "basico"
     # Dislike every common vegan-compatible protein, leaving only tofu/
     # tempeh/edamame/seitan/protein powder (all "comun": False).
-    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["lentils", "chickpeas"]
+    perfil_base["nutricion"]["alimentos_que_no_le_gustan"] = ["lentils", "chickpeas", "black beans"]
     plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
     assert plan  # still a real plan, not empty
     proteinas = {c["proteina"] for dia in plan for c in dia["comidas"]}
@@ -726,19 +726,70 @@ def test_lunch_and_dinner_never_get_oats_as_their_carb(perfil_base):
                     assert comida["carbohidrato"] != "Oats"
 
 
-def test_assorted_fruit_is_available_as_a_breakfast_or_snack_carb(perfil_base):
-    """Secondary fix that fell out of unifying the old two-condition
-    filter into one: "Assorted fruit" was being accidentally excluded
-    from desayuno too (only snack), contradicting its own comment.
-    Statistical existence check (same discipline as the no-cook/quick-
-    cook badge tests) that it's now reachable at desayuno specifically."""
-    encontrado = False
+def test_assorted_fruit_is_only_ever_the_snack_carb_not_breakfast(perfil_base):
+    """Real regression caught live while expanding food_bank.py: treating
+    the "desayuno" franja as if it meant "small kcal budget" was wrong --
+    Breakfast carries the same PESO_KCAL_PRINCIPAL weight as lunch/
+    dinner, only Snack is actually small (PESO_KCAL_SNACK), so letting
+    "Assorted fruit" be Breakfast's carb solved out to 400g+ portions
+    again -- the exact bug _excluir_carbohidratos_no_densos() exists to
+    prevent, now keyed by `tipo` itself rather than by franja."""
+    encontrado_en_snack = False
     for plan in _generar_muchos_planes(perfil_base, n=40):
         for dia in plan:
             for comida in dia["comidas"]:
-                if comida["tipo_interno"] == "desayuno" and comida["carbohidrato"] == "Assorted fruit":
-                    encontrado = True
-    assert encontrado, "expected 'Assorted fruit' to appear as a breakfast carb across 40 clients"
+                if comida["carbohidrato"] == "Assorted fruit":
+                    assert comida["tipo_interno"] == "snack", comida
+                    encontrado_en_snack = True
+    assert encontrado_en_snack, "expected 'Assorted fruit' to appear as a snack carb across 40 clients"
+
+
+# --- estilo_cocina ("¿Qué te apetece?" portal preference) ------------------
+
+
+def test_estilo_cocina_preference_increases_matching_food_frequency(perfil_base):
+    """Statistical check (same discipline as the antiinflamatorio/basico
+    bias tests above): a client who answered "mediterraneo" to the
+    portal's "¿Qué te apetece?" question should see food_bank.py's
+    mediterraneo-tagged olive oil show up noticeably more often as the
+    fat pick than an unbiased baseline (only olive oil and tahini carry
+    that tag among fats, so this isn't diluted by other tagged foods)."""
+
+    def _tasa_aceite_oliva(estilo, n=30):
+        apariciones = total = 0
+        for i in range(n):
+            perfil_base["id_cliente"] = f"estilo_cocina_test_{estilo}_{i}"
+            if estilo:
+                perfil_base["nutricion"]["estilo_cocina_preferido"] = estilo
+            else:
+                perfil_base["nutricion"].pop("estilo_cocina_preferido", None)
+            plan = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+            for dia in plan:
+                for comida in dia["comidas"]:
+                    if comida["grasa"]:
+                        total += 1
+                        if comida["grasa"] == "Extra virgin olive oil":
+                            apariciones += 1
+        return apariciones / total if total else 0
+
+    tasa_base = _tasa_aceite_oliva(None)
+    tasa_mediterraneo = _tasa_aceite_oliva("mediterraneo")
+    # Relative, not absolute, threshold: olive oil's baseline share is
+    # already diluted by other bias mechanisms (nivel_compromiso's own
+    # comun/nicho pull among fats), so a fixed absolute delta isn't the
+    # right bar here -- a clear multiple of the baseline is.
+    assert tasa_mediterraneo > tasa_base * 2
+
+
+def test_no_estilo_cocina_preference_behaves_exactly_like_before(perfil_base):
+    """A profile without estilo_cocina_preferido at all (every existing
+    client) must produce byte-identical plans to before this feature
+    existed."""
+    assert "estilo_cocina_preferido" not in perfil_base["nutricion"]
+    sin_preferencia = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    perfil_base["nutricion"]["estilo_cocina_preferido"] = ""
+    con_vacio = generar_plan_semanal(perfil_base, NECESIDADES, 4, "en", _rng(perfil_base))
+    assert sin_preferencia == con_vacio
 
 
 # --- requiere_coccion (portal no-cook/quick-cook badge) --------------------

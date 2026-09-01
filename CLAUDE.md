@@ -1608,6 +1608,58 @@ showing the monthly digest rendering correctly inside the new Progress
 tab). 622 tests passing, lint clean -- no rule-engine files touched, so no
 `examples/output_*.json` regeneration needed.
 
+**Food bank expansion + a client-facing cuisine preference, both direct
+requests the same day ("pulir mucho los tipos de platos e ingredientes...
+mucha variedad", "que 2 sea una pregunta que se le haga al cliente").**
+`food_bank.py` grew from 39 to 61 foods — 8 proteins (pork loin, prawns,
+mussels, canned tuna, squid/octopus, cottage cheese, whey protein, black
+beans), 5 carbs (couscous, buckwheat, sweet corn, barley, rye bread), 3
+fats (peanut butter, tahini, coconut), 6 vegetables/fruit (cucumber,
+courgette, aubergine, cauliflower, mushrooms, berries) — all wired through
+the existing tag machinery (`franjas`/`sin_coccion`/`comun`/`etiquetas`) so
+no separate safety path was needed. Sesame is a new, real allergen tag
+(`"sesamo"`, added to `etiquetas_excluidas()`) rather than folded into
+`frutos_secos` — clinically distinct from tree nuts, needed once tahini
+existed as a candidate. Two real regressions surfaced by the expansion
+(existing tests changing RNG draw order is what exposed them, not new
+bugs in the new code itself): (1) `test_fruit_is_never_the_main_carb_in_a_
+full_meal` failed because a *previous* session's "secondary fix" (letting
+"Assorted fruit" be Breakfast's carb, not just Snack's) was actually wrong
+— Breakfast carries the same kcal weight as lunch/dinner, only Snack is
+genuinely small, so treating "franja == desayuno" as "small budget" was a
+category error; fixed with a new, separate `_excluir_carbohidratos_no_
+densos()` keyed by `tipo` itself, not `franja`. (2) `test_basico_still_
+uses_specialty_foods_when_nothing_common_is_left` broke because "Black
+beans" (now a common vegan protein) wasn't in that test's own disliked-
+list — a test-scope fix, not a code bug.
+
+`estilo_cocina` is a new, curated tag (~30 foods tagged mediterraneo/
+asiatico/mexicano; generic staples like chicken/rice/eggs deliberately
+left untagged so they don't dilute a cuisine's own distinctiveness) —
+but unlike every other bias tag in this file, it's driven by an explicit
+**client** answer, not an automatic inference: the portal's Home tab
+("página del perfil") now asks "¿Qué te apetece?" directly
+(`_render_estilo_cocina_selector()`, auto-saves on change, no separate
+save button). New Notion "Cuisine Preference" select property (added to
+the real "TrainFitter Clients" database via the schema API, same pattern
+as every other client-writable property this project has added), read
+back by `obtener_registro_cliente()`/`_perfil_desde_propiedades()` into
+`perfil["nutricion"]["estilo_cocina_preferido"]`, applied by
+`planificador_comidas._sesgar_por_estilo_cocina()` — same bias-not-force
+pattern as every other soft preference. 632 tests passing (up from 622;
+new coverage includes the sesame/shellfish allergy exclusions for the new
+foods, a statistical bias check for the cuisine preference, and the
+Notion property read/write/merge). Verified live end-to-end against the
+real "NURIA" test client: selected "Mediterranean" in the portal, got a
+real save (after first catching and fixing the missing-property error —
+the schema needed adding, same one-time setup step every prior
+client-writable property needed), confirmed it survived a fresh page
+reload, then regenerated her plan for real and watched the week actually
+skew Mediterranean (Greek yogurt, lentils, chickpeas, whole wheat pasta,
+citrus, tomato, aubergine dominating) — the bias is not just present in
+code, it visibly changes a real generated week. `examples/output_dieta_*.
+json` regenerated for all three example clients (routine untouched).
+
 ## Free-only guardrail
 
 The project's core promise is **fully free, no paid API key required**.

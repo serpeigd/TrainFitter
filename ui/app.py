@@ -208,6 +208,8 @@ from adherencia_parser import (  # noqa: E402
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import (  # noqa: E402
+    ESTILOS_COCINA,
+    ETIQUETA_ESTILO_COCINA,
     INDICE_ALIMENTOS,
     categoria_inquietud_conocida,
     fuentes_carbohidrato_para,
@@ -231,6 +233,7 @@ from notion_connector import (  # noqa: E402
     NotionClientError,
     PortalTokenError,
     actualizar_email_cliente,
+    actualizar_estilo_cocina,
     actualizar_registro_cliente,
     agregar_comida_favorita,
     agregar_comida_no_deseada,
@@ -1054,6 +1057,9 @@ TRANSLATIONS = {
         "portal_home_go_routine": "See routine →",
         "portal_meals_empty": "No meal plan on file yet — check back once your trainer has one ready.",
         "portal_routine_empty": "No routine on file yet — check back once your trainer has one ready.",
+        "portal_cuisine_question": "🍳 What are you in the mood for?",
+        "portal_cuisine_no_preference": "No preference",
+        "portal_cuisine_error": "Could not save that: {error}",
         "portal_notes_header": "📝 Notes from your trainer",
         "routine_label": "Routine:",
         "diet_label": "Diet:",
@@ -1400,6 +1406,9 @@ TRANSLATIONS = {
         "portal_home_go_routine": "Ver rutina →",
         "portal_meals_empty": "Todavía no hay un plan de comidas guardado — vuelve cuando tu entrenador/a lo tenga listo.",
         "portal_routine_empty": "Todavía no hay una rutina guardada — vuelve cuando tu entrenador/a la tenga lista.",
+        "portal_cuisine_question": "🍳 ¿Qué te apetece?",
+        "portal_cuisine_no_preference": "Sin preferencia",
+        "portal_cuisine_error": "No se pudo guardar: {error}",
         "portal_notes_header": "📝 Notas de tu entrenador/a",
         "routine_label": "Rutina:",
         "diet_label": "Dieta:",
@@ -3568,6 +3577,7 @@ def _render_resumen_macros_dia(dia_info: dict) -> None:
 
 _CLAVES_ESTADO_PORTAL = [
     "portal_tab_activa",
+    "portal_estilo_cocina_selector",
     "portal_dia_idx",
     "portal_dia_selector",
     "portal_rutina_dia_idx",
@@ -3915,9 +3925,37 @@ def _ir_a_pestana_portal(etiqueta: str) -> None:
     st.session_state["portal_tab_activa"] = etiqueta
 
 
+def _render_estilo_cocina_selector(estilo_actual: str, pagina_id: str) -> None:
+    """The portal's own "¿Qué te apetece?" question -- direct request to
+    turn cuisine-style bias into something the CLIENT answers themselves
+    (Home tab, "página del perfil"), not something inferred on their
+    behalf. Auto-saves on change, same "no separate save button"
+    convention as the meal like/dislike buttons -- see food_bank.py's
+    "estilo_cocina" DESIGN note for how the next diet regeneration
+    actually applies it."""
+    idioma = st.session_state.lang
+    etiquetas = ETIQUETA_ESTILO_COCINA[idioma]
+    opciones = ["", *ESTILOS_COCINA]
+
+    def _etiqueta(valor: str) -> str:
+        return etiquetas[valor] if valor else t("portal_cuisine_no_preference")
+
+    indice_actual = opciones.index(estilo_actual) if estilo_actual in opciones else 0
+    elegido = st.selectbox(
+        t("portal_cuisine_question"), opciones, index=indice_actual, format_func=_etiqueta,
+        key="portal_estilo_cocina_selector",
+    )
+    if elegido != estilo_actual:
+        try:
+            actualizar_estilo_cocina(pagina_id, elegido)
+            st.rerun()
+        except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
+            st.error(t("portal_cuisine_error").format(error=str(exc)))
+
+
 def _render_portal_home(
     registro: dict, plan_semanal: list[dict], sesiones: list[dict], fecha_checkin_semana: str | None,
-    mensaje_rutina: str, mensaje_dieta: str,
+    mensaje_rutina: str, mensaje_dieta: str, pagina_id: str,
 ) -> None:
     """The portal's landing tab -- an at-a-glance "how am I doing today"
     summary instead of making the client open each section themselves to
@@ -3925,10 +3963,14 @@ def _render_portal_home(
     intuitivo"): the old design was a flat list of independently-
     collapsed sections with no single "home" a client could glance at.
 
-    Deliberately read-only/summary only -- every actual interaction
-    (liking a meal, logging a check-in) still happens in its own
-    dedicated tab; this just surfaces today's plan and status, with
-    buttons that jump straight there via _ir_a_pestana_portal()."""
+    Mostly read-only/summary -- every plan-editing interaction (liking a
+    meal, logging a check-in) still happens in its own dedicated tab,
+    reached via buttons that jump there (_ir_a_pestana_portal()). The one
+    exception is _render_estilo_cocina_selector() below: a genuine
+    profile-level preference, not tied to any one section, so it lives
+    here rather than needing its own tab."""
+    _render_estilo_cocina_selector(registro.get("estilo_cocina") or "", pagina_id)
+
     if fecha_checkin_semana:
         st.success(t("portal_checkin_done_this_week").format(fecha=fecha_checkin_semana))
     else:
@@ -4089,7 +4131,9 @@ def _vista_portal_cliente(codigo: str) -> None:
     )
 
     with tab_home:
-        _render_portal_home(registro, plan_semanal, sesiones, fecha_checkin_semana, mensaje_rutina, mensaje_dieta)
+        _render_portal_home(
+            registro, plan_semanal, sesiones, fecha_checkin_semana, mensaje_rutina, mensaje_dieta, carga["pagina"],
+        )
 
     with tab_comidas:
         if plan_semanal:

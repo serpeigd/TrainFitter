@@ -184,6 +184,30 @@ def test_marcar_email_enviado_checks_the_box(monkeypatch):
     cliente.pages.update.assert_called_once_with(page_id="page-1", properties={"Email Sent": {"checkbox": True}})
 
 
+# --- actualizar_estilo_cocina() ("¿Qué te apetece?" portal question) -------
+
+
+def test_actualizar_estilo_cocina_sets_the_select_property(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    notion_connector.actualizar_estilo_cocina("page-1", "mediterraneo")
+    cliente.pages.update.assert_called_once_with(
+        page_id="page-1", properties={"Cuisine Preference": {"select": {"name": "mediterraneo"}}}
+    )
+
+
+def test_actualizar_estilo_cocina_empty_string_clears_it(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    notion_connector.actualizar_estilo_cocina("page-1", "")
+    cliente.pages.update.assert_called_once_with(page_id="page-1", properties={"Cuisine Preference": {"select": None}})
+
+
+def test_actualizar_estilo_cocina_wraps_api_error(monkeypatch):
+    cliente = _mock_client(monkeypatch)
+    cliente.pages.update.side_effect = _api_error()
+    with pytest.raises(NotionClientError):
+        notion_connector.actualizar_estilo_cocina("page-1", "asiatico")
+
+
 # --- crear_registro_checkin() -----------------------------------------------
 
 
@@ -343,6 +367,7 @@ def test_obtener_registro_cliente_returns_the_expected_fields(monkeypatch):
         "mensaje_dieta": "",
         "comidas_favoritas": [],
         "comidas_no_deseadas": [],
+        "estilo_cocina": "",
     }
     cliente.pages.retrieve.assert_called_once_with(page_id="page-1")
 

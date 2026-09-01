@@ -205,7 +205,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Weekly Routine (JSON) (text),
        Liked Exercises (JSON) (text), Portal Reference (text),
        Portal Reference Expires (date), Language (select: en/es),
-       Routine Message (text), Diet Message (text)
+       Routine Message (text), Diet Message (text),
+       Cuisine Preference (select: mediterraneo/asiatico/mexicano)
   3. Create a second "Check-ins" database with these properties:
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
@@ -613,12 +614,61 @@ def _fila_registro_cliente_desde_pagina(pagina: dict) -> dict:
         comidas_no_deseadas = json.loads(texto_no_deseadas) if texto_no_deseadas else []
     except ValueError:
         comidas_no_deseadas = []
+    # The portal's own "¿Qué te apetece?" question (Home tab) -- a client-
+    # set signal, not something the trainer's intake ever collects. "" (no
+    # preference, including a record saved before this existed) means no
+    # bias -- see agents/planificador_comidas.py's _sesgar_por_estilo_cocina().
+    estilo_cocina = (propiedades.get("Cuisine Preference", {}).get("select") or {}).get("name") or ""
     return {
         "nombre": nombre, "resumen": resumen, "veredicto": veredicto, "fecha": fecha,
         "objetivo": objetivo, "plan_semanal": plan_semanal, "sesiones": sesiones, "idioma": idioma,
         "mensaje_rutina": mensaje_rutina, "mensaje_dieta": mensaje_dieta,
         "comidas_favoritas": comidas_favoritas, "comidas_no_deseadas": comidas_no_deseadas,
+        "estilo_cocina": estilo_cocina,
     }
+
+
+def actualizar_estilo_cocina(pagina_id: str, estilo: str) -> None:
+    """
+    Overwrites a client's "Cuisine Preference" property -- the portal's
+    own "¿Qué te apetece?" question (Home tab, direct request: turn
+    "bias toward a cuisine style" into something the CLIENT answers
+    themselves, not something inferred automatically). A single select
+    property, not a JSON list like Liked Meals -- no read-modify-write
+    needed, this always replaces the client's one current answer, and
+    Notion creates the select option on first write if it doesn't exist
+    yet.
+
+    Read back by obtener_registro_cliente() (as "estilo_cocina") and
+    _perfil_desde_propiedades() (merged into
+    perfil["nutricion"]["estilo_cocina_preferido"]) -- the next diet
+    regeneration for this client (via "Revise client" or a check-in-
+    driven one) is what actually applies the bias, via
+    agents/planificador_comidas.py's _sesgar_por_estilo_cocina(); this
+    function only ever saves the answer.
+
+    Args:
+        pagina_id: the Notion page ID (from the portal's reference code).
+        estilo: "mediterraneo" | "asiatico" | "mexicano", or "" to clear
+            back to "no preference."
+
+    Raises:
+        NotionClientError: missing credentials, or a Notion API failure.
+    """
+    api_key, _ = _credenciales()
+
+    from httpx import HTTPError
+    from notion_client import Client
+    from notion_client.errors import APIResponseError
+
+    try:
+        cliente = Client(auth=api_key)
+        cliente.pages.update(
+            page_id=pagina_id,
+            properties={"Cuisine Preference": {"select": ({"name": estilo} if estilo else None)}},
+        )
+    except (APIResponseError, HTTPError) as exc:
+        raise NotionClientError(f"Notion API error: {exc}") from exc
 
 
 def generar_referencia_portal(
@@ -1119,6 +1169,14 @@ def _perfil_desde_propiedades(propiedades: dict) -> dict:
             perfil.setdefault("nutricion", {})["comidas_no_deseadas"] = json.loads(texto_no_deseadas)
         except ValueError:
             pass
+
+    # The portal's own "¿Qué te apetece?" answer (see actualizar_estilo_cocina())
+    # -- merged in the same way as the likes/dislikes above, so it flows into
+    # the next regeneration (trainer's "Revise client", or a check-in-driven
+    # one) with no extra wiring. Absent/empty just means no preference set.
+    estilo_cocina = (propiedades.get("Cuisine Preference", {}).get("select") or {}).get("name")
+    if estilo_cocina:
+        perfil.setdefault("nutricion", {})["estilo_cocina_preferido"] = estilo_cocina
 
     return perfil
 

@@ -281,11 +281,10 @@ PESO_GRASA_POR_COMIDA = {"desayuno": 0.10, "comida": 0.25, "cena": 0.55, "snack"
 # lentil stew isn't a breakfast food, or that broccoli isn't a fruit.
 # food_bank.py's curated "franjas" tag (defaults to {"principal"} -- see
 # its own DESIGN note) now governs every category uniformly. This
-# replaces three narrower, category-specific fixes that used to live
-# here separately: whole-cut savory proteins/fats excluded from
-# desayuno/snack, dense fruit excluded from comida/cena's carb pool, and
-# -- the actual gap that let broccoli slip in -- no filter on vegetables
-# at all.
+# replaces two narrower, category-specific fixes that used to live here
+# separately: whole-cut savory proteins/fats excluded from desayuno/
+# snack, and -- the actual gap that let broccoli slip in -- no filter on
+# vegetables at all.
 def _candidatos_para_franja(candidatos: dict, franja: str) -> dict:
     """Filters every food category (protein/carb/fat/veg) down to foods
     tagged appropriate for this meal-slot franja ("desayuno" covers both
@@ -301,6 +300,26 @@ def _candidatos_para_franja(candidatos: dict, franja: str) -> dict:
         )
         for categoria, lista in candidatos.items()
     }
+
+
+# A SEPARATE axis from "franjas" above -- not "is this breakfast-
+# appropriate" but "is this dense enough to be a meal's PRIMARY carb
+# without solving out to an absurd portion." Real, live-caught regression:
+# treating "franja == desayuno" as if it meant "small kcal budget" (like
+# the original comment on this exclusion assumed) was wrong -- Breakfast
+# carries the same PESO_KCAL_PRINCIPAL weight as lunch/dinner, only Snack
+# is actually small (PESO_KCAL_SNACK), so "Assorted fruit" as Breakfast's
+# carb solved out to 400g+ again, the exact bug this was meant to prevent.
+# Keyed by `tipo` itself (not `franja`), applied on top of the franja
+# filter above, whenever tipo != "snack".
+CARBOHIDRATOS_SOLO_SNACK = {"Assorted fruit"}
+
+
+def _excluir_carbohidratos_no_densos(candidatos: dict, tipo: str) -> dict:
+    if tipo == "snack":
+        return candidatos
+    denso = [c for c in candidatos["carbohidrato"] if c not in CARBOHIDRATOS_SOLO_SNACK]
+    return {**candidatos, "carbohidrato": denso or candidatos["carbohidrato"]}
 
 
 # Soft preference tag (food_bank.preferencias_blandas()) -> the sinergias
@@ -331,6 +350,30 @@ def _sesgar_por_preferencias(candidatos_categoria: list[str], preferencias: set[
         return candidatos_categoria
     preferidos = [c for c in candidatos_categoria if INDICE_ALIMENTOS[c]["sinergias"] & etiquetas_activas]
     if preferidos and rng.random() < 0.75:
+        return preferidos
+    return candidatos_categoria
+
+
+# Same bias strength as _sesgar_por_preferencias() above (0.75) -- a
+# client-set "what are you in the mood for" answer deserves to show up
+# clearly, not just occasionally, while still leaving room for variety
+# (a full week that's 100% one cuisine would read as repetitive, not
+# personalized).
+PROBABILIDAD_PREFERIR_ESTILO_COCINA = 0.75
+
+
+def _sesgar_por_estilo_cocina(candidatos_categoria: list[str], estilo: str | None, rng: random.Random) -> list[str]:
+    """Narrows one food category's candidates toward food_bank.py's
+    "estilo_cocina" tag matching the client's own portal answer -- see
+    that module's DESIGN note. Same bias-not-force shape as
+    _sesgar_por_preferencias(): falls back to the untouched list when no
+    preference is set, or when none of this category's candidates happen
+    to carry the requested style (most categories/slots won't -- only
+    ~30 foods across the whole bank are tagged at all)."""
+    if not estilo or not candidatos_categoria:
+        return candidatos_categoria
+    preferidos = [c for c in candidatos_categoria if estilo in INDICE_ALIMENTOS[c].get("estilo_cocina", set())]
+    if preferidos and rng.random() < PROBABILIDAD_PREFERIR_ESTILO_COCINA:
         return preferidos
     return candidatos_categoria
 
@@ -573,7 +616,7 @@ def _construir_comida(
     tipo: str, kcal_objetivo: float, kcal_grasa: float, ratios: dict, candidatos: dict,
     preferencias: set[str], comidas_favoritas: list[dict], comidas_no_deseadas: list[dict],
     nivel_compromiso: str | None, idioma: str, rng: random.Random,
-    combos_dia_previos: set[tuple] = frozenset(),
+    combos_dia_previos: set[tuple] = frozenset(), estilo_cocina: str | None = None,
 ) -> dict:
     """Picks foods for one meal slot and scales their portions to roughly
     hit kcal_objetivo, following the day's own protein/carb kcal ratios --
@@ -595,14 +638,12 @@ def _construir_comida(
     # See _candidatos_para_franja()'s own docstring for the bug this fixes.
     # "desayuno" covers both breakfast and snack (the same "light meal"
     # bucket this module has always treated them as); everything else is
-    # "principal". A real, secondary fix that fell out of unifying this:
-    # "Assorted fruit" is now correctly available as a main carb pick at
-    # BOTH desayuno and snack (its comment always said it should be), not
-    # just snack -- the two-condition version this replaced accidentally
-    # ran desayuno through the lunch/dinner-only filter too and excluded
-    # it there, contradicting that same comment.
+    # "principal". _excluir_carbohidratos_no_densos() is a SEPARATE,
+    # size-based filter layered on top -- see its own comment for why
+    # "franja" alone isn't the right axis for that one.
     franja = "desayuno" if tipo in {"desayuno", "snack"} else "principal"
     candidatos = _candidatos_para_franja(candidatos, franja)
+    candidatos = _excluir_carbohidratos_no_densos(candidatos, tipo)
 
     # Soft-preference bias (antiinflamatorio/magnesio/fibra_alta -- see
     # SESGO_POR_PREFERENCIA) applies on top of the realism filters above,
@@ -616,6 +657,13 @@ def _construir_comida(
         "carbohidrato": _sesgar_por_preferencias(candidatos["carbohidrato"], preferencias, rng),
         "grasa": _sesgar_por_preferencias(candidatos["grasa"], preferencias, rng),
         "verdura": _sesgar_por_preferencias(candidatos["verdura"], preferencias, rng),
+    }
+    # The portal's own "¿Qué te apetece?" answer (see food_bank.py's
+    # "estilo_cocina" DESIGN note) -- same bias-not-force treatment,
+    # applied right after the health-driven preference bias above so an
+    # explicit cuisine request still narrows within whatever that left.
+    candidatos = {
+        categoria: _sesgar_por_estilo_cocina(lista, estilo_cocina, rng) for categoria, lista in candidatos.items()
     }
     # "basico" leans every category toward common/everyday foods (see
     # _sesgar_por_nivel_compromiso()) -- applied after the preference bias
@@ -799,6 +847,9 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
 
         perfil["nutricion"]["comidas_favoritas"] (optional, portal-written)
         is read here to apply that bias -- absent for a new client.
+        perfil["nutricion"]["estilo_cocina_preferido"] (optional, portal-
+        written -- see food_bank.py's "estilo_cocina" DESIGN note) is read
+        the same way, for the client's own "¿Qué te apetece?" answer.
     """
     candidatos = {
         "proteina": fuentes_proteina_para(perfil),
@@ -826,6 +877,11 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
     # notion_connector.agregar_comida_no_deseada()) -- excluded, not just
     # downweighted, from this regeneration.
     comidas_no_deseadas = perfil.get("nutricion", {}).get("comidas_no_deseadas") or []
+    # The portal's own "¿Qué te apetece?" answer (see food_bank.py's
+    # "estilo_cocina" DESIGN note) -- absent (None) for a client who
+    # hasn't answered, same "no field, no bias" degradation as every
+    # other optional portal-written signal here.
+    estilo_cocina = perfil.get("nutricion", {}).get("estilo_cocina_preferido")
     # Drives both _sesgar_por_nivel_compromiso() (food selection) and
     # aplicar_sinergias (pairing/explanatory text) inside _construir_comida()
     # -- read once here, same "no field, defaults to normal" degradation as
@@ -861,7 +917,7 @@ def generar_plan_semanal(perfil: dict, necesidades: dict, comidas_al_dia: int, i
             kcal_grasa = kcal_grasa_dia * (peso_grasa / total_peso_grasa)
             comida = _construir_comida(
                 tipo, kcal_objetivo, kcal_grasa, ratios, candidatos, preferencias, comidas_favoritas,
-                comidas_no_deseadas, nivel_compromiso, idioma, rng, combos_dia,
+                comidas_no_deseadas, nivel_compromiso, idioma, rng, combos_dia, estilo_cocina,
             )
             combos_dia.add((comida["proteina"], comida["carbohidrato"], comida["grasa"]))
             if tipo == "snack" and slots.count("snack") > 1:

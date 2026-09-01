@@ -50,6 +50,29 @@ def test_egg_and_soy_excluded_bilingual(perfil_base):
     perfil_base["salud"]["alergias_alimentarias"] = ["egg"]
     assert "huevo" in etiquetas_excluidas(perfil_base)
 
+
+def test_sesame_excluded_bilingual(perfil_base):
+    for texto in ("sesamo", "sésamo", "sesame"):
+        perfil_base["salud"]["alergias_alimentarias"] = [texto]
+        assert "sesamo" in etiquetas_excluidas(perfil_base), f"failed for {texto!r}"
+
+
+def test_fish_allergy_removes_new_shellfish_and_canned_fish_proteins(perfil_base):
+    """Real, reported request ("pulir... mucha variedad") added prawns,
+    mussels, canned tuna, and squid/octopus -- all grouped under the same
+    "pescado" exclusion tag as every other fish/shellfish entry (see
+    etiquetas_excluidas()'s own docstring for why shellfish isn't a
+    separate tag)."""
+    perfil_base["salud"]["alergias_alimentarias"] = ["shellfish"]
+    fuentes = fuentes_proteina_para(perfil_base)
+    for nombre in ("Prawns / shrimp", "Mussels", "Canned tuna", "Squid / octopus"):
+        assert nombre not in fuentes, nombre
+
+
+def test_sesame_allergy_removes_tahini(perfil_base):
+    perfil_base["salud"]["alergias_alimentarias"] = ["sesame"]
+    assert "Tahini (sesame paste)" not in fuentes_grasa_para(perfil_base)
+
     perfil_base["salud"]["alergias_alimentarias"] = ["soy"]
     assert "soja" in etiquetas_excluidas(perfil_base)
 

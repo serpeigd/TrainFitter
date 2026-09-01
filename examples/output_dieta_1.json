@@ -23,7 +23,15 @@
     "Edamame",
     "Seitan",
     "Protein powder (plant-based)",
-    "Natto"
+    "Natto",
+    "Pork loin",
+    "Prawns / shrimp",
+    "Mussels",
+    "Canned tuna",
+    "Squid / octopus",
+    "Cottage cheese",
+    "Whey protein (powder)",
+    "Black beans"
   ],
   "fuentes_carbohidrato_sugeridas": [
     "Rice",
@@ -34,14 +42,22 @@
     "Quinoa",
     "Legumes (also a carb source)",
     "Assorted fruit",
-    "Farro"
+    "Farro",
+    "Couscous",
+    "Buckwheat",
+    "Sweet corn",
+    "Barley",
+    "Rye bread"
   ],
   "fuentes_grasa_sugeridas": [
     "Extra virgin olive oil",
     "Avocado",
     "Nuts (walnuts, almonds)",
     "Seeds (chia, flax)",
-    "Algae oil (vegan omega-3)"
+    "Algae oil (vegan omega-3)",
+    "Peanut butter",
+    "Tahini (sesame paste)",
+    "Coconut (grated)"
   ],
   "fuentes_verdura_sugeridas": [
     "Broccoli",
@@ -52,7 +68,13 @@
     "Mixed salad greens",
     "Kiwi",
     "Citrus (orange, lemon)",
-    "Kimchi"
+    "Kimchi",
+    "Cucumber",
+    "Courgette",
+    "Aubergine",
+    "Cauliflower",
+    "Mushrooms",
+    "Berries (strawberry, blueberry)"
   ],
   "plan_semanal": [
     {
@@ -60,130 +82,53 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Protein oatmeal: 81g oats, 44g protein powder (plant-based), 80g citrus (orange, lemon), 7g algae oil (vegan omega-3). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 579,
+          "descripcion": "Whey protein (powder) with rye bread: 121g rye bread, 41g whey protein (powder), 10g nuts (walnuts, almonds).",
+          "aprox_kcal": 537,
           "tipo_interno": "desayuno",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Algae oil (vegan omega-3)",
-          "proteina_g": 34.3,
-          "carbohidrato_g": 53.5,
-          "grasa_g": 7.0,
-          "proteina_alimento_g": 44,
-          "carbohidrato_alimento_g": 81,
-          "grasa_alimento_g": 7,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Lunch",
-          "descripcion": "Lentils with whole wheat pasta: 141g lentils, 254g whole wheat pasta, 100g tomato, with 25g nuts (walnuts, almonds). (Tomato adds vitamin C to help absorb the iron in lentils.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 647,
-          "tipo_interno": "comida",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat pasta",
+          "proteina": "Whey protein (powder)",
+          "carbohidrato": "Rye bread",
           "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 12.7,
-          "carbohidrato_g": 63.5,
-          "grasa_g": 13.0,
-          "proteina_alimento_g": 141,
-          "carbohidrato_alimento_g": 254,
-          "grasa_alimento_g": 25,
-          "verdura": "Tomato",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "Lean beef with whole wheat bread: 80g lean beef, 127g whole wheat bread, 100g broccoli, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 839,
-          "tipo_interno": "cena",
-          "proteina": "Lean beef",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado",
-          "proteina_g": 21.6,
-          "carbohidrato_g": 52.1,
-          "grasa_g": 30.6,
-          "proteina_alimento_g": 80,
-          "carbohidrato_alimento_g": 127,
-          "grasa_alimento_g": 204,
-          "verdura": "Broccoli",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Snack",
-          "descripcion": "Protein powder (plant-based) with whole wheat bread: 42g whole wheat bread, 15g protein powder (plant-based), 37g avocado.",
-          "aprox_kcal": 219,
-          "tipo_interno": "snack",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado",
-          "proteina_g": 11.7,
-          "carbohidrato_g": 17.2,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 15,
-          "carbohidrato_alimento_g": 42,
-          "grasa_alimento_g": 37,
+          "proteina_g": 32.8,
+          "carbohidrato_g": 58.1,
+          "grasa_g": 5.2,
+          "proteina_alimento_g": 41,
+          "carbohidrato_alimento_g": 121,
+          "grasa_alimento_g": 10,
           "verdura": null,
           "verdura_alimento_g": 0,
           "requiere_coccion": false
-        }
-      ]
-    },
-    {
-      "dia": "Tuesday",
-      "comidas": [
-        {
-          "tipo": "Breakfast",
-          "descripcion": "Eggs with assorted fruit: 524g assorted fruit, 105g eggs, 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 536,
-          "tipo_interno": "desayuno",
-          "proteina": "Eggs",
-          "carbohidrato": "Assorted fruit",
-          "grasa": "Avocado",
-          "proteina_g": 13.7,
-          "carbohidrato_g": 78.6,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 105,
-          "carbohidrato_alimento_g": 524,
-          "grasa_alimento_g": 37,
-          "verdura": null,
-          "verdura_alimento_g": 0,
-          "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Edamame with whole wheat pasta: 135g edamame, 254g whole wheat pasta, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in edamame.) Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
-          "aprox_kcal": 662,
+          "descripcion": "Chicken breast with buckwheat: 99g chicken breast, 342g buckwheat, 100g aubergine, with 25g peanut butter. Optional: marinate it in lemon and spices before cooking — more flavor, no added calories.",
+          "aprox_kcal": 660,
           "tipo_interno": "comida",
-          "proteina": "Edamame",
-          "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado",
-          "proteina_g": 16.2,
-          "carbohidrato_g": 63.5,
-          "grasa_g": 13.9,
-          "proteina_alimento_g": 135,
-          "carbohidrato_alimento_g": 254,
-          "grasa_alimento_g": 93,
-          "verdura": "Broccoli",
+          "proteina": "Chicken breast",
+          "carbohidrato": "Buckwheat",
+          "grasa": "Peanut butter",
+          "proteina_g": 30.7,
+          "carbohidrato_g": 68.4,
+          "grasa_g": 12.5,
+          "proteina_alimento_g": 99,
+          "carbohidrato_alimento_g": 342,
+          "grasa_alimento_g": 25,
+          "verdura": "Aubergine",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Chickpeas with whole wheat bread: 100g chickpeas, 127g whole wheat bread, 100g broccoli, with 204g avocado. (Broccoli adds vitamin C to help absorb the iron in chickpeas.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "descripcion": "White fish (hake, sole) with whole wheat pasta: 181g white fish (hake, sole), 254g whole wheat pasta, 100g broccoli, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
           "aprox_kcal": 839,
           "tipo_interno": "cena",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "White fish (hake, sole)",
+          "carbohidrato": "Whole wheat pasta",
           "grasa": "Avocado",
-          "proteina_g": 9.0,
-          "carbohidrato_g": 52.1,
+          "proteina_g": 34.4,
+          "carbohidrato_g": 63.5,
           "grasa_g": 30.6,
-          "proteina_alimento_g": 100,
-          "carbohidrato_alimento_g": 127,
+          "proteina_alimento_g": 181,
+          "carbohidrato_alimento_g": 254,
           "grasa_alimento_g": 204,
           "verdura": "Broccoli",
           "verdura_alimento_g": 100,
@@ -191,8 +136,8 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "Eggs with oats: 27g oats, 35g eggs, 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 218,
+          "descripcion": "Eggs with oats: 27g oats, 35g eggs, 80g kiwi, 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 267,
           "tipo_interno": "snack",
           "proteina": "Eggs",
           "carbohidrato": "Oats",
@@ -203,48 +148,48 @@
           "proteina_alimento_g": 35,
           "carbohidrato_alimento_g": 27,
           "grasa_alimento_g": 37,
-          "verdura": null,
-          "verdura_alimento_g": 0,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80,
           "requiere_coccion": true
         }
       ]
     },
     {
-      "dia": "Wednesday",
+      "dia": "Tuesday",
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 127g whole wheat bread, 277g greek yogurt / whipped fresh cheese, 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
-          "aprox_kcal": 536,
+          "descripcion": "Cottage cheese with rye bread: 121g rye bread, 167g cottage cheese, 10g nuts (walnuts, almonds).",
+          "aprox_kcal": 537,
           "tipo_interno": "desayuno",
-          "proteina": "Greek yogurt / whipped fresh cheese",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado",
-          "proteina_g": 27.7,
-          "carbohidrato_g": 52.1,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 277,
-          "carbohidrato_alimento_g": 127,
-          "grasa_alimento_g": 37,
+          "proteina": "Cottage cheese",
+          "carbohidrato": "Rye bread",
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 18.4,
+          "carbohidrato_g": 58.1,
+          "grasa_g": 5.2,
+          "proteina_alimento_g": 167,
+          "carbohidrato_alimento_g": 121,
+          "grasa_alimento_g": 10,
           "verdura": null,
           "verdura_alimento_g": 0,
           "requiere_coccion": false
         },
         {
           "tipo": "Lunch",
-          "descripcion": "White fish (hake, sole) with whole wheat bread: 181g white fish (hake, sole), 127g whole wheat bread, 100g carrot, with 93g avocado.",
-          "aprox_kcal": 666,
+          "descripcion": "Seitan with barley: 44g seitan, 256g barley, 100g cucumber, with 93g avocado.",
+          "aprox_kcal": 641,
           "tipo_interno": "comida",
-          "proteina": "White fish (hake, sole)",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "Seitan",
+          "carbohidrato": "Barley",
           "grasa": "Avocado",
-          "proteina_g": 34.4,
-          "carbohidrato_g": 52.1,
+          "proteina_g": 33.0,
+          "carbohidrato_g": 71.7,
           "grasa_g": 13.9,
-          "proteina_alimento_g": 181,
-          "carbohidrato_alimento_g": 127,
+          "proteina_alimento_g": 44,
+          "carbohidrato_alimento_g": 256,
           "grasa_alimento_g": 93,
-          "verdura": "Carrot",
+          "verdura": "Cucumber",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
@@ -268,21 +213,98 @@
         },
         {
           "tipo": "Snack",
-          "descripcion": "Protein oatmeal: 27g oats, 15g protein powder (plant-based), 80g kiwi, 37g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 269,
+          "descripcion": "Eggs with oats: 27g oats, 35g eggs, 80g kiwi, 7g extra virgin olive oil. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 270,
           "tipo_interno": "snack",
-          "proteina": "Protein powder (plant-based)",
+          "proteina": "Eggs",
           "carbohidrato": "Oats",
-          "grasa": "Avocado",
-          "proteina_g": 11.7,
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 4.5,
           "carbohidrato_g": 17.8,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 15,
+          "grasa_g": 7.0,
+          "proteina_alimento_g": 35,
           "carbohidrato_alimento_g": 27,
-          "grasa_alimento_g": 37,
+          "grasa_alimento_g": 7,
           "verdura": "Kiwi",
           "verdura_alimento_g": 80,
           "requiere_coccion": true
+        }
+      ]
+    },
+    {
+      "dia": "Wednesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "Greek yogurt / whipped fresh cheese with rye bread: 121g rye bread, 277g greek yogurt / whipped fresh cheese, 80g citrus (orange, lemon), 10g nuts (walnuts, almonds). Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 575,
+          "tipo_interno": "desayuno",
+          "proteina": "Greek yogurt / whipped fresh cheese",
+          "carbohidrato": "Rye bread",
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 27.7,
+          "carbohidrato_g": 58.1,
+          "grasa_g": 5.2,
+          "proteina_alimento_g": 277,
+          "carbohidrato_alimento_g": 121,
+          "grasa_alimento_g": 10,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": false
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "Chickpeas with whole wheat bread: 100g chickpeas, 127g whole wheat bread, 100g broccoli, with 93g avocado. (Broccoli adds vitamin C to help absorb the iron in chickpeas.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 661,
+          "tipo_interno": "comida",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado",
+          "proteina_g": 9.0,
+          "carbohidrato_g": 52.1,
+          "grasa_g": 13.9,
+          "proteina_alimento_g": 100,
+          "carbohidrato_alimento_g": 127,
+          "grasa_alimento_g": 93,
+          "verdura": "Broccoli",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "Lentils with sweet corn: 141g lentils, 328g sweet corn, 100g red bell pepper, with 204g avocado. (Red bell pepper adds vitamin C to help absorb the iron in lentils.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 836,
+          "tipo_interno": "cena",
+          "proteina": "Lentils",
+          "carbohidrato": "Sweet corn",
+          "grasa": "Avocado",
+          "proteina_g": 12.7,
+          "carbohidrato_g": 68.9,
+          "grasa_g": 30.6,
+          "proteina_alimento_g": 141,
+          "carbohidrato_alimento_g": 328,
+          "grasa_alimento_g": 204,
+          "verdura": "Red bell pepper",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "Whey protein (powder) with rye bread: 40g rye bread, 14g whey protein (powder), 80g kiwi, 10g tahini (sesame paste).",
+          "aprox_kcal": 268,
+          "tipo_interno": "snack",
+          "proteina": "Whey protein (powder)",
+          "carbohidrato": "Rye bread",
+          "grasa": "Tahini (sesame paste)",
+          "proteina_g": 11.2,
+          "carbohidrato_g": 19.2,
+          "grasa_g": 5.4,
+          "proteina_alimento_g": 14,
+          "carbohidrato_alimento_g": 40,
+          "grasa_alimento_g": 10,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": false
         }
       ]
     },
@@ -291,85 +313,8 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Eggs with oats: 81g oats, 105g eggs, 80g citrus (orange, lemon), 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 575,
-          "tipo_interno": "desayuno",
-          "proteina": "Eggs",
-          "carbohidrato": "Oats",
-          "grasa": "Avocado",
-          "proteina_g": 13.7,
-          "carbohidrato_g": 53.5,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 105,
-          "carbohidrato_alimento_g": 81,
-          "grasa_alimento_g": 37,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Lunch",
-          "descripcion": "Edamame with legumes (also a carb source): 135g edamame, 238g legumes (also a carb source), 100g kimchi, with 93g avocado. (Kimchi adds vitamin C to help absorb the iron in edamame.)",
-          "aprox_kcal": 641,
-          "tipo_interno": "comida",
-          "proteina": "Edamame",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Avocado",
-          "proteina_g": 16.2,
-          "carbohidrato_g": 57.1,
-          "grasa_g": 13.9,
-          "proteina_alimento_g": 135,
-          "carbohidrato_alimento_g": 238,
-          "grasa_alimento_g": 93,
-          "verdura": "Kimchi",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "Lean beef with whole wheat bread: 80g lean beef, 127g whole wheat bread, 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 845,
-          "tipo_interno": "cena",
-          "proteina": "Lean beef",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Avocado",
-          "proteina_g": 21.6,
-          "carbohidrato_g": 52.1,
-          "grasa_g": 30.6,
-          "proteina_alimento_g": 80,
-          "carbohidrato_alimento_g": 127,
-          "grasa_alimento_g": 204,
-          "verdura": "Carrot",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Snack",
-          "descripcion": "Protein oatmeal: 27g oats, 15g protein powder (plant-based), 80g citrus (orange, lemon), 37g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 258,
-          "tipo_interno": "snack",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Avocado",
-          "proteina_g": 11.7,
-          "carbohidrato_g": 17.8,
-          "grasa_g": 5.5,
-          "proteina_alimento_g": 15,
-          "carbohidrato_alimento_g": 27,
-          "grasa_alimento_g": 37,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        }
-      ]
-    },
-    {
-      "dia": "Friday",
-      "comidas": [
-        {
-          "tipo": "Breakfast",
-          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 127g whole wheat bread, 277g greek yogurt / whipped fresh cheese, 80g citrus (orange, lemon), 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
-          "aprox_kcal": 574,
+          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 127g whole wheat bread, 277g greek yogurt / whipped fresh cheese, 80g berries (strawberry, blueberry), 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 576,
           "tipo_interno": "desayuno",
           "proteina": "Greek yogurt / whipped fresh cheese",
           "carbohidrato": "Whole wheat bread",
@@ -380,23 +325,23 @@
           "proteina_alimento_g": 277,
           "carbohidrato_alimento_g": 127,
           "grasa_alimento_g": 37,
-          "verdura": "Citrus (orange, lemon)",
+          "verdura": "Berries (strawberry, blueberry)",
           "verdura_alimento_g": 80,
           "requiere_coccion": false
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Natto with whole wheat pasta: 77g natto, 254g whole wheat pasta, 100g broccoli, with 93g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
+          "descripcion": "Chicken breast with barley: 99g chicken breast, 256g barley, 100g broccoli, with 93g avocado. Optional: marinate it in lemon and spices before cooking — more flavor, no added calories.",
           "aprox_kcal": 662,
           "tipo_interno": "comida",
-          "proteina": "Natto",
-          "carbohidrato": "Whole wheat pasta",
+          "proteina": "Chicken breast",
+          "carbohidrato": "Barley",
           "grasa": "Avocado",
-          "proteina_g": 13.9,
-          "carbohidrato_g": 63.5,
+          "proteina_g": 30.7,
+          "carbohidrato_g": 71.7,
           "grasa_g": 13.9,
-          "proteina_alimento_g": 77,
-          "carbohidrato_alimento_g": 254,
+          "proteina_alimento_g": 99,
+          "carbohidrato_alimento_g": 256,
           "grasa_alimento_g": 93,
           "verdura": "Broccoli",
           "verdura_alimento_g": 100,
@@ -404,36 +349,113 @@
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Lean beef with farro: 80g lean beef, 185g farro, 100g carrot, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
-          "aprox_kcal": 846,
+          "descripcion": "Edamame with whole wheat bread: 135g edamame, 127g whole wheat bread, 100g cauliflower, with 204g avocado. (Cauliflower adds vitamin C to help absorb the iron in edamame.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 828,
           "tipo_interno": "cena",
-          "proteina": "Lean beef",
-          "carbohidrato": "Farro",
+          "proteina": "Edamame",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado",
-          "proteina_g": 21.6,
-          "carbohidrato_g": 62.9,
+          "proteina_g": 16.2,
+          "carbohidrato_g": 52.1,
           "grasa_g": 30.6,
-          "proteina_alimento_g": 80,
-          "carbohidrato_alimento_g": 185,
+          "proteina_alimento_g": 135,
+          "carbohidrato_alimento_g": 127,
           "grasa_alimento_g": 204,
-          "verdura": "Carrot",
+          "verdura": "Cauliflower",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Snack",
-          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 42g whole wheat bread, 92g greek yogurt / whipped fresh cheese, 80g citrus (orange, lemon), 10g nuts (walnuts, almonds). Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
-          "aprox_kcal": 256,
+          "descripcion": "Greek yogurt / whipped fresh cheese with rye bread: 40g rye bread, 92g greek yogurt / whipped fresh cheese, 80g citrus (orange, lemon), 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 255,
+          "tipo_interno": "snack",
+          "proteina": "Greek yogurt / whipped fresh cheese",
+          "carbohidrato": "Rye bread",
+          "grasa": "Avocado",
+          "proteina_g": 9.2,
+          "carbohidrato_g": 19.2,
+          "grasa_g": 5.5,
+          "proteina_alimento_g": 92,
+          "carbohidrato_alimento_g": 40,
+          "grasa_alimento_g": 37,
+          "verdura": "Citrus (orange, lemon)",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": false
+        }
+      ]
+    },
+    {
+      "dia": "Friday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 127g whole wheat bread, 277g greek yogurt / whipped fresh cheese, 80g kiwi, 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 585,
+          "tipo_interno": "desayuno",
+          "proteina": "Greek yogurt / whipped fresh cheese",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado",
+          "proteina_g": 27.7,
+          "carbohidrato_g": 52.1,
+          "grasa_g": 5.5,
+          "proteina_alimento_g": 277,
+          "carbohidrato_alimento_g": 127,
+          "grasa_alimento_g": 37,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": false
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "White fish (hake, sole) with buckwheat: 181g white fish (hake, sole), 342g buckwheat, 100g cauliflower, with 93g avocado.",
+          "aprox_kcal": 651,
+          "tipo_interno": "comida",
+          "proteina": "White fish (hake, sole)",
+          "carbohidrato": "Buckwheat",
+          "grasa": "Avocado",
+          "proteina_g": 34.4,
+          "carbohidrato_g": 68.4,
+          "grasa_g": 13.9,
+          "proteina_alimento_g": 181,
+          "carbohidrato_alimento_g": 342,
+          "grasa_alimento_g": 93,
+          "verdura": "Cauliflower",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "Tofu pasta: 113g tofu, 254g whole wheat pasta, 100g cauliflower, with 65g seeds (chia, flax). (Cauliflower adds vitamin C to help absorb the iron in tofu.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: press it for a few minutes before cooking — it soaks up marinade far better.",
+          "aprox_kcal": 828,
+          "tipo_interno": "cena",
+          "proteina": "Tofu",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 16.9,
+          "carbohidrato_g": 63.5,
+          "grasa_g": 22.1,
+          "proteina_alimento_g": 113,
+          "carbohidrato_alimento_g": 254,
+          "grasa_alimento_g": 65,
+          "verdura": "Cauliflower",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Snack",
+          "descripcion": "Greek yogurt / whipped fresh cheese with whole wheat bread: 42g whole wheat bread, 92g greek yogurt / whipped fresh cheese, 80g citrus (orange, lemon), 7g extra virgin olive oil. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 258,
           "tipo_interno": "snack",
           "proteina": "Greek yogurt / whipped fresh cheese",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Nuts (walnuts, almonds)",
+          "grasa": "Extra virgin olive oil",
           "proteina_g": 9.2,
           "carbohidrato_g": 17.2,
-          "grasa_g": 5.2,
+          "grasa_g": 7.0,
           "proteina_alimento_g": 92,
           "carbohidrato_alimento_g": 42,
-          "grasa_alimento_g": 10,
+          "grasa_alimento_g": 7,
           "verdura": "Citrus (orange, lemon)",
           "verdura_alimento_g": 80,
           "requiere_coccion": false
@@ -445,74 +467,74 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Greek yogurt oat bowl: 81g oats, 277g greek yogurt / whipped fresh cheese, 80g kiwi, 37g avocado. (a probiotic + prebiotic-fiber combo.) Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
-          "aprox_kcal": 587,
+          "descripcion": "Protein powder (plant-based) with whole wheat bread: 127g whole wheat bread, 44g protein powder (plant-based), 80g kiwi, 37g avocado.",
+          "aprox_kcal": 586,
           "tipo_interno": "desayuno",
-          "proteina": "Greek yogurt / whipped fresh cheese",
-          "carbohidrato": "Oats",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Whole wheat bread",
           "grasa": "Avocado",
-          "proteina_g": 27.7,
-          "carbohidrato_g": 53.5,
+          "proteina_g": 34.3,
+          "carbohidrato_g": 52.1,
           "grasa_g": 5.5,
-          "proteina_alimento_g": 277,
-          "carbohidrato_alimento_g": 81,
+          "proteina_alimento_g": 44,
+          "carbohidrato_alimento_g": 127,
           "grasa_alimento_g": 37,
           "verdura": "Kiwi",
           "verdura_alimento_g": 80,
-          "requiere_coccion": true
+          "requiere_coccion": false
         },
         {
           "tipo": "Lunch",
-          "descripcion": "White fish (hake, sole) with whole wheat pasta: 181g white fish (hake, sole), 254g whole wheat pasta, 100g carrot, with 30g seeds (chia, flax). Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
-          "aprox_kcal": 669,
+          "descripcion": "Natto with whole wheat pasta: 77g natto, 254g whole wheat pasta, 100g mixed salad greens, with 93g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
+          "aprox_kcal": 647,
           "tipo_interno": "comida",
-          "proteina": "White fish (hake, sole)",
+          "proteina": "Natto",
           "carbohidrato": "Whole wheat pasta",
-          "grasa": "Seeds (chia, flax)",
-          "proteina_g": 34.4,
+          "grasa": "Avocado",
+          "proteina_g": 13.9,
           "carbohidrato_g": 63.5,
-          "grasa_g": 10.2,
-          "proteina_alimento_g": 181,
+          "grasa_g": 13.9,
+          "proteina_alimento_g": 77,
           "carbohidrato_alimento_g": 254,
-          "grasa_alimento_g": 30,
-          "verdura": "Carrot",
+          "grasa_alimento_g": 93,
+          "verdura": "Mixed salad greens",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Eggs with potato / sweet potato: 105g eggs, 361g potato / sweet potato, 100g tomato, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 821,
+          "descripcion": "Eggs with barley: 105g eggs, 256g barley, 100g citrus (orange, lemon), with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 851,
           "tipo_interno": "cena",
           "proteina": "Eggs",
-          "carbohidrato": "Potato / sweet potato",
+          "carbohidrato": "Barley",
           "grasa": "Avocado",
           "proteina_g": 13.7,
-          "carbohidrato_g": 72.2,
+          "carbohidrato_g": 71.7,
           "grasa_g": 30.6,
           "proteina_alimento_g": 105,
-          "carbohidrato_alimento_g": 361,
+          "carbohidrato_alimento_g": 256,
           "grasa_alimento_g": 204,
-          "verdura": "Tomato",
+          "verdura": "Citrus (orange, lemon)",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Snack",
-          "descripcion": "Fruit protein shake: 175g assorted fruit, 15g protein powder (plant-based), 80g kiwi, 7g extra virgin olive oil.",
-          "aprox_kcal": 272,
+          "descripcion": "Fruit protein shake: 175g assorted fruit, 15g protein powder (plant-based), 37g avocado.",
+          "aprox_kcal": 220,
           "tipo_interno": "snack",
           "proteina": "Protein powder (plant-based)",
           "carbohidrato": "Assorted fruit",
-          "grasa": "Extra virgin olive oil",
+          "grasa": "Avocado",
           "proteina_g": 11.7,
           "carbohidrato_g": 26.2,
-          "grasa_g": 7.0,
+          "grasa_g": 5.5,
           "proteina_alimento_g": 15,
           "carbohidrato_alimento_g": 175,
-          "grasa_alimento_g": 7,
-          "verdura": "Kiwi",
-          "verdura_alimento_g": 80,
+          "grasa_alimento_g": 37,
+          "verdura": null,
+          "verdura_alimento_g": 0,
           "requiere_coccion": false
         }
       ]
@@ -522,74 +544,74 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Greek yogurt oat bowl: 81g oats, 277g greek yogurt / whipped fresh cheese, 12g seeds (chia, flax). (a probiotic + prebiotic-fiber combo.) Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
-          "aprox_kcal": 539,
+          "descripcion": "Greek yogurt / whipped fresh cheese with rye bread: 121g rye bread, 277g greek yogurt / whipped fresh cheese, 80g kiwi, 37g avocado. Optional: pick the plain, unsweetened version — the fruit already brings the sweetness.",
+          "aprox_kcal": 585,
           "tipo_interno": "desayuno",
           "proteina": "Greek yogurt / whipped fresh cheese",
-          "carbohidrato": "Oats",
-          "grasa": "Seeds (chia, flax)",
+          "carbohidrato": "Rye bread",
+          "grasa": "Avocado",
           "proteina_g": 27.7,
-          "carbohidrato_g": 53.5,
-          "grasa_g": 4.1,
+          "carbohidrato_g": 58.1,
+          "grasa_g": 5.5,
           "proteina_alimento_g": 277,
-          "carbohidrato_alimento_g": 81,
-          "grasa_alimento_g": 12,
-          "verdura": null,
-          "verdura_alimento_g": 0,
-          "requiere_coccion": true
+          "carbohidrato_alimento_g": 121,
+          "grasa_alimento_g": 37,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": false
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Eggs with whole wheat pasta: 105g eggs, 254g whole wheat pasta, 100g carrot, with 93g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 668,
+          "descripcion": "Mussels with farro: 95g mussels, 185g farro, 100g mixed salad greens, with 22g coconut (grated).",
+          "aprox_kcal": 643,
           "tipo_interno": "comida",
-          "proteina": "Eggs",
-          "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado",
-          "proteina_g": 13.7,
-          "carbohidrato_g": 63.5,
-          "grasa_g": 13.9,
-          "proteina_alimento_g": 105,
-          "carbohidrato_alimento_g": 254,
-          "grasa_alimento_g": 93,
-          "verdura": "Carrot",
+          "proteina": "Mussels",
+          "carbohidrato": "Farro",
+          "grasa": "Coconut (grated)",
+          "proteina_g": 22.8,
+          "carbohidrato_g": 62.9,
+          "grasa_g": 14.3,
+          "proteina_alimento_g": 95,
+          "carbohidrato_alimento_g": 185,
+          "grasa_alimento_g": 22,
+          "verdura": "Mixed salad greens",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Lentils with whole wheat bread: 141g lentils, 127g whole wheat bread, 100g broccoli, with 204g avocado. (Broccoli adds vitamin C to help absorb the iron in lentils.) (today's largest fat portion — best time for vitamin D/E/K and omega-3s.) Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 839,
+          "descripcion": "Prawns / shrimp with legumes (also a carb source): 165g prawns / shrimp, 238g legumes (also a carb source), 100g mixed salad greens, with 204g avocado. (today's largest fat portion — best time for vitamin D/E/K and omega-3s.)",
+          "aprox_kcal": 824,
           "tipo_interno": "cena",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "Prawns / shrimp",
+          "carbohidrato": "Legumes (also a carb source)",
           "grasa": "Avocado",
-          "proteina_g": 12.7,
-          "carbohidrato_g": 52.1,
+          "proteina_g": 39.6,
+          "carbohidrato_g": 57.1,
           "grasa_g": 30.6,
-          "proteina_alimento_g": 141,
-          "carbohidrato_alimento_g": 127,
+          "proteina_alimento_g": 165,
+          "carbohidrato_alimento_g": 238,
           "grasa_alimento_g": 204,
-          "verdura": "Broccoli",
+          "verdura": "Mixed salad greens",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Snack",
-          "descripcion": "Protein oatmeal: 27g oats, 15g protein powder (plant-based), 80g citrus (orange, lemon), 7g extra virgin olive oil. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 261,
+          "descripcion": "Scrambled eggs on toast: 42g whole wheat bread, 35g eggs, 37g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 217,
           "tipo_interno": "snack",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Extra virgin olive oil",
-          "proteina_g": 11.7,
-          "carbohidrato_g": 17.8,
-          "grasa_g": 7.0,
-          "proteina_alimento_g": 15,
-          "carbohidrato_alimento_g": 27,
-          "grasa_alimento_g": 7,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
+          "proteina": "Eggs",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Avocado",
+          "proteina_g": 4.5,
+          "carbohidrato_g": 17.2,
+          "grasa_g": 5.5,
+          "proteina_alimento_g": 35,
+          "carbohidrato_alimento_g": 42,
+          "grasa_alimento_g": 37,
+          "verdura": null,
+          "verdura_alimento_g": 0,
           "requiere_coccion": true
         }
       ]
@@ -599,22 +621,27 @@
     {
       "categoria": "Carbs",
       "alimento": "Whole wheat pasta",
-      "gramos_totales": 1300
+      "gramos_totales": 800
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Barley",
+      "gramos_totales": 800
     },
     {
       "categoria": "Carbs",
       "alimento": "Whole wheat bread",
-      "gramos_totales": 1000
+      "gramos_totales": 750
     },
     {
       "categoria": "Carbs",
-      "alimento": "Assorted fruit",
+      "alimento": "Buckwheat",
       "gramos_totales": 700
     },
     {
       "categoria": "Carbs",
-      "alimento": "Oats",
-      "gramos_totales": 450
+      "alimento": "Rye bread",
+      "gramos_totales": 600
     },
     {
       "categoria": "Carbs",
@@ -623,8 +650,8 @@
     },
     {
       "categoria": "Carbs",
-      "alimento": "Potato / sweet potato",
-      "gramos_totales": 400
+      "alimento": "Sweet corn",
+      "gramos_totales": 350
     },
     {
       "categoria": "Carbs",
@@ -632,14 +659,24 @@
       "gramos_totales": 250
     },
     {
-      "categoria": "Fat",
-      "alimento": "Avocado",
-      "gramos_totales": 2250
+      "categoria": "Carbs",
+      "alimento": "Assorted fruit",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Oats",
+      "gramos_totales": 100
     },
     {
       "categoria": "Fat",
-      "alimento": "Algae oil (vegan omega-3)",
-      "gramos_totales": 50
+      "alimento": "Avocado",
+      "gramos_totales": 2000
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Seeds (chia, flax)",
+      "gramos_totales": 100
     },
     {
       "categoria": "Fat",
@@ -648,7 +685,7 @@
     },
     {
       "categoria": "Fat",
-      "alimento": "Seeds (chia, flax)",
+      "alimento": "Peanut butter",
       "gramos_totales": 50
     },
     {
@@ -657,14 +694,19 @@
       "gramos_totales": 50
     },
     {
-      "categoria": "Protein",
-      "alimento": "Greek yogurt / whipped fresh cheese",
-      "gramos_totales": 1200
+      "categoria": "Fat",
+      "alimento": "Tahini (sesame paste)",
+      "gramos_totales": 50
+    },
+    {
+      "categoria": "Fat",
+      "alimento": "Coconut (grated)",
+      "gramos_totales": 50
     },
     {
       "categoria": "Protein",
-      "alimento": "Eggs",
-      "gramos_totales": 500
+      "alimento": "Greek yogurt / whipped fresh cheese",
+      "gramos_totales": 1300
     },
     {
       "categoria": "Protein",
@@ -673,27 +715,42 @@
     },
     {
       "categoria": "Protein",
-      "alimento": "Lentils",
-      "gramos_totales": 300
-    },
-    {
-      "categoria": "Protein",
-      "alimento": "Edamame",
-      "gramos_totales": 300
-    },
-    {
-      "categoria": "Protein",
-      "alimento": "Lean beef",
+      "alimento": "Eggs",
       "gramos_totales": 250
     },
     {
       "categoria": "Protein",
-      "alimento": "Protein powder (plant-based)",
+      "alimento": "Chicken breast",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Cottage cheese",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Prawns / shrimp",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Lentils",
       "gramos_totales": 150
     },
     {
       "categoria": "Protein",
-      "alimento": "Chickpeas",
+      "alimento": "Edamame",
+      "gramos_totales": 150
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Tofu",
+      "gramos_totales": 150
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Whey protein (powder)",
       "gramos_totales": 100
     },
     {
@@ -703,37 +760,72 @@
     },
     {
       "categoria": "Protein",
+      "alimento": "Chickpeas",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Protein powder (plant-based)",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Protein",
       "alimento": "Natto",
       "gramos_totales": 100
     },
     {
-      "categoria": "Vegetables & fruit",
-      "alimento": "Broccoli",
-      "gramos_totales": 600
+      "categoria": "Protein",
+      "alimento": "Mussels",
+      "gramos_totales": 100
     },
     {
-      "categoria": "Vegetables & fruit",
-      "alimento": "Citrus (orange, lemon)",
-      "gramos_totales": 500
-    },
-    {
-      "categoria": "Vegetables & fruit",
-      "alimento": "Carrot",
-      "gramos_totales": 500
+      "categoria": "Protein",
+      "alimento": "Seitan",
+      "gramos_totales": 50
     },
     {
       "categoria": "Vegetables & fruit",
       "alimento": "Kiwi",
-      "gramos_totales": 250
+      "gramos_totales": 500
     },
     {
       "categoria": "Vegetables & fruit",
-      "alimento": "Tomato",
-      "gramos_totales": 200
+      "alimento": "Broccoli",
+      "gramos_totales": 400
     },
     {
       "categoria": "Vegetables & fruit",
-      "alimento": "Kimchi",
+      "alimento": "Citrus (orange, lemon)",
+      "gramos_totales": 350
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Cauliflower",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Mixed salad greens",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Aubergine",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Cucumber",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Red bell pepper",
+      "gramos_totales": 100
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Berries (strawberry, blueberry)",
       "gramos_totales": 100
     }
   ],

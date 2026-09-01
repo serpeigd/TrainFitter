@@ -16,7 +16,8 @@
     "Tempeh",
     "Edamame",
     "Seitan",
-    "Protein powder (plant-based)"
+    "Protein powder (plant-based)",
+    "Black beans"
   ],
   "fuentes_carbohidrato_sugeridas": [
     "Rice",
@@ -26,13 +27,21 @@
     "Whole wheat pasta",
     "Quinoa",
     "Legumes (also a carb source)",
-    "Assorted fruit"
+    "Assorted fruit",
+    "Couscous",
+    "Buckwheat",
+    "Sweet corn",
+    "Barley",
+    "Rye bread"
   ],
   "fuentes_grasa_sugeridas": [
     "Extra virgin olive oil",
     "Avocado",
     "Nuts (walnuts, almonds)",
-    "Seeds (chia, flax)"
+    "Seeds (chia, flax)",
+    "Peanut butter",
+    "Tahini (sesame paste)",
+    "Coconut (grated)"
   ],
   "fuentes_verdura_sugeridas": [
     "Broccoli",
@@ -42,7 +51,13 @@
     "Carrot",
     "Mixed salad greens",
     "Kiwi",
-    "Citrus (orange, lemon)"
+    "Citrus (orange, lemon)",
+    "Cucumber",
+    "Courgette",
+    "Aubergine",
+    "Cauliflower",
+    "Mushrooms",
+    "Berries (strawberry, blueberry)"
   ],
   "plan_semanal": [
     {
@@ -50,17 +65,17 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Eggs with oats: 86g oats, 145g eggs, 80g citrus (orange, lemon), 43g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "descripcion": "Eggs with rye bread: 129g rye bread, 145g eggs, 80g citrus (orange, lemon), 43g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
           "aprox_kcal": 666,
           "tipo_interno": "desayuno",
           "proteina": "Eggs",
-          "carbohidrato": "Oats",
+          "carbohidrato": "Rye bread",
           "grasa": "Avocado",
           "proteina_g": 18.9,
-          "carbohidrato_g": 56.8,
+          "carbohidrato_g": 61.9,
           "grasa_g": 6.5,
           "proteina_alimento_g": 145,
-          "carbohidrato_alimento_g": 86,
+          "carbohidrato_alimento_g": 129,
           "grasa_alimento_g": 43,
           "verdura": "Citrus (orange, lemon)",
           "verdura_alimento_g": 80,
@@ -68,37 +83,37 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Chickpeas with legumes (also a carb source): 137g chickpeas, 253g legumes (also a carb source), 100g citrus (orange, lemon), with 108g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 778,
+          "descripcion": "Black beans with quinoa: 170g black beans, 278g quinoa, 100g kiwi, with 108g avocado. Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
+          "aprox_kcal": 792,
           "tipo_interno": "comida",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Legumes (also a carb source)",
+          "proteina": "Black beans",
+          "carbohidrato": "Quinoa",
           "grasa": "Avocado",
-          "proteina_g": 12.3,
-          "carbohidrato_g": 60.7,
+          "proteina_g": 15.1,
+          "carbohidrato_g": 58.4,
           "grasa_g": 16.2,
-          "proteina_alimento_g": 137,
-          "carbohidrato_alimento_g": 253,
+          "proteina_alimento_g": 170,
+          "carbohidrato_alimento_g": 278,
           "grasa_alimento_g": 108,
-          "verdura": "Citrus (orange, lemon)",
+          "verdura": "Kiwi",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Tempeh with whole wheat bread: 117g tempeh, 135g whole wheat bread, 100g spinach, with 76g seeds (chia, flax).",
-          "aprox_kcal": 961,
+          "descripcion": "Edamame with whole wheat pasta: 185g edamame, 269g whole wheat pasta, 100g tomato, with 76g seeds (chia, flax). Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
+          "aprox_kcal": 955,
           "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Whole wheat bread",
+          "proteina": "Edamame",
+          "carbohidrato": "Whole wheat pasta",
           "grasa": "Seeds (chia, flax)",
-          "proteina_g": 23.4,
-          "carbohidrato_g": 55.4,
+          "proteina_g": 22.2,
+          "carbohidrato_g": 67.2,
           "grasa_g": 25.8,
-          "proteina_alimento_g": 117,
-          "carbohidrato_alimento_g": 135,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 269,
           "grasa_alimento_g": 76,
-          "verdura": "Spinach",
+          "verdura": "Tomato",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         }
@@ -106,6 +121,183 @@
     },
     {
       "dia": "Tuesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 14g seeds (chia, flax). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
+          "aprox_kcal": 628,
+          "tipo_interno": "desayuno",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Oats",
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 46.8,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 4.8,
+          "proteina_alimento_g": 60,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 14,
+          "verdura": null,
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "Chickpeas with rye bread: 137g chickpeas, 129g rye bread, 100g spinach, with 20g extra virgin olive oil. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 759,
+          "tipo_interno": "comida",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Rye bread",
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 12.3,
+          "carbohidrato_g": 61.9,
+          "grasa_g": 20.0,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 129,
+          "grasa_alimento_g": 20,
+          "verdura": "Spinach",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "Black beans with barley: 170g black beans, 271g barley, 100g courgette, with 63g nuts (walnuts, almonds).",
+          "aprox_kcal": 953,
+          "tipo_interno": "cena",
+          "proteina": "Black beans",
+          "carbohidrato": "Barley",
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 15.1,
+          "carbohidrato_g": 75.9,
+          "grasa_g": 32.8,
+          "proteina_alimento_g": 170,
+          "carbohidrato_alimento_g": 271,
+          "grasa_alimento_g": 63,
+          "verdura": "Courgette",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        }
+      ]
+    },
+    {
+      "dia": "Wednesday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 12g peanut butter. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
+          "aprox_kcal": 629,
+          "tipo_interno": "desayuno",
+          "proteina": "Protein powder (plant-based)",
+          "carbohidrato": "Oats",
+          "grasa": "Peanut butter",
+          "proteina_g": 46.8,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 6.0,
+          "proteina_alimento_g": 60,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 12,
+          "verdura": null,
+          "verdura_alimento_g": 0,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "Edamame with barley: 185g edamame, 271g barley, 100g mushrooms, with 20g extra virgin olive oil.",
+          "aprox_kcal": 756,
+          "tipo_interno": "comida",
+          "proteina": "Edamame",
+          "carbohidrato": "Barley",
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 22.2,
+          "carbohidrato_g": 75.9,
+          "grasa_g": 20.0,
+          "proteina_alimento_g": 185,
+          "carbohidrato_alimento_g": 271,
+          "grasa_alimento_g": 20,
+          "verdura": "Mushrooms",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "Chickpeas with whole wheat bread: 137g chickpeas, 135g whole wheat bread, 100g red bell pepper, with 63g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 967,
+          "tipo_interno": "cena",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Whole wheat bread",
+          "grasa": "Nuts (walnuts, almonds)",
+          "proteina_g": 12.3,
+          "carbohidrato_g": 55.4,
+          "grasa_g": 32.8,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 135,
+          "grasa_alimento_g": 63,
+          "verdura": "Red bell pepper",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        }
+      ]
+    },
+    {
+      "dia": "Thursday",
+      "comidas": [
+        {
+          "tipo": "Breakfast",
+          "descripcion": "Eggs with oats: 86g oats, 145g eggs, 80g kiwi, 8g extra virgin olive oil. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 679,
+          "tipo_interno": "desayuno",
+          "proteina": "Eggs",
+          "carbohidrato": "Oats",
+          "grasa": "Extra virgin olive oil",
+          "proteina_g": 18.9,
+          "carbohidrato_g": 56.8,
+          "grasa_g": 8.0,
+          "proteina_alimento_g": 145,
+          "carbohidrato_alimento_g": 86,
+          "grasa_alimento_g": 8,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 80,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Lunch",
+          "descripcion": "Tempeh with barley: 117g tempeh, 271g barley, 100g cauliflower, with 34g seeds (chia, flax).",
+          "aprox_kcal": 753,
+          "tipo_interno": "comida",
+          "proteina": "Tempeh",
+          "carbohidrato": "Barley",
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 23.4,
+          "carbohidrato_g": 75.9,
+          "grasa_g": 11.6,
+          "proteina_alimento_g": 117,
+          "carbohidrato_alimento_g": 271,
+          "grasa_alimento_g": 34,
+          "verdura": "Cauliflower",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        },
+        {
+          "tipo": "Dinner",
+          "descripcion": "Lentil quinoa bowl: 193g lentils, 278g quinoa, 100g kiwi, with 65g peanut butter. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 1001,
+          "tipo_interno": "cena",
+          "proteina": "Lentils",
+          "carbohidrato": "Quinoa",
+          "grasa": "Peanut butter",
+          "proteina_g": 17.4,
+          "carbohidrato_g": 58.4,
+          "grasa_g": 32.5,
+          "proteina_alimento_g": 193,
+          "carbohidrato_alimento_g": 278,
+          "grasa_alimento_g": 65,
+          "verdura": "Kiwi",
+          "verdura_alimento_g": 100,
+          "requiere_coccion": true
+        }
+      ]
+    },
+    {
+      "dia": "Friday",
       "comidas": [
         {
           "tipo": "Breakfast",
@@ -127,214 +319,37 @@
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Edamame with quinoa: 185g edamame, 278g quinoa, 100g citrus (orange, lemon), with 34g seeds (chia, flax). Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
-          "aprox_kcal": 774,
+          "descripcion": "Lentils with rye bread: 193g lentils, 129g rye bread, 100g courgette, with 34g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 745,
           "tipo_interno": "comida",
-          "proteina": "Edamame",
-          "carbohidrato": "Quinoa",
+          "proteina": "Lentils",
+          "carbohidrato": "Rye bread",
           "grasa": "Seeds (chia, flax)",
-          "proteina_g": 22.2,
-          "carbohidrato_g": 58.4,
+          "proteina_g": 17.4,
+          "carbohidrato_g": 61.9,
           "grasa_g": 11.6,
-          "proteina_alimento_g": 185,
-          "carbohidrato_alimento_g": 278,
+          "proteina_alimento_g": 193,
+          "carbohidrato_alimento_g": 129,
           "grasa_alimento_g": 34,
-          "verdura": "Citrus (orange, lemon)",
+          "verdura": "Courgette",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Tempeh with whole wheat bread: 117g tempeh, 135g whole wheat bread, 100g kiwi, with 63g nuts (walnuts, almonds).",
-          "aprox_kcal": 997,
+          "descripcion": "Tempeh with whole wheat bread: 117g tempeh, 135g whole wheat bread, 100g carrot, with 43g extra virgin olive oil.",
+          "aprox_kcal": 979,
           "tipo_interno": "cena",
           "proteina": "Tempeh",
           "carbohidrato": "Whole wheat bread",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 23.4,
-          "carbohidrato_g": 55.4,
-          "grasa_g": 32.8,
-          "proteina_alimento_g": 117,
-          "carbohidrato_alimento_g": 135,
-          "grasa_alimento_g": 63,
-          "verdura": "Kiwi",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        }
-      ]
-    },
-    {
-      "dia": "Wednesday",
-      "comidas": [
-        {
-          "tipo": "Breakfast",
-          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 80g kiwi, 12g nuts (walnuts, almonds). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 679,
-          "tipo_interno": "desayuno",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 46.8,
-          "carbohidrato_g": 56.8,
-          "grasa_g": 6.2,
-          "proteina_alimento_g": 60,
-          "carbohidrato_alimento_g": 86,
-          "grasa_alimento_g": 12,
-          "verdura": "Kiwi",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Lunch",
-          "descripcion": "Lentils with whole wheat pasta: 193g lentils, 269g whole wheat pasta, 100g tomato, with 20g extra virgin olive oil. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 752,
-          "tipo_interno": "comida",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat pasta",
           "grasa": "Extra virgin olive oil",
-          "proteina_g": 17.4,
-          "carbohidrato_g": 67.2,
-          "grasa_g": 20.0,
-          "proteina_alimento_g": 193,
-          "carbohidrato_alimento_g": 269,
-          "grasa_alimento_g": 20,
-          "verdura": "Tomato",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "Tempeh with quinoa: 117g tempeh, 278g quinoa, 100g citrus (orange, lemon), with 76g seeds (chia, flax). Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
-          "aprox_kcal": 985,
-          "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Quinoa",
-          "grasa": "Seeds (chia, flax)",
           "proteina_g": 23.4,
-          "carbohidrato_g": 58.4,
-          "grasa_g": 25.8,
-          "proteina_alimento_g": 117,
-          "carbohidrato_alimento_g": 278,
-          "grasa_alimento_g": 76,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        }
-      ]
-    },
-    {
-      "dia": "Thursday",
-      "comidas": [
-        {
-          "tipo": "Breakfast",
-          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 80g citrus (orange, lemon), 12g nuts (walnuts, almonds). Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 668,
-          "tipo_interno": "desayuno",
-          "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 46.8,
-          "carbohidrato_g": 56.8,
-          "grasa_g": 6.2,
-          "proteina_alimento_g": 60,
-          "carbohidrato_alimento_g": 86,
-          "grasa_alimento_g": 12,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Lunch",
-          "descripcion": "Lentils with whole wheat bread: 193g lentils, 135g whole wheat bread, 100g citrus (orange, lemon), with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 778,
-          "tipo_interno": "comida",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat bread",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 17.4,
           "carbohidrato_g": 55.4,
-          "grasa_g": 15.1,
-          "proteina_alimento_g": 193,
+          "grasa_g": 43.0,
+          "proteina_alimento_g": 117,
           "carbohidrato_alimento_g": 135,
-          "grasa_alimento_g": 29,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "Lentils with whole wheat pasta: 193g lentils, 269g whole wheat pasta, 100g kiwi, with 237g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 998,
-          "tipo_interno": "cena",
-          "proteina": "Lentils",
-          "carbohidrato": "Whole wheat pasta",
-          "grasa": "Avocado",
-          "proteina_g": 17.4,
-          "carbohidrato_g": 67.2,
-          "grasa_g": 35.5,
-          "proteina_alimento_g": 193,
-          "carbohidrato_alimento_g": 269,
-          "grasa_alimento_g": 237,
-          "verdura": "Kiwi",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        }
-      ]
-    },
-    {
-      "dia": "Friday",
-      "comidas": [
-        {
-          "tipo": "Breakfast",
-          "descripcion": "Eggs with oats: 86g oats, 145g eggs, 80g citrus (orange, lemon), 43g avocado. Optional: don't skip the yolk — that's where most of the vitamins are.",
-          "aprox_kcal": 666,
-          "tipo_interno": "desayuno",
-          "proteina": "Eggs",
-          "carbohidrato": "Oats",
-          "grasa": "Avocado",
-          "proteina_g": 18.9,
-          "carbohidrato_g": 56.8,
-          "grasa_g": 6.5,
-          "proteina_alimento_g": 145,
-          "carbohidrato_alimento_g": 86,
           "grasa_alimento_g": 43,
-          "verdura": "Citrus (orange, lemon)",
-          "verdura_alimento_g": 80,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Lunch",
-          "descripcion": "Edamame with legumes (also a carb source): 185g edamame, 253g legumes (also a carb source), 100g carrot, with 20g extra virgin olive oil.",
-          "aprox_kcal": 776,
-          "tipo_interno": "comida",
-          "proteina": "Edamame",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Extra virgin olive oil",
-          "proteina_g": 22.2,
-          "carbohidrato_g": 60.7,
-          "grasa_g": 20.0,
-          "proteina_alimento_g": 185,
-          "carbohidrato_alimento_g": 253,
-          "grasa_alimento_g": 20,
           "verdura": "Carrot",
-          "verdura_alimento_g": 100,
-          "requiere_coccion": true
-        },
-        {
-          "tipo": "Dinner",
-          "descripcion": "Edamame with quinoa: 185g edamame, 278g quinoa, 100g red bell pepper, with 237g avocado. Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
-          "aprox_kcal": 968,
-          "tipo_interno": "cena",
-          "proteina": "Edamame",
-          "carbohidrato": "Quinoa",
-          "grasa": "Avocado",
-          "proteina_g": 22.2,
-          "carbohidrato_g": 58.4,
-          "grasa_g": 35.5,
-          "proteina_alimento_g": 185,
-          "carbohidrato_alimento_g": 278,
-          "grasa_alimento_g": 237,
-          "verdura": "Red bell pepper",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         }
@@ -345,55 +360,55 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 80g kiwi, 43g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 676,
+          "descripcion": "Protein powder (plant-based) with rye bread: 129g rye bread, 60g protein powder (plant-based), 80g berries (strawberry, blueberry), 14g seeds (chia, flax).",
+          "aprox_kcal": 668,
           "tipo_interno": "desayuno",
           "proteina": "Protein powder (plant-based)",
-          "carbohidrato": "Oats",
-          "grasa": "Avocado",
+          "carbohidrato": "Rye bread",
+          "grasa": "Seeds (chia, flax)",
           "proteina_g": 46.8,
-          "carbohidrato_g": 56.8,
-          "grasa_g": 6.5,
+          "carbohidrato_g": 61.9,
+          "grasa_g": 4.8,
           "proteina_alimento_g": 60,
-          "carbohidrato_alimento_g": 86,
-          "grasa_alimento_g": 43,
-          "verdura": "Kiwi",
+          "carbohidrato_alimento_g": 129,
+          "grasa_alimento_g": 14,
+          "verdura": "Berries (strawberry, blueberry)",
           "verdura_alimento_g": 80,
-          "requiere_coccion": true
+          "requiere_coccion": false
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Edamame with whole wheat pasta: 185g edamame, 269g whole wheat pasta, 100g tomato, with 108g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
-          "aprox_kcal": 748,
+          "descripcion": "Chickpeas with barley: 137g chickpeas, 271g barley, 100g berries (strawberry, blueberry), with 108g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 781,
           "tipo_interno": "comida",
-          "proteina": "Edamame",
-          "carbohidrato": "Whole wheat pasta",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Barley",
           "grasa": "Avocado",
-          "proteina_g": 22.2,
-          "carbohidrato_g": 67.2,
+          "proteina_g": 12.3,
+          "carbohidrato_g": 75.9,
           "grasa_g": 16.2,
-          "proteina_alimento_g": 185,
-          "carbohidrato_alimento_g": 269,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 271,
           "grasa_alimento_g": 108,
-          "verdura": "Tomato",
+          "verdura": "Berries (strawberry, blueberry)",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Tempeh with legumes (also a carb source): 117g tempeh, 253g legumes (also a carb source), 100g mixed salad greens, with 76g seeds (chia, flax).",
-          "aprox_kcal": 959,
+          "descripcion": "Lentils with whole wheat pasta: 193g lentils, 269g whole wheat pasta, 100g carrot, with 237g avocado. Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 978,
           "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Seeds (chia, flax)",
-          "proteina_g": 23.4,
-          "carbohidrato_g": 60.7,
-          "grasa_g": 25.8,
-          "proteina_alimento_g": 117,
-          "carbohidrato_alimento_g": 253,
-          "grasa_alimento_g": 76,
-          "verdura": "Mixed salad greens",
+          "proteina": "Lentils",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado",
+          "proteina_g": 17.4,
+          "carbohidrato_g": 67.2,
+          "grasa_g": 35.5,
+          "proteina_alimento_g": 193,
+          "carbohidrato_alimento_g": 269,
+          "grasa_alimento_g": 237,
+          "verdura": "Carrot",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         }
@@ -404,55 +419,55 @@
       "comidas": [
         {
           "tipo": "Breakfast",
-          "descripcion": "Protein oatmeal: 86g oats, 60g protein powder (plant-based), 80g citrus (orange, lemon), 43g avocado. Optional: soak it overnight (overnight oats) — easier to digest and no cooking needed.",
-          "aprox_kcal": 665,
+          "descripcion": "Eggs with oats: 86g oats, 145g eggs, 80g citrus (orange, lemon), 12g peanut butter. Optional: don't skip the yolk — that's where most of the vitamins are.",
+          "aprox_kcal": 668,
           "tipo_interno": "desayuno",
-          "proteina": "Protein powder (plant-based)",
+          "proteina": "Eggs",
           "carbohidrato": "Oats",
-          "grasa": "Avocado",
-          "proteina_g": 46.8,
+          "grasa": "Peanut butter",
+          "proteina_g": 18.9,
           "carbohidrato_g": 56.8,
-          "grasa_g": 6.5,
-          "proteina_alimento_g": 60,
+          "grasa_g": 6.0,
+          "proteina_alimento_g": 145,
           "carbohidrato_alimento_g": 86,
-          "grasa_alimento_g": 43,
+          "grasa_alimento_g": 12,
           "verdura": "Citrus (orange, lemon)",
           "verdura_alimento_g": 80,
           "requiere_coccion": true
         },
         {
           "tipo": "Lunch",
-          "descripcion": "Chickpeas with legumes (also a carb source): 137g chickpeas, 253g legumes (also a carb source), 100g kiwi, with 29g nuts (walnuts, almonds). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
-          "aprox_kcal": 794,
+          "descripcion": "Black beans with whole wheat pasta: 170g black beans, 269g whole wheat pasta, 100g berries (strawberry, blueberry), with 108g avocado. Optional: cook it al dente — it has a lower glycemic index than if it's overcooked.",
+          "aprox_kcal": 781,
           "tipo_interno": "comida",
-          "proteina": "Chickpeas",
-          "carbohidrato": "Legumes (also a carb source)",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 12.3,
-          "carbohidrato_g": 60.7,
-          "grasa_g": 15.1,
-          "proteina_alimento_g": 137,
-          "carbohidrato_alimento_g": 253,
-          "grasa_alimento_g": 29,
-          "verdura": "Kiwi",
+          "proteina": "Black beans",
+          "carbohidrato": "Whole wheat pasta",
+          "grasa": "Avocado",
+          "proteina_g": 15.1,
+          "carbohidrato_g": 67.2,
+          "grasa_g": 16.2,
+          "proteina_alimento_g": 170,
+          "carbohidrato_alimento_g": 269,
+          "grasa_alimento_g": 108,
+          "verdura": "Berries (strawberry, blueberry)",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         },
         {
           "tipo": "Dinner",
-          "descripcion": "Tempeh with quinoa: 117g tempeh, 278g quinoa, 100g tomato, with 63g nuts (walnuts, almonds). Optional: rinse it well before cooking — it removes the natural bitter taste from its saponins.",
-          "aprox_kcal": 954,
+          "descripcion": "Chickpeas with rye bread: 137g chickpeas, 129g rye bread, 100g citrus (orange, lemon), with 76g seeds (chia, flax). Optional: add cumin while cooking — it helps digestion and cuts down on bloating.",
+          "aprox_kcal": 986,
           "tipo_interno": "cena",
-          "proteina": "Tempeh",
-          "carbohidrato": "Quinoa",
-          "grasa": "Nuts (walnuts, almonds)",
-          "proteina_g": 23.4,
-          "carbohidrato_g": 58.4,
-          "grasa_g": 32.8,
-          "proteina_alimento_g": 117,
-          "carbohidrato_alimento_g": 278,
-          "grasa_alimento_g": 63,
-          "verdura": "Tomato",
+          "proteina": "Chickpeas",
+          "carbohidrato": "Rye bread",
+          "grasa": "Seeds (chia, flax)",
+          "proteina_g": 12.3,
+          "carbohidrato_g": 61.9,
+          "grasa_g": 25.8,
+          "proteina_alimento_g": 137,
+          "carbohidrato_alimento_g": 129,
+          "grasa_alimento_g": 76,
+          "verdura": "Citrus (orange, lemon)",
           "verdura_alimento_g": 100,
           "requiere_coccion": true
         }
@@ -462,13 +477,8 @@
   "lista_compra": [
     {
       "categoria": "Carbs",
-      "alimento": "Quinoa",
-      "gramos_totales": 1150
-    },
-    {
-      "categoria": "Carbs",
-      "alimento": "Legumes (also a carb source)",
-      "gramos_totales": 1050
+      "alimento": "Barley",
+      "gramos_totales": 1100
     },
     {
       "categoria": "Carbs",
@@ -477,43 +487,48 @@
     },
     {
       "categoria": "Carbs",
-      "alimento": "Oats",
-      "gramos_totales": 550
+      "alimento": "Rye bread",
+      "gramos_totales": 650
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Quinoa",
+      "gramos_totales": 600
     },
     {
       "categoria": "Carbs",
       "alimento": "Whole wheat bread",
-      "gramos_totales": 550
+      "gramos_totales": 450
+    },
+    {
+      "categoria": "Carbs",
+      "alimento": "Oats",
+      "gramos_totales": 350
     },
     {
       "categoria": "Fat",
       "alimento": "Avocado",
-      "gramos_totales": 950
+      "gramos_totales": 650
     },
     {
       "categoria": "Fat",
       "alimento": "Seeds (chia, flax)",
-      "gramos_totales": 300
-    },
-    {
-      "categoria": "Fat",
-      "alimento": "Nuts (walnuts, almonds)",
       "gramos_totales": 250
     },
     {
       "categoria": "Fat",
+      "alimento": "Nuts (walnuts, almonds)",
+      "gramos_totales": 150
+    },
+    {
+      "categoria": "Fat",
       "alimento": "Extra virgin olive oil",
-      "gramos_totales": 50
+      "gramos_totales": 100
     },
     {
-      "categoria": "Protein",
-      "alimento": "Edamame",
-      "gramos_totales": 750
-    },
-    {
-      "categoria": "Protein",
-      "alimento": "Tempeh",
-      "gramos_totales": 600
+      "categoria": "Fat",
+      "alimento": "Peanut butter",
+      "gramos_totales": 100
     },
     {
       "categoria": "Protein",
@@ -522,33 +537,63 @@
     },
     {
       "categoria": "Protein",
-      "alimento": "Eggs",
-      "gramos_totales": 300
+      "alimento": "Black beans",
+      "gramos_totales": 550
     },
     {
       "categoria": "Protein",
       "alimento": "Chickpeas",
-      "gramos_totales": 300
+      "gramos_totales": 550
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Eggs",
+      "gramos_totales": 450
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Edamame",
+      "gramos_totales": 400
     },
     {
       "categoria": "Protein",
       "alimento": "Protein powder (plant-based)",
-      "gramos_totales": 300
+      "gramos_totales": 250
+    },
+    {
+      "categoria": "Protein",
+      "alimento": "Tempeh",
+      "gramos_totales": 250
     },
     {
       "categoria": "Vegetables & fruit",
       "alimento": "Citrus (orange, lemon)",
-      "gramos_totales": 750
+      "gramos_totales": 300
     },
     {
       "categoria": "Vegetables & fruit",
       "alimento": "Kiwi",
-      "gramos_totales": 500
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Berries (strawberry, blueberry)",
+      "gramos_totales": 300
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Courgette",
+      "gramos_totales": 200
+    },
+    {
+      "categoria": "Vegetables & fruit",
+      "alimento": "Carrot",
+      "gramos_totales": 200
     },
     {
       "categoria": "Vegetables & fruit",
       "alimento": "Tomato",
-      "gramos_totales": 300
+      "gramos_totales": 100
     },
     {
       "categoria": "Vegetables & fruit",
@@ -557,7 +602,7 @@
     },
     {
       "categoria": "Vegetables & fruit",
-      "alimento": "Carrot",
+      "alimento": "Mushrooms",
       "gramos_totales": 100
     },
     {
@@ -567,7 +612,7 @@
     },
     {
       "categoria": "Vegetables & fruit",
-      "alimento": "Mixed salad greens",
+      "alimento": "Cauliflower",
       "gramos_totales": 100
     }
   ],

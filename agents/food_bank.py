@@ -148,6 +148,24 @@ two-tier badge (no-cook vs. quick-cook), not a per-recipe prep-time
 estimate this project has no real data for -- same "estimate, don't
 fabricate precision" philosophy already stated for macros/micros
 elsewhere in this codebase.
+
+DESIGN — "estilo_cocina" (cuisine style, added alongside a food-bank
+expansion for more originality/variety -- direct request, "pulir mucho
+los tipos de platos e ingredientes... mucha variedad"): a curated tag
+set on the ~30 foods that clearly read as one cuisine's own
+("mediterraneo", "asiatico", "mexicano") -- generic staples that show up
+everywhere (chicken breast, rice, eggs...) are deliberately left
+untagged so they stay neutral, rather than diluting every cuisine's own
+distinctiveness. Unlike every other tag in this file, this one is driven
+by an explicit CLIENT answer, not an automatic inference:
+ui/app.py's portal Home tab asks "¿Qué te apetece?" directly (a direct
+request to turn this into a question the client answers themselves,
+not something biased on their behalf), saved via
+mcp/notion_connector.py's actualizar_estilo_cocina() and read back as
+perfil["nutricion"]["estilo_cocina_preferido"]. planificador_comidas.py's
+_sesgar_por_estilo_cocina() applies it as a bias, not an exclusion --
+same "prefer, don't force" pattern as every other soft preference here --
+so a client with no answer set (the default) sees no change at all.
 """
 
 import unicodedata
@@ -166,16 +184,19 @@ FUENTES_PROTEINA = [
     {
         "nombre": "Lean beef", "nombre_es": "Ternera magra",
         "tipos_dieta": {"omnivora"}, "etiquetas": set(), "sinergias": set(),
+        "estilo_cocina": {"mexicano"},
         "macros_100g": {"kcal": 205, "proteina_g": 27, "carbohidratos_g": 0, "grasa_g": 10},
     },
     {
         "nombre": "White fish (hake, sole)", "nombre_es": "Pescado blanco (merluza, lenguado)",
         "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(),
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 90, "proteina_g": 19, "carbohidratos_g": 0, "grasa_g": 1},
     },
     {
         "nombre": "Salmon / oily fish", "nombre_es": "Salmón / pescado azul",
         "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": {"antiinflamatorio"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 208, "proteina_g": 20, "carbohidratos_g": 0, "grasa_g": 13},
     },
     {
@@ -188,42 +209,49 @@ FUENTES_PROTEINA = [
         "nombre": "Greek yogurt / whipped fresh cheese", "nombre_es": "Yogur griego / queso fresco batido",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}, "sinergias": {"probiotico"},
         "sin_coccion": True, "franjas": {"desayuno"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 59, "proteina_g": 10, "carbohidratos_g": 3.6, "grasa_g": 0.4},
     },
     {
         "nombre": "Lentils", "nombre_es": "Lentejas",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"},
         "sinergias": {"hierro_no_hemo", "magnesio"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 116, "proteina_g": 9, "carbohidratos_g": 20, "grasa_g": 0.4},
     },
     {
         "nombre": "Chickpeas", "nombre_es": "Garbanzos",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"},
         "sinergias": {"hierro_no_hemo", "magnesio"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 164, "proteina_g": 9, "carbohidratos_g": 27, "grasa_g": 2.6},
     },
     {
         "nombre": "Tofu", "nombre_es": "Tofu",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
         "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 144, "proteina_g": 15, "carbohidratos_g": 3, "grasa_g": 8},
     },
     {
         "nombre": "Tempeh", "nombre_es": "Tempeh",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
         "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 192, "proteina_g": 20, "carbohidratos_g": 8, "grasa_g": 11},
     },
     {
         "nombre": "Edamame", "nombre_es": "Edamame",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
         "sinergias": {"hierro_no_hemo", "magnesio"}, "comun": False, "nicho_omnivoro": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 121, "proteina_g": 12, "carbohidratos_g": 10, "grasa_g": 5},
     },
     {
         "nombre": "Seitan", "nombre_es": "Seitán",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"gluten"}, "sinergias": set(),
         "comun": False, "nicho_omnivoro": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 370, "proteina_g": 75, "carbohidratos_g": 14, "grasa_g": 1.9},
     },
     {
@@ -245,7 +273,58 @@ FUENTES_PROTEINA = [
         "nombre": "Natto", "nombre_es": "Natto",
         "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"soja"},
         "sinergias": {"probiotico", "magnesio"}, "nicho": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 212, "proteina_g": 18, "carbohidratos_g": 14, "grasa_g": 11},
+    },
+    # Direct request ("pulir mucho los tipos de platos e ingredientes...
+    # mucha variedad") -- more real, common protein sources added to widen
+    # the combinatorial variety a generated week can draw from, same
+    # "curated, not exhaustive" discipline as everywhere else in this bank.
+    {
+        "nombre": "Pork loin", "nombre_es": "Lomo de cerdo",
+        "tipos_dieta": {"omnivora"}, "etiquetas": set(), "sinergias": set(),
+        "macros_100g": {"kcal": 143, "proteina_g": 26, "carbohidratos_g": 0, "grasa_g": 3.5},
+    },
+    {
+        "nombre": "Prawns / shrimp", "nombre_es": "Gambas / langostinos",
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(),
+        "estilo_cocina": {"asiatico"},
+        "macros_100g": {"kcal": 99, "proteina_g": 24, "carbohidratos_g": 0.2, "grasa_g": 0.3},
+    },
+    {
+        "nombre": "Mussels", "nombre_es": "Mejillones",
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(),
+        "macros_100g": {"kcal": 172, "proteina_g": 24, "carbohidratos_g": 7, "grasa_g": 4.5},
+    },
+    {
+        "nombre": "Canned tuna", "nombre_es": "Atún en lata",
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(), "sin_coccion": True,
+        "macros_100g": {"kcal": 116, "proteina_g": 26, "carbohidratos_g": 0, "grasa_g": 1},
+    },
+    {
+        "nombre": "Squid / octopus", "nombre_es": "Calamar / pulpo",
+        "tipos_dieta": {"omnivora"}, "etiquetas": {"pescado"}, "sinergias": set(), "comun": False,
+        "estilo_cocina": {"asiatico"},
+        "macros_100g": {"kcal": 92, "proteina_g": 15, "carbohidratos_g": 3, "grasa_g": 1.4},
+    },
+    {
+        "nombre": "Cottage cheese", "nombre_es": "Requesón / queso cottage",
+        "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}, "sinergias": set(),
+        "sin_coccion": True, "franjas": {"desayuno"},
+        "macros_100g": {"kcal": 98, "proteina_g": 11, "carbohidratos_g": 3.4, "grasa_g": 4.3},
+    },
+    {
+        "nombre": "Whey protein (powder)", "nombre_es": "Proteína de suero (whey)",
+        "tipos_dieta": {"omnivora", "vegetariana_ovolacto"}, "etiquetas": {"lacteo"}, "sinergias": set(),
+        "comun": False, "sin_coccion": True, "franjas": {"desayuno"},
+        "macros_100g": {"kcal": 400, "proteina_g": 80, "carbohidratos_g": 8, "grasa_g": 7},
+    },
+    {
+        "nombre": "Black beans", "nombre_es": "Alubias negras",
+        "tipos_dieta": {"omnivora", "vegetariana_ovolacto", "vegana"}, "etiquetas": {"legumbre"},
+        "sinergias": {"hierro_no_hemo", "magnesio"},
+        "estilo_cocina": {"mexicano"},
+        "macros_100g": {"kcal": 132, "proteina_g": 8.9, "carbohidratos_g": 24, "grasa_g": 0.5},
     },
 ]
 
@@ -263,6 +342,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Rice", "nombre_es": "Arroz",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 130, "proteina_g": 2.7, "carbohidratos_g": 28, "grasa_g": 0.3},
     },
     {
@@ -285,6 +365,7 @@ FUENTES_CARBOHIDRATO = [
     {
         "nombre": "Whole wheat pasta", "nombre_es": "Pasta integral",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 124, "proteina_g": 5, "carbohidratos_g": 25, "grasa_g": 1.1},
     },
     {
@@ -309,6 +390,35 @@ FUENTES_CARBOHIDRATO = [
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"}, "nicho": True,
         "macros_100g": {"kcal": 170, "proteina_g": 6, "carbohidratos_g": 34, "grasa_g": 1.1},
     },
+    {
+        "nombre": "Couscous", "nombre_es": "Cuscús",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": set(),
+        "macros_100g": {"kcal": 112, "proteina_g": 3.8, "carbohidratos_g": 23, "grasa_g": 0.2},
+    },
+    {
+        "nombre": "Buckwheat", "nombre_es": "Trigo sarraceno",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"magnesio", "fibra_alta"},
+        "comun": False,
+        "estilo_cocina": {"asiatico"},
+        "macros_100g": {"kcal": 92, "proteina_g": 3.4, "carbohidratos_g": 20, "grasa_g": 0.6},
+    },
+    {
+        "nombre": "Sweet corn", "nombre_es": "Maíz dulce",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "estilo_cocina": {"mexicano"},
+        "macros_100g": {"kcal": 96, "proteina_g": 3.4, "carbohidratos_g": 21, "grasa_g": 1.5},
+    },
+    {
+        "nombre": "Barley", "nombre_es": "Cebada",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
+        "macros_100g": {"kcal": 123, "proteina_g": 2.3, "carbohidratos_g": 28, "grasa_g": 0.4},
+    },
+    {
+        "nombre": "Rye bread", "nombre_es": "Pan de centeno",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"gluten"}, "sinergias": {"fibra_alta"},
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "macros_100g": {"kcal": 259, "proteina_g": 8.5, "carbohidratos_g": 48, "grasa_g": 3.3},
+    },
 ]
 
 FUENTES_GRASA = [
@@ -316,12 +426,14 @@ FUENTES_GRASA = [
         "nombre": "Extra virgin olive oil", "nombre_es": "Aceite de oliva virgen extra",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio"},
         "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
     {
         "nombre": "Avocado", "nombre_es": "Aguacate",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"antiinflamatorio", "fibra_alta"},
         "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "estilo_cocina": {"mexicano"},
         "macros_100g": {"kcal": 160, "proteina_g": 2, "carbohidratos_g": 8.5, "grasa_g": 15},
     },
     {
@@ -353,6 +465,30 @@ FUENTES_GRASA = [
         "sin_coccion": True, "franjas": {"desayuno", "principal"},
         "macros_100g": {"kcal": 884, "proteina_g": 0, "carbohidratos_g": 0, "grasa_g": 100},
     },
+    {
+        "nombre": "Peanut butter", "nombre_es": "Mantequilla de cacahuete",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"frutos_secos"}, "sinergias": {"magnesio"},
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "macros_100g": {"kcal": 588, "proteina_g": 25, "carbohidratos_g": 20, "grasa_g": 50},
+    },
+    {
+        # Sesame is its own allergen (see etiquetas_excluidas()'s "sesamo"
+        # keyword block below) -- not folded into "frutos_secos" the way
+        # peanut butter is, since sesame and tree-nut allergies are
+        # clinically distinct.
+        "nombre": "Tahini (sesame paste)", "nombre_es": "Tahini (pasta de sésamo)",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": {"sesamo"}, "sinergias": {"magnesio"},
+        "comun": False, "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "estilo_cocina": {"mediterraneo"},
+        "macros_100g": {"kcal": 595, "proteina_g": 17, "carbohidratos_g": 21, "grasa_g": 54},
+    },
+    {
+        "nombre": "Coconut (grated)", "nombre_es": "Coco rallado",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "estilo_cocina": {"asiatico"},
+        "macros_100g": {"kcal": 660, "proteina_g": 6.9, "carbohidratos_g": 24, "grasa_g": 65},
+    },
 ]
 
 # Vegetables/fiber-and-micronutrient sources -- not tracked as a macro
@@ -382,12 +518,14 @@ FUENTES_VERDURA = [
         "nombre": "Red bell pepper", "nombre_es": "Pimiento rojo",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "sin_coccion": True,
+        "estilo_cocina": {"mexicano"},
         "macros_100g": {"kcal": 31, "proteina_g": 1, "carbohidratos_g": 6, "grasa_g": 0.3},
     },
     {
         "nombre": "Tomato", "nombre_es": "Tomate",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
         "sinergias": {"vitamina_c", "beta_caroteno", "antiinflamatorio"}, "sin_coccion": True,
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 18, "proteina_g": 0.9, "carbohidratos_g": 3.9, "grasa_g": 0.2},
     },
     {
@@ -399,6 +537,7 @@ FUENTES_VERDURA = [
     {
         "nombre": "Mixed salad greens", "nombre_es": "Ensalada variada",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"fibra_alta"}, "sin_coccion": True,
+        "estilo_cocina": {"mediterraneo"},
         "macros_100g": {"kcal": 20, "proteina_g": 1.5, "carbohidratos_g": 3.5, "grasa_g": 0.2},
     },
     {
@@ -411,13 +550,50 @@ FUENTES_VERDURA = [
         "nombre": "Citrus (orange, lemon)", "nombre_es": "Cítricos (naranja, limón)",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
         "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "estilo_cocina": {"mediterraneo", "mexicano"},
         "macros_100g": {"kcal": 47, "proteina_g": 0.9, "carbohidratos_g": 12, "grasa_g": 0.1},
     },
     {
         "nombre": "Kimchi", "nombre_es": "Kimchi",
         "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(),
         "sinergias": {"probiotico", "vitamina_c"}, "nicho": True, "sin_coccion": True,
+        "estilo_cocina": {"asiatico"},
         "macros_100g": {"kcal": 15, "proteina_g": 1.1, "carbohidratos_g": 2.4, "grasa_g": 0.5},
+    },
+    {
+        "nombre": "Cucumber", "nombre_es": "Pepino",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(), "sin_coccion": True,
+        "estilo_cocina": {"mediterraneo"},
+        "macros_100g": {"kcal": 15, "proteina_g": 0.7, "carbohidratos_g": 3.6, "grasa_g": 0.1},
+    },
+    {
+        "nombre": "Courgette", "nombre_es": "Calabacín",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "estilo_cocina": {"mediterraneo"},
+        "macros_100g": {"kcal": 17, "proteina_g": 1.2, "carbohidratos_g": 3.1, "grasa_g": 0.3},
+    },
+    {
+        "nombre": "Aubergine", "nombre_es": "Berenjena",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"fibra_alta"},
+        "estilo_cocina": {"mediterraneo"},
+        "macros_100g": {"kcal": 35, "proteina_g": 0.8, "carbohidratos_g": 8.7, "grasa_g": 0.2},
+    },
+    {
+        "nombre": "Cauliflower", "nombre_es": "Coliflor",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "fibra_alta"},
+        "macros_100g": {"kcal": 25, "proteina_g": 1.9, "carbohidratos_g": 5, "grasa_g": 0.3},
+    },
+    {
+        "nombre": "Mushrooms", "nombre_es": "Champiñones",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": set(),
+        "estilo_cocina": {"asiatico"},
+        "macros_100g": {"kcal": 22, "proteina_g": 3.1, "carbohidratos_g": 3.3, "grasa_g": 0.3},
+    },
+    {
+        "nombre": "Berries (strawberry, blueberry)", "nombre_es": "Bayas (fresas, arándanos)",
+        "tipos_dieta": _TODAS_LAS_DIETAS, "etiquetas": set(), "sinergias": {"vitamina_c", "antiinflamatorio"},
+        "sin_coccion": True, "franjas": {"desayuno", "principal"},
+        "macros_100g": {"kcal": 50, "proteina_g": 0.8, "carbohidratos_g": 12, "grasa_g": 0.4},
     },
 ]
 
@@ -435,6 +611,14 @@ NOMBRES_ES = {
 # at import time rather than re-scanning the banks per lookup.
 INDICE_ALIMENTOS = {
     f["nombre"]: f for f in FUENTES_PROTEINA + FUENTES_CARBOHIDRATO + FUENTES_GRASA + FUENTES_VERDURA
+}
+
+# The known "estilo_cocina" values -- ui/app.py's portal "¿Qué te apetece?"
+# dropdown reads this directly instead of hardcoding the list a second time.
+ESTILOS_COCINA = ["mediterraneo", "asiatico", "mexicano"]
+ETIQUETA_ESTILO_COCINA = {
+    "en": {"mediterraneo": "Mediterranean", "asiatico": "Asian", "mexicano": "Mexican"},
+    "es": {"mediterraneo": "Mediterránea", "asiatico": "Asiática", "mexicano": "Mexicana"},
 }
 
 
@@ -470,6 +654,11 @@ def etiquetas_excluidas(perfil: dict) -> set[str]:
         excluidas.add("soja")
     if any(kw in texto for kw in ("pescado", "marisco", "fish", "seafood", "shellfish")):
         excluidas.add("pescado")
+    # Added alongside "Tahini (sesame paste)" -- sesame is a clinically
+    # distinct allergen from tree nuts, so it gets its own tag rather than
+    # folding into "frutos_secos" the way peanut butter does.
+    if any(kw in texto for kw in ("sesamo", "sésamo", "sesame")):
+        excluidas.add("sesamo")
     return excluidas
 
 
