@@ -340,6 +340,20 @@ This repository is built phase by phase, as a learning project. Right now:
   and adherence-mix bars: a cumulative client-growth line by admission month,
   built from the same anonymous data already fetched for the other two —
   no new Notion query, no client name or email ever read.
+- The **client portal is now tab-based** (Home · Meals · Routine · Check-in ·
+  Progress) instead of a stack of expanders — a new Home tab surfaces this
+  week's check-in status, the trainer's notes, and *today's* actual meal/
+  session as two compact cards, each jumping straight to the matching tab. A
+  **free monthly adherence digest** (trend + weight delta over the last 30
+  days, no LLM) is shown above the check-in history in both the trainer's and
+  the client's own view, and both the meal and routine sections default to
+  *today's* actual day instead of always the first one. Each meal card also
+  shows a coarse no-cook/quick-cook prep-time badge.
+- The food bank grew from 39 to **61 foods**, and a client can now tell the
+  portal what cuisine they're in the mood for (Mediterranean, Asian, or
+  Mexican) — it biases 1–2 of the week's 7 days toward it (never the whole
+  week), never forces it, and drops silently the moment it's no longer a
+  safe pick.
 
 ## What it doesn't include yet
 
