@@ -124,14 +124,19 @@ excluded from coverage — verified live instead, same convention throughout).
 - `agents/suplementos_interacciones.py`: curated supplement–medication
   interaction table backing the validator's generic check.
 
-**In progress**: publishing the Gmail OAuth consent screen to Google's
-Production status to fix the recurring 7-day token-expiry (Testing-mode
-apps auto-expire every refresh token) — needed a real, owned, verifiable
-domain, so a `gh-pages` branch now hosts a privacy-policy page at
-[serpeigd.github.io/TrainFitter](https://serpeigd.github.io/TrainFitter/)
-(separate from `master`, doesn't touch the existing `docs/` folder).
-Submitted for Google's verification review as of 2026-09-07 — outcome not
-yet known.
+**Known, accepted limitation**: the Gmail OAuth token still expires every
+~7 days (Testing-mode publishing status) — attempted publishing to
+Production (2026-09-02 to 09-07; a `gh-pages` branch hosts a privacy-policy
+page at [serpeigd.github.io/TrainFitter](https://serpeigd.github.io/TrainFitter/),
+separate from `master`), but Google rejects a GitHub Pages user subdomain
+for the app-homepage/privacy-policy requirement by policy (same excluded
+category as Google Sites/Facebook/etc. — verifying a subpath isn't the
+same as owning the platform), not a bug. Fixing it for real needs an
+actually-owned domain (~€10-15/year, this project's first real cost) — see
+`docs/status_history.md` for the full trail and the exact steps to pick
+this back up later. For now: re-authorize locally every ~7 days
+(`rm token.json`, rerun the OAuth flow, update the `GMAIL_TOKEN_JSON`
+Streamlit secret).
 
 Full chronological development log — every session's changes, the direct
 requests behind them, bugs found and fixed, and how each was verified —

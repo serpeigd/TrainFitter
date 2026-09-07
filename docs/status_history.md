@@ -1607,3 +1607,58 @@ yogurt, chickpeas + whole wheat pasta + tomato twice), every other day
 shows normal, unrelated variety (tofu/buckwheat, seitan/barley, tempeh/
 quinoa...). No example-output diff (none of the three example clients set
 a cuisine preference, so this path never executes for them).
+
+**Attempted, then abandoned: publishing the Gmail OAuth consent screen to
+Google's Production status**, to fix the recurring "Gmail access has
+expired or been revoked" every ~7 days -- confirmed dead both locally and
+on Streamlit Cloud via a real `getProfile()` call before investigating
+further, ruling out a deployment-only glitch. Root cause: the OAuth
+consent screen was still in Testing publishing status, which auto-expires
+every refresh token after 7 days regardless of usage -- moving to
+Production removes that. Publishing was blocked on two Google
+requirements, both needing a real, owned, verifiable domain
+(`trainfitter.streamlit.app` doesn't qualify -- that's Streamlit Inc.'s
+domain, not this project's): a missing Application Privacy Policy link,
+and an invalid Authorized Domains entry. Built a privacy-policy page (an
+orphan `gh-pages` branch, root commit, deliberately separate from
+`master` and never touching the existing `docs/` folder) and enabled
+GitHub Pages from it, live at
+[serpeigd.github.io/TrainFitter](https://serpeigd.github.io/TrainFitter/).
+
+That unblocked the format-level domain error, but a second, deeper one
+followed: Cloud Console kept rejecting `serpeigd.github.io` as "not
+registered to your name" even after genuinely verifying it in Google
+Search Console (URL-prefix method, both the HTML-file and meta-tag
+verification methods added to the `gh-pages` page and confirmed live).
+Traced to a real Google policy, not a bug or a propagation delay --
+Google's own "App Homepage" support doc states outright: *"Your homepage
+and privacy policy should not be hosted on a third-party platform where
+you can't verify that you own your subdomain. For example: Google Sites,
+Facebook, Instagram, Twitter."* A GitHub Pages user subdomain is the same
+category as those named examples -- verifying a subpath's ownership isn't
+the same as owning the platform itself, which is what this rule actually
+requires. Separately, attempting to publish also surfaced a requirement
+that isn't visible until this stage: every scope registered on the
+consent screen (the live registered list turned out to include two stale
+scopes -- `gmail.metadata` and `gmail.drafts.readonly` -- left over from
+before this project's scope widened to `gmail.readonly`, not matching
+`mcp/gmail_client.py`'s actual `SCOPES` constant, which only ever requests
+`compose`/`readonly`/`send`) needs a written permission justification,
+an intended-data-use description, and a demo video of the OAuth consent
+flow before Google will even accept a verification submission --
+justification/data-use text was drafted for the 3 real scopes and a demo-
+video script was outlined, both ready if this is picked up again, but
+never recorded.
+
+Given the combined cost now visible -- a real domain purchase, a demo
+video, and 2-3 business days per human-review round, all for a tool with
+exactly one user -- the project owner chose to stay in Testing and just
+re-authorize Gmail locally every ~7 days rather than push further. The
+real fix, if this becomes worth it later: buy an actual domain (~€10-15/
+year, this project's first real cost ever), point a CNAME at
+`serpeigd.github.io` (GitHub Pages keeps serving the same page for free,
+only the domain pointing at it changes), verify THAT domain in Search
+Console via a DNS TXT record at the registrar (DNS-level verification is
+what Cloud Console's OAuth domain check actually wants, which a shared
+platform's subdomain structurally can't provide), then re-point the
+consent screen's homepage/privacy-policy links and publish again.
