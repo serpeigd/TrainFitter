@@ -517,6 +517,7 @@ TrainFitter/
 │   ├── arquitectura.md              System design and flow
 │   ├── decisiones.md                Technical decision log, by phase
 │   ├── highlights.md                1-page cheat sheet of the best design decisions
+│   ├── status_history.md            Full chronological status log (moved out of CLAUDE.md once it outgrew it)
 │   └── base_conocimiento/           Evidence-backed notes (training, nutrition, adherence, safety) the rule engines draw on
 ├── admission/
 │   └── ficha_cliente_template.md    Client intake form
