@@ -3118,6 +3118,64 @@ left as an unexplained inconsistency between the two panels.
 
 ---
 
+## Competitor research (Kahunas.io), two features built from it, and a real portal-link bug caught while verifying one of them
+
+Researched Kahunas.io (a paid personal-trainer coaching SaaS) for
+improvement ideas, same purpose as the earlier Harbiz research pass. Four
+ideas came out of it, ranked and scoped in a memory file first; the
+project owner picked two to build in the same session ("Empieza con 1 y
+3"), the other two (progress photos, a full side-by-side check-in
+comparison) stay deferred.
+
+**Exercise video links.** `agents/exercise_bank.py` had zero video
+reference for any of its ~70 exercises. New `enlace_video_demostracion()`
+builds a YouTube SEARCH-RESULTS link (not one hand-picked video ID per
+exercise) from an exercise's canonical English `nombre` — a real,
+deliberate trade-off: curating and maintaining ~70 individually-verified
+video IDs would need the project owner to personally watch every one and
+re-check them over time as videos get deleted or reuploaded, with no
+reliable way to keep that correct, and fabricating specific video IDs
+from memory would risk linking to the wrong exercise outright. A
+search-results link never goes dead and needs zero upkeep, at the honest
+cost of not guaranteeing the very first result is the best one. Surfaced
+as a "▶ Watch demo"/"▶ Ver demostración" link next to each exercise in
+the portal's Routine tab, and as a clickable link annotation on the same
+row in the routine PDF (a reportlab `<link>` tag inside the existing
+cell's `Paragraph`, not a new column).
+
+**Per-exercise workout logging (Kahunas' "Workout Log").** Scoped down
+from a full per-set log (too much UI for a weekly check-in cadence) to a
+"heaviest weight used this week" number per unique exercise in that
+week's routine — still a real progressive-overload signal over time,
+collected at the same cadence as everything else in the check-in form.
+Stored as a new "Exercise Logs (JSON)" rich-text property on the
+Check-ins database — same JSON-blob-in-a-text-property trick as "Weekly
+Routine (JSON)" on Clients, but deliberately NOT a cumulative merge like
+"Liked Exercises (JSON)": each Check-ins row is its own week's snapshot,
+so reading every row and picking out one exercise's values across rows
+already gives a real progression, no merge/dedupe needed at write time
+(`agents/adherencia_parser.py`'s new `ejercicios_con_progreso()`/
+`progresion_ejercicio()`). Rendered as a per-exercise line chart in the
+same `_render_historial_checkins()` both the trainer panel and the portal
+already share — nothing new to wire into either caller.
+
+**A real, pre-existing bug caught live while verifying the chart above,
+not introduced by either feature.** Submitting a check-in already
+regenerated the client's plan and rotated their "Portal Reference" via
+`generar_referencia_portal()` (a fresh link mailed to the trainer as a
+Gmail draft — see the "check-in-driven regeneration" entry earlier in
+this log). What nothing accounted for: that rotation immediately
+invalidates the OLD reference code the client's OWN currently-open
+browser tab is still using, so clicking anywhere else in their own
+session right after submitting threw them onto the "invalid link"
+screen — reproduced twice live against the real PEPE test client before
+being traced. Fixed with the one-line pattern
+`_formulario_reenviar_link_portal()` already established for the exact
+same problem in the resend flow: `st.query_params["ref"] = nuevo_codigo`
+right after the rotation, so the client's live tab keeps working with no
+re-request needed. The trainer's fresh-link draft is unaffected — still
+sent, for durability (a bookmarked old link, a different device).
+
 ## Fitness content disclaimer
 
 Client names, injuries, and other fitness/health details throughout this project

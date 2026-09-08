@@ -55,6 +55,19 @@ selects both gets genuinely more pool variety per slot than either alone
 -- the actual "make it adaptable" ask. None are "nicho": bands are
 beginner-friendly equipment, not an advanced-only pick.
 
+DESIGN — "enlace_video_demostracion()" (competitor research, Kahunas.io --
+see docs/decisiones.md): a link the client can tap to see the exercise
+performed, next to its name in the portal's Routine tab and the routine
+PDF. Deliberately a YouTube SEARCH-RESULTS link, not one hand-picked video
+ID per exercise: a real curated link per entry would mean personally
+watching and verifying all ~70 videos (right exercise, correct form) and
+then re-checking them over time as videos get deleted or reuploaded --
+a maintenance burden with no reliable way to verify it stays correct,
+and fabricating specific video IDs from memory would risk linking to the
+wrong exercise entirely. A search-results link never goes dead and needs
+zero upkeep, at the honest cost of not guaranteeing the first result is
+the best one -- an accepted, disclosed trade-off.
+
 Note on scope: the "nombre" (name) values are the exercise's CANONICAL
 name — English, and deliberately never swapped for Spanish even when the UI
 language is Spanish. rutina_reglas.py selects exercises by this value, and
@@ -67,6 +80,8 @@ never used for lookups anywhere in the pipeline. The
 tags matched elsewhere in the code (rutina_reglas.py, perfil_utils.py) and
 were deliberately left in Spanish — see docs/decisiones.md.
 """
+
+import urllib.parse
 
 # Injury zones the rule engine knows how to recognize (see rutina_reglas.py).
 CONTRAINDICACIONES_CONOCIDAS = {"rodilla", "hombro", "lumbar"}
@@ -174,3 +189,15 @@ def nombre_mostrado(nombre: str, idioma: str) -> str:
     English name if idioma isn't "es" or the name isn't in the bank (e.g. a
     future motor="llm" exercise not in this catalog)."""
     return NOMBRES_ES.get(nombre, nombre) if idioma == "es" else nombre
+
+
+def enlace_video_demostracion(nombre: str) -> str:
+    """Builds a YouTube search-results URL for an exercise's canonical
+    English `nombre` -- see the module docstring's DESIGN note for why this
+    is a search link rather than one curated video ID per exercise. Always
+    the English name (never nombre_mostrado()'s translation): search
+    results for exercise names are generally better/more numerous in
+    English regardless of the UI's display language, same reasoning as
+    validator_agent.py matching on "nombre" rather than "nombre_es"."""
+    consulta = urllib.parse.quote_plus(f"{nombre} exercise proper form tutorial")
+    return f"https://www.youtube.com/results?search_query={consulta}"

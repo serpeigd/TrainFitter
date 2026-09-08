@@ -354,7 +354,7 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
     Returns:
         The PDF file's raw bytes.
     """
-    from exercise_bank import nombre_mostrado
+    from exercise_bank import enlace_video_demostracion, nombre_mostrado
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -455,8 +455,17 @@ def generar_pdf_rutina(borrador_rutina: dict, nombre_cliente: str, idioma: str =
                 Paragraph(textos["col_notas"], estilo_celda_cabecera),
             ]]
             for ejercicio in ejercicios:
+                # A tappable link to a demo, next to the name -- competitor
+                # research (Kahunas.io, see docs/decisiones.md). A reportlab
+                # <link> tag inside the same Paragraph, not a new column --
+                # keeps the existing 5-column layout untouched.
+                nombre_con_video = (
+                    f'{nombre_mostrado(ejercicio["nombre"], idioma)} '
+                    f'<link href="{enlace_video_demostracion(ejercicio["nombre"])}" '
+                    f'color="{_COLOR_TABLA_CABECERA}">▶</link>'
+                )
                 filas.append([
-                    Paragraph(nombre_mostrado(ejercicio["nombre"], idioma), estilo_celda),
+                    Paragraph(nombre_con_video, estilo_celda),
                     Paragraph(str(ejercicio["series"]), estilo_celda),
                     Paragraph(str(ejercicio["repeticiones"]), estilo_celda),
                     Paragraph(f"{ejercicio['descanso_seg']}s", estilo_celda),

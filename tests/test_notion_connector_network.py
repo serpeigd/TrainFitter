@@ -842,7 +842,7 @@ def test_historial_checkins_returns_rows_most_recent_first(monkeypatch):
     assert historial == [
         {
             "fecha": "2026-07-28", "tipo": "Adherence check-in", "valoracion": "Medium",
-            "notas": "Skipped one session.", "peso_kg": None,
+            "notas": "Skipped one session.", "peso_kg": None, "cargas_ejercicios": [],
         }
     ]
     cliente.data_sources.query.assert_called_once_with(

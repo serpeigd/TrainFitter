@@ -193,6 +193,18 @@ adherence numbers, visible in the same "Adherence history" view the
 trainer already has, and included in the trainer notification email
 (see mcp/gmail_client.py's enviar_notificacion_checkin()).
 
+DESIGN — "Exercise Logs (JSON)" on Check-ins (competitor research,
+Kahunas.io -- see docs/decisiones.md): same JSON-blob-in-a-text-property
+trick as "Weekly Routine (JSON)" on Clients, but on Check-ins instead --
+one snapshot per check-in row of `[{"nombre": ..., "peso_kg": ...}, ...]`,
+the heaviest weight the client used that week for each exercise they
+chose to log. Deliberately NOT a cumulative merge like "Liked Exercises
+(JSON)" (agregar_ejercicio_favorito()) -- each row is its own week's
+snapshot, so reading every Check-ins row for a client and picking out one
+exercise's values across rows already gives a real progression over time
+(see agents/adherencia_parser.py's progresion_ejercicio()) without needing
+to merge/dedupe anything at write time.
+
 Setup (one-time, free, done by the project owner — never by this code):
   1. Create an integration at https://www.notion.so/my-integrations and
      copy its "Internal Integration Secret".
@@ -211,7 +223,8 @@ Setup (one-time, free, done by the project owner — never by this code):
        Name (title), Email (email), Type (select: "Plan sent" /
        "Manual check-in" / "Adherence check-in"), Date (date),
        Adherence notes (text), Adherence rating (select: Low/Medium/High),
-       Next follow-up (date), Source message ID (text), Weight (kg) (number)
+       Next follow-up (date), Source message ID (text), Weight (kg) (number),
+       Exercise Logs (JSON) (text)
   4. Share both databases with the integration (the "..." menu on each
      database page -> Connections -> add the integration by name).
   5. Set NOTION_API_KEY, NOTION_DATABASE_ID, and NOTION_CHECKINS_DATABASE_ID
@@ -1251,6 +1264,7 @@ def _construir_propiedades_checkin(
     valoracion: str | None = None,
     id_mensaje: str | None = None,
     peso_kg: float | None = None,
+    cargas_ejercicios: list[dict] | None = None,
 ) -> dict:
     """Builds the Notion page "properties" payload for a Check-ins row.
     Pure function: no I/O, safe to unit test without any credentials —
@@ -1259,7 +1273,9 @@ def _construir_propiedades_checkin(
 
     peso_kg: optional -- only the client portal's check-in form
     (ui/app.py) ever sets this, when the client chose to share it; see
-    this module's docstring on why "Weight (kg)" exists at all."""
+    this module's docstring on why "Weight (kg)" exists at all.
+    cargas_ejercicios: optional list of {"nombre", "peso_kg"} dicts -- see
+    this module's docstring's "Exercise Logs (JSON)" DESIGN note."""
     propiedades = {
         "Name": {"title": [{"text": {"content": f"{nombre_cliente} — {fecha}"}}]},
         "Email": {"email": email},
@@ -1274,6 +1290,10 @@ def _construir_propiedades_checkin(
         propiedades["Source message ID"] = {"rich_text": [{"text": {"content": id_mensaje}}]}
     if peso_kg is not None:
         propiedades["Weight (kg)"] = {"number": peso_kg}
+    if cargas_ejercicios:
+        propiedades["Exercise Logs (JSON)"] = {
+            "rich_text": _dividir_bloques_notion(json.dumps(cargas_ejercicios, ensure_ascii=False))
+        }
     return propiedades
 
 
@@ -1286,6 +1306,7 @@ def crear_registro_checkin(
     valoracion: str | None = None,
     id_mensaje: str | None = None,
     peso_kg: float | None = None,
+    cargas_ejercicios: list[dict] | None = None,
 ) -> dict:
     """
     Adds one row to the "Check-ins" database — the append-only interaction
@@ -1309,6 +1330,9 @@ def crear_registro_checkin(
             module docstring for why it exists (idempotency, not identity).
         peso_kg: optional current weight in kg — only the portal's
             check-in form sets this, when the client chose to share it.
+        cargas_ejercicios: optional list of {"nombre", "peso_kg"} dicts —
+            only the portal's check-in form sets this, one entry per
+            exercise the client chose to log a weight for this week.
 
     Returns:
         {"id": the page's Notion ID, "url": a notion.so link to it}.
@@ -1325,7 +1349,7 @@ def crear_registro_checkin(
     from notion_client.errors import APIResponseError
 
     propiedades = _construir_propiedades_checkin(
-        email, nombre_cliente, tipo, fecha, notas, valoracion, id_mensaje, peso_kg,
+        email, nombre_cliente, tipo, fecha, notas, valoracion, id_mensaje, peso_kg, cargas_ejercicios,
     )
 
     try:
@@ -1438,7 +1462,16 @@ def _fila_checkin_desde_pagina(pagina: dict) -> dict:
     valoracion = (propiedades.get("Adherence rating", {}).get("select") or {}).get("name")
     notas = "".join(t["plain_text"] for t in propiedades.get("Adherence notes", {}).get("rich_text", []))
     peso_kg = (propiedades.get("Weight (kg)") or {}).get("number")
-    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "notas": notas, "peso_kg": peso_kg}
+    # Same tolerant-empty-list default as _perfil_desde_propiedades()'s
+    # "Liked Exercises (JSON)" read -- a check-in row from before this
+    # property existed, or one where the client skipped every exercise,
+    # both come back as [], not None/an error.
+    texto_cargas = _unir_bloques_notion(propiedades.get("Exercise Logs (JSON)", {}))
+    cargas_ejercicios = json.loads(texto_cargas) if texto_cargas else []
+    return {
+        "fecha": fecha, "tipo": tipo, "valoracion": valoracion, "notas": notas, "peso_kg": peso_kg,
+        "cargas_ejercicios": cargas_ejercicios,
+    }
 
 
 def historial_checkins(email: str) -> list[dict]:
@@ -1453,9 +1486,10 @@ def historial_checkins(email: str) -> list[dict]:
             module's docstring for why).
 
     Returns:
-        A list of {"fecha", "tipo", "valoracion", "notas", "peso_kg"}
-        dicts, most recent first (peso_kg is None on any row where the
-        client didn't share it — only some portal check-ins ever set it).
+        A list of {"fecha", "tipo", "valoracion", "notas", "peso_kg",
+        "cargas_ejercicios"} dicts, most recent first (peso_kg is None,
+        and cargas_ejercicios is [], on any row where the client didn't
+        share it — only some portal check-ins ever set either).
         Empty list if the client has no check-ins yet (not an error — a
         brand-new client legitimately has none).
 

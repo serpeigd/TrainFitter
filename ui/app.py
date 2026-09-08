@@ -200,12 +200,15 @@ sys.path.insert(0, str(AGENTS_DIR))
 sys.path.insert(0, str(MCP_DIR))
 
 from adherencia_parser import (  # noqa: E402
+    ejercicios_con_progreso,
+    progresion_ejercicio,
     resumen_mensual_tendencia,
     resumir_adherencia,
     tendencia_peso,
     valoracion_desde_ratios,
 )
 from analytics_parser import analizar_pdf_analitica  # noqa: E402
+from exercise_bank import enlace_video_demostracion  # noqa: E402
 from exercise_bank import nombre_mostrado as ejercicio_mostrado  # noqa: E402
 from food_bank import (  # noqa: E402
     ESTILOS_COCINA,
@@ -1035,6 +1038,9 @@ TRANSLATIONS = {
         "adherence_history_error": "Could not load adherence history: {error}",
         "history_chart_weight": "Weight over time",
         "history_chart_adherence": "Adherence trend (1 = Low, 2 = Medium, 3 = High)",
+        "history_chart_exercise_progress": "Exercise progress",
+        "history_exercise_picker_label": "Exercise",
+        "history_exercise_not_enough_data": "Log this exercise on another check-in to see a trend.",
         "portal_invalid_link": "This portal link isn't valid or has expired: {error}",
         "portal_load_error": "Could not load your plan: {error}",
         "portal_resend_intro": "Enter the email your trainer has on file and we'll send you a new link.",
@@ -1094,6 +1100,7 @@ TRANSLATIONS = {
             "We've guessed today's session by spreading your sessions evenly across the week — "
             "pick a different day if your real schedule doesn't match."
         ),
+        "portal_watch_demo_link": "▶ Watch demo",
         "portal_history_header": "📈 Your check-in history",
         "portal_checkin_header": "✅ How's it going?",
         "portal_checkin_intro": (
@@ -1108,6 +1115,11 @@ TRANSLATIONS = {
         "portal_routine_more_than_planned_label": "I trained more than planned",
         "portal_diet_more_than_planned_label": "I followed the diet more days than planned",
         "portal_routine_notes_label": "Anything about your routine (optional)",
+        "portal_exercise_log_title": "🏋️ Log this week's lifts (optional)",
+        "portal_exercise_log_caption": (
+            "Heaviest weight you used this week for any exercise — leave at 0 to skip it. "
+            "Track a few over time and you'll see real progress in the Progress tab."
+        ),
         "portal_diet_completed_label": "Days you followed the diet",
         "portal_diet_total_label": "Out of how many days",
         "portal_diet_notes_label": "Anything about your diet (optional)",
@@ -1384,6 +1396,9 @@ TRANSLATIONS = {
         "adherence_history_error": "No se pudo cargar el historial de adherencia: {error}",
         "history_chart_weight": "Peso a lo largo del tiempo",
         "history_chart_adherence": "Tendencia de adherencia (1 = Baja, 2 = Media, 3 = Alta)",
+        "history_chart_exercise_progress": "Progreso por ejercicio",
+        "history_exercise_picker_label": "Ejercicio",
+        "history_exercise_not_enough_data": "Registra este ejercicio en otro check-in para ver una tendencia.",
         "portal_invalid_link": "Este enlace del portal no es válido o ha caducado: {error}",
         "portal_load_error": "No se pudo cargar tu plan: {error}",
         "portal_resend_intro": "Escribe el email que tiene tu entrenador/a y te enviamos un enlace nuevo.",
@@ -1439,6 +1454,7 @@ TRANSLATIONS = {
         "portal_micro_highlights_label": "El plan de hoy es buena fuente de:",
         "portal_routine_header": "🏋️ Rutina",
         "portal_today_tag": "📅 Hoy",
+        "portal_watch_demo_link": "▶ Ver demostración",
         "portal_routine_today_caption": (
             "Hemos adivinado la sesión de hoy repartiendo tus sesiones a lo largo de la semana — "
             "elige otro día si tu horario real es distinto."
@@ -1457,6 +1473,11 @@ TRANSLATIONS = {
         "portal_routine_more_than_planned_label": "Entrené más de lo planeado",
         "portal_diet_more_than_planned_label": "Seguí la dieta más días de los previstos",
         "portal_routine_notes_label": "Algo sobre tu rutina (opcional)",
+        "portal_exercise_log_title": "🏋️ Registra tus pesos de esta semana (opcional)",
+        "portal_exercise_log_caption": (
+            "El peso más alto que hayas usado esta semana en cada ejercicio — déjalo en 0 para omitirlo. "
+            "Registra algunos a lo largo del tiempo y verás tu progreso real en la pestaña Progreso."
+        ),
         "portal_diet_completed_label": "Días que has seguido la dieta",
         "portal_diet_total_label": "De cuántos días",
         "portal_diet_notes_label": "Algo sobre tu dieta (opcional)",
@@ -3232,6 +3253,44 @@ def _render_grafico_tendencia(historial: list[dict]) -> None:
         pass
 
 
+def _render_grafico_progreso_ejercicio(historial: list[dict], email: str) -> None:
+    """Per-exercise weight-over-time chart, from the "Exercise Logs (JSON)"
+    values the check-in form (_render_formulario_checkin_portal() below)
+    optionally saves each week -- competitor research (Kahunas.io's
+    "Workout Log", see docs/decisiones.md). Renders nothing at all if the
+    client has never logged a single exercise weight yet -- same
+    "degrades to no chart, never a broken/empty-looking section" spirit
+    as _render_grafico_tendencia() above.
+
+    email: only used to scope the exercise-picker's widget key, so two
+    different clients' history sections on the same page (trainer panel
+    vs. portal both call this, via this function's own caller) never
+    collide."""
+    ejercicios = ejercicios_con_progreso(historial)
+    if not ejercicios:
+        return
+
+    st.caption(t("history_chart_exercise_progress"))
+    elegido = st.selectbox(
+        t("history_exercise_picker_label"), ejercicios,
+        format_func=lambda n: ejercicio_mostrado(n, st.session_state.lang),
+        key=f"historial_ejercicio_selector_{email}",
+    )
+    serie = progresion_ejercicio(historial, elegido)
+    if len(serie) < 2:
+        st.caption(t("history_exercise_not_enough_data"))
+        return
+
+    try:
+        # Same lazy pandas import as _render_grafico_tendencia() above --
+        # never a hard dependency for the rest of this app.
+        import pandas as pd
+
+        st.line_chart(pd.DataFrame({"kg": [peso for _, peso in serie]}, index=[fecha for fecha, _ in serie]))
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+
 def _fecha_checkin_esta_semana(historial: list[dict]) -> str | None:
     """Returns the ISO date of the most recent "Adherence check-in" row if
     it falls within the current calendar week (Monday-Sunday, UTC), else
@@ -3291,6 +3350,7 @@ def _render_historial_checkins(email: str, objetivo: str | None = None) -> None:
         st.caption(f"📅 {resumen_mensual}")
 
     _render_grafico_tendencia(historial)
+    _render_grafico_progreso_ejercicio(historial, email)
 
     for fila in historial:
         etiqueta_valoracion = f" — {fila['valoracion']}" if fila["valoracion"] else ""
@@ -3832,6 +3892,7 @@ def _render_dias_rutina(sesiones: list[dict]) -> None:
             linea = f"**{nombre_es}** — {ejercicio['series']} x {ejercicio['repeticiones']}"
             if ejercicio.get("descanso_seg"):
                 linea += f" ({t('col_rest')} {ejercicio['descanso_seg']}s)"
+            linea += f" · [{t('portal_watch_demo_link')}]({enlace_video_demostracion(ejercicio['nombre'])})"
             st.markdown(linea)
             if ejercicio.get("notas"):
                 st.caption(ejercicio["notas"])
@@ -4230,6 +4291,38 @@ def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: lis
     )
     notas_rutina = st.text_area(t("portal_routine_notes_label"), key="portal_notas_rutina")
 
+    # Optional, competitor research (Kahunas.io's "Workout Log" -- see
+    # docs/decisiones.md): one heaviest-weight-used input per unique
+    # exercise in this week's routine, not a full per-set log -- keeps
+    # this check-in-cadence input quick while still giving a real
+    # progressive-overload signal over time (see
+    # agents/adherencia_parser.py's progresion_ejercicio()). Deduplicated
+    # by canonical name, first-seen order across the week's sessions --
+    # the same exercise can appear on more than one training day.
+    nombres_unicos = []
+    for sesion in sesiones:
+        for ejercicio in sesion.get("ejercicios", []):
+            if ejercicio["nombre"] not in nombres_unicos:
+                nombres_unicos.append(ejercicio["nombre"])
+    cargas_ejercicios = []
+    if nombres_unicos:
+        with st.expander(t("portal_exercise_log_title")):
+            st.caption(t("portal_exercise_log_caption"))
+            for idx, nombre_ejercicio in enumerate(nombres_unicos):
+                # 0 means "not logged" (default, skipped below), not "did
+                # zero weight" -- same convention as compartir_peso's own
+                # checkbox-gated share below, just per-exercise instead of
+                # one shared checkbox (one is genuinely lighter here: a
+                # 0-means-skip number input avoids one checkbox per
+                # exercise for what's already an optional section).
+                peso = st.number_input(
+                    ejercicio_mostrado(nombre_ejercicio, st.session_state.lang),
+                    min_value=0.0, max_value=500.0, value=0.0, step=0.5,
+                    key=f"portal_carga_ejercicio_{idx}",
+                )
+                if peso > 0:
+                    cargas_ejercicios.append({"nombre": nombre_ejercicio, "peso_kg": peso})
+
     st.divider()
     st.markdown(f"**{t('portal_diet_section_title')}**")
     totales_dieta = st.slider(
@@ -4303,6 +4396,7 @@ def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: lis
             # language for this whole portal view (see
             # _vista_portal_cliente()).
             notas=resumir_adherencia(datos, st.session_state.lang), valoracion=valoracion, peso_kg=peso_kg,
+            cargas_ejercicios=cargas_ejercicios or None,
         )
     except (NotionClientError, ImportError, ModuleNotFoundError) as exc:
         st.error(t("portal_submit_error").format(error=str(exc)))
@@ -4364,6 +4458,20 @@ def _render_formulario_checkin_portal(carga: dict, registro: dict, sesiones: lis
                 estado_regenerado.borrador_dieta, estado_regenerado.veredicto, idioma=idioma_plan,
             )
             nuevo_codigo = generar_referencia_portal(carga["pagina"], carga["email"])
+            # Real bug, caught live while verifying the exercise-progress
+            # chart below: generar_referencia_portal() OVERWRITES "Portal
+            # Reference" in place (see mcp/notion_connector.py), so the
+            # client's own currently-open browser tab -- still on the OLD
+            # ref from before this check-in -- immediately stopped
+            # resolving the moment this ran, throwing them onto the
+            # "invalid link" screen the instant they clicked anywhere else
+            # in their own session right after submitting. Updating the
+            # live query param to match keeps this same tab working with
+            # no re-request needed; the trainer's fresh-link draft below is
+            # unaffected -- it's still sent for durability (a bookmarked
+            # old link, a different device), same as
+            # _formulario_reenviar_link_portal()'s identical pattern.
+            st.query_params["ref"] = nuevo_codigo
             # This check-in was already saved above, so it's included in its
             # own count -- 1 for a client's first-ever check-in, 2 for their
             # second, etc. historial_checkins() returns EVERY Check-ins row

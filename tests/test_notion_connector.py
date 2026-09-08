@@ -446,6 +446,27 @@ def test_checkin_properties_omit_optional_fields_when_not_given():
     assert "Adherence rating" not in propiedades
     assert "Source message ID" not in propiedades
     assert "Weight (kg)" not in propiedades
+    assert "Exercise Logs (JSON)" not in propiedades
+
+
+def test_checkin_properties_include_exercise_logs_when_given():
+    propiedades = _construir_propiedades_checkin(
+        "client@example.com", "Ana Test", "Adherence check-in", "2026-07-30",
+        cargas_ejercicios=[{"nombre": "Barbell squat", "peso_kg": 42.5}],
+    )
+    import json
+
+    contenido = propiedades["Exercise Logs (JSON)"]["rich_text"][0]["text"]["content"]
+    assert json.loads(contenido) == [{"nombre": "Barbell squat", "peso_kg": 42.5}]
+
+
+def test_checkin_properties_omit_exercise_logs_when_empty_list():
+    """An empty list (client opened the section but logged nothing) is
+    the same as not providing it -- no point writing "[]" to Notion."""
+    propiedades = _construir_propiedades_checkin(
+        "client@example.com", "Ana Test", "Adherence check-in", "2026-07-30", cargas_ejercicios=[],
+    )
+    assert "Exercise Logs (JSON)" not in propiedades
 
 
 def test_checkin_properties_include_weight_when_given():
@@ -646,6 +667,9 @@ def test_fila_checkin_extracts_expected_fields():
             "Adherence rating": {"select": {"name": "Medium"}},
             "Adherence notes": {"rich_text": [{"plain_text": "Skipped day 4. "}, {"plain_text": "Struggled with diet."}]},
             "Weight (kg)": {"number": 71.5},
+            "Exercise Logs (JSON)": {
+                "rich_text": [{"plain_text": '[{"nombre": "Barbell squat", "peso_kg": 42.5}]'}]
+            },
         }
     }
     fila = _fila_checkin_desde_pagina(pagina)
@@ -655,6 +679,7 @@ def test_fila_checkin_extracts_expected_fields():
         "valoracion": "Medium",
         "notas": "Skipped day 4. Struggled with diet.",
         "peso_kg": 71.5,
+        "cargas_ejercicios": [{"nombre": "Barbell squat", "peso_kg": 42.5}],
     }
 
 
@@ -670,4 +695,7 @@ def test_fila_checkin_handles_missing_optional_properties():
         }
     }
     fila = _fila_checkin_desde_pagina(pagina)
-    assert fila == {"fecha": "2026-07-20", "tipo": "Plan sent", "valoracion": None, "notas": "", "peso_kg": None}
+    assert fila == {
+        "fecha": "2026-07-20", "tipo": "Plan sent", "valoracion": None, "notas": "", "peso_kg": None,
+        "cargas_ejercicios": [],
+    }

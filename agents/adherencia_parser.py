@@ -359,3 +359,58 @@ def tendencia_peso(historial: list[dict], objetivo: str | None, idioma: str = "e
         f"({primer_peso}kg -> {ultimo_peso}kg) despite {meta} -- worth checking the diet is actually "
         "being followed, or reviewing the calorie target on the next revision."
     )
+
+
+def ejercicios_con_progreso(historial: list[dict]) -> list[str]:
+    """Canonical (English) exercise names that appear in at least one
+    Check-ins row's "cargas_ejercicios" -- lets ui/app.py build a
+    selectbox of "which exercise do you want to see progress for" without
+    listing every exercise in the routine, only the ones the client
+    actually ever logged a weight for.
+
+    Args:
+        historial: notion_connector.historial_checkins()'s own return
+            shape -- each row's "cargas_ejercicios" is a list of
+            {"nombre", "peso_kg"} dicts, possibly empty.
+
+    Returns:
+        Sorted, deduplicated exercise names (canonical English "nombre",
+        same as exercise_bank.py -- callers translate for display via
+        exercise_bank.nombre_mostrado()). Empty list if nothing was ever
+        logged.
+    """
+    nombres = {
+        carga["nombre"]
+        for fila in historial
+        for carga in fila.get("cargas_ejercicios") or []
+        if carga.get("nombre")
+    }
+    return sorted(nombres)
+
+
+def progresion_ejercicio(historial: list[dict], nombre_ejercicio: str) -> list[tuple[str, float]]:
+    """Builds one exercise's weight-logged-over-time series from Check-ins
+    history -- each row is one week's snapshot (see
+    mcp/notion_connector.py's "Exercise Logs (JSON)" DESIGN note), so
+    picking out a single exercise's value across rows already gives real
+    progression, oldest first (chart-friendly) -- no merging needed since
+    nothing is cumulative at write time.
+
+    Args:
+        historial: notion_connector.historial_checkins()'s own return
+            shape, most-recent-first (its own documented order).
+        nombre_ejercicio: canonical English "nombre" (exercise_bank.py) to
+            filter for -- exact match, same lookup key the rest of the
+            pipeline uses (see exercise_bank.py's module docstring).
+
+    Returns:
+        (fecha, peso_kg) pairs, oldest first. Empty list if the client
+        never logged that exercise.
+    """
+    puntos = [
+        (fila["fecha"], carga["peso_kg"])
+        for fila in historial
+        for carga in fila.get("cargas_ejercicios") or []
+        if carga.get("nombre") == nombre_ejercicio and carga.get("peso_kg") is not None and fila.get("fecha")
+    ]
+    return list(reversed(puntos))  # historial is most-recent-first; charts read oldest-first

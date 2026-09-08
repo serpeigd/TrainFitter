@@ -123,6 +123,11 @@ excluded from coverage — verified live instead, same convention throughout).
   forces `revision_reforzada` on out-of-range values.
 - `agents/suplementos_interacciones.py`: curated supplement–medication
   interaction table backing the validator's generic check.
+- Competitor-research features (Kahunas.io): a YouTube search-results link
+  per exercise (`exercise_bank.enlace_video_demostracion()`, portal +
+  routine PDF), and per-exercise weekly weight logging in the check-in
+  form → a progression chart in the portal's Progress tab (Check-ins'
+  new "Exercise Logs (JSON)" property).
 
 **Known, accepted limitation**: the Gmail OAuth token still expires every
 ~7 days (Testing-mode publishing status) — attempted publishing to

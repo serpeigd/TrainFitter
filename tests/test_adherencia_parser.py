@@ -10,6 +10,8 @@ from datetime import date, timedelta
 
 from adherencia_parser import (
     checklist_tiene_contenido_real,
+    ejercicios_con_progreso,
+    progresion_ejercicio,
     resumen_mensual_tendencia,
     resumir_adherencia,
     sugerencia_seguimiento,
@@ -263,8 +265,11 @@ def _hace(dias: int) -> str:
     return (date.today() - timedelta(days=dias)).isoformat()
 
 
-def _fila(fecha, tipo="Adherence check-in", valoracion=None, peso_kg=None, notas=""):
-    return {"fecha": fecha, "tipo": tipo, "valoracion": valoracion, "peso_kg": peso_kg, "notas": notas}
+def _fila(fecha, tipo="Adherence check-in", valoracion=None, peso_kg=None, notas="", cargas_ejercicios=None):
+    return {
+        "fecha": fecha, "tipo": tipo, "valoracion": valoracion, "peso_kg": peso_kg, "notas": notas,
+        "cargas_ejercicios": cargas_ejercicios or [],
+    }
 
 
 def test_none_for_empty_history():
@@ -359,3 +364,46 @@ def test_ignores_a_malformed_or_missing_date_rather_than_crashing():
     resumen = resumen_mensual_tendencia(historial)
     assert "1 check-in, adherence trending low." in resumen
     assert "999.0" not in resumen
+
+
+# --- ejercicios_con_progreso() / progresion_ejercicio() ---------------------
+
+
+def test_ejercicios_con_progreso_returns_sorted_unique_names():
+    historial = [
+        _fila(_hace(2), cargas_ejercicios=[{"nombre": "Barbell squat", "peso_kg": 50}]),
+        _fila(_hace(9), cargas_ejercicios=[
+            {"nombre": "Barbell squat", "peso_kg": 45}, {"nombre": "Dumbbell curl", "peso_kg": 12},
+        ]),
+    ]
+    assert ejercicios_con_progreso(historial) == ["Barbell squat", "Dumbbell curl"]
+
+
+def test_ejercicios_con_progreso_empty_when_nothing_logged():
+    historial = [_fila(_hace(2)), _fila(_hace(9))]
+    assert ejercicios_con_progreso(historial) == []
+
+
+def test_progresion_ejercicio_returns_oldest_first():
+    """historial is most-recent-first (historial_checkins()'s own
+    documented order) -- the returned series must be oldest-first, ready
+    for a chart's x-axis."""
+    historial = [
+        _fila(_hace(2), cargas_ejercicios=[{"nombre": "Barbell squat", "peso_kg": 50}]),
+        _fila(_hace(9), cargas_ejercicios=[{"nombre": "Barbell squat", "peso_kg": 45}]),
+    ]
+    assert progresion_ejercicio(historial, "Barbell squat") == [
+        (_hace(9), 45), (_hace(2), 50),
+    ]
+
+
+def test_progresion_ejercicio_ignores_other_exercises_and_unlogged_weeks():
+    historial = [
+        _fila(_hace(2), cargas_ejercicios=[{"nombre": "Dumbbell curl", "peso_kg": 12}]),
+        _fila(_hace(9)),  # no cargas_ejercicios logged that week
+    ]
+    assert progresion_ejercicio(historial, "Barbell squat") == []
+
+
+def test_progresion_ejercicio_empty_for_unknown_exercise():
+    assert progresion_ejercicio([], "Barbell squat") == []

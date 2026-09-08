@@ -283,6 +283,24 @@ def test_routine_pdf_includes_warmup_and_cardio_notes(borrador_rutina):
     assert "Zone 2 cardio" in texto
 
 
+def test_routine_pdf_links_each_exercise_to_a_video_demo(borrador_rutina):
+    """Competitor research (Kahunas.io, see docs/decisiones.md) -- each
+    exercise row gets a clickable link annotation to a YouTube search for
+    it, not just visible text (extract_text() wouldn't see a link
+    annotation's URL, only the "▶" glyph it wraps)."""
+    from pypdf import PdfReader
+
+    pdf = generar_pdf_rutina(borrador_rutina, "Marta", idioma="en")
+    reader = PdfReader(io.BytesIO(pdf))
+    enlaces = [
+        anotacion.get_object()["/A"]["/URI"]
+        for pagina in reader.pages
+        for anotacion in (pagina.get("/Annots") or [])
+        if anotacion.get_object().get("/A", {}).get("/URI")
+    ]
+    assert any("youtube.com/results?search_query=Barbell+bench+press" in e for e in enlaces)
+
+
 def test_routine_pdf_translates_exercise_names_for_spanish(borrador_rutina):
     """Same invariant as the diet PDF: exercise names are translated for
     display via exercise_bank.nombre_mostrado(), the canonical English
